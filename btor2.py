@@ -145,9 +145,9 @@ class Btor2Var(Btor2Expr):
 
 class Btor2InputVar(Btor2Var):
 
-    def __init__(self, srt) -> None:
+    def __init__(self, sort) -> None:
         super().__init__()
-        self.sort: Btor2Sort = srt
+        self.sort: Btor2Sort = sort
 
     def __str__(self) -> str:
         return f"{self.nid} input {self.sort.sid}"
@@ -155,9 +155,9 @@ class Btor2InputVar(Btor2Var):
 
 class Btor2StateVar(Btor2Var):
 
-    def __init__(self, srt) -> None:
+    def __init__(self, sort) -> None:
         super().__init__()
-        self.sort: Btor2Sort = srt
+        self.sort: Btor2Sort = sort
 
     def __str__(self) -> str:
         return f"{self.nid} state {self.sort.sid}"
@@ -165,17 +165,17 @@ class Btor2StateVar(Btor2Var):
 
 class Btor2Const(Btor2Expr):
 
-    def __init__(self, srt: Btor2Sort, val: Btor2Node) -> None:
+    def __init__(self, sort: Btor2Sort, val: Btor2Node) -> None:
         super().__init__()
-        self.sort = srt
+        self.sort = sort
         self.value = val
 
 
 class Btor2Apply(Btor2Expr):
 
-    def __init__(self, srt: Btor2Sort, op: Btor2Operator, args: list[Btor2Expr]) -> None:
+    def __init__(self, sort: Btor2Sort, op: Btor2Operator, args: list[Btor2Expr]) -> None:
         super().__init__()
-        self.sort = srt
+        self.sort = sort
         self.operator = op
 
 
