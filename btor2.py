@@ -1,7 +1,9 @@
 """
 https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 """
+from __future__ import annotations
 from enum import Enum
+from typing import Any, Callable, Dict, List
 
 
 class Btor2Operator(Enum):
@@ -93,7 +95,6 @@ class Btor2Sort(Btor2Node):
 
     def __init__(self) -> None:
         super().__init__()
-        self.sid = -1
 
 
 class Btor2BitVec(Btor2Sort):
@@ -122,7 +123,7 @@ class Btor2Array(Btor2Sort):
         self.name = "array"
 
     def __str__(self) -> str:
-        return f"{self.nid} {self.name} {self.domain.sid} {self.range.sid}"
+        return f"{self.nid} {self.name} {self.domain.nid} {self.range.nid}"
     
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, Btor2Array):
@@ -133,55 +134,65 @@ class Btor2Array(Btor2Sort):
 
 class Btor2Expr(Btor2Node):
 
-    def __init__(self) -> None:
+    def __init__(self, c: List[Btor2Expr]) -> None:
         super().__init__()
+        self.children = c
 
 
 class Btor2Var(Btor2Expr):
 
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__([])
 
 
 class Btor2InputVar(Btor2Var):
 
-    def __init__(self, sort) -> None:
+    def __init__(self, sort: Btor2Sort) -> None:
         super().__init__()
         self.sort: Btor2Sort = sort
 
     def __str__(self) -> str:
-        return f"{self.nid} input {self.sort.sid}"
+        return f"{self.nid} input {self.sort.nid}"
 
 
 class Btor2StateVar(Btor2Var):
 
-    def __init__(self, sort) -> None:
+    def __init__(self, sort: Btor2Sort) -> None:
         super().__init__()
         self.sort: Btor2Sort = sort
 
     def __str__(self) -> str:
-        return f"{self.nid} state {self.sort.sid}"
+        return f"{self.nid} state {self.sort.nid}"
 
 
 class Btor2Const(Btor2Expr):
 
-    def __init__(self, sort: Btor2Sort, val: Btor2Node) -> None:
-        super().__init__()
+    def __init__(self, sort: Btor2Sort, val: Any) -> None:
+        super().__init__([])
         self.sort = sort
         self.value = val
+
+    def __str__(self) -> str:
+        return f"{self.nid} const {self.sort.nid} {int(self.value)}"
 
 
 class Btor2Apply(Btor2Expr):
 
-    def __init__(self, sort: Btor2Sort, op: Btor2Operator, args: list[Btor2Expr]) -> None:
-        super().__init__()
+    def __init__(self, sort: Btor2Sort, op: Btor2Operator, args: List[Btor2Expr]) -> None:
+        super().__init__(args)
         self.sort = sort
         self.operator = op
+
+    def __str__(self) -> str:
+        s = f"{self.nid} {self.operator.name.lower()} "
+        for arg in self.children:
+            s += f"{arg.nid} "
+        return s[:-1]
 
 
 class Btor2Program():
 
-    def __init__(self, sorts: set[Btor2Sort], instr: list[Btor2Expr]) -> None:
+    def __init__(self, sorts: set[Btor2Sort], instr: List[Btor2Expr]) -> None:
         self.sorts = sorts
         self.instructions = instr
 
@@ -194,6 +205,28 @@ class Btor2Program():
         return s[:-1] # delete last newline and return
     
 
-operator_table: dict[Btor2Operator, tuple[list[type], type]] = {
+operator_table: Dict[Btor2Operator, tuple[List[type], type]] = {
     Btor2Operator.SEXT: ([Btor2BitVec], Btor2BitVec)
 }
+
+
+def postorder_iterative_btor2(expr: Btor2Expr, func: Callable[[Btor2Expr], Any]) -> None:
+    """Perform an iterative postorder traversal of node, calling func on each node."""
+    stack: List[tuple[bool, Btor2Expr]] = []
+    visited: set[Btor2Expr] = set()
+
+    stack.append((False, expr))
+
+    while len(stack) > 0:
+        cur = stack.pop()
+
+        if cur[0]:
+            func(cur[1])
+            continue
+        elif cur[1] in visited:
+            continue
+
+        visited.add(cur[1])
+        stack.append((True, cur[1]))
+        for child in cur[1].children:
+            stack.append((False, child))
