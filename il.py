@@ -4,7 +4,6 @@ from enum import Enum
 
 from btor2 import *
 
-
 class ILIdentifier(NamedTuple):
     """
     See section 3.3 of https://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2021-05-12.pdf.
@@ -45,7 +44,8 @@ class ILSort():
             s += f"{sort} "
         return s[:-1]+")"
 
-IL_NO_SORT = ILSort(ILIdentifier("", []), [])
+# Built-in sorts
+IL_NO_SORT = ILSort(ILIdentifier("", []), []) # placeholder sort
 IL_BOOL_SORT = ILSort(ILIdentifier("Bool", []), [])
 
 
@@ -101,7 +101,7 @@ class ILOutputVar(ILVar):
 
 class ILApply(ILExpr):
 
-    def __init__(self, op: str, args: List[ILExpr]) -> None:
+    def __init__(self, op: ILIdentifier, args: List[ILExpr]) -> None:
         super().__init__(args)
         self.symbol = op
 
@@ -237,7 +237,7 @@ class ILProgram():
 def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]) -> None:
     """Perform an iterative postorder traversal of node, calling func on each node."""
     stack: List[tuple[bool, ILExpr]] = []
-    visited: List[ILExpr] = []
+    visited: set[int] = set()
 
     stack.append((False, expr))
 
@@ -247,10 +247,14 @@ def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]) -> None:
         if cur[0]:
             func(cur[1])
             continue
-        elif cur[1] in visited:
+        elif id(cur[1]) in visited:
             continue
 
-        visited.append(cur[1])
+        visited.add(id(cur[1]))
         stack.append((True, cur[1]))
         for child in cur[1].children:
             stack.append((False, child))
+
+
+def sort_check(node: ILExpr) -> bool:
+    return True

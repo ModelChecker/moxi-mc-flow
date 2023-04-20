@@ -1,6 +1,4 @@
 #type: ignore
-
-from numpy import sort
 from .sly import Lexer, Parser
 from il import *
 
@@ -151,9 +149,9 @@ class ILParser(Parser):
     def define_system_attribute_list(self, p):
         return {}
 
-    @_("ATTR_INPUT LPAREN term_list RPAREN",
-       "ATTR_LOCAL LPAREN term_list RPAREN",
-       "ATTR_OUTPUT LPAREN term_list RPAREN")
+    @_("ATTR_INPUT LPAREN sorted_var_list RPAREN",
+       "ATTR_LOCAL LPAREN sorted_var_list RPAREN",
+       "ATTR_OUTPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
         return (str(p[1]), p[3])
 
@@ -162,10 +160,39 @@ class ILParser(Parser):
        "ATTR_INV LPAREN term RPAREN")
     def define_system_attribute(self, p):
         return (str(p[1]), p[3])
-
+    
+    @_("sorted_var_list LPAREN sorted_var RPAREN")
+    def sorted_var_list(self, p):
+        # p[0] is a dict, p[2] is a tuple of type (str, ILSort)
+        p[0][p[2][0]] = p[2][1]
+        return p[0]
+    
     @_("")
+    def sorted_var_list(self, p):
+        return {}
+    
+    @_("SYMBOL sort")
+    def sorted_var(self, p):
+        return (p[0], p[1])
+    
+    @_("term_list LPAREN term RPAREN")
+    def term_list(self, p):
+        p[0].append(p[2])
+        return p[0]
+    
+    @_("")
+    def term_list(self, p):
+        return []
+
+    @_("identifier")
     def term(self, p):
-        pass
+        # term is a variable, sort and prime will be resolved during type checking
+        return ILVar(p[0].symbol, IL_NO_SORT, False)
+
+    @_("identifier term_list term")
+    def term(self, p):
+        p[1].append(p[2])
+        return ILApply(p[0], p[1])
 
     @_("identifier")
     def sort(self, p):

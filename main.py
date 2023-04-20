@@ -92,9 +92,9 @@ if __name__ == "__main__":
     out_var = ILOutputVar("out", bv8_sort, False)
     out_var_p = ILOutputVar("out", bv8_sort, True)
 
-    init_cond = ILApply("=", [out_var, ILConstant(bv8_sort, 0)])
+    init_cond = ILApply(ILIdentifier("=", []), [out_var, ILConstant(bv8_sort, 0)])
     init_cond.sort = bool_sort
-    trans_cond = ILApply("=", [out_var_p, in_var])
+    trans_cond = ILApply(ILIdentifier("=", []), [out_var_p, in_var])
     trans_cond.sort = bool_sort
 
     def_sys = ILDefineSystem(
