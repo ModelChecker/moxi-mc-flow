@@ -1,5 +1,6 @@
 #type: ignore
 
+from numpy import sort
 from .sly import Lexer, Parser
 from il import *
 
@@ -35,13 +36,13 @@ class ILLexer(Lexer):
     RPAREN  = r"\)"
     PRIME   = r"'"
 
-    SYMBOL["declare-sort"] = CMD_DECLARE_SORT
-    SYMBOL["define-sort"] = CMD_DEFINE_SORT
+    SYMBOL["declare-sort"]  = CMD_DECLARE_SORT
+    SYMBOL["define-sort"]   = CMD_DEFINE_SORT
     SYMBOL["declare-const"] = CMD_DECLARE_CONST
-    SYMBOL["define-fun"] = CMD_DEFINE_FUN
-    SYMBOL["declare-enum"] = CMD_DECLARE_ENUM_SORT
+    SYMBOL["define-fun"]    = CMD_DEFINE_FUN
+    SYMBOL["declare-enum"]  = CMD_DECLARE_ENUM_SORT
     SYMBOL["define-system"] = CMD_DEFINE_SYSTEM
-    SYMBOL["check-system"] = CMD_CHECK_SYSTEM
+    SYMBOL["check-system"]  = CMD_CHECK_SYSTEM
 
     SYMBOL[":input"]  = ATTR_INPUT
     SYMBOL[":local"]  = ATTR_LOCAL
@@ -65,6 +66,7 @@ class ILParser(Parser):
     def __init__(self) -> None:
         super().__init__()
         self.sorts = {}
+        self.vars = {}
         self.status = True
 
         self.sorts["Bool"] = 0
@@ -85,22 +87,17 @@ class ILParser(Parser):
     def command_list(self, p):
         return []
 
-    # @_("LPAREN CMD_DECLARE_SORT SYMBOL NUM RPAREN")
-    # def command(self, p):
-    #     if not p[2] in self.sorts:
-    #         self.sorts[p[2]] = int(p[3])
-    #     else:
-    #         print(f"Sort {p[2]} already defined.")
-
-    #     return None
+    @_("LPAREN CMD_DECLARE_SORT SYMBOL NUMERAL RPAREN")
+    def command(self, p):
+        return ILDeclareSort(p[2], p[3])
     
     # @_("LPAREN CMD_DEFINE_SORT SYMBOL _ RPAREN")
     # def command(self, p):
     #     return []
     
-    # @_("LPAREN CMD_DECLARE_CONST SYMBOL SYMBOL RPAREN")
-    # def command(self, p):
-    #     return []
+    @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
+    def command(self, p):
+        return ILDeclareConst(p[2], p[3])
     
     # @_("LPAREN CMD_DEFINE_FUN SYMBOL _ RPAREN")
     # def command(self, p):
@@ -154,45 +151,65 @@ class ILParser(Parser):
     def define_system_attribute_list(self, p):
         return {}
 
-    @_("COLON ATTR_INPUT LPAREN s_expr_list RPAREN",
-       "COLON ATTR_LOCAL LPAREN s_expr_list RPAREN",
-       "COLON ATTR_OUTPUT LPAREN s_expr_list RPAREN")
+    @_("ATTR_INPUT LPAREN term_list RPAREN",
+       "ATTR_LOCAL LPAREN term_list RPAREN",
+       "ATTR_OUTPUT LPAREN term_list RPAREN")
     def define_system_attribute(self, p):
         return (str(p[1]), p[3])
 
-    @_("COLON SYMBOL LPAREN s_expr RPAREN")
-    def attribute(self, p):
+    @_("ATTR_INIT LPAREN term RPAREN",
+       "ATTR_TRANS LPAREN term RPAREN",
+       "ATTR_INV LPAREN term RPAREN")
+    def define_system_attribute(self, p):
         return (str(p[1]), p[3])
 
-    @_("s_expr_list LPAREN s_expr RPAREN")
-    def s_expr_list(self, p):
-        p[0].append(p[2])
+    @_("")
+    def term(self, p):
+        pass
+
+    @_("identifier")
+    def sort(self, p):
+        return ILSort(p[0], [])
+
+    @_("LPAREN identifier sort_list sort RPAREN")
+    def sort(self, p):
+        p[2].append(p[3])
+        return ILSort(p[0], p[2])
+
+    @_("sort_list sort")
+    def sort_list(self, p):
+        p[0].append(p[1])
         return p[0]
 
     @_("")
-    def s_expr_list(self, p):
+    def sort_list(self, p):
         return []
 
-    @_("LPAREN s_expr RPAREN")
-    def s_expr(self, p):
-        pass
+    # Identifiers
+    @_("SYMBOL")
+    def identifier(self, p):
+        return ILIdentifier(p[0], [])
+
+    @_("LPAREN UNDERSCORE SYMBOL index_list index RPAREN")
+    def identifier(self, p):
+        indices = p[3].append(p[4])
+        return ILIdentifier(p[2], indices)
+
+    # Indices
+    @_("index_list index")
+    def index_list(self, p):
+        p[0].append(p[1])
+        return p[0]
+
+    @_("")
+    def index_list(self, p):
+        return []
 
     @_("SYMBOL")
-    def s_expr(self, p):
-        pass
+    def index(self, p):
+        return p[0]
 
-    # Integer
-    @_("INT")
-    def s_expr(self, p):
-        pass
+    @_("NUMERAL")
+    def index(self, p):
+        return int(p[0])
 
-    # Float
-    @_("FLOAT")
-    def s_expr(self, p):
-        pass
-    
-    # Special constants
-    @_("NUMERAL",
-       "DECIMAL")
-    def spec_constant(self, p):
-        pass

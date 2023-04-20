@@ -131,12 +131,28 @@ class ILCommand():
         pass
 
 
+class ILDeclareSort(ILCommand):
+
+    def __init__(self, symbol: str, arity: int) -> None:
+        super().__init__()
+        self.symbol = symbol
+        self.arity = arity
+
+
 class ILDefineSort(ILCommand):
 
     def __init__(self, symbol: str, arity: int) -> None:
         super().__init__()
         self.symbol = symbol
         self.arity = arity
+
+
+class ILDeclareConst(ILCommand):
+
+    def __init__(self, symbol: str, sort: ILSort) -> None:
+        super().__init__()
+        self.symbol = symbol
+        self.sort = sort
 
 
 class ILDefineSystem(ILCommand):
