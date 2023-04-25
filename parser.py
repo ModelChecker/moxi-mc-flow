@@ -5,10 +5,10 @@ from il import *
 
 class ILLexer(Lexer):
 
-    tokens = { CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
-               CMD_DECLARE_ENUM_SORT, CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM,
-               EQUAL, SYMBOL, NUM, FLOAT, INT, SEMI, COLON, DOT, COMMA, QUEST,
-               LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN }
+    tokens = { NUMERAL, DECIMAL EQUAL, SYMBOL, FLOAT, INT, SEMI, COLON, DOT, COMMA, QUEST,
+               LBRACK, RBRACK, LBRACE, RBRACE, LPAREN, RPAREN,
+               CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
+               CMD_DECLARE_ENUM_SORT, CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, }
 
     # String containing ignored characters between tokens
     ignore = " \t"

@@ -31,7 +31,7 @@ def ilexpr_to_btor2(expr: ILExpr, sort_map: Dict[ILSort, Btor2Sort]) -> Btor2Exp
     elif isinstance(expr, ILConstant):
         return Btor2Const(sort_map[expr.sort], expr.value)
     elif isinstance(expr, ILApply):
-        if expr.symbol == "=":
+        if expr.function == "=":
             return Btor2Apply(sort_map[expr.sort], Btor2Operator.EQ, 
                               [ilexpr_to_btor2(expr.children[0], sort_map), 
                                ilexpr_to_btor2(expr.children[1], sort_map)])

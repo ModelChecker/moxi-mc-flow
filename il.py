@@ -1,23 +1,30 @@
 from __future__ import annotations
-from typing import Any, Callable, NamedTuple, NewType, Dict, List
+from ast import Call
+from typing import Any, Callable, NamedTuple, NewType, Dict, List, NoReturn
 from enum import Enum
+
+from numpy import indices
+from traitlets import Bool, TraitType
 
 from btor2 import *
 
 class ILIdentifier(NamedTuple):
     """
-    See section 3.3 of https://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2021-05-12.pdf.
+    An identifier is a symbol and can be "indexed" with numerals. As opposed to SMT-LIB2, we restrict indices to numerals and not symbols and numerals.
 
-    An identifier is a symbol and can be "indexed" with other symbols or numerals.
+    See section 3.3 of https://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.6-r2021-05-12.pdf.
     """
     symbol: str
-    indices: List[int|str]
+    indices: List[int]
 
     def __eq__(self, __value: object) -> bool:
         """Two ILIdentifiers are equal if they have the same symbol."""
         if isinstance(__value, ILIdentifier):
             return self.symbol == __value.symbol
         return False
+
+    def __hash__(self) -> int:
+        return hash(self.symbol)
 
     def __str__(self) -> str:
         s = f"({self.symbol} "
@@ -45,8 +52,15 @@ class ILSort():
         return s[:-1]+")"
 
 # Built-in sorts
-IL_NO_SORT = ILSort(ILIdentifier("", []), []) # placeholder sort
-IL_BOOL_SORT = ILSort(ILIdentifier("Bool", []), [])
+IL_NO_SORT: ILSort = ILSort(ILIdentifier("", []), []) # placeholder sort
+IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("Bool", []), [])
+IL_BITVEC_SORT: Callable[[int], ILSort] = lambda n: ILSort(ILIdentifier("BitVec", [n]), [])
+
+def is_bv_sort(sort: ILSort) -> bool:
+    """The bit vector sort is defined as an identifier with the symbol 'BitVec' and is indexed with a single numeral."""
+    if sort.identifier.symbol != "BitVec" or len(sort.sorts) != 0 or len(sort.identifier.indices) != 1:
+        return False
+    return True
 
 
 class ILExpr():
@@ -87,7 +101,7 @@ class ILInputVar(ILVar):
         super().__init__(symbol, sort, prime)
 
 
-class ILStateVar(ILVar):
+class ILLocalVar(ILVar):
 
     def __init__(self, symbol: str, sort: ILSort, prime: bool) -> None:
         super().__init__(symbol, sort, prime)
@@ -101,9 +115,9 @@ class ILOutputVar(ILVar):
 
 class ILApply(ILExpr):
 
-    def __init__(self, op: ILIdentifier, args: List[ILExpr]) -> None:
+    def __init__(self, id: ILIdentifier, args: List[ILExpr]) -> None:
         super().__init__(args)
-        self.symbol = op
+        self.function = id
 
 
 class ILSystem():
@@ -111,7 +125,7 @@ class ILSystem():
     def __init__(
         self, 
         input: List[ILInputVar], 
-        state: List[ILStateVar], 
+        state: List[ILLocalVar], 
         output: List[ILOutputVar], 
         init: ILExpr, 
         trans: ILExpr, 
@@ -161,7 +175,7 @@ class ILDefineSystem(ILCommand):
         self, 
         symbol: str, 
         input: Dict[str, ILSort], 
-        state: List[ILStateVar], 
+        state: List[ILLocalVar], 
         output: List[ILOutputVar], 
         init: ILExpr, 
         trans: ILExpr, 
@@ -182,41 +196,73 @@ class ILCheckSystem():
         pass
 
 
+class ILLogic(NamedTuple):
+        name: str
+        functions: set[str]
+        sort_check: Callable[[ILApply], bool]
+
+def sort_check_apply_bv(node: ILApply) -> bool:
+    """True if node corresponds to function signature in SMT-LIB2 QF_BV logic."""
+    function = node.function
+
+    if function.symbol == "extract":
+        # ((_ extract i j) (_ BitVec m) (_ BitVec n))
+        if len(function.indices) == 2:
+            return False
+        
+        i,j = function.indices[0], function.indices[1]
+
+        if len(node.children) != 1 or not is_bv_sort(node.children[0].sort):
+            return False
+
+        m = node.children[0].sort.identifier.indices[0]
+        if not i <= m and j <= i:
+            return False
+
+        node.sort = IL_BITVEC_SORT(i-j+1)
+
+        return True
+    elif function.symbol == "bvnot":
+        # (bvnot (_ BitVec m) (_ BitVec m))
+        if len(function.indices) != 0:
+            return False
+        
+        if len(node.children) != 1 or not is_bv_sort(node.children[0].sort):
+            return False
+
+        m = node.children[0].sort.identifier.indices[0]
+        node.sort = IL_BITVEC_SORT(m)
+
+        return True
+    elif function.symbol == "bvand":
+        # (bvand (_ BitVec m) (_ BitVec m) (_ BitVec m))
+        return True
+
+    return False
+
+FUNCTIONS_BV = {"extract", "bvnot"}
+QF_BV = ILLogic("QF_BV", FUNCTIONS_BV, sort_check_apply_bv)
+
+
 class ILContext():
 
     def __init__(self) -> None:
-        # Maps sort symbol to arity
-        # self.sort_table: Dict[ILIdentifier, int] = {
-        #     ILIdentifier("Bool", []): 0,
-        #     ILIdentifier("BitVec", []): 0,
-        #     ILIdentifier("Array", []): 2,
-        # }
+        self.declared_sorts: dict[ILSort, int] = {}
+        self.defined_sorts: dict[ILSort, tuple[list[ILSort], ILSort]] = {}
+        self.declared_functions: set[str] = set()
+        self.defined_functions: dict[str, tuple[list[ILSort], ILSort]] = {}
+        self.defined_systems: dict[str, ILSystem] = {}
 
-        # If symbol points to "None", then it's a built-in function (defined in the Theory)
-        self.function_table: Dict[str, None|ILExpr] = {
-            "concat": None,
-            "extract": None,
-            "bvnot": None,
-            "bvneg": None,
-            "bvand": None,
-            "bvor": None,
-            "bvadd": None,
-            "bvmul": None,
-            "bvdiv": None,
-            "bvudiv": None,
-            "bvurem": None,
-            "bvshl": None,
-            "bvlshr": None,
-            "bvult": None
-        }
+        # for now, assume QF_BV logic
+        self.logic = QF_BV
 
-        self.system_table = {}
+        # context stack of systems
+        self.system_context: list[ILSystem] = []
 
 
 class ILProgram():
 
     def __init__(self, cmds: List[ILCommand]) -> None:
-        self.context = ILContext()
         self.commands = cmds
 
     # def execute(self) -> None:
@@ -256,5 +302,57 @@ def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]) -> None:
             stack.append((False, child))
 
 
-def sort_check(node: ILExpr) -> bool:
-    return True
+def sort_check(program: ILProgram) -> bool:
+    context: ILContext = ILContext()
+    status: bool = True
+
+    def sort_check_expr(node: ILExpr) -> bool:
+        nonlocal context
+
+        if isinstance(node, ILConstant):
+            pass
+        elif isinstance(node, ILVar):
+            pass
+        elif isinstance(node, ILApply):
+            arg_sorts: list[ILSort] = []
+            return_sort: ILSort = IL_NO_SORT
+
+            if node.function.symbol in context.logic.functions:
+                for arg in node.children:
+                    sort_check_expr(arg)
+                return context.logic.sort_check(node)
+            elif node.function.symbol in context.defined_functions:
+                (arg_sorts, return_sort) = context.defined_functions[node.function.symbol]
+
+                if len(arg_sorts) == len(node.children):
+                    for i in range(0, len(arg_sorts)):
+                        sort_check_expr(node.children[i])
+
+                        if arg_sorts[i] != node.children[i].sort:
+                            return False
+                else:
+                    return False
+            else:
+                return False
+
+            node.sort = return_sort
+            return True
+
+        return False
+    # end sort_check_expr
+
+    for command in program.commands:
+        if isinstance(command, ILDeclareSort):
+            pass
+        elif isinstance(command, ILDefineSort):
+            pass
+        elif isinstance(command, ILDeclareConst):
+            pass
+        elif isinstance(command, ILDefineSystem):
+            pass
+        elif isinstance(command, ILCheckSystem):
+            pass
+        else:
+            raise NotImplementedError
+
+    return status
