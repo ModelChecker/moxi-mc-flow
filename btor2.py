@@ -2,6 +2,7 @@
 https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 """
 from __future__ import annotations
+from ast import expr
 from enum import Enum
 from typing import Any, Callable, Dict, List
 
@@ -105,7 +106,7 @@ class Btor2BitVec(Btor2Sort):
         self.name = "bitvec"
         
     def __str__(self) -> str:
-        return f"{self.nid} {self.name} {self.length}"
+        return f"{self.nid} sort {self.name} {self.length}"
     
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, Btor2BitVec):
@@ -123,7 +124,7 @@ class Btor2Array(Btor2Sort):
         self.name = "array"
 
     def __str__(self) -> str:
-        return f"{self.nid} {self.name} {self.domain.nid} {self.range.nid}"
+        return f"{self.nid} sort {self.name} {self.domain.nid} {self.range.nid}"
     
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, Btor2Array):
@@ -147,22 +148,24 @@ class Btor2Var(Btor2Expr):
 
 class Btor2InputVar(Btor2Var):
 
-    def __init__(self, sort: Btor2Sort) -> None:
+    def __init__(self, sort: Btor2Sort, id: str = "") -> None:
         super().__init__()
         self.sort: Btor2Sort = sort
+        self.id = id
 
     def __str__(self) -> str:
-        return f"{self.nid} input {self.sort.nid}"
+        return f"{self.nid} input {self.sort.nid} {self.id}"
 
 
 class Btor2StateVar(Btor2Var):
 
-    def __init__(self, sort: Btor2Sort) -> None:
+    def __init__(self, sort: Btor2Sort, id: str = "") -> None:
         super().__init__()
         self.sort: Btor2Sort = sort
+        self.id = id
 
     def __str__(self) -> str:
-        return f"{self.nid} state {self.sort.nid}"
+        return f"{self.nid} state {self.sort.nid} {self.id}"
 
 
 class Btor2Const(Btor2Expr):
@@ -173,7 +176,7 @@ class Btor2Const(Btor2Expr):
         self.value = val
 
     def __str__(self) -> str:
-        return f"{self.nid} const {self.sort.nid} {int(self.value)}"
+        return f"{self.nid} constd {self.sort.nid} {int(self.value)}"
 
 
 class Btor2Apply(Btor2Expr):
@@ -184,10 +187,42 @@ class Btor2Apply(Btor2Expr):
         self.operator = op
 
     def __str__(self) -> str:
-        s = f"{self.nid} {self.operator.name.lower()} "
+        s = f"{self.nid} {self.operator.name.lower()} {self.sort.nid} "
         for arg in self.children:
             s += f"{arg.nid} "
         return s[:-1]
+
+
+class Btor2Constraint(Btor2Node):
+
+    def __init__(self, expr: Btor2Node) -> None:
+        super().__init__()
+        self.expr = expr
+
+    def __str__(self) -> str:
+        return f"{self.nid} constraint {self.expr.nid}"
+
+
+class Btor2Init(Btor2Node):
+
+    def __init__(self, state: Btor2StateVar, expr: Btor2Node) -> None:
+        super().__init__()
+        self.state = state
+        self.expr = expr
+
+    def __str__(self) -> str:
+        return f"{self.nid} init {self.state.sort.nid} {self.state.nid} {self.expr.nid}"
+
+
+class Btor2Next(Btor2Node):
+
+    def __init__(self, state: Btor2StateVar, expr: Btor2Node) -> None:
+        super().__init__()
+        self.state = state
+        self.expr = expr
+
+    def __str__(self) -> str:
+        return f"{self.nid} next {self.state.sort.nid} {self.state.nid} {self.expr.nid}"
 
 
 class Btor2Program():
