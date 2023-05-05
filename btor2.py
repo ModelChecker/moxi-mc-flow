@@ -225,6 +225,26 @@ class Btor2Next(Btor2Node):
         return f"{self.nid} next {self.state.sort.nid} {self.state.nid} {self.expr.nid}"
 
 
+class Btor2Bad(Btor2Node):
+
+    def __init__(self, expr: Btor2Node) -> None:
+        super().__init__()
+        self.expr = expr
+
+    def __str__(self) -> str:
+        return f"{self.nid} bad {self.expr.nid}"
+
+
+class Btor2Fair(Btor2Node):
+
+    def __init__(self, expr: Btor2Node) -> None:
+        super().__init__()
+        self.expr = expr
+
+    def __str__(self) -> str:
+        return f"{self.nid} fair {self.expr.nid}"
+
+
 class Btor2Program():
 
     def __init__(self, sorts: set[Btor2Sort], instr: List[Btor2Expr]) -> None:

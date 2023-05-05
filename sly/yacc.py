@@ -31,6 +31,7 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 # -----------------------------------------------------------------------------
 
+import os
 import sys
 import inspect
 from collections import OrderedDict, defaultdict, Counter
@@ -1825,7 +1826,7 @@ class Parser(metaclass=ParserMeta):
     track_positions = True
     
     # Logging object where debugging/diagnostic messages are sent
-    log = SlyLogger(sys.stderr)     
+    log = SlyLogger(open(os.devnull,"w"))     
 
     # Debugging filename where parsetab.out data can be written
     debugfile = None

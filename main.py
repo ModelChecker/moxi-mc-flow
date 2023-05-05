@@ -1,3 +1,4 @@
+from copy import copy, deepcopy
 import sys
 from typing import cast
 from il import *
@@ -88,14 +89,15 @@ def flatten_btor2_expr(expr: Btor2Expr) -> list[Btor2Expr]:
     return out
 
 
-def translate(il_prog: ILProgram) -> list[Btor2Node]:
-    btor2_prog: list[Btor2Node] = []
+def translate(il_prog: ILProgram) -> dict[str, list[Btor2Node]]:
+    btor2_prog_list: dict[str, list[Btor2Node]] = {}
+    btor2_prog_base: list[Btor2Node] = []
     sort_map: dict[ILSort, Btor2Sort] = {}
     var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]] = {}
 
     if not sort_check(il_prog):
         print("Failed sort check")
-        return []
+        return {}
     
     for cmd in il_prog.commands:
         if isinstance(cmd, ILDeclareConst):
@@ -104,10 +106,12 @@ def translate(il_prog: ILProgram) -> list[Btor2Node]:
             sort_map.update(build_sort_map(cmd.init))
             sort_map.update(build_sort_map(cmd.trans))
             sort_map.update(build_sort_map(cmd.inv))
+        elif isinstance(cmd, ILCheckSystem):
+            pass
         else:
             raise NotImplementedError
         
-    btor2_prog += sort_map.values()
+    btor2_prog_base += sort_map.values()
     
     for cmd in il_prog.commands:
         if isinstance(cmd, ILDeclareConst):
@@ -116,16 +120,18 @@ def translate(il_prog: ILProgram) -> list[Btor2Node]:
             var_map.update(build_var_map(cmd.init, sort_map))
             var_map.update(build_var_map(cmd.trans, sort_map))
             var_map.update(build_var_map(cmd.inv, sort_map))
+        elif isinstance(cmd, ILCheckSystem):
+            pass
         else:
             raise NotImplementedError
 
     for val in var_map.values():
         if isinstance(val, Btor2Var):
-            btor2_prog.append(val)
+            btor2_prog_base.append(val)
         elif isinstance(val, tuple):
-            btor2_prog.append(val[0])
-            btor2_prog.append(val[1])
-            btor2_prog.append(val[2])
+            btor2_prog_base.append(val[0])
+            btor2_prog_base.append(val[1])
+            btor2_prog_base.append(val[2])
     
     for cmd in il_prog.commands:
         if isinstance(cmd, ILDefineSort):
@@ -133,30 +139,51 @@ def translate(il_prog: ILProgram) -> list[Btor2Node]:
         elif isinstance(cmd, ILDeclareConst):
             pass
         elif isinstance(cmd, ILDefineSystem):
-            btor2_prog += [i for i in flatten_btor2_expr(ilexpr_to_btor2(cmd.init, True, sort_map, var_map)) if not i in btor2_prog]
-            btor2_prog.append(Btor2Constraint(btor2_prog[len(btor2_prog)-1]))
+            btor2_prog_base += [i for i in flatten_btor2_expr(ilexpr_to_btor2(cmd.init, True, sort_map, var_map)) if not i in btor2_prog_base]
+            btor2_prog_base.append(Btor2Constraint(btor2_prog_base[len(btor2_prog_base)-1]))
 
             for var in [v for v in var_map.values() if isinstance(v, tuple)]:
-                btor2_prog.append(Btor2Init(cast(Btor2StateVar, var[1]), var[0]))
+                btor2_prog_base.append(Btor2Init(cast(Btor2StateVar, var[1]), var[0]))
 
-            btor2_prog += [i for i in flatten_btor2_expr(ilexpr_to_btor2(cmd.trans, False, sort_map, var_map)) if not i in btor2_prog]
-            btor2_prog.append(Btor2Constraint(btor2_prog[len(btor2_prog)-1]))
+            btor2_prog_base += [i for i in flatten_btor2_expr(ilexpr_to_btor2(cmd.trans, False, sort_map, var_map)) if not i in btor2_prog_base]
+            btor2_prog_base.append(Btor2Constraint(btor2_prog_base[len(btor2_prog_base)-1]))
 
             for var in [v for v in var_map.values() if isinstance(v, tuple)]:
-                btor2_prog.append(Btor2Next(cast(Btor2StateVar, var[1]), var[2]))
+                btor2_prog_base.append(Btor2Next(cast(Btor2StateVar, var[1]), var[2]))
 
-            btor2_prog += [i for i in flatten_btor2_expr(ilexpr_to_btor2(cmd.inv, False, sort_map, var_map)) if not i in btor2_prog]
-            btor2_prog.append(Btor2Constraint(btor2_prog[len(btor2_prog)-1]))
+            btor2_prog_base += [i for i in flatten_btor2_expr(ilexpr_to_btor2(cmd.inv, False, sort_map, var_map)) if not i in btor2_prog_base]
+            btor2_prog_base.append(Btor2Constraint(btor2_prog_base[len(btor2_prog_base)-1]))
         elif isinstance(cmd, ILCheckSystem):
-            pass
+            for sym,query in cmd.query.items():
+                # shallow copy the prog since we don't want to lose sort_map/var_map
+                btor2_prog_new = copy(btor2_prog_base)
+
+                for assume in [a[1] for a in cmd.assumption.items() if a[0] in query]:
+                    btor2_prog_new += [i for i in flatten_btor2_expr(ilexpr_to_btor2(assume, False, sort_map, var_map)) if not i in btor2_prog_new]
+                    btor2_prog_new.append(Btor2Constraint(btor2_prog_new[len(btor2_prog_new)-1]))
+
+                for reach in [r[1] for r in cmd.reachable.items() if r[0] in query]:
+                    btor2_prog_new += [i for i in flatten_btor2_expr(ilexpr_to_btor2(reach, False, sort_map, var_map)) if not i in btor2_prog_new]
+                    btor2_prog_new.append(Btor2Bad(btor2_prog_new[len(btor2_prog_new)-1]))
+                
+                for fair in [f[1] for f in cmd.fairness.items() if f[0] in query]:
+                    btor2_prog_new += [i for i in flatten_btor2_expr(ilexpr_to_btor2(fair, False, sort_map, var_map)) if not i in btor2_prog_new]
+                    btor2_prog_new.append(Btor2Fair(btor2_prog_new[len(btor2_prog_new)-1]))
+            
+                for current in [c[1] for c in cmd.current.items() if c[0] in query]:
+                    btor2_prog_new += [i for i in flatten_btor2_expr(ilexpr_to_btor2(current, True, sort_map, var_map)) if not i in btor2_prog_new]
+                    btor2_prog_new.append(Btor2Constraint(btor2_prog_new[len(btor2_prog_new)-1]))
+
+                btor2_prog_list[sym] = btor2_prog_new
         else:
             raise NotImplementedError
-        
-    for i in range(0, len(btor2_prog)):
-        node = btor2_prog[i]
-        node.nid = i+1
 
-    return btor2_prog
+    for btor2_prog in btor2_prog_list.values():
+        for i in range(0, len(btor2_prog)):
+            node = btor2_prog[i]
+            node.nid = i+1
+
+    return btor2_prog_list
 
 
 def parse(input: str) -> ILProgram|None:
@@ -164,7 +191,7 @@ def parse(input: str) -> ILProgram|None:
     lexer: ILLexer = ILLexer()
     parser: ILParser = ILParser()
     cmds: list[ILCommand] = parser.parse(lexer.tokenize(input))
-    return ILProgram(cmds)
+    return ILProgram(cmds) if parser.status else None
 
 
 if __name__ == "__main__":
@@ -176,11 +203,9 @@ if __name__ == "__main__":
         print("Failed parsing")
         sys.exit(1)
 
-    print("------------------")
-
     output = translate(program)
     
-    for node in output:
+    for node in output["q"]:
         print(node)
 
     sys.exit(0)
