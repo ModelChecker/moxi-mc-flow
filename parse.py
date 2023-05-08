@@ -1,4 +1,5 @@
 #type: ignore
+from typing import ItemsView
 from sly import Lexer, Parser
 from il import *
 
@@ -8,10 +9,10 @@ class ILLexer(Lexer):
                SYMBOL, KEYWORD,
                LPAREN, RPAREN,
                RW_UNDERSCORE,
-               PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV,
+               PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV, PK_SUBSYS,
                PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY,
                CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
-               CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM }
+               CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, CMD_EXIT }
 
     # String containing ignored characters between tokens
     ignore = " \t"
@@ -55,6 +56,7 @@ class ILLexer(Lexer):
     KEYWORD[":init"]   = PK_INIT
     KEYWORD[":trans"]  = PK_TRANS
     KEYWORD[":inv"]    = PK_INV
+    KEYWORD[":subsys"]    = PK_SUBSYS
     KEYWORD[":assumption"] = PK_ASSUMPTION
     KEYWORD[":fairness"]   = PK_FAIRNESS
     KEYWORD[":reachable"]  = PK_REACHABLE
@@ -69,6 +71,7 @@ class ILLexer(Lexer):
     #SYMBOL["declare-enum"]  = CMD_DECLARE_ENUM_SORT
     SYMBOL["define-system"] = CMD_DEFINE_SYSTEM
     SYMBOL["check-system"]  = CMD_CHECK_SYSTEM
+    SYMBOL["exit"]  = CMD_EXIT
 
     # Extra action for newlines
     def ignore_newline(self, t):
@@ -84,10 +87,10 @@ class ILParser(Parser):
 
     def __init__(self) -> None:
         super().__init__()
-        self.input_context = {}
-        self.output_context = {}
-        self.local_context = {}
-        self.logic_context = {}
+        self.input_context = []
+        self.output_context = []
+        self.local_context = []
+        self.logic_context = []
         self.status = True
 
     def error(self, token):
@@ -129,19 +132,19 @@ class ILParser(Parser):
     def command(self, p):
         if ILAttribute.INPUT.value in p[3]:
             in_vars = p[3][ILAttribute.INPUT.value]
-            self.input_context = {}
+            self.input_context = []
         else:
             in_vars = {}
             
         if ILAttribute.OUTPUT.value in p[3]:
             out_vars = p[3][ILAttribute.OUTPUT.value]
-            self.output_context = {}
+            self.output_context = []
         else:
             out_vars = {}
 
         if ILAttribute.LOCAL.value in p[3]:
             local_vars = p[3][ILAttribute.LOCAL.value]
-            self.local_context = {}
+            self.local_context = []
         else:
             local_vars = {}
             
@@ -167,19 +170,19 @@ class ILParser(Parser):
     def command(self, p):
         if ILAttribute.INPUT.value in p[3]:
             in_vars = p[3][ILAttribute.INPUT.value]
-            self.input_context = {}
+            self.input_context = []
         else:
             in_vars = {}
             
         if ILAttribute.OUTPUT.value in p[3]:
             out_vars = p[3][ILAttribute.OUTPUT.value]
-            self.output_context = {}
+            self.output_context = []
         else:
             out_vars = {}
 
         if ILAttribute.LOCAL.value in p[3]:
             local_vars = p[3][ILAttribute.LOCAL.value]
-            self.local_context = {}
+            self.local_context = []
         else:
             local_vars = {}
             
@@ -211,6 +214,10 @@ class ILParser(Parser):
         return ILCheckSystem(p[2], in_vars, out_vars, local_vars,
             assume_dict, fair_dict, reach_dict, current_dict, query_dict)
 
+    @_("LPAREN CMD_EXIT RPAREN")
+    def command(self, p):
+        return ILExit()
+
     @_("define_system_attribute_list define_system_attribute")
     def define_system_attribute_list(self, p):
         if p[1][0] in p[0]:
@@ -226,23 +233,27 @@ class ILParser(Parser):
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
         self.input_context = p[2]
-        return (str(p[0]), p[2])
+        return (p[0], p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
         self.output_context = p[2]
-        return (str(p[0]), p[2])
+        return (p[0], p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
         self.local_context = p[2]
-        return (str(p[0]), p[2])
+        return (p[0], p[2])
 
     @_("PK_INIT term",
        "PK_TRANS term",
        "PK_INV term")
     def define_system_attribute(self, p):
-        return (str(p[0]), p[1])
+        return (p[0], p[1])
+
+    @_("PK_SUBSYS LPAREN SYMBOL LPAREN SYMBOL symbol_list symbol_list RPAREN RPAREN")
+    def define_system_attribute(self, p):
+        return (p[0], (p[2], p[4], p[5], p[6]))
 
     @_("check_system_attribute_list check_system_attribute")
     def check_system_attribute_list(self, p):
@@ -265,39 +276,38 @@ class ILParser(Parser):
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
         self.input_context = p[2]
-        return (str(p[0]), p[2])
+        return (p[0], p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
         self.output_context = p[2]
-        return (str(p[0]), p[2])
+        return (p[0], p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
         self.local_context = p[2]
-        return (str(p[0]), p[2])
+        return (p[0], p[2])
 
     @_("PK_ASSUMPTION LPAREN SYMBOL term RPAREN",
        "PK_FAIRNESS LPAREN SYMBOL term RPAREN",
        "PK_REACHABLE LPAREN SYMBOL term RPAREN",
        "PK_CURRENT LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (str(p[0]), {p[2]: p[3]})
+        return (p[0], {p[2]: p[3]})
 
     @_("PK_QUERY LPAREN SYMBOL LPAREN symbol_list SYMBOL RPAREN RPAREN")
     def check_system_attribute(self, p):
         p[4].append(p[5])
-        return (str(p[0]), {p[2]: p[4]})
+        return (p[0], {p[2]: p[4]})
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
-        # p[0] is a dict, p[2] is a tuple of type (str, ILSort)
-        p[0][p[2][0]] = p[2][1]
+        p[0].append(p[2])
         return p[0]
     
     @_("")
     def sorted_var_list(self, p):
-        return {}
+        return []
     
     @_("SYMBOL sort")
     def sorted_var(self, p):
@@ -333,21 +343,24 @@ class ILParser(Parser):
             prime = True
             symbol = symbol[:-1]
 
-        if symbol in self.input_context:
-            return ILInputVar(self.input_context[symbol], symbol, prime)
+        for sym,sort in self.input_context:
+            if sym == symbol:
+                return ILInputVar(sort, symbol, prime)
 
-        if symbol in self.output_context:
-            return ILOutputVar(self.output_context[symbol], symbol, prime)
+        for sym,sort in self.output_context:
+            if sym == symbol:
+                return ILOutputVar(sort, symbol, prime)
 
-        if symbol in self.local_context:
-            return ILLocalVar(self.local_context[symbol], symbol, prime)
+        for sym,sort in self.local_context:
+            if sym == symbol:
+                return ILLocalVar(sort, symbol, prime)
 
-        for logic_vars in self.logic_context:
+        for sym,sort in self.logic_context:
             if prime:
                 print(f"Error: logic variable cannot be primed ({symbol}).")
                 self.status = False
-            if symbol == logic_vars[0]:
-                return ILLogicVar(logic_vars[1], symbol)
+            if symbol == sym:
+                return ILLogicVar(sort, symbol)
 
         print(f"Error: variable undeclared ({symbol})")
         self.status = False

@@ -1,4 +1,5 @@
 from __future__ import annotations
+import sys
 from typing import Any, Callable, NewType
 
 from btor2 import *
@@ -232,9 +233,9 @@ class ILDefineSystem(ILCommand):
     def __init__(
         self, 
         symbol: str,
-        input: dict[str, ILSort], 
-        output: dict[str, ILSort], 
-        local: dict[str, ILSort],
+        input: list[tuple[str, ILSort]], 
+        output: list[tuple[str, ILSort]], 
+        local: list[tuple[str, ILSort]],
         init: ILExpr,
         trans: ILExpr, 
         inv: ILExpr
@@ -253,9 +254,9 @@ class ILCheckSystem(ILCommand):
     def __init__(
         self, 
         sys_symbol: str,
-        input: dict[str, ILSort], 
-        output: dict[str, ILSort], 
-        local: dict[str, ILSort],
+        input: list[tuple[str, ILSort]], 
+        output: list[tuple[str, ILSort]], 
+        local: list[tuple[str, ILSort]],
         assumption: dict[str, ILExpr],
         fairness: dict[str, ILExpr], 
         reachable: dict[str, ILExpr], 
@@ -271,6 +272,11 @@ class ILCheckSystem(ILCommand):
         self.reachable = reachable
         self.current = current
         self.query = query
+        self.var_map: dict[str, str] = {}
+
+
+class ILExit(ILCommand):
+    pass
 
 
 class ILLogic():
@@ -370,9 +376,6 @@ class ILContext():
         self.defined_functions: dict[str, tuple[FuncSig, ILExpr]] = {}
         self.defined_systems: dict[str, ILDefineSystem] = {}
         self.logic = QF_BV # for now, assume QF_BV logic
-        self.input_vars: dict[str, ILSort] = {}
-        self.output_vars: dict[str, ILSort] = {}
-        self.local_vars: dict[str, ILSort] = {}
 
     def get_symbols(self) -> set[str]:
         symbols = set()
@@ -390,6 +393,9 @@ class ILProgram():
 
     def __init__(self, commands: list[ILCommand]):
         self.commands: list[ILCommand] = commands
+
+    def get_check_systems(self) -> list[ILCheckSystem]:
+        return [cmd for cmd in self.commands if isinstance(cmd, ILCheckSystem)]
 
 
 def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]):
@@ -414,7 +420,7 @@ def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]):
             stack.append((False, child))
 
 
-def sort_check(program: ILProgram) -> bool:
+def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
     context: ILContext = ILContext()
     status: bool = True
 
@@ -507,33 +513,36 @@ def sort_check(program: ILProgram) -> bool:
                 status = False
                 continue
 
-            for srt0,srt1 in zip(system.input.values(), cmd.input.values()):
-                if srt0 != srt1:
-                    print(f"Error: sorts do not match in check-system (expected {srt0}, got {srt1})")
+            for i in range(0,len(system.input)):
+                if system.input[i][1] != cmd.input[i][1]:
+                    print(f"Error: sorts do not match in check-system (expected {system.input[i][1]}, got {cmd.input[i][1]})")
                     status = False
                     continue
+                cmd.var_map[system.input[i][0]] = cmd.input[i][0]
 
             if len(system.output) != len(cmd.output):
                 print(f"Error: input variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}")
                 status = False
                 continue
 
-            for srt0,srt1 in zip(system.output.values(), cmd.output.values()):
-                if srt0 != srt1:
-                    print(f"Error: sorts do not match in check-system (expected {srt0}, got {srt1})")
+            for i in range(0,len(system.output)):
+                if system.output[i][1] != cmd.output[i][1]:
+                    print(f"Error: sorts do not match in check-system (expected {system.output[i][1]}, got {cmd.output[i][1]})")
                     status = False
                     continue
+                cmd.var_map[system.output[i][0]] = cmd.output[i][0]
 
             if len(system.local) != len(cmd.local):
                 print(f"Error: input variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}")
                 status = False
                 continue
 
-            for srt0,srt1 in zip(system.local.values(), cmd.local.values()):
-                if srt0 != srt1:
-                    print(f"Error: sorts do not match in check-system (expected {srt0}, got {srt1})")
+            for i in range(0,len(system.local)):
+                if system.local[i][1] != cmd.local[i][1]:
+                    print(f"Error: sorts do not match in check-system (expected {system.local[i][1]}, got {cmd.local[i][1]})")
                     status = False
                     continue
+                cmd.var_map[system.local[i][0]] = cmd.local[i][0]
 
             for expr in cmd.assumption.values():
                 status = status and sort_check_expr(expr, False, True)
@@ -549,4 +558,4 @@ def sort_check(program: ILProgram) -> bool:
         else:
             raise NotImplementedError
 
-    return status
+    return (status, context)
