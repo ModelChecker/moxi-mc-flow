@@ -142,30 +142,28 @@ class Btor2Expr(Btor2Node):
 
 class Btor2Var(Btor2Expr):
 
-    def __init__(self) -> None:
+    def __init__(self, sort: Btor2Sort, name: str = "") -> None:
         super().__init__([])
+        self.sort: Btor2Sort = sort
+        self.name = name
 
 
 class Btor2InputVar(Btor2Var):
 
-    def __init__(self, sort: Btor2Sort, id: str = "") -> None:
-        super().__init__()
-        self.sort: Btor2Sort = sort
-        self.id = id
+    def __init__(self, sort: Btor2Sort, name: str = "") -> None:
+        super().__init__(sort, name)
 
     def __str__(self) -> str:
-        return f"{self.nid} input {self.sort.nid} {self.id}"
+        return f"{self.nid} input {self.sort.nid} {self.name}"
 
 
 class Btor2StateVar(Btor2Var):
 
-    def __init__(self, sort: Btor2Sort, id: str = "") -> None:
-        super().__init__()
-        self.sort: Btor2Sort = sort
-        self.id = id
+    def __init__(self, sort: Btor2Sort, name: str = "") -> None:
+        super().__init__(sort, name)
 
     def __str__(self) -> str:
-        return f"{self.nid} state {self.sort.nid} {self.id}"
+        return f"{self.nid} state {self.sort.nid} {self.name}"
 
 
 class Btor2Const(Btor2Expr):

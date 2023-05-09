@@ -164,7 +164,7 @@ class ILParser(Parser):
             inv_expr = ILConstant(IL_BOOL_SORT, True)
 
         return ILDefineSystem(str(p[2]), in_vars, out_vars, local_vars,
-            init_expr, trans_expr, inv_expr)
+            init_expr, trans_expr, inv_expr, [])
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):

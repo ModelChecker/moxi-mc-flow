@@ -135,11 +135,15 @@ class ILVar(ILExpr):
         return f"{self.symbol}"
 
 
+
 class ILInputVar(ILVar):
 
     def __init__(self, sort: ILSort, symbol: str, prime: bool):
         super().__init__(sort, symbol)
         self.prime = prime
+
+    def rename(self, new: str) -> ILInputVar:
+        return ILInputVar(self.sort, new, self.prime)
 
 
 class ILOutputVar(ILVar):
@@ -151,6 +155,9 @@ class ILOutputVar(ILVar):
     def __str__(self) -> str:
         return super().__str__() + ("'" if self.prime else "")
 
+    def rename(self, new: str) -> ILOutputVar:
+        return ILOutputVar(self.sort, new, self.prime)
+
 
 class ILLocalVar(ILVar):
 
@@ -161,11 +168,17 @@ class ILLocalVar(ILVar):
     def __str__(self) -> str:
         return super().__str__() + ("'" if self.prime else "")
 
+    def rename(self, new: str) -> ILLocalVar:
+        return ILLocalVar(self.sort, new, self.prime)
+
 
 class ILLogicVar(ILVar):
 
     def __init__(self, sort: ILSort, symbol: str):
         super().__init__(sort, symbol)
+
+    def rename(self, new: str) -> ILLogicVar:
+        return ILLogicVar(self.sort, new)
 
 
 class ILApply(ILExpr):
@@ -238,7 +251,8 @@ class ILDefineSystem(ILCommand):
         local: list[tuple[str, ILSort]],
         init: ILExpr,
         trans: ILExpr, 
-        inv: ILExpr
+        inv: ILExpr,
+        subsystems: list[tuple[str, ILDefineSystem]]
     ):
         self.symbol = symbol
         self.input = input
@@ -247,6 +261,7 @@ class ILDefineSystem(ILCommand):
         self.init = init
         self.trans = trans
         self.inv = inv
+        self.subsystems = subsystems
 
 
 class ILCheckSystem(ILCommand):
