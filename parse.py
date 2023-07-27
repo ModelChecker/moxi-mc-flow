@@ -1,9 +1,9 @@
 #type: ignore
 from typing import ItemsView
 from sly import Lexer, Parser
-from il import *
+from mochil import *
 
-class ILLexer(Lexer):
+class MCILLexer(Lexer):
 
     tokens = { NUMERAL, BINARY,
                SYMBOL, KEYWORD,
@@ -82,8 +82,8 @@ class ILLexer(Lexer):
         self.index += 1
 
 
-class ILParser(Parser):
-    tokens = ILLexer.tokens
+class MCILParser(Parser):
+    tokens = MCILLexer.tokens
 
     def __init__(self) -> None:
         super().__init__()
@@ -109,7 +109,7 @@ class ILParser(Parser):
 
     @_("LPAREN CMD_DECLARE_SORT SYMBOL NUMERAL RPAREN")
     def command(self, p):
-        return ILDeclareSort(p[2], p[3])
+        return MPTDeclareSort(p[2], p[3])
     
     @_("LPAREN CMD_DEFINE_SORT SYMBOL LPAREN sort_list RPAREN RPAREN")
     def command(self, p):
@@ -118,7 +118,7 @@ class ILParser(Parser):
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
         self.logic_context.append((p[2], p[3]))
-        return ILDeclareConst(p[2], p[3])
+        return MPTDeclareConst(p[2], p[3])
     
     @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sort_list RPAREN RPAREN")
     def command(self, p):
@@ -130,93 +130,93 @@ class ILParser(Parser):
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
-        if ILAttribute.INPUT.value in p[3]:
-            in_vars = p[3][ILAttribute.INPUT.value]
+        if MPTAttribute.INPUT.value in p[3]:
+            in_vars = p[3][MPTAttribute.INPUT.value]
             self.input_context = []
         else:
             in_vars = {}
             
-        if ILAttribute.OUTPUT.value in p[3]:
-            out_vars = p[3][ILAttribute.OUTPUT.value]
+        if MPTAttribute.OUTPUT.value in p[3]:
+            out_vars = p[3][MPTAttribute.OUTPUT.value]
             self.output_context = []
         else:
             out_vars = {}
 
-        if ILAttribute.LOCAL.value in p[3]:
-            local_vars = p[3][ILAttribute.LOCAL.value]
+        if MPTAttribute.LOCAL.value in p[3]:
+            local_vars = p[3][MPTAttribute.LOCAL.value]
             self.local_context = []
         else:
             local_vars = {}
             
-        if ILAttribute.INIT.value in p[3]:
-            init_expr = p[3][ILAttribute.INIT.value]
+        if MPTAttribute.INIT.value in p[3]:
+            init_expr = p[3][MPTAttribute.INIT.value]
         else:
-            init_expr = ILConstant(IL_BOOL_SORT, True)
+            init_expr = MPTConstant(MPT_BOOL_SORT, True)
             
-        if ILAttribute.TRANS.value in p[3]:
-            trans_expr = p[3][ILAttribute.TRANS.value]
+        if MPTAttribute.TRANS.value in p[3]:
+            trans_expr = p[3][MPTAttribute.TRANS.value]
         else:
-            trans_expr = ILConstant(IL_BOOL_SORT, True)
+            trans_expr = MPTConstant(MPT_BOOL_SORT, True)
             
-        if ILAttribute.INV.value in p[3]:
-            inv_expr = p[3][ILAttribute.TRANS.value]
+        if MPTAttribute.INV.value in p[3]:
+            inv_expr = p[3][MPTAttribute.TRANS.value]
         else:
-            inv_expr = ILConstant(IL_BOOL_SORT, True)
+            inv_expr = MPTConstant(MPT_BOOL_SORT, True)
 
-        return ILDefineSystem(str(p[2]), in_vars, out_vars, local_vars,
+        return MPTDefineSystem(str(p[2]), in_vars, out_vars, local_vars,
             init_expr, trans_expr, inv_expr, [])
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
-        if ILAttribute.INPUT.value in p[3]:
-            in_vars = p[3][ILAttribute.INPUT.value]
+        if MPTAttribute.INPUT.value in p[3]:
+            in_vars = p[3][MPTAttribute.INPUT.value]
             self.input_context = []
         else:
             in_vars = {}
             
-        if ILAttribute.OUTPUT.value in p[3]:
-            out_vars = p[3][ILAttribute.OUTPUT.value]
+        if MPTAttribute.OUTPUT.value in p[3]:
+            out_vars = p[3][MPTAttribute.OUTPUT.value]
             self.output_context = []
         else:
             out_vars = {}
 
-        if ILAttribute.LOCAL.value in p[3]:
-            local_vars = p[3][ILAttribute.LOCAL.value]
+        if MPTAttribute.LOCAL.value in p[3]:
+            local_vars = p[3][MPTAttribute.LOCAL.value]
             self.local_context = []
         else:
             local_vars = {}
             
-        if ILAttribute.ASSUMPTION.value in p[3]:
-            assume_dict = p[3][ILAttribute.ASSUMPTION.value]
+        if MPTAttribute.ASSUMPTION.value in p[3]:
+            assume_dict = p[3][MPTAttribute.ASSUMPTION.value]
         else:
             assume_dict = {}
             
-        if ILAttribute.FAIRNESS.value in p[3]:
-            fair_dict = p[3][ILAttribute.FAIRNESS.value]
+        if MPTAttribute.FAIRNESS.value in p[3]:
+            fair_dict = p[3][MPTAttribute.FAIRNESS.value]
         else:
             fair_dict = {}
             
-        if ILAttribute.REACHABLE.value in p[3]:
-            reach_dict = p[3][ILAttribute.REACHABLE.value]
+        if MPTAttribute.REACHABLE.value in p[3]:
+            reach_dict = p[3][MPTAttribute.REACHABLE.value]
         else:
             reach_dict = {}
             
-        if ILAttribute.CURRENT.value in p[3]:
-            current_dict = p[3][ILAttribute.CURRENT.value]
+        if MPTAttribute.CURRENT.value in p[3]:
+            current_dict = p[3][MPTAttribute.CURRENT.value]
         else:
             current_dict = {}
             
-        if ILAttribute.QUERY.value in p[3]:
-            query_dict = p[3][ILAttribute.QUERY.value]
+        if MPTAttribute.QUERY.value in p[3]:
+            query_dict = p[3][MPTAttribute.QUERY.value]
         else:
             query_dict = {}
 
-        return ILCheckSystem(p[2], in_vars, out_vars, local_vars,
+        return MPTCheckSystem(p[2], in_vars, out_vars, local_vars,
             assume_dict, fair_dict, reach_dict, current_dict, query_dict)
 
     @_("LPAREN CMD_EXIT RPAREN")
     def command(self, p):
-        return ILExit()
+        return MPTExit()
 
     @_("define_system_attribute_list define_system_attribute")
     def define_system_attribute_list(self, p):
@@ -257,7 +257,7 @@ class ILParser(Parser):
 
     @_("check_system_attribute_list check_system_attribute")
     def check_system_attribute_list(self, p):
-        if p[1][0] == ILAttribute.INPUT.value or p[1][0] == ILAttribute.OUTPUT.value or p[1][0] == ILAttribute.LOCAL.value:
+        if p[1][0] == MPTAttribute.INPUT.value or p[1][0] == MPTAttribute.OUTPUT.value or p[1][0] == MPTAttribute.LOCAL.value:
             if p[1][0] in p[0]:
                 print(f"Error: multiple instances of attribute ({p[1][0]}).")
                 self.status = False
@@ -345,47 +345,47 @@ class ILParser(Parser):
 
         for sym,sort in self.input_context:
             if sym == symbol:
-                return ILInputVar(sort, symbol, prime)
+                return MPTInputVar(sort, symbol, prime)
 
         for sym,sort in self.output_context:
             if sym == symbol:
-                return ILOutputVar(sort, symbol, prime)
+                return MPTOutputVar(sort, symbol, prime)
 
         for sym,sort in self.local_context:
             if sym == symbol:
-                return ILLocalVar(sort, symbol, prime)
+                return MPTLocalVar(sort, symbol, prime)
 
         for sym,sort in self.logic_context:
             if prime:
                 print(f"Error: logic variable cannot be primed ({symbol}).")
                 self.status = False
             if symbol == sym:
-                return ILLogicVar(sort, symbol)
+                return MPTLogicVar(sort, symbol)
 
         print(f"Error: variable undeclared ({symbol})")
         self.status = False
 
     @_("NUMERAL")
     def term(self, p):
-        return ILConstant(IL_NO_SORT, int(p[0]))
+        return MPTConstant(MPT_NO_SORT, int(p[0]))
 
     @_("BINARY")
     def term(self, p):
-        return ILConstant(IL_BITVEC_SORT(len(p[0][2:])), int(p[0][2:], base=2))
+        return MPTConstant(MPT_BITVEC_SORT(len(p[0][2:])), int(p[0][2:], base=2))
 
     @_("LPAREN identifier term_list term RPAREN")
     def term(self, p):
         p[2].append(p[3])
-        return ILApply(IL_NO_SORT, p[1], p[2])
+        return MPTApply(MPT_NO_SORT, p[1], p[2])
 
     @_("identifier")
     def sort(self, p):
-        return ILSort(p[0], [])
+        return MPTSort(p[0], [])
 
     @_("LPAREN identifier sort_list sort RPAREN")
     def sort(self, p):
         p[2].append(p[3])
-        return ILSort(p[0], p[2])
+        return MPTSort(p[0], p[2])
 
     @_("sort_list sort")
     def sort_list(self, p):
@@ -399,12 +399,12 @@ class ILParser(Parser):
     # Identifiers
     @_("SYMBOL")
     def identifier(self, p):
-        return ILIdentifier(p[0], [])
+        return MPTIdentifier(p[0], [])
 
     @_("LPAREN RW_UNDERSCORE SYMBOL index_list index RPAREN")
     def identifier(self, p):
         p[3].append(p[4])
-        return ILIdentifier(p[2], p[3])
+        return MPTIdentifier(p[2], p[3])
 
     # Indices
     @_("index_list index")

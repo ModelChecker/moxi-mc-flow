@@ -2,7 +2,6 @@
 https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 """
 from __future__ import annotations
-from ast import expr
 from enum import Enum
 from typing import Any, Callable, Dict, List
 

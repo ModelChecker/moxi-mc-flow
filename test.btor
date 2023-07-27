@@ -1,0 +1,23 @@
+# Delay
+# q
+1 sort bitvec 1
+2 state 1 init_o
+19 state 1 cur_o
+11 state 1 next_o
+10 input 1 i
+6 constd 1 1
+7 constraint 6
+8 init 1 19 2
+9 init 1 19 2
+10 input 1 i
+11 state 1 next_o
+12 eq 1 11 10
+13 constraint 12
+14 next 1 19 11
+15 next 1 19 11
+16 constd 1 1
+17 constraint 16
+18 constd 1 0
+19 state 1 cur_o
+20 eq 1 19 18
+21 bad 20
