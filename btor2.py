@@ -91,6 +91,15 @@ class Btor2Node():
     def __init__(self) -> None:
         self.nid = -1
 
+    def __str__(self) -> str:
+        return f"{self.nid}"
+
+    def __eq__(self, __o: object) -> bool:
+        return isinstance(__o, Btor2Node) and self.__str__() == __o.__str__()
+
+    def __hash__(self) -> int:
+        return self.nid
+
 
 class Btor2Sort(Btor2Node):
 

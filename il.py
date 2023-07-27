@@ -2,6 +2,8 @@ from __future__ import annotations
 import sys
 from typing import Any, Callable, NewType
 
+from sympy import false
+
 from btor2 import *
 
 
@@ -70,9 +72,23 @@ class ILSort():
         return len(self.sorts)
 
     def __eq__(self, __value: object) -> bool:
-        return isinstance(__value, ILSort) and self.identifier == __value.identifier
+        if not isinstance(__value, ILSort):
+            return False
+
+        if is_bool_sort(self) and is_bv_sort(__value) and __value.identifier.indices[0] == 1:
+            return True
+
+        if is_bool_sort(__value) and is_bv_sort(self) and self.identifier.indices[0] == 1:
+            return True
+
+        if self.identifier != __value.identifier:
+            return False
+
+        return True
     
     def __hash__(self) -> int:
+        if is_bool_sort(self):
+            return hash(ILIdentifier("BitVec", [1]))
         return hash(self.identifier)
     
     def __str__(self) -> str:
@@ -88,11 +104,17 @@ IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("Bool", []), [])
 IL_BITVEC_SORT: Callable[[int], ILSort] = lambda n: ILSort(ILIdentifier("BitVec", [n]), [])
 
 
+def is_bool_sort(sort: ILSort) -> bool:
+    if sort.identifier.symbol == "Bool" and len(sort.identifier.indices) == 0 and len(sort.sorts) == 0:
+        return True
+    return False
+
+
 def is_bv_sort(sort: ILSort) -> bool:
-    """A bit vector sort has an identifier with the symbol 'BitVec' and is indexed with a single numeral."""
-    if sort.identifier.symbol != "BitVec" or len(sort.sorts) != 0 or len(sort.identifier.indices) != 1:
-        return False
-    return True
+    """A bit vector sort has an identifier with the symbol 'BitVec' and is indexed with a single numeral. Bool type is an implicit name for a bit vector of length one."""
+    if len(sort.sorts) == 0 and ((sort.identifier.symbol == "BitVec" and len(sort.identifier.indices) == 1) or is_bool_sort(sort)):
+        return True
+    return False
 
 
 class ILExpr():
@@ -103,7 +125,7 @@ class ILExpr():
 
     def __hash__(self) -> int:
         return id(self)
-        
+
 
 class ILConstant(ILExpr):
 
@@ -324,9 +346,13 @@ def sort_check_apply_bv(node: ILApply) -> bool:
         if not is_bv_sort(node.children[0].sort) or not is_bv_sort(node.children[1].sort):
             return False
 
-        m = node.children[0].sort.identifier.indices[0]
-        if m != node.children[1].sort.identifier.indices[0]:
+        if is_bool_sort(node.children[0].sort) != is_bool_sort(node.children[1].sort):
             return False
+
+        if not is_bool_sort(node.children[0].sort):
+            m = node.children[0].sort.identifier.indices[0]
+            if m != node.children[1].sort.identifier.indices[0]:
+                return False
 
         node.sort = IL_BOOL_SORT
 
@@ -409,7 +435,7 @@ class ILProgram():
     def __init__(self, commands: list[ILCommand]):
         self.commands: list[ILCommand] = commands
 
-    def get_check_systems(self) -> list[ILCheckSystem]:
+    def get_check_system_cmds(self) -> list[ILCheckSystem]:
         return [cmd for cmd in self.commands if isinstance(cmd, ILCheckSystem)]
 
 
@@ -464,7 +490,11 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             if node.identifier.symbol in context.logic.function_symbols:
                 for arg in node.children:
                     sort_check_expr(arg, no_prime, prime_input)
-                return context.logic.sort_check(node)
+
+                if not context.logic.sort_check(node):
+                    print(f"Error: function return type does not match definition ({node}).")
+                    return False
+                return True
             elif node.identifier.symbol in context.defined_functions:
                 ((arg_sorts, return_sort), expr) = context.defined_functions[node.identifier.symbol]
 
