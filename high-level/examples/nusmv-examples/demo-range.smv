@@ -1,0 +1,9 @@
+MODULE main
+VAR
+    test : 0 .. 10 ;
+    test2 : 0 .. 20 ;
+ASSIGN
+    init(test) := 5 ;
+    init(test2) := 5 ;
+    next(test) := test ;
+    next(test2) := 15 ;

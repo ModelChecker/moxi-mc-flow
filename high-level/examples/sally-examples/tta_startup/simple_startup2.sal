@@ -1,0 +1,348 @@
+%
+% Simplified TTA startup protocol
+% - Does not model failures
+% - Assumes a simple reliable hub
+% - Includes timing
+%
+
+simple_startup2: CONTEXT =
+
+BEGIN
+
+  % min: 2, max tried with sal 10
+  N: NATURAL = 3;
+
+  % Ugly type definition to work around ICS's limitations
+  % (incompleteness when dealing with integers)
+
+  IDENTITY: TYPE = [1 .. N];
+
+  TIME: TYPE = REAL;
+
+  TIMEOUT_ARRAY: TYPE = ARRAY IDENTITY OF TIME;
+
+
+
+  %---------------------------------------------------
+  %  Delays, assuming all slots have the same length
+  %---------------------------------------------------
+
+  slot_time: TIME = 3;
+
+  round_time: TIME = slot_time * N;
+
+  % propagation delay  (must be smaller than half the slot time)
+
+  propagation: { x : TIME | 0 < x AND x < slot_time/2 };
+
+
+  % maximal time in init state
+
+  max_init_time: TIME = 30;
+
+
+  % timeouts in listen and coldstart states    
+
+  tau_startup(i: IDENTITY): TIME = slot_time * (i - 1);
+
+  tau_listen(i: IDENTITY): TIME = 2 * round_time + tau_startup(i);
+
+%  tau_listen(i: IDENTITY): TIME = 2 * round_time;
+
+  tau_coldstart(i: IDENTITY): TIME = round_time + tau_startup(i);
+
+
+
+
+  %--------------------------------------------
+  %  Hub/communication channel model
+  %--------------------------------------------
+
+  message: TYPE = { cs_frame, i_frame };  
+
+  calendar: TYPE = 
+    [# flag: ARRAY IDENTITY OF bool,  % which nodes have to receive the message
+       content: message,              % message
+       origin: IDENTITY,              % sender
+       send: TIME,                    % transmission time (useful for proofs)
+       delivery: TIME                 % reception time (the same for all recipients)
+     #];
+
+
+  %---------------------------
+  %  Operations on calendars
+  %--------------------------- 
+
+  %---------------------------------------------------------------
+  % empty calendar: content, origin, and delivery are irrelevant
+  %---------------------------------------------------------------
+
+  empty_cal: calendar = (# flag := [[i: IDENTITY] false],
+                           content := i_frame,
+                           origin := 1,
+			   send := 0,
+                           delivery := 0 #);
+
+  empty?(cal: calendar): bool = FORALL (i: IDENTITY): NOT cal.flag[i];
+
+
+  %----------------------------------------
+  % Check for pending events and messages
+  %----------------------------------------
+
+  event_pending?(cal: calendar, i: IDENTITY): bool = cal.flag[i];
+
+  i_frame_pending?(cal: calendar, i: IDENTITY): bool = 
+     cal.flag[i] AND cal.content = i_frame;
+
+  cs_frame_pending?(cal: calendar, i: IDENTITY): bool =
+     cal.flag[i] AND cal.content = cs_frame;
+
+  cs_frame?(cal: calendar): bool = 
+     NOT empty?(cal) AND cal.content = cs_frame;
+
+  i_frame?(cal: calendar): bool =
+     NOT empty?(cal) AND cal.content = i_frame;
+
+
+  %---------------------------------------------------------
+  % occurrence time and origin of the pending events
+  % both are meaningful only if the calendar is not empty
+  %---------------------------------------------------------
+
+  event_time(cal: calendar, i: IDENTITY): TIME = cal.delivery; 
+
+  frame_origin(cal: calendar, i: IDENTITY): IDENTITY = cal.origin;
+  
+
+  %-----------------------------
+  % remove event received by i
+  %-----------------------------
+
+  consume_event(cal: calendar, i: IDENTITY): calendar =
+     cal WITH .flag[i] := false;
+
+
+  %-----------------------------------------------------
+  % broadcast a message from i to all nodes except i
+  %  - t is the transmission time
+  % if there is already a message m0 being sent then
+  % a collision occurs and is resolved as follows:
+  %  - m0 remains the transmitted messages 
+  %  - node i will not receive m0
+  %  - message m is dropped
+  %------------------------------------------------------
+
+  bcast(cal: calendar, m: message, i: IDENTITY, t: TIME): calendar = 
+    IF empty?(cal) THEN
+	(# flag := [[j: IDENTITY] j /= i],
+           content := m,
+           origin := i,
+           send := t, 
+           delivery := t + propagation #)
+    ELSE cal WITH .flag[i] := false
+    ENDIF;
+
+
+  %-----------------------------------------------
+  % time of the next event in the calendar
+  % only meaningful if the calendar is not empty
+  %-----------------------------------------------
+
+  first_event(cal: calendar): TIME = cal.delivery;
+
+
+  %---------------------------------------------------
+  %  Clock module
+  %  - input: timeout of each node + calendar
+  %  - if the calendar is empty, the clock module
+  %  advances time up to the smallest timeout
+  %  - if a message is in the bus, time advances
+  %  to the smallest timeout or to the bus delivery
+  %  time, whichever is smaller
+  %---------------------------------------------------
+
+  time_can_advance(cal: calendar, time_out: TIMEOUT_ARRAY, t: TIME): BOOLEAN =
+      IF empty?(cal) THEN 
+          (FORALL (i: IDENTITY): t < time_out[i])
+      ELSE 
+          (FORALL (i: IDENTITY): t < time_out[i]) AND t < first_event(cal)
+      ENDIF;
+
+  is_next_event(cal: calendar, time_out: TIMEOUT_ARRAY, t: TIME): BOOLEAN =
+      IF empty?(cal) THEN 
+                (FORALL (i: IDENTITY): t <= time_out[i]) 
+            AND (EXISTS (i: IDENTITY): t = time_out[i])
+      ELSE
+                (FORALL (i: IDENTITY): t <= time_out[i])
+            AND t <= first_event(cal)
+            AND (t = first_event(cal) OR (EXISTS (i: IDENTITY): t = time_out[i]))
+      ENDIF;
+
+
+  clock: MODULE =
+    BEGIN
+      INPUT time_out: TIMEOUT_ARRAY
+      INPUT cal: calendar
+      OUTPUT time: TIME
+    INITIALIZATION
+      time = 0
+    TRANSITION
+      [ time_elapses:
+        time_can_advance(cal, time_out, time) --> 
+             time' IN { t: TIME | is_next_event(cal, time_out, t) } ]
+    END;
+
+
+
+
+
+  %------------------------
+  % Next slot after slot i
+  %------------------------
+
+  inc(i: IDENTITY): IDENTITY = IF i=N THEN 1 ELSE i+1 ENDIF;
+
+
+  %-------------------------------------------------
+  % Number of slots between slot i and next slot j
+  %     slot_delay(i, i + 1) = 0 if i<N
+  %     slot_delay(N, 1) = 0
+  %     slot_delay(i, i) = N-1
+  %-------------------------------------------------
+
+  slot_delay(i, j: IDENTITY): [0 .. N-1]  =
+     IF i < j THEN j - i - 1 ELSE N - i + j - 1 ENDIF;
+
+
+
+  %-----------------------------------
+  %  States of a node during startup
+  %-----------------------------------
+
+  PC: TYPE = { init, listen, coldstart, active };
+
+
+  %-------------------
+  %  Node[i] process
+  %-------------------
+
+  node[i: IDENTITY]: MODULE = 
+    BEGIN
+      INPUT  time: TIME
+      OUTPUT timeout: TIME
+      OUTPUT slot: IDENTITY     % slot and pc need to be output
+      OUTPUT pc: PC             % to be read by the abstraction module
+      GLOBAL cal: calendar
+   INITIALIZATION
+      pc = init;
+      timeout IN { x: TIME | time < x AND x < max_init_time};
+      cal = empty_cal;
+   TRANSITION
+      [ init_to_listen:
+	pc = init AND time = timeout --> 
+           pc' = listen;
+           timeout' = time + tau_listen(i)
+
+     % reception of a frame in the init state ==> drop it
+     [] frame_in_init:
+        pc = init AND event_pending?(cal, i) AND time = event_time(cal, i) -->
+           cal' = consume_event(cal, i)
+
+     % end of listen phase: send cs frame, move to coldstart state
+     % bcast function takes care of collisions
+     [] listen_to_coldstart:
+        pc = listen AND time = timeout -->
+           pc' = coldstart;
+	   timeout' = time + tau_coldstart(i);
+	   cal' = bcast(cal, cs_frame, i, time)
+
+     % reception of a cs_frame in the listen state:
+     % move to coldstart and set timeout
+     [] cs_frame_in_listen: 
+        pc = listen AND cs_frame_pending?(cal, i) AND time = event_time(cal, i) -->
+           pc' = coldstart;
+           timeout' = time + tau_coldstart(i) - propagation;
+	   cal' = consume_event(cal, i)    
+
+     % for reception of an i_frame in the listen state: see below
+
+     % reception of a cs_frame in the coldstart state:
+     % synchronize on the sender and move to active state
+     [] cs_frame_in_coldstart:
+        pc = coldstart AND cs_frame_pending?(cal, i) AND time = event_time(cal, i) -->
+           pc' = active;
+	   timeout' = time + slot_time - propagation;
+           slot' = frame_origin(cal, i);
+           cal' = consume_event(cal, i)
+
+     % end of coldstart phase (timeout tau_coldstart(i) is reached)
+     % broadcast a cs_frame and loop back to coldstart state
+     % --> TO DO: check if it's OK to go directly to active from here
+     [] coldstart_to_coldstart:
+        pc = coldstart AND time = timeout -->
+           % pc' = coldstart;
+	   timeout' = time + tau_coldstart(i);
+	   cal' = bcast(cal, cs_frame, i, time)
+ 
+     % reception of an i_frame in listen or coldstart state: synchronize and move
+     % to the active state
+     [] i_frame_processed:
+        (pc = listen OR pc = coldstart) AND i_frame_pending?(cal, i) AND 
+              time = event_time(cal, i) -->
+           pc' = active;
+           timeout' = time + slot_time - propagation;
+           slot' = frame_origin(cal, i);
+           cal' = consume_event(cal, i)
+
+
+     % active state: end of current slot, new slot /= i
+     [] passive_slot:
+        pc = active AND time = timeout AND inc(slot) /= i -->
+           timeout' = time + slot_time;
+	   slot' = inc(slot)
+
+     % active state: end of current slot, new slot = i
+     % broadcast an i_frame
+     [] active_slot:
+        pc = active AND time = timeout AND inc(slot) = i -->
+           timeout' = time + slot_time;
+	   slot' = inc(slot);
+           cal' = bcast(cal, i_frame, i, time)
+
+     % reception of an i_frame
+     % in active state: just consume the event. No action
+     [] i_frame_ignored:
+        pc = active AND i_frame_pending?(cal, i) AND time = event_time(cal, i) -->
+            cal' = consume_event(cal, i)
+
+      ]
+    END;
+
+
+   %----------------------------------------------------
+   %  Asynchronous composition: all processes together
+   %    time_out[i] = timeout variable of process[i]
+   %----------------------------------------------------
+
+   nodes: MODULE = 
+     WITH OUTPUT time_out: TIMEOUT_ARRAY,
+		 pc: ARRAY IDENTITY OF PC,
+                 slot: ARRAY IDENTITY OF IDENTITY
+        ([] (i: IDENTITY): (RENAME timeout TO time_out[i], 
+                                   pc TO pc[i], slot TO slot[i] IN node[i]));
+    
+   tta: MODULE = clock [] nodes;
+
+   %--------------
+   %  Properties
+   %--------------
+
+   system: MODULE = tta;
+
+   synchro: THEOREM
+     tta |- G(FORALL (i, j: IDENTITY): pc[i] = active AND pc[j] = active AND
+		time < time_out[i] AND time < time_out[j] => time_out[i] = time_out[j] AND slot[i] = slot[j]);
+
+ 
+END
