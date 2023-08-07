@@ -2,8 +2,6 @@ from copy import copy
 import sys
 from typing import cast
 
-from sympy import ilex
-
 from il import *
 from btor2 import *
 from parse import ILLexer, ILParser
