@@ -1,7 +1,5 @@
 """
-Representation of MoChIL
-MPT => MoChIL Parse Tree
-MCIL => MoChIL
+Representation of IL
 """
 from __future__ import annotations
 from typing import Any, Callable, NewType
@@ -9,7 +7,7 @@ from typing import Any, Callable, NewType
 from btor2 import *
 
 
-class MPTAttribute(Enum):
+class ILAttribute(Enum):
     INPUT      = ":input"
     OUTPUT     = ":output"
     LOCAL      = ":local"
@@ -23,7 +21,7 @@ class MPTAttribute(Enum):
     QUERY      = ":query"
 
 
-class MPTIdentifier():
+class ILIdentifier():
     """
     An identifier is a symbol and can be "indexed" with numerals. As opposed to SMT-LIB2, we restrict indices to numerals and not symbols and numerals.
 
@@ -35,8 +33,8 @@ class MPTIdentifier():
         self.indices = indices
 
     def __eq__(self, __value: object) -> bool:
-        """Two MPTIdentifiers are equal if they have the same symbol and indices."""
-        if not isinstance(__value, MPTIdentifier):
+        """Two ILIdentifiers are equal if they have the same symbol and indices."""
+        if not isinstance(__value, ILIdentifier):
             return False
 
         if self.symbol != __value.symbol:
@@ -64,9 +62,9 @@ class MPTIdentifier():
         return s[:-1]+")"
 
 
-class MPTSort():
+class ILSort():
 
-    def __init__(self, identifier: MPTIdentifier, sorts: list[MPTSort]):
+    def __init__(self, identifier: ILIdentifier, sorts: list[ILSort]):
         self.identifier = identifier
         self.sorts = sorts
 
@@ -74,7 +72,7 @@ class MPTSort():
         return len(self.sorts)
 
     def __eq__(self, __value: object) -> bool:
-        if not isinstance(__value, MPTSort):
+        if not isinstance(__value, ILSort):
             return False
 
         if is_bool_sort(self) and is_bv_sort(__value) and __value.identifier.indices[0] == 1:
@@ -90,7 +88,7 @@ class MPTSort():
     
     def __hash__(self) -> int:
         if is_bool_sort(self):
-            return hash(MPTIdentifier("BitVec", [1]))
+            return hash(ILIdentifier("BitVec", [1]))
         return hash(self.identifier)
     
     def __str__(self) -> str:
@@ -101,27 +99,27 @@ class MPTSort():
 
 
 # Built-in sorts
-MPT_NO_SORT: MPTSort = MPTSort(MPTIdentifier("", []), []) # placeholder sort
-MPT_BOOL_SORT: MPTSort = MPTSort(MPTIdentifier("Bool", []), [])
-MPT_BITVEC_SORT: Callable[[int], MPTSort] = lambda n: MPTSort(MPTIdentifier("BitVec", [n]), [])
+IL_NO_SORT: ILSort = ILSort(ILIdentifier("", []), []) # placeholder sort
+IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("Bool", []), [])
+IL_BITVEC_SORT: Callable[[int], ILSort] = lambda n: ILSort(ILIdentifier("BitVec", [n]), [])
 
 
-def is_bool_sort(sort: MPTSort) -> bool:
+def is_bool_sort(sort: ILSort) -> bool:
     if sort.identifier.symbol == "Bool" and len(sort.identifier.indices) == 0 and len(sort.sorts) == 0:
         return True
     return False
 
 
-def is_bv_sort(sort: MPTSort) -> bool:
+def is_bv_sort(sort: ILSort) -> bool:
     """A bit vector sort has an identifier with the symbol 'BitVec' and is indexed with a single numeral. Bool type is an implicit name for a bit vector of length one."""
     if len(sort.sorts) == 0 and ((sort.identifier.symbol == "BitVec" and len(sort.identifier.indices) == 1) or is_bool_sort(sort)):
         return True
     return False
 
 
-class MPTExpr():
+class ILExpr():
 
-    def __init__(self, sort: MPTSort, children: list[MPTExpr]):
+    def __init__(self, sort: ILSort, children: list[ILExpr]):
         self.sort = sort
         self.children = children
 
@@ -129,9 +127,9 @@ class MPTExpr():
         return id(self)
 
 
-class MPTConstant(MPTExpr):
+class ILConstant(ILExpr):
 
-    def __init__(self, sort: MPTSort, value: Any):
+    def __init__(self, sort: ILSort, value: Any):
         super().__init__(sort, [])
         self.value = value
 
@@ -139,16 +137,16 @@ class MPTConstant(MPTExpr):
         return f"{self.value}"
 
 
-class MPTVar(MPTExpr):
-    """An MPTVar requires a sort and symbol."""
+class ILVar(ILExpr):
+    """An ILVar requires a sort and symbol."""
 
-    def __init__(self, sort: MPTSort, symbol: str):
+    def __init__(self, sort: ILSort, symbol: str):
         super().__init__(sort, [])
         self.symbol = symbol
 
     def __eq__(self, __value: object) -> bool:
-        """Two MPTVars are equal if they have the same symbol."""
-        if isinstance(__value, MPTVar):
+        """Two ILVars are equal if they have the same symbol."""
+        if isinstance(__value, ILVar):
             return self.symbol == __value.symbol
         return False
 
@@ -160,54 +158,54 @@ class MPTVar(MPTExpr):
 
 
 
-class MPTInputVar(MPTVar):
+class ILInputVar(ILVar):
 
-    def __init__(self, sort: MPTSort, symbol: str, prime: bool):
+    def __init__(self, sort: ILSort, symbol: str, prime: bool):
         super().__init__(sort, symbol)
         self.prime = prime
 
-    def rename(self, new: str) -> MPTInputVar:
-        return MPTInputVar(self.sort, new, self.prime)
+    def rename(self, new: str) -> ILInputVar:
+        return ILInputVar(self.sort, new, self.prime)
 
 
-class MPTOutputVar(MPTVar):
+class ILOutputVar(ILVar):
 
-    def __init__(self, sort: MPTSort, symbol: str, prime: bool):
-        super().__init__(sort, symbol)
-        self.prime = prime
-
-    def __str__(self) -> str:
-        return super().__str__() + ("'" if self.prime else "")
-
-    def rename(self, new: str) -> MPTOutputVar:
-        return MPTOutputVar(self.sort, new, self.prime)
-
-
-class MPTLocalVar(MPTVar):
-
-    def __init__(self, sort: MPTSort, symbol: str, prime: bool):
+    def __init__(self, sort: ILSort, symbol: str, prime: bool):
         super().__init__(sort, symbol)
         self.prime = prime
 
     def __str__(self) -> str:
         return super().__str__() + ("'" if self.prime else "")
 
-    def rename(self, new: str) -> MPTLocalVar:
-        return MPTLocalVar(self.sort, new, self.prime)
+    def rename(self, new: str) -> ILOutputVar:
+        return ILOutputVar(self.sort, new, self.prime)
 
 
-class MPTLogicVar(MPTVar):
+class ILLocalVar(ILVar):
 
-    def __init__(self, sort: MPTSort, symbol: str):
+    def __init__(self, sort: ILSort, symbol: str, prime: bool):
+        super().__init__(sort, symbol)
+        self.prime = prime
+
+    def __str__(self) -> str:
+        return super().__str__() + ("'" if self.prime else "")
+
+    def rename(self, new: str) -> ILLocalVar:
+        return ILLocalVar(self.sort, new, self.prime)
+
+
+class ILLogicVar(ILVar):
+
+    def __init__(self, sort: ILSort, symbol: str):
         super().__init__(sort, symbol)
 
-    def rename(self, new: str) -> MPTLogicVar:
-        return MPTLogicVar(self.sort, new)
+    def rename(self, new: str) -> ILLogicVar:
+        return ILLogicVar(self.sort, new)
 
 
-class MPTApply(MPTExpr):
+class ILApply(ILExpr):
 
-    def __init__(self, sort: MPTSort, identifier: MPTIdentifier, children: list[MPTExpr]):
+    def __init__(self, sort: ILSort, identifier: ILIdentifier, children: list[ILExpr]):
         super().__init__(sort, children)
         self.identifier = identifier
 
@@ -218,16 +216,16 @@ class MPTApply(MPTExpr):
         return s[:-1] + ")"
 
 
-class MPTSystem():
+class ILSystem():
     
     def __init__(
         self, 
-        input: list[MPTVar], 
-        state: list[MPTVar],
-        output: list[MPTVar], 
-        init: MPTExpr,
-        trans: MPTExpr, 
-        inv: MPTExpr
+        input: list[ILVar], 
+        state: list[ILVar],
+        output: list[ILVar], 
+        init: ILExpr,
+        trans: ILExpr, 
+        inv: ILExpr
     ):
         self.input = input
         self.state = state
@@ -237,11 +235,11 @@ class MPTSystem():
         self.inv = inv
 
 
-class MPTCommand():
+class ILCommand():
     pass
 
 
-class MPTDeclareSort(MPTCommand):
+class ILDeclareSort(ILCommand):
 
     def __init__(self, symbol: str, arity: int):
         super().__init__()
@@ -249,34 +247,34 @@ class MPTDeclareSort(MPTCommand):
         self.arity = arity
 
 
-class MPTDefineSort(MPTCommand):
+class ILDefineSort(ILCommand):
 
-    def __init__(self, symbol: str, definition: MPTSort):
+    def __init__(self, symbol: str, definition: ILSort):
         super().__init__()
         self.symbol = symbol
         self.definition = definition
 
 
-class MPTDeclareConst(MPTCommand):
+class ILDeclareConst(ILCommand):
 
-    def __init__(self, symbol: str, sort: MPTSort):
+    def __init__(self, symbol: str, sort: ILSort):
         super().__init__()
         self.symbol = symbol
         self.sort = sort
 
 
-class MPTDefineSystem(MPTCommand):
+class ILDefineSystem(ILCommand):
     
     def __init__(
         self, 
         symbol: str,
-        input: list[tuple[str, MPTSort]], 
-        output: list[tuple[str, MPTSort]], 
-        local: list[tuple[str, MPTSort]],
-        init: MPTExpr,
-        trans: MPTExpr, 
-        inv: MPTExpr,
-        subsystems: list[tuple[str, MPTDefineSystem]]
+        input: list[tuple[str, ILSort]], 
+        output: list[tuple[str, ILSort]], 
+        local: list[tuple[str, ILSort]],
+        init: ILExpr,
+        trans: ILExpr, 
+        inv: ILExpr,
+        subsystems: list[tuple[str, ILDefineSystem]]
     ):
         self.symbol = symbol
         self.input = input
@@ -288,18 +286,18 @@ class MPTDefineSystem(MPTCommand):
         self.subsystems = subsystems
 
 
-class MPTCheckSystem(MPTCommand):
+class ILCheckSystem(ILCommand):
     
     def __init__(
         self, 
         sys_symbol: str,
-        input: list[tuple[str, MPTSort]], 
-        output: list[tuple[str, MPTSort]], 
-        local: list[tuple[str, MPTSort]],
-        assumption: dict[str, MPTExpr],
-        fairness: dict[str, MPTExpr], 
-        reachable: dict[str, MPTExpr], 
-        current: dict[str, MPTExpr], 
+        input: list[tuple[str, ILSort]], 
+        output: list[tuple[str, ILSort]], 
+        local: list[tuple[str, ILSort]],
+        assumption: dict[str, ILExpr],
+        fairness: dict[str, ILExpr], 
+        reachable: dict[str, ILExpr], 
+        current: dict[str, ILExpr], 
         query: dict[str, list[str]], 
     ):
         self.sys_symbol = sys_symbol
@@ -314,18 +312,18 @@ class MPTCheckSystem(MPTCommand):
         self.var_map: dict[str, str] = {}
 
 
-class MPTExit(MPTCommand):
+class ILExit(ILCommand):
     pass
 
 
-class MPTLogic():
+class ILLogic():
 
     def __init__(
         self, 
         name: str, 
         sort_symbols: dict[str, tuple[int, int]], 
         function_symbols: set[str],
-        sort_check: Callable[[MPTApply], bool]
+        sort_check: Callable[[ILApply], bool]
     ):
         self.name = name
         self.sort_symbols = sort_symbols
@@ -333,7 +331,7 @@ class MPTLogic():
         self.sort_check = sort_check
 
 
-def sort_check_apply_bv(node: MPTApply) -> bool:
+def sort_check_apply_bv(node: ILApply) -> bool:
     """Returns true if `node` corresponds to a valid function signature in SMT-LIB2 QF_BV logic."""
     function = node.identifier
 
@@ -356,7 +354,7 @@ def sort_check_apply_bv(node: MPTApply) -> bool:
             if m != node.children[1].sort.identifier.indices[0]:
                 return False
 
-        node.sort = MPT_BOOL_SORT
+        node.sort = IL_BOOL_SORT
 
         return True
     elif function.symbol == "extract":
@@ -373,7 +371,7 @@ def sort_check_apply_bv(node: MPTApply) -> bool:
         if not i <= m and j <= i:
             return False
 
-        node.sort = MPT_BITVEC_SORT(i-j+1)
+        node.sort = IL_BITVEC_SORT(i-j+1)
 
         return True
     elif function.symbol == "bvnot":
@@ -385,7 +383,7 @@ def sort_check_apply_bv(node: MPTApply) -> bool:
             return False
 
         m = node.children[0].sort.identifier.indices[0]
-        node.sort = MPT_BITVEC_SORT(m)
+        node.sort = IL_BITVEC_SORT(m)
 
         return True
     elif function.symbol == "bvand" or function.symbol == "bvadd" or function.symbol == "bvsmod":
@@ -397,7 +395,7 @@ def sort_check_apply_bv(node: MPTApply) -> bool:
             return False
 
         m = node.children[0].sort.identifier.indices[0]
-        node.sort = MPT_BITVEC_SORT(m)
+        node.sort = IL_BITVEC_SORT(m)
 
         return True
 
@@ -405,19 +403,19 @@ def sort_check_apply_bv(node: MPTApply) -> bool:
 
 
 FUNCTIONS_BV = {"=", "extract", "bvnot", "bvand", "bvadd", "bvsmod"}
-QF_BV = MPTLogic("QF_BV", {"BitVec": (1,0)}, FUNCTIONS_BV, sort_check_apply_bv)
+QF_BV = ILLogic("QF_BV", {"BitVec": (1,0)}, FUNCTIONS_BV, sort_check_apply_bv)
 
-FuncSig = NewType("FuncSig", tuple[list[MPTSort], MPTSort])
+FuncSig = tuple[list[ILSort], ILSort]
 
 
-class MPTContext():
+class ILContext():
 
     def __init__(self):
-        self.declared_sorts: dict[MPTIdentifier, int] = {}
-        self.defined_sorts: set[MPTSort] = set()
+        self.declared_sorts: dict[ILIdentifier, int] = {}
+        self.defined_sorts: set[ILSort] = set()
         self.declared_functions: dict[str, FuncSig] = {}
-        self.defined_functions: dict[str, tuple[FuncSig, MPTExpr]] = {}
-        self.defined_systems: dict[str, MPTDefineSystem] = {}
+        self.defined_functions: dict[str, tuple[FuncSig, ILExpr]] = {}
+        self.defined_systems: dict[str, ILDefineSystem] = {}
         self.logic = QF_BV # for now, assume QF_BV logic
 
     def get_symbols(self) -> set[str]:
@@ -432,25 +430,25 @@ class MPTContext():
         return symbols
 
 
-class MPTProgram():
+class ILProgram():
 
-    def __init__(self, commands: list[MPTCommand]):
-        self.commands: list[MPTCommand] = commands
+    def __init__(self, commands: list[ILCommand]):
+        self.commands: list[ILCommand] = commands
 
-    def get_check_system_cmds(self) -> list[MPTCheckSystem]:
-        return [cmd for cmd in self.commands if isinstance(cmd, MPTCheckSystem)]
+    def get_check_system_cmds(self) -> list[ILCheckSystem]:
+        return [cmd for cmd in self.commands if isinstance(cmd, ILCheckSystem)]
     
 
-def reduce_mpt(program: MPTProgram):
-    nodes: set[MPTExpr] = set()
+def reduce_IL(program: ILProgram):
+    nodes: set[ILExpr] = set()
 
     for cmd in program.commands:
         pass
 
 
-def postorder_iterative(expr: MPTExpr, func: Callable[[MPTExpr], Any]):
+def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]):
     """Perform an iterative postorder traversal of `expr`, calling `func` on each node."""
-    stack: list[tuple[bool, MPTExpr]] = []
+    stack: list[tuple[bool, ILExpr]] = []
     visited: set[int] = set()
 
     stack.append((False, expr))
@@ -470,31 +468,31 @@ def postorder_iterative(expr: MPTExpr, func: Callable[[MPTExpr], Any]):
             stack.append((False, child))
 
 
-def sort_check(program: MPTProgram) -> tuple[bool, MPTContext]:
-    context: MPTContext = MPTContext()
+def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
+    context: ILContext = ILContext()
     status: bool = True
 
-    def sort_check_expr(node: MPTExpr, no_prime: bool, prime_input: bool) -> bool:
+    def sort_check_expr(node: ILExpr, no_prime: bool, prime_input: bool) -> bool:
         """Return true if node is well-sorted where `no_prime` is true if primed variables are disabled and `prime_input` is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions). """
         nonlocal context
 
-        if isinstance(node, MPTConstant):
+        if isinstance(node, ILConstant):
             return True
-        if isinstance(node, MPTInputVar):
+        if isinstance(node, ILInputVar):
             if node.prime and not prime_input:
                 print(f"Error: primed input variables only allowed in check system assumptions and reachability conditions ({node.symbol}).")
                 return False
 
             return True
-        elif isinstance(node, MPTOutputVar) or isinstance(node, MPTLocalVar):
+        elif isinstance(node, ILOutputVar) or isinstance(node, ILLocalVar):
             if node.prime and no_prime:
                 print(f"Error: primed variables only allowed in system transition relation ({node.symbol}).")
                 return False
 
             return True
-        elif isinstance(node, MPTApply):
-            arg_sorts: list[MPTSort] = []
-            return_sort: MPTSort = MPT_NO_SORT
+        elif isinstance(node, ILApply):
+            arg_sorts: list[ILSort] = []
+            return_sort: ILSort = IL_NO_SORT
 
             if node.identifier.symbol in context.logic.function_symbols:
                 for arg in node.children:
@@ -528,25 +526,25 @@ def sort_check(program: MPTProgram) -> tuple[bool, MPTContext]:
     # end sort_check_expr
 
     for cmd in program.commands:
-        if isinstance(cmd, MPTDeclareSort):
+        if isinstance(cmd, ILDeclareSort):
             if cmd.symbol in context.get_symbols():
                 print(f"Error: symbol `{cmd.symbol}` already in use.")
                 status = False
 
             # TODO
-        elif isinstance(cmd, MPTDefineSort):
+        elif isinstance(cmd, ILDefineSort):
             if cmd.symbol in context.get_symbols():
                 print(f"Error: symbol `{cmd.symbol}` already in use.")
                 status = False
 
             # TODO
-        elif isinstance(cmd, MPTDeclareConst):
+        elif isinstance(cmd, ILDeclareConst):
             if cmd.symbol in context.get_symbols():
                 print(f"Error: symbol `{cmd.symbol}` already in use.")
                 status = False
 
             context.declared_functions[cmd.symbol] = FuncSig(([], cmd.sort))
-        elif isinstance(cmd, MPTDefineSystem):
+        elif isinstance(cmd, ILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
 
             context.defined_systems[cmd.symbol] = cmd
@@ -554,7 +552,7 @@ def sort_check(program: MPTProgram) -> tuple[bool, MPTContext]:
             status = status and sort_check_expr(cmd.init, True, False)
             status = status and sort_check_expr(cmd.trans, False, False)
             status = status and sort_check_expr(cmd.inv, True, False)
-        elif isinstance(cmd, MPTCheckSystem):
+        elif isinstance(cmd, ILCheckSystem):
             if not cmd.sys_symbol in context.defined_systems:
                 print(f"Error: system `{cmd.sys_symbol}` undefined.")
                 status = False

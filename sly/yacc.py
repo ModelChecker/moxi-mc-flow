@@ -254,7 +254,7 @@ class Production(object):
         if self.prod:
             s = '%s -> %s' % (self.name, ' '.join(self.prod))
         else:
-            s = f'{self.name} -> <empty>'
+            s = f'{self.name} -> <eILy>'
 
         if self.prec[1]:
             s += '  [precedence=%s, level=%d]' % self.prec
@@ -330,7 +330,7 @@ class LRItem(object):
         if self.prod:
             s = '%s -> %s' % (self.name, ' '.join(self.prod))
         else:
-            s = f'{self.name} -> <empty>'
+            s = f'{self.name} -> <eILy>'
         return s
 
     def __repr__(self):
@@ -688,17 +688,17 @@ class Grammar(object):
         # We are computing First(x1,x2,x3,...,xn)
         result = []
         for x in beta:
-            x_produces_empty = False
+            x_produces_eILy = False
 
-            # Add all the non-<empty> symbols of First[x] to the result.
+            # Add all the non-<eILy> symbols of First[x] to the result.
             for f in self.First[x]:
-                if f == '<empty>':
-                    x_produces_empty = True
+                if f == '<eILy>':
+                    x_produces_eILy = True
                 else:
                     if f not in result:
                         result.append(f)
 
-            if x_produces_empty:
+            if x_produces_eILy:
                 # We have to consider the next x in beta,
                 # i.e. stay in the loop.
                 pass
@@ -707,9 +707,9 @@ class Grammar(object):
                 break
         else:
             # There was no 'break' from the loop,
-            # so x_produces_empty was true for all x in beta,
-            # so beta produces empty as well.
-            result.append('<empty>')
+            # so x_produces_eILy was true for all x in beta,
+            # so beta produces eILy as well.
+            result.append('<eILy>')
 
         return result
 
@@ -730,7 +730,7 @@ class Grammar(object):
 
         # Nonterminals:
 
-        # Initialize to the empty set:
+        # Initialize to the eILy set:
         for n in self.Nonterminals:
             self.First[n] = []
 
@@ -781,14 +781,14 @@ class Grammar(object):
                     if B in self.Nonterminals:
                         # Okay. We got a non-terminal in a production
                         fst = self._first(p.prod[i+1:])
-                        hasempty = False
+                        haseILy = False
                         for f in fst:
-                            if f != '<empty>' and f not in self.Follow[B]:
+                            if f != '<eILy>' and f not in self.Follow[B]:
                                 self.Follow[B].append(f)
                                 didadd = True
-                            if f == '<empty>':
-                                hasempty = True
-                        if hasempty or i == (len(p.prod)-1):
+                            if f == '<eILy>':
+                                haseILy = True
+                        if haseILy or i == (len(p.prod)-1):
                             # Add elements of follow(a) to follow(b)
                             for f in self.Follow[p.name]:
                                 if f not in self.Follow[B]:
@@ -1094,7 +1094,7 @@ class LRTable(object):
     # compute_nullable_nonterminals()
     #
     # Creates a dictionary containing all of the non-terminals that might produce
-    # an empty production.
+    # an eILy production.
     # -----------------------------------------------------------------------------
 
     def compute_nullable_nonterminals(self):
@@ -1171,8 +1171,8 @@ class LRTable(object):
     # Computes the READS() relation (p,A) READS (t,C).
     # -----------------------------------------------------------------------------
 
-    def reads_relation(self, C, trans, empty):
-        # Look for empty transitions
+    def reads_relation(self, C, trans, eILy):
+        # Look for eILy transitions
         rel = []
         state, N = trans
 
@@ -1181,7 +1181,7 @@ class LRTable(object):
         for p in g:
             if p.lr_index < p.len - 1:
                 a = p.prod[p.lr_index + 1]
-                if a in empty:
+                if a in eILy:
                     rel.append((j, a))
 
         return rel
@@ -1209,8 +1209,8 @@ class LRTable(object):
     #
     #       B -> LAT, where T -> epsilon and p' -L-> p
     #
-    # L is essentially a prefix (which may be empty), T is a suffix that must be
-    # able to derive an empty string.  State p' must lead to state p with the string L.
+    # L is essentially a prefix (which may be eILy), T is a suffix that must be
+    # able to derive an eILy string.  State p' must lead to state p with the string L.
     #
     # -----------------------------------------------------------------------------
 
@@ -1244,7 +1244,7 @@ class LRTable(object):
                     if (j, t) in dtrans:
                         # Yes.  Okay, there is some chance that this is an includes relation
                         # the only way to know for certain is whether the rest of the
-                        # production derives empty
+                        # production derives eILy
 
                         li = lr_index + 1
                         while li < p.len:
@@ -1289,7 +1289,7 @@ class LRTable(object):
     #
     # Inputs:  C        =  Set of LR(0) items
     #          ntrans   = Set of nonterminal transitions
-    #          nullable = Set of empty transitions
+    #          nullable = Set of eILy transitions
     #
     # Returns a set containing the read sets
     # -----------------------------------------------------------------------------
@@ -1838,7 +1838,7 @@ class Parser(metaclass=ParserMeta):
             return False
 
         if not cls.tokens:
-            cls.log.error('tokens is empty')
+            cls.log.error('tokens is eILy')
             return False
 
         if 'error' in cls.tokens:
@@ -1895,7 +1895,7 @@ class Parser(metaclass=ParserMeta):
         '''
         grammar_rules = []
         errors = ''
-        # Check for non-empty symbols
+        # Check for non-eILy symbols
         if not rules:
             raise YaccError('No grammar rules are defined')
 

@@ -2,9 +2,11 @@ from copy import copy
 import sys
 from typing import cast
 
-from mochil import *
+from sympy import ilex
+
+from il import *
 from btor2 import *
-from parse import MCILLexer, MCILParser
+from parse import ILLexer, ILParser
 
 
 USAGE: str = """Usage: main.py <input file>"""
@@ -12,12 +14,22 @@ USAGE: str = """Usage: main.py <input file>"""
 
 ilfunc_map: dict[str, Btor2Operator] = {
     "=": Btor2Operator.EQ,
+    "concat": Btor2Operator.CONCAT,
+    "extract": Btor2Operator.SLICE,
+    "bvnot": Btor2Operator.NOT,
+    "bvneg": Btor2Operator.NEG,
+    "bvand": Btor2Operator.AND,
+    "bvor": Btor2Operator.OR,
     "bvadd": Btor2Operator.ADD,
+    "bvmul": Btor2Operator.MUL,
+    "bvudiv": Btor2Operator.UDIV,
+    "bvurem": Btor2Operator.UREM,
+    "bvshl": Btor2Operator.SLL,
     "bvsmod": Btor2Operator.SMOD
 }
 
 
-def ilsort_to_btor2(sort: MPTSort) -> Btor2Sort:
+def ilsort_to_btor2(sort: ILSort) -> Btor2Sort:
     if is_bool_sort(sort):
         return Btor2BitVec(1)
     elif is_bv_sort(sort):
@@ -28,11 +40,11 @@ def ilsort_to_btor2(sort: MPTSort) -> Btor2Sort:
         raise NotImplementedError
 
 
-def build_sort_map_expr(expr: MPTExpr) -> dict[MPTSort, Btor2Sort]:
-    """Iteratively recurse the expr MPT and map each unique MPTSort of each node to a new Btor2Sort."""
-    sort_map: dict[MPTSort, Btor2Sort] = {}
+def build_sort_map_expr(expr: ILExpr) -> dict[ILSort, Btor2Sort]:
+    """Iteratively recurse the expr IL and map each unique ILSort of each node to a new Btor2Sort."""
+    sort_map: dict[ILSort, Btor2Sort] = {}
 
-    def build_sort_map_util(cur: MPTExpr):
+    def build_sort_map_util(cur: ILExpr):
         if cur.sort not in sort_map:
             sort_map[cur.sort] = ilsort_to_btor2(cur.sort)
     
@@ -40,17 +52,17 @@ def build_sort_map_expr(expr: MPTExpr) -> dict[MPTSort, Btor2Sort]:
     return sort_map
 
 
-def build_sort_map_cmd(cmd: MPTCommand) -> dict[MPTSort, Btor2Sort]:
-    sort_map: dict[MPTSort, Btor2Sort] = {}
+def build_sort_map_cmd(cmd: ILCommand) -> dict[ILSort, Btor2Sort]:
+    sort_map: dict[ILSort, Btor2Sort] = {}
 
-    if isinstance(cmd, MPTDefineSystem):
+    if isinstance(cmd, ILDefineSystem):
         for subsystem in [s[1] for s in cmd.subsystems]:
             sort_map.update(build_sort_map_cmd(subsystem))
 
         sort_map.update(build_sort_map_expr(cmd.init))
         sort_map.update(build_sort_map_expr(cmd.trans))
         sort_map.update(build_sort_map_expr(cmd.inv))
-    elif isinstance(cmd, MPTCheckSystem):
+    elif isinstance(cmd, ILCheckSystem):
         for assume in cmd.assumption.values():
             sort_map.update(build_sort_map_expr(assume))
         for fair in cmd.fairness.values():
@@ -66,14 +78,14 @@ def build_sort_map_cmd(cmd: MPTCommand) -> dict[MPTSort, Btor2Sort]:
 
 
 def build_var_map_expr(
-    expr: MPTExpr, 
+    expr: ILExpr, 
     rename_map: dict[str, str],
-    sort_map: dict[MPTSort, Btor2Sort],
-    var_map: dict[MPTVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]):
-    """Iteratively recurse the expr MPT and map each input MPTVar to a single Btor2Input and each local/output var to a triple of Btor2States corresponding to that var's init, cur, and next values."""
+    sort_map: dict[ILSort, Btor2Sort],
+    var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]):
+    """Iteratively recurse the expr IL and map each input ILVar to a single Btor2Input and each local/output var to a triple of Btor2States corresponding to that var's init, cur, and next values."""
 
-    def build_var_map_util(cur: MPTExpr):
-        if isinstance(cur, MPTVar) and not cur in var_map:
+    def build_var_map_util(cur: ILExpr):
+        if isinstance(cur, ILVar) and not cur in var_map:
             if cur.symbol in rename_map:
                 for k,v in var_map.items():
                     if rename_map[cur.symbol] == k.symbol:
@@ -82,7 +94,7 @@ def build_var_map_expr(
 
             symbol = rename_map[cur.symbol] if cur.symbol in rename_map else cur.symbol
 
-            if isinstance(cur, MPTInputVar):
+            if isinstance(cur, ILInputVar):
                 var_map[cur] = Btor2InputVar(sort_map[cur.sort], symbol)
             else: # output or local var
                 var_map[cur] = (Btor2StateVar(sort_map[cur.sort], f"init_{symbol}"),
@@ -93,19 +105,19 @@ def build_var_map_expr(
 
 
 def build_var_map_cmd(
-    cmd: MPTCommand, 
+    cmd: ILCommand, 
     rename_map: dict[str, str],
-    sort_map: dict[MPTSort, Btor2Sort],
-    var_map: dict[MPTVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]):
-    """Update var_map to map all MPTVar instances to Btor2Vars"""
-    if isinstance(cmd, MPTDefineSystem):
+    sort_map: dict[ILSort, Btor2Sort],
+    var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]):
+    """Update var_map to map all ILVar instances to Btor2Vars"""
+    if isinstance(cmd, ILDefineSystem):
         for subsystem in [s[1] for s in cmd.subsystems]:
             build_var_map_cmd(subsystem, rename_map, sort_map, var_map)
 
         build_var_map_expr(cmd.init, rename_map, sort_map, var_map)
         build_var_map_expr(cmd.trans, rename_map, sort_map, var_map)
         build_var_map_expr(cmd.inv, rename_map, sort_map, var_map)
-    elif isinstance(cmd, MPTCheckSystem):
+    elif isinstance(cmd, ILCheckSystem):
         for assume in cmd.assumption.values():
             build_var_map_expr(assume, rename_map, sort_map, var_map)
         for fair in cmd.fairness.values():
@@ -119,24 +131,32 @@ def build_var_map_cmd(
 
 
 def ilexpr_to_btor2(
-    expr: MPTExpr, 
+    expr: ILExpr, 
     is_init_expr: bool,
-    sort_map: dict[MPTSort, Btor2Sort],
-    var_map: dict[MPTVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]
+    sort_map: dict[ILSort, Btor2Sort],
+    var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]
 ) -> Btor2Expr:
-    if isinstance(expr, MPTInputVar):
+    if isinstance(expr, ILInputVar):
         return cast(Btor2Var, var_map[expr])
-    elif isinstance(expr, MPTOutputVar) or isinstance(expr, MPTLocalVar):
+    elif isinstance(expr, ILOutputVar) or isinstance(expr, ILLocalVar):
         # We use "int(not is_init_expr)+int(expr.prime)" to compute the index in var_map:
         #   var_map[var][0] = init_var
         #   var_map[var][1] = cur_var
         #   var_map[var][2] = next_var
         return cast(tuple[Btor2Var,Btor2Var,Btor2Var], var_map[expr])[int(not is_init_expr)+int(expr.prime)]
-    elif isinstance(expr, MPTConstant):
+    elif isinstance(expr, ILConstant):
         return Btor2Const(sort_map[expr.sort], expr.value)
-    elif isinstance(expr, MPTApply):
-        return Btor2Apply(sort_map[expr.sort], ilfunc_map[expr.identifier.symbol], 
-                        [ilexpr_to_btor2(c, is_init_expr, sort_map, var_map) for c in expr.children])
+    elif isinstance(expr, ILApply):
+        if len(expr.children) > 3:
+            raise NotImplementedError
+
+        tmp_children = copy(expr.children) + ([None] * (3 - len(expr.children)))
+        (arg1, arg2, arg3) = tuple(tmp_children)
+
+        btor2_args = (ilexpr_to_btor2(arg1, is_init_expr, sort_map, var_map) if arg1 else None,
+                      ilexpr_to_btor2(arg2, is_init_expr, sort_map, var_map) if arg2 else None,
+                      ilexpr_to_btor2(arg3, is_init_expr, sort_map, var_map) if arg3 else None)
+        return Btor2Apply(sort_map[expr.sort], ilfunc_map[expr.identifier.symbol], btor2_args)
 
     raise NotImplementedError
 
@@ -149,12 +169,13 @@ def flatten_btor2_expr(expr: Btor2Expr) -> list[Btor2Expr]:
     
     postorder_iterative_btor2(expr, flatten_btor2_expr_util)
     return out
+            
 
 
 def ildefinesystem_to_btor2(
-    sys: MPTDefineSystem, 
-    sort_map: dict[MPTSort, Btor2Sort],
-    var_map: dict[MPTVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]
+    sys: ILDefineSystem, 
+    sort_map: dict[ILSort, Btor2Sort],
+    var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]
 ) -> list[Btor2Node]:
     btor2_model: list[Btor2Node] = []
 
@@ -192,14 +213,14 @@ def ildefinesystem_to_btor2(
 
 
 def ilchecksystem_to_btor2(
-    check: MPTCheckSystem, 
-    context: MPTContext,
-    sort_map: dict[MPTSort, Btor2Sort],
-    var_map: dict[MPTVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]],
+    check: ILCheckSystem, 
+    context: ILContext,
+    sort_map: dict[ILSort, Btor2Sort],
+    var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]],
 ) -> dict[str, list[Btor2Node]]:
     """A check_system command can have many queries: each query will have the same target system but may correspond to different models of that system. First, we construct that reference BTOR2 model, then for each query we generate a new BTOR2 program with the reference model as a prefix and query as a suffix."""
     btor2_prog_list: dict[str, list[Btor2Node]] = {}
-    btor2_model: List[Btor2Node] = []
+    btor2_model: list[Btor2Node] = []
 
     btor2_model += ildefinesystem_to_btor2(context.defined_systems[check.sys_symbol], sort_map, var_map)
 
@@ -227,32 +248,44 @@ def ilchecksystem_to_btor2(
             btor2_prog += flatten_btor2_expr(btor2_current)
             btor2_prog.append(Btor2Constraint(btor2_current))
 
-        for i in range(0, len(btor2_prog)):
-            node = btor2_prog[i]
-            node.nid = i+1
+        btor2_nids: dict[Btor2Node, int] = {}
+        cur_nid = 1
+        for node in btor2_prog:
+            if node in btor2_nids:
+                node.nid = btor2_nids[node]
+            else:
+                node.nid = cur_nid
+                btor2_nids[node] = cur_nid
+                cur_nid += 1
 
-        btor2_prog_list[sym] = btor2_prog
+        reduced_btor2_prog: list[Btor2Node] = []
+        for node in btor2_prog:
+            if node in reduced_btor2_prog:
+                continue
+            reduced_btor2_prog.append(node)
+
+        btor2_prog_list[sym] = reduced_btor2_prog
 
     return btor2_prog_list
     
 
 
-def translate(il_prog: MPTProgram) -> dict[str, list[Btor2Node]]:
+def translate(il_prog: ILProgram) -> dict[str, list[Btor2Node]]:
     """Translate `il_prog` to an equivalent set of Btor2 programs, labeled by query name.
     
     The strategy for translation is to sort check the input then construct a Btor2 program for each query (and targeted system) by:
-    1) Constructing a mapping of MPTSorts to Btor2Sorts for the target system
-    2) Constructing a mapping of MPTVars to Btor2Vars for the target system
+    1) Constructing a mapping of ILSorts to Btor2Sorts for the target system
+    2) Constructing a mapping of ILVars to Btor2Vars for the target system
     3) Translating the relevant model of the query 
     4) Translating the query
 
-    1-3 recursively descend the MPT of the program starting from the target system and traversing down through the system's init, trans, and inv expressions as well as any subsystems and 4 recursively descends the relevant attributes of the query.
+    1-3 recursively descend the IL of the program starting from the target system and traversing down through the system's init, trans, and inv expressions as well as any subsystems and 4 recursively descends the relevant attributes of the query.
 
     Note that the output programs will have input/output/local variables renamed based on the query, but all subsystem variables will remain as defined.
     """
     btor2_prog_list: dict[str, list[Btor2Node]] = {}
-    sort_map: dict[MPTSort, Btor2Sort] = {}
-    var_map: dict[MPTVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]] = {}
+    sort_map: dict[ILSort, Btor2Sort] = {}
+    var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]] = {}
 
     (well_sorted, context) = sort_check(il_prog)
 
@@ -279,12 +312,12 @@ def translate(il_prog: MPTProgram) -> dict[str, list[Btor2Node]]:
     return btor2_prog_list
 
 
-def parse(input: str) -> MPTProgram|None:
+def parse(input: str) -> ILProgram|None:
     """Parse contents of input and returns corresponding program on success, else returns None."""
-    lexer: MCILLexer = MCILLexer()
-    parser: MCILParser = MCILParser()
+    lexer: ILLexer = ILLexer()
+    parser: ILParser = ILParser()
     cmds = parser.parse(lexer.tokenize(input))
-    return MPTProgram(cmds) if not cmds == None else None
+    return ILProgram(cmds) if not cmds == None else None
 
 
 if __name__ == "__main__":
@@ -303,7 +336,7 @@ if __name__ == "__main__":
     
     with open("test.btor", "w") as f:
         for label,nodes in output.items():
-            f.write(f"# {label}\n")
+            f.write(f"; {label}\n")
             for n in nodes:
                 f.write(f"{n}\n")
 

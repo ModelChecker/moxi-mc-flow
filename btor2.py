@@ -3,8 +3,10 @@ https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 """
 from __future__ import annotations
 from enum import Enum
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Optional
+from typing_extensions import Self
 
+EMPTY_ARGS = (None, None, None)
 
 class Btor2Operator(Enum):
     # indexed
@@ -89,9 +91,13 @@ class Btor2Node():
 
     def __init__(self) -> None:
         self.nid = -1
+        self.comment = ""
+
+    def set_comment(self, s: str):
+        self.comment = f"; {s}"
 
     def __str__(self) -> str:
-        return f"{self.nid}"
+        return f"{self.nid} {self.comment}"
 
     def __eq__(self, __o: object) -> bool:
         return isinstance(__o, Btor2Node) and self.__str__() == __o.__str__()
@@ -117,10 +123,12 @@ class Btor2BitVec(Btor2Sort):
         return f"{self.nid} sort {self.name} {self.length}"
     
     def __eq__(self, __value: object) -> bool:
-        if isinstance(__value, Btor2BitVec):
-            return self.length == __value.length
-        else:
+        if not isinstance(__value, Btor2BitVec):
             return False
+        return self.length == __value.length
+
+    def __hash__(self) -> int:
+        return self.length
 
 
 class Btor2Array(Btor2Sort):
@@ -140,20 +148,44 @@ class Btor2Array(Btor2Sort):
         else:
             return False
 
+    def __hash__(self) -> int:
+        """TODO"""
+        if isinstance(self.domain, Btor2BitVec):
+            domain_hash = hash(self.domain)
+        else:
+            pass
+
+        if isinstance(self.range, Btor2BitVec):
+            range_hash = hash(self.range)
+        else:
+            pass
+
+        return 0
+
 
 class Btor2Expr(Btor2Node):
 
-    def __init__(self, c: List[Btor2Expr]) -> None:
+    def __init__(self, c: Btor2Args) -> None:
         super().__init__()
         self.children = c
 
+# BTOR2 operators have only 1, 2, or 3 arguments
+Btor2Args = tuple[Optional[Btor2Expr], Optional[Btor2Expr], Optional[Btor2Expr]]
 
 class Btor2Var(Btor2Expr):
 
     def __init__(self, sort: Btor2Sort, name: str = "") -> None:
-        super().__init__([])
+        super().__init__(EMPTY_ARGS)
         self.sort: Btor2Sort = sort
         self.name = name
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, Btor2Var):
+            return False
+        return self.name == __o.name
+
+    def __hash__(self) -> int:
+        return hash(self.name)
 
 
 class Btor2InputVar(Btor2Var):
@@ -177,26 +209,56 @@ class Btor2StateVar(Btor2Var):
 class Btor2Const(Btor2Expr):
 
     def __init__(self, sort: Btor2Sort, val: Any) -> None:
-        super().__init__([])
+        super().__init__(EMPTY_ARGS)
         self.sort = sort
         self.value = val
 
     def __str__(self) -> str:
         return f"{self.nid} constd {self.sort.nid} {int(self.value)}"
+    
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, Btor2Const):
+            return False
+        return self.sort == __o.sort and self.value == __o.value
+
+    def __hash__(self) -> int:
+        return hash((self.sort, self.value))
 
 
 class Btor2Apply(Btor2Expr):
 
-    def __init__(self, sort: Btor2Sort, op: Btor2Operator, args: List[Btor2Expr]) -> None:
+    def __init__(self, sort: Btor2Sort, op: Btor2Operator, args: Btor2Args) -> None:
         super().__init__(args)
         self.sort = sort
         self.operator = op
 
     def __str__(self) -> str:
         s = f"{self.nid} {self.operator.name.lower()} {self.sort.nid} "
-        for arg in self.children:
+        for arg in [c for c in self.children if c]:
             s += f"{arg.nid} "
         return s[:-1]
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, Btor2Apply):
+            return False
+
+        if not self.operator == __o.operator:
+            return False
+        
+        if not self.sort == __o.sort:
+            return False
+
+        if not len(self.children) == len(__o.children):
+            return False
+
+        for i in range(0, len(self.children)-1):
+            if self.children[i] != __o.children[i]:
+                return False
+        
+        return True
+
+    def __hash__(self) -> int:
+        return hash((self.operator, self.sort, self.children))
 
 
 class Btor2Constraint(Btor2Node):
@@ -219,6 +281,14 @@ class Btor2Init(Btor2Node):
     def __str__(self) -> str:
         return f"{self.nid} init {self.state.sort.nid} {self.state.nid} {self.expr.nid}"
 
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, Btor2Init):
+            return False
+        return self.state == __o.state and self.expr == __o.expr
+
+    def __hash__(self) -> int:
+        return hash((self.state, self.expr))
+
 
 class Btor2Next(Btor2Node):
 
@@ -229,6 +299,14 @@ class Btor2Next(Btor2Node):
 
     def __str__(self) -> str:
         return f"{self.nid} next {self.state.sort.nid} {self.state.nid} {self.expr.nid}"
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, Btor2Next):
+            return False
+        return self.state == __o.state and self.expr == __o.expr
+
+    def __hash__(self) -> int:
+        return hash((self.state, self.expr))
 
 
 class Btor2Bad(Btor2Node):
@@ -253,7 +331,7 @@ class Btor2Fair(Btor2Node):
 
 class Btor2Program():
 
-    def __init__(self, sorts: set[Btor2Sort], instr: List[Btor2Expr]) -> None:
+    def __init__(self, sorts: set[Btor2Sort], instr: list[Btor2Expr]) -> None:
         self.sorts = sorts
         self.instructions = instr
 
@@ -266,28 +344,29 @@ class Btor2Program():
         return s[:-1] # delete last newline and return
     
 
-operator_table: Dict[Btor2Operator, tuple[List[type], type]] = {
+operator_table: dict[Btor2Operator, tuple[list[type], type]] = {
     Btor2Operator.SEXT: ([Btor2BitVec], Btor2BitVec)
 }
 
 
 def postorder_iterative_btor2(expr: Btor2Expr, func: Callable[[Btor2Expr], Any]) -> None:
     """Perform an iterative postorder traversal of node, calling func on each node."""
-    stack: List[tuple[bool, Btor2Expr]] = []
+    stack: list[tuple[bool, Btor2Expr]] = []
     visited: set[Btor2Expr] = set()
 
     stack.append((False, expr))
 
     while len(stack) > 0:
-        cur = stack.pop()
+        (seen, cur) = stack.pop()
 
-        if cur[0]:
-            func(cur[1])
+        if seen:
+            func(cur)
             continue
-        elif cur[1] in visited:
+        elif cur in visited:
             continue
 
-        visited.add(cur[1])
-        stack.append((True, cur[1]))
-        for child in cur[1].children:
+        visited.add(cur)
+        stack.append((True, cur))
+
+        for child in [c for c in cur.children if c]:
             stack.append((False, child))
