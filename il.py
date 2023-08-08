@@ -14,12 +14,28 @@ class ILAttribute(Enum):
     INIT       = ":init"
     TRANS      = ":trans"
     INV        = ":inv"
+    SUBSYS     = ":subsys"
     ASSUMPTION = ":assumption"
     FAIRNESS   = ":fairness"
     REACHABLE  = ":reachable"
     CURRENT    = ":current"
     QUERY      = ":query"
 
+    def is_variable_declaration(self) -> bool:
+        return self.value == ":input" or self.value == ":output" or self.value == ":local"
+
+    def is_definable_once(self) -> bool:
+        return self.is_variable_declaration() or self.value == ":init"
+
+    def get_value_type(self) -> type:
+        if self.value == ":input" or self.value == ":output" or self.value == ":local":
+            return dict
+        elif self.value == ":init" or self.value == ":trans" or self.value == ":inv":
+            return ILExpr
+        elif self.value == ":subsys":
+            return tuple
+
+        raise NotImplementedError
 
 class ILIdentifier():
     """

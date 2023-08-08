@@ -130,36 +130,36 @@ class ILParser(Parser):
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
-        if ILAttribute.INPUT.value in p[3]:
-            in_vars = p[3][ILAttribute.INPUT.value]
+        if ILAttribute.INPUT in p[3]:
+            in_vars = p[3][ILAttribute.INPUT]
             self.input_context = []
         else:
             in_vars = {}
             
-        if ILAttribute.OUTPUT.value in p[3]:
-            out_vars = p[3][ILAttribute.OUTPUT.value]
+        if ILAttribute.OUTPUT in p[3]:
+            out_vars = p[3][ILAttribute.OUTPUT]
             self.output_context = []
         else:
             out_vars = {}
 
-        if ILAttribute.LOCAL.value in p[3]:
-            local_vars = p[3][ILAttribute.LOCAL.value]
+        if ILAttribute.LOCAL in p[3]:
+            local_vars = p[3][ILAttribute.LOCAL]
             self.local_context = []
         else:
             local_vars = {}
             
-        if ILAttribute.INIT.value in p[3]:
-            init_expr = p[3][ILAttribute.INIT.value]
+        if ILAttribute.INIT in p[3]:
+            init_expr = p[3][ILAttribute.INIT]
         else:
             init_expr = ILConstant(IL_BOOL_SORT, True)
             
-        if ILAttribute.TRANS.value in p[3]:
-            trans_expr = p[3][ILAttribute.TRANS.value]
+        if ILAttribute.TRANS in p[3]:
+            trans_expr = p[3][ILAttribute.TRANS]
         else:
             trans_expr = ILConstant(IL_BOOL_SORT, True)
             
-        if ILAttribute.INV.value in p[3]:
-            inv_expr = p[3][ILAttribute.TRANS.value]
+        if ILAttribute.INV in p[3]:
+            inv_expr = p[3][ILAttribute.TRANS]
         else:
             inv_expr = ILConstant(IL_BOOL_SORT, True)
 
@@ -168,46 +168,46 @@ class ILParser(Parser):
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
-        if ILAttribute.INPUT.value in p[3]:
-            in_vars = p[3][ILAttribute.INPUT.value]
+        if ILAttribute.INPUT in p[3]:
+            in_vars = p[3][ILAttribute.INPUT]
             self.input_context = []
         else:
             in_vars = {}
             
-        if ILAttribute.OUTPUT.value in p[3]:
-            out_vars = p[3][ILAttribute.OUTPUT.value]
+        if ILAttribute.OUTPUT in p[3]:
+            out_vars = p[3][ILAttribute.OUTPUT]
             self.output_context = []
         else:
             out_vars = {}
 
-        if ILAttribute.LOCAL.value in p[3]:
-            local_vars = p[3][ILAttribute.LOCAL.value]
+        if ILAttribute.LOCAL in p[3]:
+            local_vars = p[3][ILAttribute.LOCAL]
             self.local_context = []
         else:
             local_vars = {}
             
-        if ILAttribute.ASSUMPTION.value in p[3]:
-            assume_dict = p[3][ILAttribute.ASSUMPTION.value]
+        if ILAttribute.ASSUMPTION in p[3]:
+            assume_dict = p[3][ILAttribute.ASSUMPTION]
         else:
             assume_dict = {}
             
-        if ILAttribute.FAIRNESS.value in p[3]:
-            fair_dict = p[3][ILAttribute.FAIRNESS.value]
+        if ILAttribute.FAIRNESS in p[3]:
+            fair_dict = p[3][ILAttribute.FAIRNESS]
         else:
             fair_dict = {}
             
-        if ILAttribute.REACHABLE.value in p[3]:
-            reach_dict = p[3][ILAttribute.REACHABLE.value]
+        if ILAttribute.REACHABLE in p[3]:
+            reach_dict = p[3][ILAttribute.REACHABLE]
         else:
             reach_dict = {}
             
-        if ILAttribute.CURRENT.value in p[3]:
-            current_dict = p[3][ILAttribute.CURRENT.value]
+        if ILAttribute.CURRENT in p[3]:
+            current_dict = p[3][ILAttribute.CURRENT]
         else:
             current_dict = {}
             
-        if ILAttribute.QUERY.value in p[3]:
-            query_dict = p[3][ILAttribute.QUERY.value]
+        if ILAttribute.QUERY in p[3]:
+            query_dict = p[3][ILAttribute.QUERY]
         else:
             query_dict = {}
 
@@ -220,10 +220,29 @@ class ILParser(Parser):
 
     @_("define_system_attribute_list define_system_attribute")
     def define_system_attribute_list(self, p):
-        if p[1][0] in p[0]:
-            print(f"Error: multiple instances of attribute ({p[1][0]}).")
+        (attr, value) = p[1]
+
+        print(attr)
+        print(value)
+
+        if attr not in p[0]:
+            p[0][attr] = value
+        elif isinstance(attr, dict):
+            p[0][attr].update(value)
+        else:
+            print(f"Error: multiple instances of attribute ({attr.value}).")
             self.status = False
-        p[0][p[1][0]] = p[1][1]
+
+        # if attr.is_definable_once() and attr in p[0]:
+        #     print(f"Error: multiple instances of attribute ({attr.value}).")
+        #     self.status = False
+        # elif attr.is_definable_once():
+        #     p[0][attr] = value
+        # elif attr not in p[0]:
+        #     p[0][attr] = value
+        # else:
+        #     p[0][attr].update(value)
+
         return p[0]
 
     @_("")
@@ -233,41 +252,49 @@ class ILParser(Parser):
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
         self.input_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
         self.output_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
         self.local_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.LOCAL, p[2])
 
-    @_("PK_INIT term",
-       "PK_TRANS term",
-       "PK_INV term")
+    @_("PK_INIT term")
     def define_system_attribute(self, p):
-        return (p[0], p[1])
+        return (ILAttribute.INIT, p[1])
+
+    @_("PK_TRANS term")
+    def define_system_attribute(self, p):
+        return (ILAttribute.TRANS, p[1])
+
+    @_("PK_INV term")
+    def define_system_attribute(self, p):
+        return (ILAttribute.INV, p[1])
 
     @_("PK_SUBSYS LPAREN SYMBOL LPAREN SYMBOL symbol_list symbol_list RPAREN RPAREN")
     def define_system_attribute(self, p):
-        return (p[0], (p[2], p[4], p[5], p[6]))
+        return (ILAttribute.SUBSYS, {p[2] : (p[4], p[5], p[6])})
 
     @_("check_system_attribute_list check_system_attribute")
     def check_system_attribute_list(self, p):
-        if p[1][0] == ILAttribute.INPUT.value or p[1][0] == ILAttribute.OUTPUT.value or p[1][0] == ILAttribute.LOCAL.value:
-            if p[1][0] in p[0]:
-                print(f"Error: multiple instances of attribute ({p[1][0]}).")
-                self.status = False
-            p[0][p[1][0]] = p[1][1]
-            return p[0]
+        (attr, value) = p[1]
+
+        if attr.is_definable_once() and attr in p[0]:
+            print(f"Error: multiple instances of attribute ({attr.value}).")
+            self.status = False
+        elif attr.is_definable_once():
+            p[0][attr] = value
+        elif attr not in p[0]:
+            p[0][attr] = value
         else:
-            if not p[1][0] in p[0]:
-                p[0][p[1][0]] = {}
-            p[0][p[1][0]].update(p[1][1])
-            return p[0]
+            p[0][attr].update(value)
+
+        return p[0]
 
     @_("")
     def check_system_attribute_list(self, p):
@@ -276,29 +303,38 @@ class ILParser(Parser):
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
         self.input_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
         self.output_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
         self.local_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.LOCAL, p[2])
 
-    @_("PK_ASSUMPTION LPAREN SYMBOL term RPAREN",
-       "PK_FAIRNESS LPAREN SYMBOL term RPAREN",
-       "PK_REACHABLE LPAREN SYMBOL term RPAREN",
-       "PK_CURRENT LPAREN SYMBOL term RPAREN")
+    @_("PK_ASSUMPTION LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (p[0], {p[2]: p[3]})
+        return (ILAttribute.ASSUMPTION, {p[2]: p[3]})
+
+    @_("PK_FAIRNESS LPAREN SYMBOL term RPAREN")
+    def check_system_attribute(self, p):
+        return (ILAttribute.FAIRNESS, {p[2]: p[3]})
+
+    @_("PK_REACHABLE LPAREN SYMBOL term RPAREN")
+    def check_system_attribute(self, p):
+        return (ILAttribute.REACHABLE, {p[2]: p[3]})
+
+    @_("PK_CURRENT LPAREN SYMBOL term RPAREN")
+    def check_system_attribute(self, p):
+        return (ILAttribute.CURRENT, {p[2]: p[3]})
 
     @_("PK_QUERY LPAREN SYMBOL LPAREN symbol_list SYMBOL RPAREN RPAREN")
     def check_system_attribute(self, p):
         p[4].append(p[5])
-        return (p[0], {p[2]: p[4]})
+        return (ILAttribute.QUERY, {p[2]: p[4]})
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
