@@ -403,7 +403,7 @@ class ILParser(Parser):
 
     @_("NUMERAL")
     def term(self, p):
-        return ILConstant(IL_NO_SORT, int(p[0]))
+        return ILConstant(IL_INT_SORT, int(p[0]))
 
     @_("BINARY")
     def term(self, p):

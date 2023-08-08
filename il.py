@@ -6,6 +6,9 @@ from typing import Any, Callable, NewType
 
 from btor2 import *
 
+# Width of integers -- used when we convert Int sorts to BitVec sorts
+INT_WIDTH = 64
+
 
 class ILAttribute(Enum):
     INPUT      = ":input"
@@ -117,6 +120,7 @@ class ILSort():
 # Built-in sorts
 IL_NO_SORT: ILSort = ILSort(ILIdentifier("", []), []) # placeholder sort
 IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("Bool", []), [])
+IL_INT_SORT: ILSort = ILSort(ILIdentifier("Int", []), [])
 IL_BITVEC_SORT: Callable[[int], ILSort] = lambda n: ILSort(ILIdentifier("BitVec", [n]), [])
 
 
@@ -129,6 +133,12 @@ def is_bool_sort(sort: ILSort) -> bool:
 def is_bv_sort(sort: ILSort) -> bool:
     """A bit vector sort has an identifier with the symbol 'BitVec' and is indexed with a single numeral. Bool type is an implicit name for a bit vector of length one."""
     if len(sort.sorts) == 0 and ((sort.identifier.symbol == "BitVec" and len(sort.identifier.indices) == 1) or is_bool_sort(sort)):
+        return True
+    return False
+
+
+def is_int_sort(sort: ILSort) -> bool:
+    if sort.identifier.symbol == "Int" and len(sort.identifier.indices) == 0 and len(sort.sorts) == 0:
         return True
     return False
 
@@ -347,6 +357,50 @@ class ILLogic():
         self.sort_check = sort_check
 
 
+class QFBVFunction(Enum):
+    EQ      = "="
+    NEQ     = "!="
+    IMPLIES = "=>"
+    IFF     = "iff"
+    ITE     = "ite"
+    CONCAT  = "concat"
+    EXTRACT = "extract"
+    ZERO_EXTEND  = "zero_extend"
+    SIGN_EXTEND  = "sign_extend"
+    ROTATE_LEFT  = "rotate_left"
+    ROTATE_RIGHT = "rotate_right"
+    BVSHL  = "bvshl"
+    BVLSHR = "bvlshr"
+    BVASHR = "bvashr"
+    BVNOT  = "bvnot"
+    BVNEG  = "bvneg"
+    BVAND  = "bvand"
+    BVNAND = "bvnand"
+    BVOR   = "bvor"
+    BVNOR  = "bvnor"
+    BVXOR  = "bvxor"
+    BVXNOR = "bvxnor"
+    BVADD  = "bvadd"
+    BVSUB  = "bvsub"
+    BVMUL  = "bvmul"
+    BVUDIV = "bvudiv"
+    BVSDIV = "bvsdiv"
+    BVUREM = "bvurem"
+    BVSREM = "bvsrem"
+    BVSMOD = "bvsmod"
+    BVULT  = "bvult"
+    BVULE  = "bvule"
+    BVUGT  = "bvugt"
+    BVUGE  = "bvuge"
+    BVSLT  = "bvslt"
+    BVSLE  = "bvsle"
+    BVSGT  = "bvsgt"
+    BVSGE  = "bvsge"
+    REDUCE_AND = "reduce_and"
+    REDUCE_OR  = "reduce_or"
+    REDUCE_XOR = "reduce_xor"
+
+
 def sort_check_apply_bv(node: ILApply) -> bool:
     """Returns true if `node` corresponds to a valid function signature in SMT-LIB2 QF_BV logic."""
     function = node.identifier
@@ -359,15 +413,17 @@ def sort_check_apply_bv(node: ILApply) -> bool:
         if len(node.children) != 2:
             return False
 
-        if not is_bv_sort(node.children[0].sort) or not is_bv_sort(node.children[1].sort):
+        (lhs,rhs) = node.children
+
+        if not is_bv_sort(lhs.sort) or not is_bv_sort(rhs.sort):
             return False
 
-        if is_bool_sort(node.children[0].sort) != is_bool_sort(node.children[1].sort):
+        if is_bool_sort(lhs.sort) != is_bool_sort(rhs.sort):
             return False
 
-        if not is_bool_sort(node.children[0].sort):
-            m = node.children[0].sort.identifier.indices[0]
-            if m != node.children[1].sort.identifier.indices[0]:
+        if not is_bool_sort(lhs.sort):
+            m = lhs.sort.identifier.indices[0]
+            if m != rhs.sort.identifier.indices[0]:
                 return False
 
         node.sort = IL_BOOL_SORT
@@ -453,13 +509,6 @@ class ILProgram():
 
     def get_check_system_cmds(self) -> list[ILCheckSystem]:
         return [cmd for cmd in self.commands if isinstance(cmd, ILCheckSystem)]
-    
-
-def reduce_IL(program: ILProgram):
-    nodes: set[ILExpr] = set()
-
-    for cmd in program.commands:
-        pass
 
 
 def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]):
@@ -494,7 +543,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
         if isinstance(node, ILConstant):
             return True
-        if isinstance(node, ILInputVar):
+        elif isinstance(node, ILInputVar):
             if node.prime and not prime_input:
                 print(f"Error: primed input variables only allowed in check system assumptions and reachability conditions ({node.symbol}).")
                 return False

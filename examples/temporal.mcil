@@ -1,20 +1,20 @@
 (define-system Historically :input ((b Bool)) :output ((hb Bool)) 
  :init (= hb b) 
- :trans (= hb’ (and b’ hb))
+ :trans (= hb' (and b' hb))
 )
 
 (define-system Before :input ((b Bool)) :output ((bb Bool)) 
  :init (= bb' false) 
- :trans (= bb’ b)
+ :trans (= bb' b)
 )
 
-(define-system Count :input ((b Bool)) :output ((c Int)) 
+(define-system Count :input ((b Bool)) :output ((c (_ BitVec 64))) 
  :init (= c (ite b 1 0))
- :trans (= c’ (+ c (ite b 0 1)))
+ :trans (= c' (+ c (ite b 0 1)))
 )
 
 (define-system Monitor :input ((r1 Bool) (r2 Bool)) :output ((g1 Bool) (g2 Bool))  
- :local ((a1 Bool) (a2 Bool) (b Bool) (h1 Bool) (h2 Bool) (bf Bool) (c1 Int))
+ :local ((a1 Bool) (a2 Bool) (b Bool) (h1 Bool) (h2 Bool) (bf Bool) (c1 (_ BitVec 64)))
  :subsys (A (NonDetArbiter r1 r2 g1 g2))
  :subsys (H1 (Historically a1 h1))
  :subsys (H2 (Historically a2 h2))
@@ -31,7 +31,7 @@
 )
 
 (check-system Monitor :input ((r1 Bool) (r2 Bool)) :output ((g1 Bool) (g2 Bool))
- :local ((a1 Bool) (a2 Bool) (b Bool) (h1 Bool) (h2 Bool) (bf Bool) (c1 Int))
+ :local ((a1 Bool) (a2 Bool) (b Bool) (h1 Bool) (h2 Bool) (bf Bool) (c1 (_ BitVec 64)))
  ; no concurrent requests
  :assumption (A (not (and r1 r2))) 
  ; neg of: if there have been no requests, there have been no grants 

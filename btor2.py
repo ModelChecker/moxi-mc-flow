@@ -4,12 +4,11 @@ https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 from __future__ import annotations
 from enum import Enum
 from typing import Any, Callable, Optional
-from typing_extensions import Self
 
 EMPTY_ARGS = (None, None, None)
 
 class Btor2Operator(Enum):
-    # indexed
+    # indexed (also unary)
     SEXT = 0
     UEXT = 1
     SLICE = 2
@@ -78,7 +77,7 @@ class Btor2Operator(Enum):
         return self.value >= 0 and self.value < 100
     
     def is_unary(self) -> bool:
-        return self.value >= 100 and self.value < 200
+        return self.value >= 0 and self.value < 200
 
     def is_binary(self) -> bool:
         return self.value >= 200 and self.value < 300
