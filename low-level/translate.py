@@ -82,7 +82,7 @@ def build_sort_map_cmd(cmd: ILCommand) -> dict[ILSort, Btor2Sort]:
     sort_map: dict[ILSort, Btor2Sort] = {}
 
     if isinstance(cmd, ILDefineSystem):
-        for subsystem in [s[1] for s in cmd.subsystems]:
+        for subsystem in cmd.subsystems.values():
             sort_map.update(build_sort_map_cmd(subsystem))
 
         sort_map.update(build_sort_map_expr(cmd.init))
@@ -111,7 +111,7 @@ def build_var_map_expr(
     """Iteratively recurse the expr IL and map each input ILVar to a single Btor2Input and each local/output var to a triple of Btor2States corresponding to that var's init, cur, and next values."""
 
     def build_var_map_util(cur: ILExpr):
-        if isinstance(cur, ILVar) and not cur in var_map:
+        if isinstance(cur, ILVar) and cur not in var_map:
             if cur.symbol in rename_map:
                 for k,v in var_map.items():
                     if rename_map[cur.symbol] == k.symbol:
@@ -120,7 +120,7 @@ def build_var_map_expr(
 
             symbol = rename_map[cur.symbol] if cur.symbol in rename_map else cur.symbol
 
-            if isinstance(cur, ILInputVar):
+            if cur.var_type == ILVarType.INPUT:
                 var_map[cur] = Btor2InputVar(sort_map[cur.sort], symbol)
             else: # output or local var
                 var_map[cur] = (Btor2StateVar(sort_map[cur.sort], f"init_{symbol}"),
@@ -137,7 +137,7 @@ def build_var_map_cmd(
     var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]):
     """Update var_map to map all ILVar instances to Btor2Vars"""
     if isinstance(cmd, ILDefineSystem):
-        for subsystem in [s[1] for s in cmd.subsystems]:
+        for subsystem in cmd.subsystems.values():
             build_var_map_cmd(subsystem, rename_map, sort_map, var_map)
 
         build_var_map_expr(cmd.init, rename_map, sort_map, var_map)
@@ -162,9 +162,9 @@ def ilexpr_to_btor2(
     sort_map: dict[ILSort, Btor2Sort],
     var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]
 ) -> Btor2Expr:
-    if isinstance(expr, ILInputVar):
+    if isinstance(expr, ILVar) and expr.var_type == ILVarType.INPUT:
         return cast(Btor2Var, var_map[expr])
-    elif isinstance(expr, ILOutputVar) or isinstance(expr, ILLocalVar):
+    elif isinstance(expr, ILVar):
         # We use "int(not is_init_expr)+int(expr.prime)" to compute the index in var_map:
         #   var_map[var][0] = init_var
         #   var_map[var][1] = cur_var
@@ -200,6 +200,7 @@ def flatten_btor2_expr(expr: Btor2Expr) -> list[Btor2Expr]:
 
 def ildefinesystem_to_btor2(
     sys: ILDefineSystem, 
+    context: ILContext,
     sort_map: dict[ILSort, Btor2Sort],
     var_map: dict[ILVar, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]
 ) -> list[Btor2Node]:
@@ -235,6 +236,8 @@ def ildefinesystem_to_btor2(
     btor2_model += flatten_btor2_expr(btor2_inv)
     btor2_model.append(Btor2Constraint(btor2_inv))
 
+
+
     return btor2_model
 
 
@@ -248,7 +251,7 @@ def ilchecksystem_to_btor2(
     btor2_prog_list: dict[str, list[Btor2Node]] = {}
     btor2_model: list[Btor2Node] = []
 
-    btor2_model += ildefinesystem_to_btor2(context.defined_systems[check.sys_symbol], sort_map, var_map)
+    btor2_model += ildefinesystem_to_btor2(context.defined_systems[check.sys_symbol], context, sort_map, var_map)
 
     for sym,query in check.query.items():
         # shallow copy the prog since we don't want to lose sort_map/var_map
@@ -338,7 +341,7 @@ def translate(il_prog: ILProgram) -> dict[str, list[Btor2Node]]:
     return btor2_prog_list
 
 
-def parse(input: str) -> ILProgram|None:
+def parse(input: str) -> Optional[ILProgram]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
     lexer: ILLexer = ILLexer()
     parser: ILParser = ILParser()
@@ -362,7 +365,7 @@ if __name__ == "__main__":
     
     with open("test.btor", "w") as f:
         for label,nodes in output.items():
-            f.write(f"; {label}\n")
+            # f.write(f"; {label}\n")
             for n in nodes:
                 f.write(f"{n}\n")
 

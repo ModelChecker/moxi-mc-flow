@@ -13,9 +13,17 @@
   :subsys  (D2 (Delay temp out))
 )
 
-(check-system DoubleDelay 
+; Four-step delay
+(define-system QuadrupleDelay :input ( (in (_ BitVec 8)) ) :output ( (out (_ BitVec 8)) )
+  :local ( (temp (_ BitVec 8)) )
+  :subsys  (D1 (DoubleDelay in temp))
+  :subsys  (D2 (DoubleDelay temp out))
+)
+
+(check-system QuadrupleDelay 
   :input ( (i (_ BitVec 8)) ) 
   :output ( (o (_ BitVec 8)) )
+  :local ( (t (_ BitVec 8)) )
   :reachable (rch (= o #b00000001))
   :query (q (rch))
 )

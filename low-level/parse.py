@@ -1,5 +1,4 @@
 #type: ignore
-from typing import ItemsView
 from sly import Lexer, Parser
 from il import *
 
@@ -159,12 +158,17 @@ class ILParser(Parser):
             trans_expr = ILConstant(IL_BOOL_SORT, True)
             
         if ILAttribute.INV in p[3]:
-            inv_expr = p[3][ILAttribute.TRANS]
+            inv_expr = p[3][ILAttribute.INV]
         else:
             inv_expr = ILConstant(IL_BOOL_SORT, True)
 
+        if ILAttribute.SUBSYS in p[3]:
+            subsystems = p[3][ILAttribute.SUBSYS]
+        else:
+            subsystems = {}
+
         return ILDefineSystem(str(p[2]), in_vars, out_vars, local_vars,
-            init_expr, trans_expr, inv_expr, [])
+            init_expr, trans_expr, inv_expr, subsystems)
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
@@ -185,7 +189,7 @@ class ILParser(Parser):
             self.local_context = []
         else:
             local_vars = {}
-            
+
         if ILAttribute.ASSUMPTION in p[3]:
             assume_dict = p[3][ILAttribute.ASSUMPTION]
         else:
@@ -222,26 +226,20 @@ class ILParser(Parser):
     def define_system_attribute_list(self, p):
         (attr, value) = p[1]
 
-        print(attr)
-        print(value)
-
         if attr not in p[0]:
             p[0][attr] = value
-        elif isinstance(attr, dict):
-            p[0][attr].update(value)
-        else:
+        elif attr.is_definable_once():
             print(f"Error: multiple instances of attribute ({attr.value}).")
             self.status = False
-
-        # if attr.is_definable_once() and attr in p[0]:
-        #     print(f"Error: multiple instances of attribute ({attr.value}).")
-        #     self.status = False
-        # elif attr.is_definable_once():
-        #     p[0][attr] = value
-        # elif attr not in p[0]:
-        #     p[0][attr] = value
-        # else:
-        #     p[0][attr].update(value)
+        elif attr.get_value_type() == dict:
+            p[0][attr].update(value)
+        elif attr.get_value_type() == ILExpr and isinstance(attr, ILAttribute.TRANS):
+            p[0][attr] = ILApply(IL_NO_SORT, ILIdentifier("or", []), [p[0][attr], value])
+        elif attr.get_value_type() == ILExpr and isinstance(attr, ILAttribute.INV):
+            p[0][attr] = ILApply(IL_NO_SORT, ILIdentifier("and", []), [p[0][attr], value])
+        else:
+            print(f"Error: parser error ({attr.value}).")
+            self.status = False
 
         return p[0]
 
@@ -276,23 +274,24 @@ class ILParser(Parser):
     def define_system_attribute(self, p):
         return (ILAttribute.INV, p[1])
 
-    @_("PK_SUBSYS LPAREN SYMBOL LPAREN SYMBOL symbol_list symbol_list RPAREN RPAREN")
+    @_("PK_SUBSYS LPAREN SYMBOL LPAREN SYMBOL symbol_list RPAREN RPAREN")
     def define_system_attribute(self, p):
-        return (ILAttribute.SUBSYS, {p[2] : (p[4], p[5], p[6])})
+        return (ILAttribute.SUBSYS, {p[2] : (p[4], p[5])})
 
     @_("check_system_attribute_list check_system_attribute")
     def check_system_attribute_list(self, p):
         (attr, value) = p[1]
 
-        if attr.is_definable_once() and attr in p[0]:
+        if attr not in p[0]:
+            p[0][attr] = value
+        elif attr.is_definable_once():
             print(f"Error: multiple instances of attribute ({attr.value}).")
             self.status = False
-        elif attr.is_definable_once():
-            p[0][attr] = value
-        elif attr not in p[0]:
-            p[0][attr] = value
-        else:
+        elif attr.get_value_type() == dict:
             p[0][attr].update(value)
+        else:
+            print(f"Error: parser error ({attr.value}).")
+            self.status = False
 
         return p[0]
 
@@ -338,12 +337,13 @@ class ILParser(Parser):
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
-        p[0].append(p[2])
+        (symbol, sort) = p[2]
+        p[0][symbol] = sort
         return p[0]
     
     @_("")
     def sorted_var_list(self, p):
-        return []
+        return {}
     
     @_("SYMBOL sort")
     def sorted_var(self, p):
@@ -379,27 +379,29 @@ class ILParser(Parser):
             prime = True
             symbol = symbol[:-1]
 
-        for sym,sort in self.input_context:
-            if sym == symbol:
-                return ILInputVar(sort, symbol, prime)
+        return ILVar(ILVarType.NONE, IL_NO_SORT, symbol, prime)
 
-        for sym,sort in self.output_context:
-            if sym == symbol:
-                return ILOutputVar(sort, symbol, prime)
+        # for sym,sort in self.input_context:
+        #     if sym == symbol:
+        #         return ILInputVar(sort, symbol, prime)
 
-        for sym,sort in self.local_context:
-            if sym == symbol:
-                return ILLocalVar(sort, symbol, prime)
+        # for sym,sort in self.output_context:
+        #     if sym == symbol:
+        #         return ILOutputVar(sort, symbol, prime)
 
-        for sym,sort in self.logic_context:
-            if prime:
-                print(f"Error: logic variable cannot be primed ({symbol}).")
-                self.status = False
-            if symbol == sym:
-                return ILLogicVar(sort, symbol)
+        # for sym,sort in self.local_context:
+        #     if sym == symbol:
+        #         return ILLocalVar(sort, symbol, prime)
 
-        print(f"Error: variable undeclared ({symbol})")
-        self.status = False
+        # for sym,sort in self.logic_context:
+        #     if prime:
+        #         print(f"Error: logic variable cannot be primed ({symbol}).")
+        #         self.status = False
+        #     if symbol == sym:
+        #         return ILLogicVar(sort, symbol)
+
+        # print(f"Error: variable undeclared ({symbol})")
+        # self.status = False
 
     @_("NUMERAL")
     def term(self, p):

@@ -1,17 +1,17 @@
 (define-system Cnt 
-    :input ((in (_ BitVec 64)))
-    :output ((out (_ BitVec 64)))
-    :init (= out 1)
+    :input ((in (_ BitVec 8)))
+    :output ((out (_ BitVec 8)))
+    :init (= out #b00000001)
     :trans (= out' 
               (bvadd out 
-                     (bvsmod in 3)))
+                     (bvsmod in #b00000011)))
 )
 
 (check-system Cnt
-    :input ((i (_ BitVec 64)))
-    :output ((o (_ BitVec 64)))
-    :assumption (a (= i 2))
-    :reachable (rch (= o 10))
+    :input ((i (_ BitVec 8)))
+    :output ((o (_ BitVec 8)))
+    :assumption (a (= i #b00000010))
+    :reachable (rch (= o #b00001010))
     :query (q (rch))
 )
 

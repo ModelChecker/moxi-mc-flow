@@ -2,13 +2,11 @@
 Representation of IL
 """
 from __future__ import annotations
-from typing import Any, Callable, NewType
-
-from btor2 import *
+from enum import Enum
+from typing import Any, Callable, Optional
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts
 INT_WIDTH = 64
-
 
 class ILAttribute(Enum):
     INPUT      = ":input"
@@ -31,14 +29,13 @@ class ILAttribute(Enum):
         return self.is_variable_declaration() or self.value == ":init"
 
     def get_value_type(self) -> type:
-        if self.value == ":input" or self.value == ":output" or self.value == ":local":
-            return dict
+        if self.value == ":input" or self.value == ":output" or self.value == ":local" or self.value == ":subsys" or self.value == ":assumption" or self.value == ":fairness" or self.value == ":reachable" or self.value == ":current" or self.value == ":query":
+            return dict 
         elif self.value == ":init" or self.value == ":trans" or self.value == ":inv":
             return ILExpr
-        elif self.value == ":subsys":
-            return tuple
 
         raise NotImplementedError
+
 
 class ILIdentifier():
     """
@@ -163,12 +160,23 @@ class ILConstant(ILExpr):
         return f"{self.value}"
 
 
+class ILVarType(Enum):
+    NONE   = 0
+    INPUT  = 1,
+    OUTPUT = 2,
+    LOCAL  = 3,
+    LOGIC  = 4
+
+
 class ILVar(ILExpr):
     """An ILVar requires a sort and symbol."""
 
-    def __init__(self, sort: ILSort, symbol: str):
+    def __init__(self, var_type: ILVarType, sort: ILSort, symbol: str, prime: bool):
         super().__init__(sort, [])
+        self.var_type = var_type
         self.symbol = symbol
+        self.prime = prime
+        self.scope: list[ILDefineSystem] = []
 
     def __eq__(self, __value: object) -> bool:
         """Two ILVars are equal if they have the same symbol."""
@@ -182,51 +190,8 @@ class ILVar(ILExpr):
     def __str__(self) -> str:
         return f"{self.symbol}"
 
-
-
-class ILInputVar(ILVar):
-
-    def __init__(self, sort: ILSort, symbol: str, prime: bool):
-        super().__init__(sort, symbol)
-        self.prime = prime
-
-    def rename(self, new: str) -> ILInputVar:
-        return ILInputVar(self.sort, new, self.prime)
-
-
-class ILOutputVar(ILVar):
-
-    def __init__(self, sort: ILSort, symbol: str, prime: bool):
-        super().__init__(sort, symbol)
-        self.prime = prime
-
-    def __str__(self) -> str:
-        return super().__str__() + ("'" if self.prime else "")
-
-    def rename(self, new: str) -> ILOutputVar:
-        return ILOutputVar(self.sort, new, self.prime)
-
-
-class ILLocalVar(ILVar):
-
-    def __init__(self, sort: ILSort, symbol: str, prime: bool):
-        super().__init__(sort, symbol)
-        self.prime = prime
-
-    def __str__(self) -> str:
-        return super().__str__() + ("'" if self.prime else "")
-
-    def rename(self, new: str) -> ILLocalVar:
-        return ILLocalVar(self.sort, new, self.prime)
-
-
-class ILLogicVar(ILVar):
-
-    def __init__(self, sort: ILSort, symbol: str):
-        super().__init__(sort, symbol)
-
-    def rename(self, new: str) -> ILLogicVar:
-        return ILLogicVar(self.sort, new)
+    def rename(self, new: str) -> ILVar:
+        return ILVar(self.var_type, self.sort, new, self.prime)
 
 
 class ILApply(ILExpr):
@@ -294,13 +259,13 @@ class ILDefineSystem(ILCommand):
     def __init__(
         self, 
         symbol: str,
-        input: list[tuple[str, ILSort]], 
-        output: list[tuple[str, ILSort]], 
-        local: list[tuple[str, ILSort]],
+        input: dict[str, ILSort], 
+        output: dict[str, ILSort], 
+        local: dict[str, ILSort],
         init: ILExpr,
         trans: ILExpr, 
         inv: ILExpr,
-        subsystems: list[tuple[str, ILDefineSystem]]
+        subsystems: dict[str, tuple[str, list[str]]]
     ):
         self.symbol = symbol
         self.input = input
@@ -309,7 +274,10 @@ class ILDefineSystem(ILCommand):
         self.init = init
         self.trans = trans
         self.inv = inv
-        self.subsystems = subsystems
+        self.subsystem_signatures = subsystems
+
+        # this gets populated by sort checker
+        self.subsystems: dict[str, ILDefineSystem] = {}
 
 
 class ILCheckSystem(ILCommand):
@@ -317,9 +285,9 @@ class ILCheckSystem(ILCommand):
     def __init__(
         self, 
         sys_symbol: str,
-        input: list[tuple[str, ILSort]], 
-        output: list[tuple[str, ILSort]], 
-        local: list[tuple[str, ILSort]],
+        input: dict[str, ILSort], 
+        output: dict[str, ILSort], 
+        local: dict[str, ILSort],
         assumption: dict[str, ILExpr],
         fairness: dict[str, ILExpr], 
         reachable: dict[str, ILExpr], 
@@ -357,56 +325,43 @@ class ILLogic():
         self.sort_check = sort_check
 
 
-class QFBVFunction(Enum):
-    EQ      = "="
-    NEQ     = "!="
-    IMPLIES = "=>"
-    IFF     = "iff"
-    ITE     = "ite"
-    CONCAT  = "concat"
-    EXTRACT = "extract"
-    ZERO_EXTEND  = "zero_extend"
-    SIGN_EXTEND  = "sign_extend"
-    ROTATE_LEFT  = "rotate_left"
-    ROTATE_RIGHT = "rotate_right"
-    BVSHL  = "bvshl"
-    BVLSHR = "bvlshr"
-    BVASHR = "bvashr"
-    BVNOT  = "bvnot"
-    BVNEG  = "bvneg"
-    BVAND  = "bvand"
-    BVNAND = "bvnand"
-    BVOR   = "bvor"
-    BVNOR  = "bvnor"
-    BVXOR  = "bvxor"
-    BVXNOR = "bvxnor"
-    BVADD  = "bvadd"
-    BVSUB  = "bvsub"
-    BVMUL  = "bvmul"
-    BVUDIV = "bvudiv"
-    BVSDIV = "bvsdiv"
-    BVUREM = "bvurem"
-    BVSREM = "bvsrem"
-    BVSMOD = "bvsmod"
-    BVULT  = "bvult"
-    BVULE  = "bvule"
-    BVUGT  = "bvugt"
-    BVUGE  = "bvuge"
-    BVSLT  = "bvslt"
-    BVSLE  = "bvsle"
-    BVSGT  = "bvsgt"
-    BVSGE  = "bvsge"
-    REDUCE_AND = "reduce_and"
-    REDUCE_OR  = "reduce_or"
-    REDUCE_XOR = "reduce_xor"
-
-
-def sort_check_apply_bv(node: ILApply) -> bool:
-    """Returns true if `node` corresponds to a valid function signature in SMT-LIB2 QF_BV logic."""
+def sort_check_apply_core(node: ILApply) -> bool:
+    # "true", "false", "not", "=>", "and", "or", "xor", "=", "distinct", "ite"
     function = node.identifier
 
-    if function.symbol == "=":
-        # (= (_ BitVec m) (_ BitVec m) Bool)
+    if function.symbol == "true" or function.symbol == "false":
+        # (true Bool)
+        # (false Bool)
+        if len(function.indices) != 0:
+            return False
+
+        if len(node.children) != 0:
+            return False
+
+        node.sort = IL_BOOL_SORT
+
+        return True
+    elif function.symbol == "not":
+        # (not Bool Bool)
+        if len(function.indices) != 0:
+            return False
+
+        if len(node.children) != 1:
+            return False
+
+        operand = node.children[0]
+
+        if not is_bool_sort(operand.sort):
+            return False
+
+        node.sort = IL_BOOL_SORT
+
+        return True
+    elif function.symbol == "=>" or function.symbol == "and" or function.symbol == "or" or function.symbol == "xor":
+        # (=> Bool Bool Bool)
+        # (and Bool Bool Bool)
+        # (or Bool Bool Bool)
+        # (xor Bool Bool Bool)
         if len(function.indices) != 0:
             return False
 
@@ -415,31 +370,91 @@ def sort_check_apply_bv(node: ILApply) -> bool:
 
         (lhs,rhs) = node.children
 
-        if not is_bv_sort(lhs.sort) or not is_bv_sort(rhs.sort):
+        if not is_bool_sort(lhs.sort) or not is_bool_sort(rhs.sort):
             return False
-
-        if is_bool_sort(lhs.sort) != is_bool_sort(rhs.sort):
-            return False
-
-        if not is_bool_sort(lhs.sort):
-            m = lhs.sort.identifier.indices[0]
-            if m != rhs.sort.identifier.indices[0]:
-                return False
 
         node.sort = IL_BOOL_SORT
 
         return True
-    elif function.symbol == "extract":
+    elif function.symbol == "=" or function.symbol == "distinct":
+        # (par (A) (= A A Bool))
+        # (par (A) (distinct A A Bool))
+        if len(function.indices) != 0:
+            return False
+
+        if len(node.children) != 2:
+            return False
+
+        (lhs,rhs) = node.children
+
+        if lhs.sort != rhs.sort:
+            return False
+
+        node.sort = IL_BOOL_SORT
+
+        return True
+    elif function.symbol == "=" or function.symbol == "distinct" or function.symbol == "!=":
+        # (par (A) (ite Bool A A A))
+        if len(function.indices) != 0:
+            return False
+
+        if len(node.children) != 3:
+            return False
+
+        (cond,if_,then_) = node.children
+
+        if not is_bool_sort(cond.sort):
+            return False
+
+        if not if_.sort == then_.sort:
+            return False
+
+        node.sort = if_.sort
+
+        return True
+    
+    return False
+
+
+def sort_check_apply_bv(node: ILApply) -> bool:
+    """Returns true if `node` corresponds to a valid function signature in SMT-LIB2 QF_BV logic."""
+    function = node.identifier
+
+    if function.symbol == "concat":
+        # (concat (_ BitVec i) (_ BitVec j) (_ BitVec m))
+        if len(function.indices) != 0:
+            return False
+
+        if len(node.children) != 2:
+            return False
+
+        (lhs, rhs) = node.children
+
+        if not is_bv_sort(lhs.sort) or not is_bv_sort(rhs.sort):
+            return False
+
+        i = lhs.sort.identifier.indices[0]
+        j = rhs.sort.identifier.indices[0]
+
+        node.sort = IL_BITVEC_SORT(i+j)
+
+        return True
+    if function.symbol == "extract":
         # ((_ extract i j) (_ BitVec m) (_ BitVec n))
         if len(function.indices) != 2:
             return False
         
-        i,j = function.indices[0], function.indices[1]
+        (i,j) = function.indices
 
-        if len(node.children) != 1 or not is_bv_sort(node.children[0].sort):
+        if len(node.children) != 1:
             return False
 
-        m = node.children[0].sort.identifier.indices[0]
+        operand = node.children[0]
+
+        if not is_bv_sort(operand.sort):
+            return False
+
+        m = operand.sort.identifier.indices[0]
         if not i <= m and j <= i:
             return False
 
@@ -451,10 +466,15 @@ def sort_check_apply_bv(node: ILApply) -> bool:
         if len(function.indices) != 0:
             return False
         
-        if len(node.children) != 1 or not is_bv_sort(node.children[0].sort):
+        if len(node.children) != 1:
             return False
 
-        m = node.children[0].sort.identifier.indices[0]
+        operand = node.children[0]
+
+        if not is_bv_sort(operand.sort):
+            return False
+
+        m = operand.sort.identifier.indices[0]
         node.sort = IL_BITVEC_SORT(m)
 
         return True
@@ -474,7 +494,48 @@ def sort_check_apply_bv(node: ILApply) -> bool:
     return False
 
 
-FUNCTIONS_BV = {"=", "extract", "bvnot", "bvand", "bvadd", "bvsmod"}
+FUNCTIONS_CORE = {"true", "false", "not", "=>", "and", "or", "xor", "=", "distinct", "ite"}
+
+# TODOs are for implementing in sort checker
+FUNCTIONS_BV = {
+   "concat",
+   "extract",
+   "zero_extend", # TODO
+   "sign_extend", # TODO
+   "rotate_left", # TODO
+   "rotate_right", # TODO
+   "bvshl", # TODO
+   "bvlshr", # TODO
+   "bvashr", # TODO
+   "bvnot",
+   "bvneg", # TODO
+   "bvand",
+   "bvnand", # TODO
+   "bvor", # TODO
+   "bvnor", # TODO
+   "bvxor", # TODO
+   "bvxnor", # TODO
+   "bvadd", 
+   "bvsub", # TODO
+   "bvmul", # TODO
+   "bvudiv", # TODO
+   "bvsdiv", # TODO
+   "bvurem", # TODO
+   "bvsrem", # TODO
+   "bvsmod",
+   "bvult", # TODO
+   "bvule", # TODO
+   "bvugt", # TODO
+   "bvuge", # TODO
+   "bvslt", # TODO
+   "bvsle", # TODO
+   "bvsgt", # TODO
+   "bvsge", # TODO
+   "reduce_and", # TODO
+   "reduce_or", # TODO
+   "reduce_xor" # TODO
+}
+
 QF_BV = ILLogic("QF_BV", {"BitVec": (1,0)}, FUNCTIONS_BV, sort_check_apply_bv)
 
 FuncSig = tuple[list[ILSort], ILSort]
@@ -489,6 +550,10 @@ class ILContext():
         self.defined_functions: dict[str, tuple[FuncSig, ILExpr]] = {}
         self.defined_systems: dict[str, ILDefineSystem] = {}
         self.logic = QF_BV # for now, assume QF_BV logic
+        self.input_vars: dict[str, ILSort] = {}
+        self.output_vars: dict[str, ILSort] = {}
+        self.local_vars: dict[str, ILSort] = {}
+        self.system_symbol_stack: list[str] = [] # used during system flattening
 
     def get_symbols(self) -> set[str]:
         symbols = set()
@@ -519,17 +584,17 @@ def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]):
     stack.append((False, expr))
 
     while len(stack) > 0:
-        cur = stack.pop()
+        (seen, cur) = stack.pop()
 
-        if cur[0]:
-            func(cur[1])
+        if seen:
+            func(cur)
             continue
-        elif id(cur[1]) in visited:
+        elif id(cur) in visited:
             continue
 
-        visited.add(id(cur[1]))
-        stack.append((True, cur[1]))
-        for child in cur[1].children:
+        visited.add(id(cur))
+        stack.append((True, cur))
+        for child in cur.children:
             stack.append((False, child))
 
 
@@ -543,13 +608,28 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
         if isinstance(node, ILConstant):
             return True
-        elif isinstance(node, ILInputVar):
+        elif isinstance(node, ILVar) and node.symbol in context.input_vars:
+            node.var_type = ILVarType.INPUT
+            node.sort = context.input_vars[node.symbol]
+
             if node.prime and not prime_input:
                 print(f"Error: primed input variables only allowed in check system assumptions and reachability conditions ({node.symbol}).")
                 return False
 
             return True
-        elif isinstance(node, ILOutputVar) or isinstance(node, ILLocalVar):
+        elif isinstance(node, ILVar) and node.symbol in context.output_vars:
+            node.var_type = ILVarType.OUTPUT
+            node.sort = context.output_vars[node.symbol]
+
+            if node.prime and no_prime:
+                print(f"Error: primed variables only allowed in system transition relation ({node.symbol}).")
+                return False
+
+            return True
+        elif isinstance(node, ILVar) and node.symbol in context.local_vars:
+            node.var_type = ILVarType.LOCAL
+            node.sort = context.local_vars[node.symbol]
+
             if node.prime and no_prime:
                 print(f"Error: primed variables only allowed in system transition relation ({node.symbol}).")
                 return False
@@ -559,12 +639,20 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             arg_sorts: list[ILSort] = []
             return_sort: ILSort = IL_NO_SORT
 
+            if node.identifier.symbol in FUNCTIONS_CORE:
+                for arg in node.children:
+                    sort_check_expr(arg, no_prime, prime_input)
+
+                if not sort_check_apply_core(node):
+                    print(f"Error: function signature does not match definition ({node}).")
+                    return False
+                return True
             if node.identifier.symbol in context.logic.function_symbols:
                 for arg in node.children:
                     sort_check_expr(arg, no_prime, prime_input)
 
                 if not context.logic.sort_check(node):
-                    print(f"Error: function return type does not match definition ({node}).")
+                    print(f"Error: function signature does not match definition ({node}).")
                     return False
                 return True
             elif node.identifier.symbol in context.defined_functions:
@@ -586,7 +674,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             node.sort = return_sort
             return True
 
-        print(f"Error: node type `{node.__class__}` not recognized.")
+        print(f"Error: node type `{node.__class__}` not recognized ({node}).")
         return False
     # end sort_check_expr
 
@@ -611,17 +699,57 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             context.declared_functions[cmd.symbol] = FuncSig(([], cmd.sort))
         elif isinstance(cmd, ILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
-
-            context.defined_systems[cmd.symbol] = cmd
+            context.input_vars = cmd.input
+            context.output_vars = cmd.output
+            context.local_vars = cmd.local
 
             status = status and sort_check_expr(cmd.init, True, False)
             status = status and sort_check_expr(cmd.trans, False, False)
             status = status and sort_check_expr(cmd.inv, True, False)
+
+            for name,subsystem in cmd.subsystem_signatures.items():
+                # TODO: check for cycles in system dependency graph
+                (sys_symbol, signature) = subsystem
+
+                if sys_symbol not in context.defined_systems:
+                    print(f"Error: system `{sys_symbol}` not defined in context.")
+                    status = False
+
+                target_system = context.defined_systems[sys_symbol]
+                target_signature = target_system.input | target_system.output
+
+                if len(signature) != len(target_signature):
+                    print(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input | context.defined_systems[sys_symbol].output}\n\t{signature}")
+                    status = False
+                    continue
+
+                cmd_variables = cmd.input | cmd.output | cmd.local
+                for var_symbol, sort in zip(signature, target_signature.values()):
+                    if var_symbol not in cmd_variables:
+                        print(f"Error: variable `{var_symbol}` not declared.")
+                        status = False
+                        continue
+                    elif cmd_variables[var_symbol] != sort:
+                        print(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input | context.defined_systems[sys_symbol].output}\n\t{signature}")
+                        status = False
+                        continue
+
+                cmd.subsystems[name] = context.defined_systems[sys_symbol]
+
+            context.defined_systems[cmd.symbol] = cmd
+
+            context.input_vars = {}
+            context.output_vars = {}
+            context.local_vars = {}
         elif isinstance(cmd, ILCheckSystem):
             if not cmd.sys_symbol in context.defined_systems:
                 print(f"Error: system `{cmd.sys_symbol}` undefined.")
                 status = False
                 continue
+
+            context.input_vars = cmd.input
+            context.output_vars = cmd.output
+            context.local_vars = cmd.local
 
             system = context.defined_systems[cmd.sys_symbol]
 
@@ -630,36 +758,36 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 status = False
                 continue
 
-            for i in range(0,len(system.input)):
-                if system.input[i][1] != cmd.input[i][1]:
-                    print(f"Error: sorts do not match in check-system (expected {system.input[i][1]}, got {cmd.input[i][1]})")
+            for (v1,s1),(v2,s2) in zip(system.input.items(), cmd.input.items()):
+                if s1 != s2:
+                    print(f"Error: sorts do not match in check-system (expected {s1}, got {s2})")
                     status = False
                     continue
-                cmd.var_map[system.input[i][0]] = cmd.input[i][0]
+                cmd.var_map[v1] = v2
 
             if len(system.output) != len(cmd.output):
-                print(f"Error: input variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}")
+                print(f"Error: output variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}")
                 status = False
                 continue
 
-            for i in range(0,len(system.output)):
-                if system.output[i][1] != cmd.output[i][1]:
-                    print(f"Error: sorts do not match in check-system (expected {system.output[i][1]}, got {cmd.output[i][1]})")
+            for (v1,s1),(v2,s2) in zip(system.output.items(), cmd.output.items()):
+                if s1 != s2:
+                    print(f"Error: sorts do not match in check-system (expected {s1}, got {s2})")
                     status = False
                     continue
-                cmd.var_map[system.output[i][0]] = cmd.output[i][0]
+                cmd.var_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
-                print(f"Error: input variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}")
+                print(f"Error: local variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}")
                 status = False
                 continue
 
-            for i in range(0,len(system.local)):
-                if system.local[i][1] != cmd.local[i][1]:
-                    print(f"Error: sorts do not match in check-system (expected {system.local[i][1]}, got {cmd.local[i][1]})")
+            for (v1,s1),(v2,s2) in zip(system.local.items(), cmd.local.items()):
+                if s1 != s2:
+                    print(f"Error: sorts do not match in check-system (expected {s1}, got {s2})")
                     status = False
                     continue
-                cmd.var_map[system.local[i][0]] = cmd.local[i][0]
+                cmd.var_map[v1] = v2
 
             for expr in cmd.assumption.values():
                 status = status and sort_check_expr(expr, False, True)
@@ -672,6 +800,10 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
             for expr in cmd.current.values():
                 status = status and sort_check_expr(expr, False, True)
+
+            context.input_vars = {}
+            context.output_vars = {}
+            context.local_vars = {}
         else:
             raise NotImplementedError
 
