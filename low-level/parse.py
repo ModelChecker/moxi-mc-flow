@@ -84,7 +84,7 @@ class ILLexer(Lexer):
 class ILParser(Parser):
     tokens = ILLexer.tokens
 
-    def __init__(self) -> None:
+    def __init__(self) :
         super().__init__()
         self.input_context = []
         self.output_context = []

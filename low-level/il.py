@@ -303,7 +303,7 @@ class ILCheckSystem(ILCommand):
         self.reachable = reachable
         self.current = current
         self.query = query
-        self.var_map: dict[str, str] = {}
+        self.rename_map: dict[str, str] = {}
 
 
 class ILExit(ILCommand):
@@ -541,6 +541,53 @@ QF_BV = ILLogic("QF_BV", {"BitVec": (1,0)}, FUNCTIONS_BV, sort_check_apply_bv)
 FuncSig = tuple[list[ILSort], ILSort]
 
 
+class ILSystemContext():
+
+    def __init__(self):
+        self._system_stack: list[tuple[str, ILDefineSystem]] = []
+        self._rename_map_stack: list[dict[str, str]] = []
+
+    def push(self, sys: tuple[str, ILDefineSystem]):
+        self._system_stack.append(sys)
+        # self._rename_map_stack.append()
+
+    def pop(self) -> tuple[str, ILDefineSystem]:
+        return self._system_stack.pop()
+
+    def get_top_level(self) -> Optional[tuple[str, ILDefineSystem]]:
+        if len(self._system_stack) == 0:
+            return None
+        return self._system_stack[0]
+
+    def get_subsystems(self) -> list[tuple[str, ILDefineSystem]]:
+        if len(self._system_stack) < 2:
+            return []
+        return self._system_stack[1:]
+
+    def get_scope_symbols(self) -> list[str]:
+        top_level = self.get_top_level()
+        if not top_level:
+            return []
+        top_level_symbol, top_level_system = top_level
+        return [top_level_symbol] + [name for name,sys in self.get_subsystems()]
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, ILSystemContext):
+            return False
+        
+        if len(__o._system_stack) != len(self._system_stack):
+            return False
+        
+        for (s1, s2) in zip(__o._system_stack, self._system_stack):
+            if s1 != s2:
+                return False
+
+        return True
+        
+    def __hash__(self) -> int:
+        return sum([hash(name) for name,sys in self._system_stack])
+
+
 class ILContext():
 
     def __init__(self):
@@ -553,7 +600,7 @@ class ILContext():
         self.input_vars: dict[str, ILSort] = {}
         self.output_vars: dict[str, ILSort] = {}
         self.local_vars: dict[str, ILSort] = {}
-        self.system_symbol_stack: list[str] = [] # used during system flattening
+        self.system_context = ILSystemContext() # used during system flattening
 
     def get_symbols(self) -> set[str]:
         symbols = set()
@@ -763,7 +810,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                     print(f"Error: sorts do not match in check-system (expected {s1}, got {s2})")
                     status = False
                     continue
-                cmd.var_map[v1] = v2
+                cmd.rename_map[v1] = v2
 
             if len(system.output) != len(cmd.output):
                 print(f"Error: output variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}")
@@ -775,7 +822,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                     print(f"Error: sorts do not match in check-system (expected {s1}, got {s2})")
                     status = False
                     continue
-                cmd.var_map[v1] = v2
+                cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
                 print(f"Error: local variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}")
@@ -787,7 +834,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                     print(f"Error: sorts do not match in check-system (expected {s1}, got {s2})")
                     status = False
                     continue
-                cmd.var_map[v1] = v2
+                cmd.rename_map[v1] = v2
 
             for expr in cmd.assumption.values():
                 status = status and sort_check_expr(expr, False, True)

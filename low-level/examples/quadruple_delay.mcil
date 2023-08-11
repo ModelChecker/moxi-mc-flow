@@ -9,15 +9,15 @@
 ; Two-step delay
 (define-system DoubleDelay :input ( (in (_ BitVec 8)) ) :output ( (out (_ BitVec 8)) )
   :local ( (temp (_ BitVec 8)) )
-  :subsys  (D1 (Delay in temp))
-  :subsys  (D2 (Delay temp out))
+  :subsys  (C (Delay in temp))
+  :subsys  (D (Delay temp out))
 )
 
 ; Four-step delay
 (define-system QuadrupleDelay :input ( (in (_ BitVec 8)) ) :output ( (out (_ BitVec 8)) )
   :local ( (temp (_ BitVec 8)) )
-  :subsys  (D1 (DoubleDelay in temp))
-  :subsys  (D2 (DoubleDelay temp out))
+  :subsys  (A (DoubleDelay in temp))
+  :subsys  (B (DoubleDelay temp out))
 )
 
 (check-system QuadrupleDelay 

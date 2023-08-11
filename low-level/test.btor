@@ -1,20 +1,58 @@
 1 sort bitvec 8
 2 sort bitvec 1
-3 state 1 init_s:e
-4 state 1 cur_s
-5 state 1 next_s
-6 input 1 i
-7 state 1 init_o
-8 state 1 cur_o
-9 state 1 next_o
-10 constd 2 1
-11 constraint 10
-12 init 1 8 7
-13 init 1 4 3
-14 constraint 10
-15 next 1 8 9
-16 next 1 4 5
-17 constraint 10
-18 constd 1 1
-19 eq 2 8 18
-20 bad 19
+3 state 1 QuadrupleDelay::B::D::s::init
+4 state 1 QuadrupleDelay::B::D::s::cur
+5 state 1 QuadrupleDelay::B::D::s::next
+6 state 1 QuadrupleDelay::A::C::o::init
+7 state 1 QuadrupleDelay::A::C::o::cur
+8 state 1 QuadrupleDelay::A::C::o::next
+9 state 1 QuadrupleDelay::B::C::o::init
+10 state 1 QuadrupleDelay::B::C::o::cur
+11 state 1 QuadrupleDelay::B::C::o::next
+12 state 1 QuadrupleDelay::B::D::o::init
+13 state 1 QuadrupleDelay::B::D::o::cur
+14 state 1 QuadrupleDelay::B::D::o::next
+15 state 1 o::init
+16 state 1 o::cur
+17 state 1 o::next
+18 input 1 QuadrupleDelay::A::C::i
+19 state 1 QuadrupleDelay::A::C::s::init
+20 state 1 QuadrupleDelay::A::C::s::cur
+21 state 1 QuadrupleDelay::A::C::s::next
+22 state 1 QuadrupleDelay::A::D::s::init
+23 state 1 QuadrupleDelay::A::D::s::cur
+24 state 1 QuadrupleDelay::A::D::s::next
+25 state 1 QuadrupleDelay::A::D::o::init
+26 state 1 QuadrupleDelay::A::D::o::cur
+27 state 1 QuadrupleDelay::A::D::o::next
+28 state 1 QuadrupleDelay::B::C::s::init
+29 state 1 QuadrupleDelay::B::C::s::cur
+30 state 1 QuadrupleDelay::B::C::s::next
+31 input 1 QuadrupleDelay::B::C::i
+32 input 1 QuadrupleDelay::B::D::i
+33 input 1 QuadrupleDelay::A::D::i
+34 constd 2 1
+35 constraint 34
+36 init 1 16 15
+37 init 1 7 6
+38 init 1 20 19
+39 init 1 26 25
+40 init 1 23 22
+41 init 1 10 9
+42 init 1 29 28
+43 init 1 13 12
+44 init 1 4 3
+45 constraint 34
+46 next 1 16 17
+47 next 1 7 8
+48 next 1 20 21
+49 next 1 26 27
+50 next 1 23 24
+51 next 1 10 11
+52 next 1 29 30
+53 next 1 13 14
+54 next 1 4 5
+55 constraint 34
+56 constd 1 1
+57 eq 2 16 56
+58 bad 57
