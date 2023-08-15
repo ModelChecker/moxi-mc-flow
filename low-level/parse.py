@@ -86,10 +86,6 @@ class ILParser(Parser):
 
     def __init__(self) :
         super().__init__()
-        self.input_context = []
-        self.output_context = []
-        self.local_context = []
-        self.logic_context = []
         self.status = True
 
     def error(self, token):
@@ -131,21 +127,18 @@ class ILParser(Parser):
     def command(self, p):
         if ILAttribute.INPUT in p[3]:
             in_vars = p[3][ILAttribute.INPUT]
-            self.input_context = []
         else:
-            in_vars = {}
+            in_vars = []
             
         if ILAttribute.OUTPUT in p[3]:
             out_vars = p[3][ILAttribute.OUTPUT]
-            self.output_context = []
         else:
-            out_vars = {}
+            out_vars = []
 
         if ILAttribute.LOCAL in p[3]:
             local_vars = p[3][ILAttribute.LOCAL]
-            self.local_context = []
         else:
-            local_vars = {}
+            local_vars = []
             
         if ILAttribute.INIT in p[3]:
             init_expr = p[3][ILAttribute.INIT]
@@ -174,21 +167,18 @@ class ILParser(Parser):
     def command(self, p):
         if ILAttribute.INPUT in p[3]:
             in_vars = p[3][ILAttribute.INPUT]
-            self.input_context = []
         else:
-            in_vars = {}
+            in_vars = []
             
         if ILAttribute.OUTPUT in p[3]:
             out_vars = p[3][ILAttribute.OUTPUT]
-            self.output_context = []
         else:
-            out_vars = {}
+            out_vars = []
 
         if ILAttribute.LOCAL in p[3]:
             local_vars = p[3][ILAttribute.LOCAL]
-            self.local_context = []
         else:
-            local_vars = {}
+            local_vars = []
 
         if ILAttribute.ASSUMPTION in p[3]:
             assume_dict = p[3][ILAttribute.ASSUMPTION]
@@ -249,17 +239,14 @@ class ILParser(Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        self.input_context = p[2]
         return (ILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        self.output_context = p[2]
         return (ILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        self.local_context = p[2]
         return (ILAttribute.LOCAL, p[2])
 
     @_("PK_INIT term")
@@ -285,7 +272,7 @@ class ILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            print(f"Error: multiple instances of attribute ({attr.value}).")
+            print(f"Error: multiple instances of attribute '{attr.value}'.")
             self.status = False
         elif attr.get_value_type() == dict:
             p[0][attr].update(value)
@@ -301,17 +288,14 @@ class ILParser(Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        self.input_context = p[2]
         return (ILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        self.output_context = p[2]
         return (ILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        self.local_context = p[2]
         return (ILAttribute.LOCAL, p[2])
 
     @_("PK_ASSUMPTION LPAREN SYMBOL term RPAREN")
@@ -337,17 +321,16 @@ class ILParser(Parser):
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
-        (symbol, sort) = p[2]
-        p[0][symbol] = sort
+        p[0].append(p[2])
         return p[0]
     
     @_("")
     def sorted_var_list(self, p):
-        return {}
+        return []
     
     @_("SYMBOL sort")
     def sorted_var(self, p):
-        return (p[0], p[1])
+        return ILVar(ILVarType.NONE, p[1], p[0], False)
     
     @_("term_list term")
     def term_list(self, p):
@@ -380,28 +363,6 @@ class ILParser(Parser):
             symbol = symbol[:-1]
 
         return ILVar(ILVarType.NONE, IL_NO_SORT, symbol, prime)
-
-        # for sym,sort in self.input_context:
-        #     if sym == symbol:
-        #         return ILInputVar(sort, symbol, prime)
-
-        # for sym,sort in self.output_context:
-        #     if sym == symbol:
-        #         return ILOutputVar(sort, symbol, prime)
-
-        # for sym,sort in self.local_context:
-        #     if sym == symbol:
-        #         return ILLocalVar(sort, symbol, prime)
-
-        # for sym,sort in self.logic_context:
-        #     if prime:
-        #         print(f"Error: logic variable cannot be primed ({symbol}).")
-        #         self.status = False
-        #     if symbol == sym:
-        #         return ILLogicVar(sort, symbol)
-
-        # print(f"Error: variable undeclared ({symbol})")
-        # self.status = False
 
     @_("NUMERAL")
     def term(self, p):

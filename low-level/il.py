@@ -193,6 +193,7 @@ class ILVar(ILExpr):
     def rename(self, new: str) -> ILVar:
         return ILVar(self.var_type, self.sort, new, self.prime)
 
+IL_EMPTY_VAR = ILVar(ILVarType.NONE, IL_NO_SORT, "", False)
 
 class ILApply(ILExpr):
 
@@ -259,9 +260,9 @@ class ILDefineSystem(ILCommand):
     def __init__(
         self, 
         symbol: str,
-        input: dict[str, ILSort], 
-        output: dict[str, ILSort], 
-        local: dict[str, ILSort],
+        input: list[ILVar], 
+        output: list[ILVar], 
+        local: list[ILVar], 
         init: ILExpr,
         trans: ILExpr, 
         inv: ILExpr,
@@ -285,9 +286,9 @@ class ILCheckSystem(ILCommand):
     def __init__(
         self, 
         sys_symbol: str,
-        input: dict[str, ILSort], 
-        output: dict[str, ILSort], 
-        local: dict[str, ILSort],
+        input: list[ILVar], 
+        output: list[ILVar], 
+        local: list[ILVar], 
         assumption: dict[str, ILExpr],
         fairness: dict[str, ILExpr], 
         reachable: dict[str, ILExpr], 
@@ -303,7 +304,7 @@ class ILCheckSystem(ILCommand):
         self.reachable = reachable
         self.current = current
         self.query = query
-        self.rename_map: dict[str, str] = {}
+        # self.rename_map: dict[str, str] = {}
 
 
 class ILExit(ILCommand):
@@ -493,7 +494,6 @@ def sort_check_apply_bv(node: ILApply) -> bool:
 
     return False
 
-
 FUNCTIONS_CORE = {"true", "false", "not", "=>", "and", "or", "xor", "=", "distinct", "ite"}
 
 # TODOs are for implementing in sort checker
@@ -545,14 +545,19 @@ class ILSystemContext():
 
     def __init__(self):
         self._system_stack: list[tuple[str, ILDefineSystem]] = []
-        self._rename_map_stack: list[dict[str, str]] = []
 
     def push(self, sys: tuple[str, ILDefineSystem]):
         self._system_stack.append(sys)
-        # self._rename_map_stack.append()
 
     def pop(self) -> tuple[str, ILDefineSystem]:
         return self._system_stack.pop()
+
+    def copy(self) -> ILSystemContext:
+        new_system_stack = self._system_stack.copy()
+        new = ILSystemContext()
+        for s in new_system_stack:
+            new.push(s)
+        return new
 
     def get_top_level(self) -> Optional[tuple[str, ILDefineSystem]]:
         if len(self._system_stack) == 0:
@@ -585,7 +590,10 @@ class ILSystemContext():
         return True
         
     def __hash__(self) -> int:
-        return sum([hash(name) for name,sys in self._system_stack])
+        # TODO: need hash that is sensitive to order?
+        # I think this may work due to the assumption of a dependency graph
+        # i.e., there is only one unique order for each system context
+        return sum([hash(name)+hash(sys.symbol) for name,sys in self._system_stack])
 
 
 class ILContext():
@@ -597,9 +605,9 @@ class ILContext():
         self.defined_functions: dict[str, tuple[FuncSig, ILExpr]] = {}
         self.defined_systems: dict[str, ILDefineSystem] = {}
         self.logic = QF_BV # for now, assume QF_BV logic
-        self.input_vars: dict[str, ILSort] = {}
-        self.output_vars: dict[str, ILSort] = {}
-        self.local_vars: dict[str, ILSort] = {}
+        self.input_var_sorts: dict[ILVar, ILSort] = {}
+        self.output_var_sorts: dict[ILVar, ILSort] = {}
+        self.local_var_sorts: dict[ILVar, ILSort] = {}
         self.system_context = ILSystemContext() # used during system flattening
 
     def get_symbols(self) -> set[str]:
@@ -655,27 +663,27 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
         if isinstance(node, ILConstant):
             return True
-        elif isinstance(node, ILVar) and node.symbol in context.input_vars:
+        elif isinstance(node, ILVar) and node in context.input_var_sorts:
             node.var_type = ILVarType.INPUT
-            node.sort = context.input_vars[node.symbol]
+            node.sort = context.input_var_sorts[node]
 
             if node.prime and not prime_input:
                 print(f"Error: primed input variables only allowed in check system assumptions and reachability conditions ({node.symbol}).")
                 return False
 
             return True
-        elif isinstance(node, ILVar) and node.symbol in context.output_vars:
+        elif isinstance(node, ILVar) and node in context.output_var_sorts:
             node.var_type = ILVarType.OUTPUT
-            node.sort = context.output_vars[node.symbol]
+            node.sort = context.output_var_sorts[node]
 
             if node.prime and no_prime:
                 print(f"Error: primed variables only allowed in system transition relation ({node.symbol}).")
                 return False
 
             return True
-        elif isinstance(node, ILVar) and node.symbol in context.local_vars:
+        elif isinstance(node, ILVar) and node in context.local_var_sorts:
             node.var_type = ILVarType.LOCAL
-            node.sort = context.local_vars[node.symbol]
+            node.sort = context.local_var_sorts[node]
 
             if node.prime and no_prime:
                 print(f"Error: primed variables only allowed in system transition relation ({node.symbol}).")
@@ -693,6 +701,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 if not sort_check_apply_core(node):
                     print(f"Error: function signature does not match definition ({node}).")
                     return False
+                    
                 return True
             if node.identifier.symbol in context.logic.function_symbols:
                 for arg in node.children:
@@ -746,9 +755,9 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             context.declared_functions[cmd.symbol] = FuncSig(([], cmd.sort))
         elif isinstance(cmd, ILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
-            context.input_vars = cmd.input
-            context.output_vars = cmd.output
-            context.local_vars = cmd.local
+            context.input_var_sorts = {var:var.sort for var in cmd.input}
+            context.output_var_sorts = {var:var.sort for var in cmd.output}
+            context.local_var_sorts = {var:var.sort for var in cmd.local}
 
             status = status and sort_check_expr(cmd.init, True, False)
             status = status and sort_check_expr(cmd.trans, False, False)
@@ -756,28 +765,34 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
             for name,subsystem in cmd.subsystem_signatures.items():
                 # TODO: check for cycles in system dependency graph
-                (sys_symbol, signature) = subsystem
+                (sys_symbol, signature_symbols) = subsystem
 
                 if sys_symbol not in context.defined_systems:
                     print(f"Error: system `{sys_symbol}` not defined in context.")
                     status = False
 
+                # check that each symbol in signature is in the context
+                signature: list[ILVar] = []
+                variables: dict[str, ILVar] = {var.symbol:var for var in cmd.input + cmd.output + cmd.local}
+                for symbol in signature_symbols:
+                    if symbol not in variables:
+                        print(f"Error: variable `{symbol}` not declared.")
+                        status = False
+                        signature.append(IL_EMPTY_VAR)
+                    else:
+                        signature.append(variables[symbol])
+
                 target_system = context.defined_systems[sys_symbol]
-                target_signature = target_system.input | target_system.output
+                target_signature = target_system.input + target_system.output
 
                 if len(signature) != len(target_signature):
-                    print(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input | context.defined_systems[sys_symbol].output}\n\t{signature}")
+                    print(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
                     status = False
                     continue
 
-                cmd_variables = cmd.input | cmd.output | cmd.local
-                for var_symbol, sort in zip(signature, target_signature.values()):
-                    if var_symbol not in cmd_variables:
-                        print(f"Error: variable `{var_symbol}` not declared.")
-                        status = False
-                        continue
-                    elif cmd_variables[var_symbol] != sort:
-                        print(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input | context.defined_systems[sys_symbol].output}\n\t{signature}")
+                for cmd_var,target_var in zip(signature, target_signature):
+                    if cmd_var.sort != target_var.sort:
+                        print(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
                         status = False
                         continue
 
@@ -785,18 +800,18 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
             context.defined_systems[cmd.symbol] = cmd
 
-            context.input_vars = {}
-            context.output_vars = {}
-            context.local_vars = {}
+            context.input_var_sorts = {}
+            context.output_var_sorts = {}
+            context.local_var_sorts = {}
         elif isinstance(cmd, ILCheckSystem):
             if not cmd.sys_symbol in context.defined_systems:
                 print(f"Error: system `{cmd.sys_symbol}` undefined.")
                 status = False
                 continue
 
-            context.input_vars = cmd.input
-            context.output_vars = cmd.output
-            context.local_vars = cmd.local
+            context.input_var_sorts = {var:var.sort for var in cmd.input}
+            context.output_var_sorts = {var:var.sort for var in cmd.output}
+            context.local_var_sorts = {var:var.sort for var in cmd.local}
 
             system = context.defined_systems[cmd.sys_symbol]
 
@@ -805,36 +820,36 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 status = False
                 continue
 
-            for (v1,s1),(v2,s2) in zip(system.input.items(), cmd.input.items()):
-                if s1 != s2:
-                    print(f"Error: sorts do not match in check-system (expected {s1}, got {s2})")
+            for i1,i2 in zip(system.input, cmd.input):
+                if i1.sort != i2.sort:
+                    print(f"Error: sorts do not match in check-system (expected {i1.sort}, got {i2.sort})")
                     status = False
                     continue
-                cmd.rename_map[v1] = v2
+                # cmd.rename_map[v1] = v2
 
             if len(system.output) != len(cmd.output):
                 print(f"Error: output variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}")
                 status = False
                 continue
 
-            for (v1,s1),(v2,s2) in zip(system.output.items(), cmd.output.items()):
-                if s1 != s2:
-                    print(f"Error: sorts do not match in check-system (expected {s1}, got {s2})")
+            for o1,o2 in zip(system.output, cmd.output):
+                if o1.sort != o2.sort:
+                    print(f"Error: sorts do not match in check-system (expected {o1.sort}, got {o2.sort})")
                     status = False
                     continue
-                cmd.rename_map[v1] = v2
+                # cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
                 print(f"Error: local variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}")
                 status = False
                 continue
 
-            for (v1,s1),(v2,s2) in zip(system.local.items(), cmd.local.items()):
-                if s1 != s2:
-                    print(f"Error: sorts do not match in check-system (expected {s1}, got {s2})")
+            for l1,l2 in zip(system.local, cmd.local):
+                if l1.sort != l2.sort:
+                    print(f"Error: sorts do not match in check-system (expected {l1.sort}, got {l2.sort})")
                     status = False
                     continue
-                cmd.rename_map[v1] = v2
+                # cmd.rename_map[v1] = v2
 
             for expr in cmd.assumption.values():
                 status = status and sort_check_expr(expr, False, True)
@@ -848,9 +863,9 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             for expr in cmd.current.values():
                 status = status and sort_check_expr(expr, False, True)
 
-            context.input_vars = {}
-            context.output_vars = {}
-            context.local_vars = {}
+            context.input_var_sorts = {}
+            context.output_var_sorts = {}
+            context.local_var_sorts = {}
         else:
             raise NotImplementedError
 
