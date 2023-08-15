@@ -13,6 +13,7 @@
   :input ( (in (_ BitVec 8)) ) 
   :output ( (out (_ BitVec 8)) )
   :local ( (temp (_ BitVec 8)) )
+  :inv (= temp in)
   :subsys  (C (Delay in temp))
   :subsys  (D (Delay temp out))
 )

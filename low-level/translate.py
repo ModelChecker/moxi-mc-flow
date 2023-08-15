@@ -132,21 +132,23 @@ def build_var_map_expr(
     var_map: VarMap):
     """Iteratively recurse the expr IL and map each input ILVar to a single Btor2Input and each local/output var to a triple of Btor2States corresponding to that var's init, cur, and next values."""
     def build_var_map_util(expr: ILExpr):
-        system_context = context.system_context
-        if isinstance(expr, ILVar) and ((expr not in var_map) or (system_context not in var_map[expr])):
+        if isinstance(expr, ILVar) and ((expr not in var_map) or (context.system_context not in var_map[expr])):
             cur = expr
-
+            system_context = context.system_context
             while cur in rename_map and system_context in rename_map[cur]:
                 (cur, system_context) = rename_map[cur][system_context]
 
             symbol = "::".join(system_context.get_scope_symbols() + [cur.symbol])
+
+            tmp = "::".join(context.system_context.get_scope_symbols() + [expr.symbol])
+            print(f"{expr} : {tmp}")
 
             if expr not in var_map:
                 var_map[expr] = {}
 
             if expr.var_type == ILVarType.INPUT:
                 var_map[expr][context.system_context.copy()] = Btor2InputVar(sort_map[cur.sort], symbol)
-            else: # output or local var
+            elif expr.var_type == ILVarType.OUTPUT or expr.var_type == ILVarType.LOCAL:
                 var_map[expr][context.system_context.copy()] = (Btor2StateVar(sort_map[cur.sort], f"{symbol}::init"),
                                                  Btor2StateVar(sort_map[cur.sort], f"{symbol}::cur"),
                                                  Btor2StateVar(sort_map[cur.sort], f"{symbol}::next"))
@@ -253,90 +255,40 @@ def flatten_btor2_expr(expr: Btor2Expr) -> list[Btor2Expr]:
     
     postorder_iterative_btor2(expr, flatten_btor2_expr_util)
     return out
-            
-
-def ilsubsystem_to_btor2(
-    subsystem: ILDefineSystem, 
-    context: ILContext,
-    sort_map: dict[ILSort, Btor2Sort],
-    var_map: VarMap
-) -> list[Btor2Node]:
-    btor2_model: list[Btor2Node] = []
-
-    # Note: var_map may have repeat values (i.e., renamed variables point to same Btor2 variables)
-    for val in set([v.values() for v in var_map.values()]):
-        if isinstance(val, Btor2Var):
-            btor2_model.append(val)
-        elif isinstance(val, tuple):
-            btor2_model.append(val[0])
-            btor2_model.append(val[1])
-            btor2_model.append(val[2])
-
-    btor2_init = ilexpr_to_btor2(subsystem.init, context, True, sort_map, var_map)
-    btor2_model += flatten_btor2_expr(btor2_init)
-    btor2_model.append(Btor2Constraint(btor2_init))
-
-    for var in [v for v in [v.values() for v in var_map.values()] if isinstance(v, tuple)]:
-        btor2_model.append(Btor2Init(cast(Btor2StateVar, var[1]), var[0]))
-
-    btor2_trans = ilexpr_to_btor2(subsystem.trans, context, False, sort_map, var_map)
-    btor2_model += flatten_btor2_expr(btor2_trans)
-    btor2_model.append(Btor2Constraint(btor2_trans))
-
-    for var in [v for v in [v.values() for v in var_map.values()] if isinstance(v, tuple)]:
-        btor2_model.append(Btor2Next(cast(Btor2StateVar, var[1]), var[2]))
-
-    btor2_inv = ilexpr_to_btor2(subsystem.inv, context, False, sort_map, var_map)
-    btor2_model += flatten_btor2_expr(btor2_inv)
-    btor2_model.append(Btor2Constraint(btor2_inv))
-
-    return btor2_model
 
 
 def ilsystem_to_btor2(
+    btor2_model: list[Btor2Node],
     system: ILDefineSystem, 
     context: ILContext,
     sort_map: dict[ILSort, Btor2Sort],
-    var_map: VarMap
-) -> list[Btor2Node]:
-    btor2_model: list[Btor2Node] = []
-
-    for sort in sort_map.values():
-        btor2_model.append(sort)
-
-    # Note: var_map may have repeat values (i.e., renamed variables point to same Btor2 variables)
-    for val in set([v.values() for v in var_map.values()]):
-        if isinstance(val, Btor2Var):
-            btor2_model.append(val)
-        elif isinstance(val, tuple):
-            btor2_model.append(val[0])
-            btor2_model.append(val[1])
-            btor2_model.append(val[2])
+    var_map: VarMap):
+    for symbol,subsystem in system.subsystems.items():
+        context.system_context.push((symbol, subsystem))
+        ilsystem_to_btor2(btor2_model, subsystem, context, sort_map, var_map)
+        context.system_context.pop()
 
     btor2_init = ilexpr_to_btor2(system.init, context, True, sort_map, var_map)
     btor2_model += flatten_btor2_expr(btor2_init)
     btor2_model.append(Btor2Constraint(btor2_init))
 
-    for var in [v for v in [v.values() for v in var_map.values()] if isinstance(v, tuple)]:
-        btor2_model.append(Btor2Init(cast(Btor2StateVar, var[1]), var[0]))
+    for tmp in var_map.values():
+        for btor2_var in [v for v in tmp.values() if isinstance(v, tuple)]:
+            (init, cur, next) = btor2_var
+            btor2_model.append(Btor2Init(cast(Btor2StateVar, cur), init))
 
     btor2_trans = ilexpr_to_btor2(system.trans, context, False, sort_map, var_map)
     btor2_model += flatten_btor2_expr(btor2_trans)
     btor2_model.append(Btor2Constraint(btor2_trans))
 
-    for var in [v for v in [v.values() for v in var_map.values()] if isinstance(v, tuple)]:
-        btor2_model.append(Btor2Next(cast(Btor2StateVar, var[1]), var[2]))
+    for tmp in var_map.values():
+        for btor2_var in [v for v in tmp.values() if isinstance(v, tuple)]:
+            (init, cur, next) = btor2_var
+            btor2_model.append(Btor2Next(cast(Btor2StateVar, cur), next))
 
     btor2_inv = ilexpr_to_btor2(system.inv, context, False, sort_map, var_map)
     btor2_model += flatten_btor2_expr(btor2_inv)
     btor2_model.append(Btor2Constraint(btor2_inv))
-
-    for symbol,subsystem in system.subsystems.items():
-        context.system_context.push((symbol, subsystem))
-        btor2_model += ilsystem_to_btor2(subsystem, context, sort_map, var_map)
-        context.system_context.pop()
-
-    return btor2_model
 
 
 def ilchecksystem_to_btor2(
@@ -349,8 +301,24 @@ def ilchecksystem_to_btor2(
     btor2_prog_list: dict[str, list[Btor2Node]] = {}
     btor2_model: list[Btor2Node] = []
 
+    for sort in sort_map.values():
+        btor2_model.append(sort)
+
+    # Note: var_map may have repeat values (i.e., renamed variables point to same Btor2 variables)
+    for tmp in var_map.values():
+        for btor2_var in set(tmp.values()):
+            if isinstance(btor2_var, Btor2Var):
+                btor2_model.append(btor2_var)
+            elif isinstance(btor2_var, tuple):
+                (init, cur, next) = btor2_var
+                btor2_model.append(init)
+                btor2_model.append(cur)
+                btor2_model.append(next)
+
+    print_var_map(var_map)
+
     context.system_context.push((check.sys_symbol, context.defined_systems[check.sys_symbol]))
-    btor2_model += ilsystem_to_btor2(context.defined_systems[check.sys_symbol], context, sort_map, var_map)
+    ilsystem_to_btor2(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map)
     context.system_context.pop()
 
     for sym,query in check.query.items():

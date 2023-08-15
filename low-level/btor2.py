@@ -88,7 +88,7 @@ class Btor2Operator(Enum):
 
 class Btor2Node():
 
-    def __init__(self) :
+    def __init__(self):
         self.nid = -1
         self.comment = ""
 
@@ -107,13 +107,13 @@ class Btor2Node():
 
 class Btor2Sort(Btor2Node):
 
-    def __init__(self) :
+    def __init__(self):
         super().__init__()
 
 
 class Btor2BitVec(Btor2Sort):
 
-    def __init__(self, len: int) :
+    def __init__(self, len: int):
         super().__init__()
         self.length = len
         self.name = "bitvec"
@@ -132,7 +132,7 @@ class Btor2BitVec(Btor2Sort):
 
 class Btor2Array(Btor2Sort):
 
-    def __init__(self, domain: Btor2Sort, range: Btor2Sort) :
+    def __init__(self, domain: Btor2Sort, range: Btor2Sort):
         super().__init__()
         self.domain = domain
         self.range = range
@@ -164,7 +164,7 @@ class Btor2Array(Btor2Sort):
 
 class Btor2Expr(Btor2Node):
 
-    def __init__(self, c: Btor2Args) :
+    def __init__(self, c: Btor2Args):
         super().__init__()
         self.children = c
 
@@ -173,7 +173,7 @@ Btor2Args = tuple[Optional[Btor2Expr], Optional[Btor2Expr], Optional[Btor2Expr]]
 
 class Btor2Var(Btor2Expr):
 
-    def __init__(self, sort: Btor2Sort, name: str = "") :
+    def __init__(self, sort: Btor2Sort, name: str = ""):
         super().__init__(EMPTY_ARGS)
         self.sort: Btor2Sort = sort
         self.name = name
@@ -189,7 +189,7 @@ class Btor2Var(Btor2Expr):
 
 class Btor2InputVar(Btor2Var):
 
-    def __init__(self, sort: Btor2Sort, name: str = "") :
+    def __init__(self, sort: Btor2Sort, name: str = ""):
         super().__init__(sort, name)
 
     def __str__(self) -> str:
@@ -198,7 +198,7 @@ class Btor2InputVar(Btor2Var):
 
 class Btor2StateVar(Btor2Var):
 
-    def __init__(self, sort: Btor2Sort, name: str = "") :
+    def __init__(self, sort: Btor2Sort, name: str = ""):
         super().__init__(sort, name)
 
     def __str__(self) -> str:
@@ -207,7 +207,7 @@ class Btor2StateVar(Btor2Var):
 
 class Btor2Const(Btor2Expr):
 
-    def __init__(self, sort: Btor2Sort, val: Any) :
+    def __init__(self, sort: Btor2Sort, val: Any):
         super().__init__(EMPTY_ARGS)
         self.sort = sort
         self.value = val
@@ -226,7 +226,7 @@ class Btor2Const(Btor2Expr):
 
 class Btor2Apply(Btor2Expr):
 
-    def __init__(self, sort: Btor2Sort, op: Btor2Operator, args: Btor2Args) :
+    def __init__(self, sort: Btor2Sort, op: Btor2Operator, args: Btor2Args):
         super().__init__(args)
         self.sort = sort
         self.operator = op
@@ -262,17 +262,25 @@ class Btor2Apply(Btor2Expr):
 
 class Btor2Constraint(Btor2Node):
 
-    def __init__(self, expr: Btor2Node) :
+    def __init__(self, expr: Btor2Node):
         super().__init__()
         self.expr = expr
 
     def __str__(self) -> str:
         return f"{self.nid} constraint {self.expr.nid}"
+    
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, Btor2Constraint):
+            return False
+        return self.expr == __o.expr
+    
+    def __hash__(self) -> int:
+        return hash((type(self), self.expr))
 
 
 class Btor2Init(Btor2Node):
 
-    def __init__(self, state: Btor2StateVar, expr: Btor2Node) :
+    def __init__(self, state: Btor2StateVar, expr: Btor2Node):
         super().__init__()
         self.state = state
         self.expr = expr
@@ -291,7 +299,7 @@ class Btor2Init(Btor2Node):
 
 class Btor2Next(Btor2Node):
 
-    def __init__(self, state: Btor2StateVar, expr: Btor2Node) :
+    def __init__(self, state: Btor2StateVar, expr: Btor2Node):
         super().__init__()
         self.state = state
         self.expr = expr
@@ -310,7 +318,7 @@ class Btor2Next(Btor2Node):
 
 class Btor2Bad(Btor2Node):
 
-    def __init__(self, expr: Btor2Node) :
+    def __init__(self, expr: Btor2Node):
         super().__init__()
         self.expr = expr
 
@@ -320,7 +328,7 @@ class Btor2Bad(Btor2Node):
 
 class Btor2Fair(Btor2Node):
 
-    def __init__(self, expr: Btor2Node) :
+    def __init__(self, expr: Btor2Node):
         super().__init__()
         self.expr = expr
 
@@ -330,7 +338,7 @@ class Btor2Fair(Btor2Node):
 
 class Btor2Program():
 
-    def __init__(self, sorts: set[Btor2Sort], instr: list[Btor2Expr]) :
+    def __init__(self, sorts: set[Btor2Sort], instr: list[Btor2Expr]):
         self.sorts = sorts
         self.instructions = instr
 
@@ -348,7 +356,7 @@ operator_table: dict[Btor2Operator, tuple[list[type], type]] = {
 }
 
 
-def postorder_iterative_btor2(expr: Btor2Expr, func: Callable[[Btor2Expr], Any]) :
+def postorder_iterative_btor2(expr: Btor2Expr, func: Callable[[Btor2Expr], Any]):
     """Perform an iterative postorder traversal of node, calling func on each node."""
     stack: list[tuple[bool, Btor2Expr]] = []
     visited: set[Btor2Expr] = set()
