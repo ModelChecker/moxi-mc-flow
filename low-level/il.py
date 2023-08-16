@@ -255,6 +255,19 @@ class ILDeclareConst(ILCommand):
         self.sort = sort
 
 
+class ILDefineFun(ILCommand):
+
+    def __init__(self) -> None:
+        super().__init__()
+
+
+class ILSetLogic(ILCommand):
+    
+    def __init__(self, logic: str) -> None:
+        super().__init__()
+        self.logic = logic
+
+
 class ILDefineSystem(ILCommand):
     
     def __init__(

@@ -11,7 +11,7 @@ class ILLexer(Lexer):
                PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV, PK_SUBSYS,
                PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY,
                CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
-               CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, CMD_EXIT }
+               CMD_DECLARE_ENUM_SORT, CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, CMD_EXIT }
 
     # String containing ignored characters between tokens
     ignore = " \t"
@@ -67,7 +67,7 @@ class ILLexer(Lexer):
     SYMBOL["define-sort"]   = CMD_DEFINE_SORT
     SYMBOL["declare-const"] = CMD_DECLARE_CONST
     SYMBOL["define-fun"]    = CMD_DEFINE_FUN
-    #SYMBOL["declare-enum"]  = CMD_DECLARE_ENUM_SORT
+    SYMBOL["declare-enum"]  = CMD_DECLARE_ENUM_SORT
     SYMBOL["define-system"] = CMD_DEFINE_SYSTEM
     SYMBOL["check-system"]  = CMD_CHECK_SYSTEM
     SYMBOL["exit"]  = CMD_EXIT
@@ -112,16 +112,15 @@ class ILParser(Parser):
     
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
-        self.logic_context.append((p[2], p[3]))
         return ILDeclareConst(p[2], p[3])
     
     @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sort_list RPAREN RPAREN")
     def command(self, p):
         return None
     
-    # @_("LPAREN CMD_DECLARE_ENUM_SORT SYMBOL LPAREN symbol_list RPAREN RPAREN")
-    # def command(self, p):
-    #     return []
+    @_("LPAREN CMD_DECLARE_ENUM_SORT SYMBOL LPAREN symbol_list RPAREN RPAREN")
+    def command(self, p):
+        return []
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
