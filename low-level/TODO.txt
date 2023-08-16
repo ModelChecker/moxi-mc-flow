@@ -1,0 +1,14 @@
+[ ] Arrays
+
+IL commands:
+  [ ] declare-sort
+  [ ] define-sort
+  [ ] declare-const
+  [ ] define-fun
+  [ ] set-logic (?)
+
+check-system:
+  [ ] Assumptions
+  [ ] Fairness
+  [ ] Current
+  [ ] Queries
