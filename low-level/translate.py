@@ -141,14 +141,15 @@ def build_var_map_expr(
             symbol = "::".join(system_context.get_scope_symbols() + [cur.symbol])
 
             tmp = "::".join(context.system_context.get_scope_symbols() + [expr.symbol])
-            print(f"{expr} : {tmp}")
 
             if expr not in var_map:
                 var_map[expr] = {}
 
-            if expr.var_type == ILVarType.INPUT:
+            if cur.var_type == ILVarType.INPUT:
+                print(f"({expr}, {tmp}) : Btor2InputVar({sort_map[cur.sort]}, {symbol})")
                 var_map[expr][context.system_context.copy()] = Btor2InputVar(sort_map[cur.sort], symbol)
-            elif expr.var_type == ILVarType.OUTPUT or expr.var_type == ILVarType.LOCAL:
+            elif cur.var_type == ILVarType.OUTPUT or cur.var_type == ILVarType.LOCAL:
+                print(f"({expr}, {tmp}) : Btor2Var({sort_map[cur.sort]}, {symbol})")
                 var_map[expr][context.system_context.copy()] = (Btor2StateVar(sort_map[cur.sort], f"{symbol}::init"),
                                                  Btor2StateVar(sort_map[cur.sort], f"{symbol}::cur"),
                                                  Btor2StateVar(sort_map[cur.sort], f"{symbol}::next"))
@@ -172,13 +173,13 @@ def build_var_map_cmd(
                         signature.append(var)
 
             target_signature = subsystem.input + subsystem.output
-        
             target_context = context.system_context.copy() # need to copy for now
             target_context.push((subsys_symbol, subsystem))
 
             for cmd_var,target_var in zip(signature, target_signature):
                 if target_var not in rename_map:
                     rename_map[target_var] = {}
+                print(f"{cmd_var}, {target_var}")
                 rename_map[target_var][target_context] = (cmd_var, context.system_context.copy())
             
             context.system_context.push((subsys_symbol, subsystem))
@@ -224,12 +225,12 @@ def ilexpr_to_btor2(
     sort_map: dict[ILSort, Btor2Sort],
     var_map: VarMap
 ) -> Btor2Expr:
-    if isinstance(expr, ILVar) and expr.var_type == ILVarType.INPUT:
-        return cast(Btor2Var, var_map[expr][context.system_context])
-    elif isinstance(expr, ILVar):
+    if isinstance(expr, ILVar) and isinstance(var_map[expr][context.system_context], tuple):
         # We use "int(not is_init_expr)+int(expr.prime)" to compute the index in var_map:
         #   var_map[var] = (init, cur, next)
         return cast(tuple[Btor2Var,Btor2Var,Btor2Var], var_map[expr][context.system_context])[int(not is_init_expr)+int(expr.prime)]
+    elif isinstance(expr, ILVar):
+        return cast(Btor2Var, var_map[expr][context.system_context])
     elif isinstance(expr, ILConstant):
         return Btor2Const(sort_map[expr.sort], expr.value)
     elif isinstance(expr, ILApply):
@@ -265,12 +266,15 @@ def ilsystem_to_btor2(
     var_map: VarMap):
     for symbol,subsystem in system.subsystems.items():
         context.system_context.push((symbol, subsystem))
+        # btor2_model[-1].set_comment(f"begin {system.symbol}::{symbol}")
         ilsystem_to_btor2(btor2_model, subsystem, context, sort_map, var_map)
+        # btor2_model[-1].set_comment(f"end {system.symbol}::{symbol}")
         context.system_context.pop()
 
     btor2_init = ilexpr_to_btor2(system.init, context, True, sort_map, var_map)
     btor2_model += flatten_btor2_expr(btor2_init)
     btor2_model.append(Btor2Constraint(btor2_init))
+    btor2_model[-1].set_comment(f"init {system.symbol}")
 
     for tmp in var_map.values():
         for btor2_var in [v for v in tmp.values() if isinstance(v, tuple)]:
@@ -280,6 +284,7 @@ def ilsystem_to_btor2(
     btor2_trans = ilexpr_to_btor2(system.trans, context, False, sort_map, var_map)
     btor2_model += flatten_btor2_expr(btor2_trans)
     btor2_model.append(Btor2Constraint(btor2_trans))
+    btor2_model[-1].set_comment(f"trans {system.symbol}")
 
     for tmp in var_map.values():
         for btor2_var in [v for v in tmp.values() if isinstance(v, tuple)]:
@@ -289,6 +294,7 @@ def ilsystem_to_btor2(
     btor2_inv = ilexpr_to_btor2(system.inv, context, False, sort_map, var_map)
     btor2_model += flatten_btor2_expr(btor2_inv)
     btor2_model.append(Btor2Constraint(btor2_inv))
+    btor2_model[-1].set_comment(f"inv {system.symbol}")
 
 
 def ilchecksystem_to_btor2(

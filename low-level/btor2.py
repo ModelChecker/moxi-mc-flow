@@ -93,10 +93,10 @@ class Btor2Node():
         self.comment = ""
 
     def set_comment(self, s: str):
-        self.comment = f"; {s}"
+        self.comment = f" ; {s}"
 
     def __str__(self) -> str:
-        return f"{self.nid} {self.comment}"
+        return f"{self.nid}{self.comment}"
 
     def __eq__(self, __o: object) -> bool:
         return isinstance(__o, Btor2Node) and self.__str__() == __o.__str__()
@@ -119,7 +119,7 @@ class Btor2BitVec(Btor2Sort):
         self.name = "bitvec"
         
     def __str__(self) -> str:
-        return f"{self.nid} sort {self.name} {self.length}"
+        return f"{self.nid} sort {self.name} {self.length}{self.comment}"
     
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, Btor2BitVec):
@@ -139,7 +139,7 @@ class Btor2Array(Btor2Sort):
         self.name = "array"
 
     def __str__(self) -> str:
-        return f"{self.nid} sort {self.name} {self.domain.nid} {self.range.nid}"
+        return f"{self.nid} sort {self.name} {self.domain.nid} {self.range.nid}{self.comment}"
     
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, Btor2Array):
@@ -193,7 +193,7 @@ class Btor2InputVar(Btor2Var):
         super().__init__(sort, name)
 
     def __str__(self) -> str:
-        return f"{self.nid} input {self.sort.nid} {self.name}"
+        return f"{self.nid} input {self.sort.nid} {self.name}{self.comment}"
 
 
 class Btor2StateVar(Btor2Var):
@@ -202,7 +202,7 @@ class Btor2StateVar(Btor2Var):
         super().__init__(sort, name)
 
     def __str__(self) -> str:
-        return f"{self.nid} state {self.sort.nid} {self.name}"
+        return f"{self.nid} state {self.sort.nid} {self.name}{self.comment}"
 
 
 class Btor2Const(Btor2Expr):
@@ -213,7 +213,7 @@ class Btor2Const(Btor2Expr):
         self.value = val
 
     def __str__(self) -> str:
-        return f"{self.nid} constd {self.sort.nid} {int(self.value)}"
+        return f"{self.nid} constd {self.sort.nid} {int(self.value)}{self.comment}"
     
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, Btor2Const):
@@ -235,7 +235,7 @@ class Btor2Apply(Btor2Expr):
         s = f"{self.nid} {self.operator.name.lower()} {self.sort.nid} "
         for arg in [c for c in self.children if c]:
             s += f"{arg.nid} "
-        return s[:-1]
+        return f"{s[:-1]}{self.comment}"
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, Btor2Apply):
@@ -267,7 +267,7 @@ class Btor2Constraint(Btor2Node):
         self.expr = expr
 
     def __str__(self) -> str:
-        return f"{self.nid} constraint {self.expr.nid}"
+        return f"{self.nid} constraint {self.expr.nid}{self.comment}"
     
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, Btor2Constraint):
@@ -286,7 +286,7 @@ class Btor2Init(Btor2Node):
         self.expr = expr
 
     def __str__(self) -> str:
-        return f"{self.nid} init {self.state.sort.nid} {self.state.nid} {self.expr.nid}"
+        return f"{self.nid} init {self.state.sort.nid} {self.state.nid} {self.expr.nid}{self.comment}"
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, Btor2Init):
@@ -305,7 +305,7 @@ class Btor2Next(Btor2Node):
         self.expr = expr
 
     def __str__(self) -> str:
-        return f"{self.nid} next {self.state.sort.nid} {self.state.nid} {self.expr.nid}"
+        return f"{self.nid} next {self.state.sort.nid} {self.state.nid} {self.expr.nid}{self.comment}"
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, Btor2Next):
@@ -323,7 +323,7 @@ class Btor2Bad(Btor2Node):
         self.expr = expr
 
     def __str__(self) -> str:
-        return f"{self.nid} bad {self.expr.nid}"
+        return f"{self.nid} bad {self.expr.nid}{self.comment}"
 
 
 class Btor2Fair(Btor2Node):
@@ -333,7 +333,7 @@ class Btor2Fair(Btor2Node):
         self.expr = expr
 
     def __str__(self) -> str:
-        return f"{self.nid} fair {self.expr.nid}"
+        return f"{self.nid} fair {self.expr.nid}{self.comment}"
 
 
 class Btor2Program():

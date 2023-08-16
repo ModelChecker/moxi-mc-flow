@@ -824,7 +824,8 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 if i1.sort != i2.sort:
                     print(f"Error: sorts do not match in check-system (expected {i1.sort}, got {i2.sort})")
                     status = False
-                    continue
+                else:
+                    i2.var_type = ILVarType.INPUT
                 # cmd.rename_map[v1] = v2
 
             if len(system.output) != len(cmd.output):
@@ -836,7 +837,8 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 if o1.sort != o2.sort:
                     print(f"Error: sorts do not match in check-system (expected {o1.sort}, got {o2.sort})")
                     status = False
-                    continue
+                else:
+                    o2.var_type = ILVarType.OUTPUT
                 # cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
@@ -848,7 +850,8 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 if l1.sort != l2.sort:
                     print(f"Error: sorts do not match in check-system (expected {l1.sort}, got {l2.sort})")
                     status = False
-                    continue
+                else:
+                    l2.var_type = ILVarType.LOCAL
                 # cmd.rename_map[v1] = v2
 
             for expr in cmd.assumption.values():
