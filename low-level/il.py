@@ -418,7 +418,7 @@ def sort_check_apply_core(node: ILApply) -> bool:
 
 
 def sort_check_apply_bv(node: ILApply) -> bool:
-    """Returns true if `node` corresponds to a valid function signature in SMT-LIB2 QF_BV logic."""
+    """Returns true if 'node' corresponds to a valid function signature in SMT-LIB2 QF_BV logic."""
     function = node.identifier
 
     if function.symbol == "concat":
@@ -632,7 +632,7 @@ class ILProgram():
 
 
 def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]):
-    """Perform an iterative postorder traversal of `expr`, calling `func` on each node."""
+    """Perform an iterative postorder traversal of 'expr', calling 'func' on each node."""
     stack: list[tuple[bool, ILExpr]] = []
     visited: set[int] = set()
 
@@ -658,7 +658,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
     status: bool = True
 
     def sort_check_expr(node: ILExpr, no_prime: bool, prime_input: bool) -> bool:
-        """Return true if node is well-sorted where `no_prime` is true if primed variables are disabled and `prime_input` is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions). """
+        """Return true if node is well-sorted where 'no_prime' is true if primed variables are disabled and 'prime_input' is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions). """
         nonlocal context
 
         if isinstance(node, ILConstant):
@@ -690,6 +690,9 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 return False
 
             return True
+        elif isinstance(node, ILVar):
+            print(f"Error: variable not declared ({node.symbol}).")
+            return False
         elif isinstance(node, ILApply):
             arg_sorts: list[ILSort] = []
             return_sort: ILSort = IL_NO_SORT
@@ -724,32 +727,32 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                         print(f"Error: function args do not match definition ({node}).")
                         return False
             else:
-                print(f"Error: symbol `{node.identifier.symbol}` not recognized.")
+                print(f"Error: symbol '{node.identifier.symbol}' not recognized.")
                 return False
 
             node.sort = return_sort
             return True
 
-        print(f"Error: node type `{node.__class__}` not recognized ({node}).")
+        print(f"Error: node type '{node.__class__}' not recognized ({node}).")
         return False
     # end sort_check_expr
 
     for cmd in program.commands:
         if isinstance(cmd, ILDeclareSort):
             if cmd.symbol in context.get_symbols():
-                print(f"Error: symbol `{cmd.symbol}` already in use.")
+                print(f"Error: symbol '{cmd.symbol}' already in use.")
                 status = False
 
             # TODO
         elif isinstance(cmd, ILDefineSort):
             if cmd.symbol in context.get_symbols():
-                print(f"Error: symbol `{cmd.symbol}` already in use.")
+                print(f"Error: symbol '{cmd.symbol}' already in use.")
                 status = False
 
             # TODO
         elif isinstance(cmd, ILDeclareConst):
             if cmd.symbol in context.get_symbols():
-                print(f"Error: symbol `{cmd.symbol}` already in use.")
+                print(f"Error: symbol '{cmd.symbol}' already in use.")
                 status = False
 
             context.declared_functions[cmd.symbol] = FuncSig(([], cmd.sort))
@@ -768,7 +771,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 (sys_symbol, signature_symbols) = subsystem
 
                 if sys_symbol not in context.defined_systems:
-                    print(f"Error: system `{sys_symbol}` not defined in context.")
+                    print(f"Error: system '{sys_symbol}' not defined in context.")
                     status = False
 
                 # check that each symbol in signature is in the context
@@ -776,11 +779,17 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 variables: dict[str, ILVar] = {var.symbol:var for var in cmd.input + cmd.output + cmd.local}
                 for symbol in signature_symbols:
                     if symbol not in variables:
-                        print(f"Error: variable `{symbol}` not declared.")
+                        print(f"Error: variable '{symbol}' not declared.")
                         status = False
                         signature.append(IL_EMPTY_VAR)
                     else:
                         signature.append(variables[symbol])
+                        if variables[symbol] in cmd.input:
+                            variables[symbol].var_type = ILVarType.INPUT
+                        elif variables[symbol] in cmd.output:
+                            variables[symbol].var_type = ILVarType.OUTPUT
+                        elif variables[symbol] in cmd.local:
+                            variables[symbol].var_type = ILVarType.LOCAL
 
                 target_system = context.defined_systems[sys_symbol]
                 target_signature = target_system.input + target_system.output
@@ -805,7 +814,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             context.local_var_sorts = {}
         elif isinstance(cmd, ILCheckSystem):
             if not cmd.sys_symbol in context.defined_systems:
-                print(f"Error: system `{cmd.sys_symbol}` undefined.")
+                print(f"Error: system '{cmd.sys_symbol}' undefined.")
                 status = False
                 continue
 

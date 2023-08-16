@@ -140,19 +140,15 @@ def build_var_map_expr(
 
             symbol = "::".join(system_context.get_scope_symbols() + [cur.symbol])
 
-            tmp = "::".join(context.system_context.get_scope_symbols() + [expr.symbol])
-
             if expr not in var_map:
                 var_map[expr] = {}
 
             if cur.var_type == ILVarType.INPUT:
-                print(f"({expr}, {tmp}) : Btor2InputVar({sort_map[cur.sort]}, {symbol})")
                 var_map[expr][context.system_context.copy()] = Btor2InputVar(sort_map[cur.sort], symbol)
             elif cur.var_type == ILVarType.OUTPUT or cur.var_type == ILVarType.LOCAL:
-                print(f"({expr}, {tmp}) : Btor2Var({sort_map[cur.sort]}, {symbol})")
-                var_map[expr][context.system_context.copy()] = (Btor2StateVar(sort_map[cur.sort], f"{symbol}::init"),
-                                                 Btor2StateVar(sort_map[cur.sort], f"{symbol}::cur"),
-                                                 Btor2StateVar(sort_map[cur.sort], f"{symbol}::next"))
+                var_map[expr][context.system_context.copy()] = (Btor2StateVar(sort_map[cur.sort], f"{symbol}.init"),
+                                                 Btor2StateVar(sort_map[cur.sort], f"{symbol}.cur"),
+                                                 Btor2StateVar(sort_map[cur.sort], f"{symbol}.next"))
 
     postorder_iterative(expr, build_var_map_util)
 
@@ -179,7 +175,6 @@ def build_var_map_cmd(
             for cmd_var,target_var in zip(signature, target_signature):
                 if target_var not in rename_map:
                     rename_map[target_var] = {}
-                print(f"{cmd_var}, {target_var}")
                 rename_map[target_var][target_context] = (cmd_var, context.system_context.copy())
             
             context.system_context.push((subsys_symbol, subsystem))
@@ -320,8 +315,6 @@ def ilchecksystem_to_btor2(
                 btor2_model.append(init)
                 btor2_model.append(cur)
                 btor2_model.append(next)
-
-    print_var_map(var_map)
 
     context.system_context.push((check.sys_symbol, context.defined_systems[check.sys_symbol]))
     ilsystem_to_btor2(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map)
