@@ -1,4 +1,5 @@
-[ ] Arrays
+[X] Arrays
+  [ ] General arrays (test)
 
 IL commands:
   [ ] declare-sort

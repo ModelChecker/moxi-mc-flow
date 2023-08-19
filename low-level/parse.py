@@ -4,7 +4,7 @@ from il import *
 
 class ILLexer(Lexer):
 
-    tokens = { NUMERAL, BINARY,
+    tokens = { NUMERAL, BINARY, HEXADECIMAL,
                SYMBOL, KEYWORD,
                LPAREN, RPAREN,
                RW_UNDERSCORE,
@@ -20,7 +20,7 @@ class ILLexer(Lexer):
 
     NUMERAL     = r"0|[1-9]\d*"
     # DECIMAL     = r"-?\d*\.\d+"
-    # HEXADECIMAL = r"#x[A-F0-9]+"
+    HEXADECIMAL = r"#x[A-F0-9]+"
     BINARY      = r"#b[01]+"
 
     SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@$%^&*_+=<>.?/-]*'?"
@@ -106,9 +106,9 @@ class ILParser(Parser):
     def command(self, p):
         return ILDeclareSort(p[2], p[3])
     
-    @_("LPAREN CMD_DEFINE_SORT SYMBOL LPAREN sort_list RPAREN RPAREN")
+    @_("LPAREN CMD_DEFINE_SORT SYMBOL LPAREN symbol_list RPAREN sort RPAREN")
     def command(self, p):
-        return None
+        return ILDefineSort(p[2], p[4], p[6])
     
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
@@ -367,7 +367,11 @@ class ILParser(Parser):
     def term(self, p):
         return ILConstant(IL_INT_SORT, int(p[0]))
 
-    @_("BINARY")
+    @_("HEXADECIMAL") # example: "#x123"
+    def term(self, p):
+        return ILConstant(IL_BITVEC_SORT(len(p[0][2:])*4), int(p[0][2:], base=16))
+
+    @_("BINARY") # example: "#b101"
     def term(self, p):
         return ILConstant(IL_BITVEC_SORT(len(p[0][2:])), int(p[0][2:], base=2))
 
@@ -383,7 +387,7 @@ class ILParser(Parser):
     @_("LPAREN identifier sort_list sort RPAREN")
     def sort(self, p):
         p[2].append(p[3])
-        return ILSort(p[0], p[2])
+        return ILSort(p[1], p[2])
 
     @_("sort_list sort")
     def sort_list(self, p):

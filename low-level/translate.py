@@ -51,8 +51,11 @@ ilfunc_map: dict[str, Btor2Operator] = {
     "reduce_and": Btor2Operator.REDAND,
     "reduce_or": Btor2Operator.REDOR,
     "reduce_xor": Btor2Operator.REDXOR,
+    "select": Btor2Operator.READ,
+    "store": Btor2Operator.WRITE 
 }
 
+SortMap = dict[ILSort, Btor2Sort]
 VarMap = dict[ILVar, dict[ILSystemContext, Btor2Var|tuple[Btor2Var,Btor2Var,Btor2Var]]]
 RenameMap = dict[ILVar, dict[ILSystemContext, tuple[ILVar, ILSystemContext]]]
 
@@ -76,48 +79,47 @@ def print_rename_map(rename_map: RenameMap):
             print(f"({var}, {scope_1}) : ({target_var}, {scope_2})")
 
 
-def ilsort_to_btor2(sort: ILSort) -> Btor2Sort:
-    if is_bool_sort(sort):
+def ilsort_to_btor2(sort: ILSort, sort_map: SortMap) -> Btor2Sort:
+    if sort in sort_map:
+        return sort_map[sort]
+    elif is_bool_sort(sort):
         return Btor2BitVec(1)
-    elif is_bv_sort(sort):
+    elif is_bitvec_sort(sort):
         return Btor2BitVec(sort.identifier.indices[0])
     elif sort.identifier.symbol == "Array":
-        return Btor2Array(ilsort_to_btor2(sort.sorts[0]), ilsort_to_btor2(sort.sorts[1]))
+        return Btor2Array(ilsort_to_btor2(sort.parameters[0], sort_map), 
+                          ilsort_to_btor2(sort.parameters[1], sort_map))
     else:
         raise NotImplementedError
 
 
-def build_sort_map_expr(expr: ILExpr) -> dict[ILSort, Btor2Sort]:
+def build_sort_map_expr(expr: ILExpr, sort_map: SortMap) -> SortMap:
     """Iteratively recurse the expr IL and map each unique ILSort of each node to a new Btor2Sort."""
-    sort_map: dict[ILSort, Btor2Sort] = {}
-
     def build_sort_map_util(cur: ILExpr):
         if cur.sort not in sort_map:
-            sort_map[cur.sort] = ilsort_to_btor2(cur.sort)
+            sort_map[cur.sort] = ilsort_to_btor2(cur.sort, sort_map)
     
     postorder_iterative(expr, build_sort_map_util)
     return sort_map
 
 
-def build_sort_map_cmd(cmd: ILCommand) -> dict[ILSort, Btor2Sort]:
-    sort_map: dict[ILSort, Btor2Sort] = {}
-
+def build_sort_map_cmd(cmd: ILCommand, sort_map: SortMap) -> SortMap:
     if isinstance(cmd, ILDefineSystem):
         for subsystem in cmd.subsystems.values():
-            sort_map.update(build_sort_map_cmd(subsystem))
+            build_sort_map_cmd(subsystem, sort_map)
 
-        sort_map.update(build_sort_map_expr(cmd.init))
-        sort_map.update(build_sort_map_expr(cmd.trans))
-        sort_map.update(build_sort_map_expr(cmd.inv))
+        build_sort_map_expr(cmd.init, sort_map)
+        build_sort_map_expr(cmd.trans, sort_map)
+        build_sort_map_expr(cmd.inv, sort_map)
     elif isinstance(cmd, ILCheckSystem):
         for assume in cmd.assumption.values():
-            sort_map.update(build_sort_map_expr(assume))
+            build_sort_map_expr(assume, sort_map)
         for fair in cmd.fairness.values():
-            sort_map.update(build_sort_map_expr(fair))
+            build_sort_map_expr(fair, sort_map)
         for reach in cmd.reachable.values():
-            sort_map.update(build_sort_map_expr(reach))
+            build_sort_map_expr(reach, sort_map)
         for current in cmd.current.values():
-            sort_map.update(build_sort_map_expr(current))
+            build_sort_map_expr(current, sort_map)
     else:
         raise NotImplementedError
 
@@ -128,7 +130,7 @@ def build_var_map_expr(
     expr: ILExpr,
     context: ILContext,
     rename_map: RenameMap,
-    sort_map: dict[ILSort, Btor2Sort],
+    sort_map: SortMap,
     var_map: VarMap):
     """Iteratively recurse the expr IL and map each input ILVar to a single Btor2Input and each local/output var to a triple of Btor2States corresponding to that var's init, cur, and next values."""
     def build_var_map_util(expr: ILExpr):
@@ -157,7 +159,7 @@ def build_var_map_cmd(
     cmd: ILCommand, 
     context: ILContext,
     rename_map: RenameMap,
-    sort_map: dict[ILSort, Btor2Sort],
+    sort_map: SortMap,
     var_map: VarMap):
     """Update var_map to map all ILVar instances to Btor2Vars"""
     if isinstance(cmd, ILDefineSystem):
@@ -217,13 +219,14 @@ def ilexpr_to_btor2(
     expr: ILExpr, 
     context: ILContext,
     is_init_expr: bool,
-    sort_map: dict[ILSort, Btor2Sort],
+    sort_map: SortMap,
     var_map: VarMap
 ) -> Btor2Expr:
     if isinstance(expr, ILVar) and isinstance(var_map[expr][context.system_context], tuple):
-        # We use "int(not is_init_expr)+int(expr.prime)" to compute the index in var_map:
+        # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
         #   var_map[var] = (init, cur, next)
-        return cast(tuple[Btor2Var,Btor2Var,Btor2Var], var_map[expr][context.system_context])[int(not is_init_expr)+int(expr.prime)]
+        idx = int(not is_init_expr) + (expr.prime)
+        return cast(tuple[Btor2Var,Btor2Var,Btor2Var], var_map[expr][context.system_context])[idx]
     elif isinstance(expr, ILVar):
         return cast(Btor2Var, var_map[expr][context.system_context])
     elif isinstance(expr, ILConstant):
@@ -257,7 +260,7 @@ def ilsystem_to_btor2(
     btor2_model: list[Btor2Node],
     system: ILDefineSystem, 
     context: ILContext,
-    sort_map: dict[ILSort, Btor2Sort],
+    sort_map: SortMap,
     var_map: VarMap):
     for symbol,subsystem in system.subsystems.items():
         context.system_context.push((symbol, subsystem))
@@ -295,7 +298,7 @@ def ilsystem_to_btor2(
 def ilchecksystem_to_btor2(
     check: ILCheckSystem, 
     context: ILContext,
-    sort_map: dict[ILSort, Btor2Sort],
+    sort_map: SortMap,
     var_map: VarMap,
 ) -> dict[str, list[Btor2Node]]:
     """A check_system command can have many queries: each query will have the same target system but may correspond to different models of that system. First, we construct that reference BTOR2 model, then for each query we generate a new BTOR2 program with the reference model as a prefix and query as a suffix."""
@@ -380,7 +383,7 @@ def translate(il_prog: ILProgram) -> dict[str, list[Btor2Node]]:
     Note that the output programs will have input/output/local variables renamed based on the query, but all subsystem variables will remain as defined.
     """
     btor2_prog_list: dict[str, list[Btor2Node]] = {}
-    sort_map: dict[ILSort, Btor2Sort] = {}
+    sort_map: SortMap = {}
     var_map: VarMap = {}
 
     (well_sorted, context) = sort_check(il_prog)
@@ -393,7 +396,7 @@ def translate(il_prog: ILProgram) -> dict[str, list[Btor2Node]]:
         btor2_prog_list[check_system.sys_symbol] = []
         target_system = context.defined_systems[check_system.sys_symbol]
 
-        sort_map = build_sort_map_cmd(target_system)
+        build_sort_map_cmd(target_system, sort_map)
         build_var_map_cmd(check_system, context, {}, sort_map, var_map)
 
         btor2_prog_list.update(ilchecksystem_to_btor2(check_system, context, sort_map, var_map))

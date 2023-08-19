@@ -48,20 +48,35 @@ class ILIdentifier():
         self.symbol = symbol
         self.indices = indices
 
+    def get_class(self) -> IdentifierClass:
+        return (self.symbol, self.num_indices())
+
+    def num_indices(self) -> int:
+        return len(self.indices)
+
+    def check(self, __symbol: str, num_indices: int) -> bool:
+        return self.symbol == __symbol and len(self.indices) == num_indices
+
+    def is_indexed(self) -> bool:
+        return len(self.indices) > 0
+
+    def is_simple(self) -> bool:
+        return len(self.indices) == 0
+
+    def is_symbol(self, __symbol: str) -> bool:
+        """Returns whether identifier is not indexed and has symbol '__symbol'"""
+        return not self.is_indexed() and self.symbol == __symbol
+
     def __eq__(self, __value: object) -> bool:
         """Two ILIdentifiers are equal if they have the same symbol and indices."""
+        if isinstance(__value, str):
+            return self.is_symbol(__value)
+
         if not isinstance(__value, ILIdentifier):
             return False
 
-        if self.symbol != __value.symbol:
+        if self.symbol != __value.symbol or self.indices != __value.indices:
             return False
-
-        if len(self.indices) != len(__value.indices):
-            return False 
-
-        for i in range(0, len(self.indices)):
-            if self.indices[i] != __value.indices[i]:
-                return False
             
         return True
 
@@ -82,19 +97,22 @@ class ILSort():
 
     def __init__(self, identifier: ILIdentifier, sorts: list[ILSort]):
         self.identifier = identifier
-        self.sorts = sorts
+        self.parameters = sorts
 
     def arity(self) -> int:
-        return len(self.sorts)
+        return len(self.parameters)
+
+    def is_parametric(self) -> bool:
+        return len(self.parameters) > 0 
 
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, ILSort):
             return False
 
-        if is_bool_sort(self) and is_bv_sort(__value) and __value.identifier.indices[0] == 1:
+        if is_bool_sort(self) and is_bitvec_sort(__value) and __value.identifier.indices[0] == 1:
             return True
 
-        if is_bool_sort(__value) and is_bv_sort(self) and self.identifier.indices[0] == 1:
+        if is_bool_sort(__value) and is_bitvec_sort(self) and self.identifier.indices[0] == 1:
             return True
 
         if self.identifier != __value.identifier:
@@ -103,13 +121,14 @@ class ILSort():
         return True
     
     def __hash__(self) -> int:
+        # TODO: not effective for parameterized sorts
         if is_bool_sort(self):
             return hash(ILIdentifier("BitVec", [1]))
         return hash(self.identifier)
     
     def __str__(self) -> str:
         s = f"({self.identifier} "
-        for sort in self.sorts:
+        for sort in self.parameters:
             s += f"{sort} "
         return s[:-1]+")"
 
@@ -119,25 +138,24 @@ IL_NO_SORT: ILSort = ILSort(ILIdentifier("", []), []) # placeholder sort
 IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("Bool", []), [])
 IL_INT_SORT: ILSort = ILSort(ILIdentifier("Int", []), [])
 IL_BITVEC_SORT: Callable[[int], ILSort] = lambda n: ILSort(ILIdentifier("BitVec", [n]), [])
+IL_ARRAY_SORT: Callable[[ILSort, ILSort], ILSort] = lambda A,B: ILSort(ILIdentifier("Array", []), [A,B])
 
 
 def is_bool_sort(sort: ILSort) -> bool:
-    if sort.identifier.symbol == "Bool" and len(sort.identifier.indices) == 0 and len(sort.sorts) == 0:
-        return True
-    return False
+    """A Bool sort has an identifier that is the symbol 'Bool' and is non-parametric."""
+    return sort.identifier.is_symbol("Bool") and not sort.is_parametric()
 
-
-def is_bv_sort(sort: ILSort) -> bool:
+def is_bitvec_sort(sort: ILSort) -> bool:
     """A bit vector sort has an identifier with the symbol 'BitVec' and is indexed with a single numeral. Bool type is an implicit name for a bit vector of length one."""
-    if len(sort.sorts) == 0 and ((sort.identifier.symbol == "BitVec" and len(sort.identifier.indices) == 1) or is_bool_sort(sort)):
-        return True
-    return False
-
+    return (sort.identifier.symbol == "BitVec" and len(sort.identifier.indices) == 1) or is_bool_sort(sort)
 
 def is_int_sort(sort: ILSort) -> bool:
-    if sort.identifier.symbol == "Int" and len(sort.identifier.indices) == 0 and len(sort.sorts) == 0:
-        return True
-    return False
+    """An Int sort has an identifier that is the symbol 'Int' and is non-parametric."""
+    return sort.identifier.is_symbol("Int") and not sort.is_parametric()
+
+def is_array_sort(sort: ILSort) -> bool:
+    """An Array sort has an identifier that is the symbol 'Array' and has two parameters"""
+    return sort.identifier.is_symbol("Array") and sort.arity() == 2
 
 
 class ILExpr():
@@ -195,6 +213,7 @@ class ILVar(ILExpr):
 
 IL_EMPTY_VAR = ILVar(ILVarType.NONE, IL_NO_SORT, "", False)
 
+
 class ILApply(ILExpr):
 
     def __init__(self, sort: ILSort, identifier: ILIdentifier, children: list[ILExpr]):
@@ -241,9 +260,10 @@ class ILDeclareSort(ILCommand):
 
 class ILDefineSort(ILCommand):
 
-    def __init__(self, symbol: str, definition: ILSort):
+    def __init__(self, symbol: str, params: list[str], definition: ILSort):
         super().__init__()
         self.symbol = symbol
+        self.params = params
         self.definition = definition
 
 
@@ -323,14 +343,265 @@ class ILCheckSystem(ILCommand):
 class ILExit(ILCommand):
     pass
 
+# A rank is a function signature. For example:
+#   rank(and) = ([Bool, Bool], Bool)
+Rank = tuple[list[ILSort], ILSort]
+
+# An identifier class describes a class of identifiers that have the same symbol and number of indices.
+# For instance, ("BitVec", 1) describes the class of bit vector sorts and ("extract", 2) describes the 
+# class of all bit vector "extract" operators.
+IdentifierClass = tuple[str, int]
+
+# RankTable[f,i] = ( par A ( rank(f,A) ) )
+#   where rank(f,A) is the rank of function with symbol f and number indices i given parameter(s) A
+RankTable = dict[IdentifierClass, Callable[[Any], Rank]]
+
+CORE_RANK_TABLE: RankTable = {
+    ("true", 0):     lambda _: ([], IL_BOOL_SORT),
+    ("false", 0):    lambda _: ([], IL_BOOL_SORT),
+    ("not", 0):      lambda _: ([IL_BOOL_SORT], IL_BOOL_SORT),
+    ("=>", 0):       lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),
+    ("and", 0):      lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),
+    ("or", 0):       lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),
+    ("xor", 0):      lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),
+    ("=", 0):        lambda A: ([A,A], IL_BOOL_SORT),
+    ("distinct", 0): lambda A: ([A,A], IL_BOOL_SORT),
+    ("ite", 0):      lambda A: ([IL_BOOL_SORT, A, A], A),
+}
+
+BITVEC_RANK_TABLE: RankTable = {
+    ("concat", 0):       lambda A: ([IL_BITVEC_SORT(A[0]), IL_BITVEC_SORT(A[1])], IL_BITVEC_SORT(A[0]+A[1])),
+    ("extract", 2):      lambda A: ([IL_BITVEC_SORT(A[0])], IL_BITVEC_SORT(A[1])),
+    ("zero_extend", 1):  lambda A: ([IL_BITVEC_SORT(A[0])], IL_BITVEC_SORT(A[0] + A[1])),
+    ("sign_extend", 1):  lambda A: ([IL_BITVEC_SORT(A[0])], IL_BITVEC_SORT(A[0] + A[1])),
+    ("rotate_left", 1):  lambda A: ([IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("rotate_right", 1): lambda A: ([IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvshl", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvlshr", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvashr", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvnot", 0):  lambda A: ([IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvneg", 0):  lambda A: ([IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvand", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvnand", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvor", 0):   lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvnor", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvxor", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvxnor", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvadd", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)), 
+    ("bvsub", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvmul", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvudiv", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvsdiv", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvurem", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvsrem", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvsmod", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
+    ("bvult", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("bvule", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("bvugt", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("bvuge", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("bvslt", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("bvsle", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("bvsgt", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("bvsge", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("reduce_and", 0): lambda A: ([IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("reduce_or", 0):  lambda A: ([IL_BITVEC_SORT(A)], IL_BOOL_SORT),
+    ("reduce_xor", 0): lambda A: ([IL_BITVEC_SORT(A)], IL_BOOL_SORT)
+}
+
+ARRAY_RANK_TABLE: RankTable = {
+    ("select", 0): lambda A: ([IL_ARRAY_SORT(A[0], A[1]), A[0]], A[1]),
+    ("store", 0):  lambda A: ([IL_ARRAY_SORT(A[0], A[1]), A[0], A[1]], IL_ARRAY_SORT(A[0], A[1]))
+}
+
+def sort_check_apply_rank(node: ILApply, rank: Rank) -> bool:
+    rank_args, rank_return = rank
+
+    if rank_args != [c.sort for c in node.children]:
+        return False
+
+    node.sort = rank_return
+    return True
+
+
+def sort_check_apply_core(node: ILApply) -> bool:
+    # "true", "false", "not", "=>", "and", "or", "xor", "=", "distinct", "ite"
+    identifier = node.identifier
+    identifier_class = identifier.get_class()
+
+    if identifier_class not in CORE_RANK_TABLE:
+        return False
+    elif identifier.check("=", 0) or identifier.check("distinct", 0):
+        # (par (A) (= A A Bool))
+        # (par (A) (distinct A A Bool))
+        if len(node.children) < 1:
+            return False
+
+        param = node.children[0].sort
+        rank = CORE_RANK_TABLE[(identifier.symbol, 0)](param)
+
+        return sort_check_apply_rank(node, rank)
+    elif identifier.check("ite", 0):
+        # (par (A) (ite Bool A A A))
+        if len(node.children) < 2:
+            return False
+
+        param = node.children[1].sort
+        rank = CORE_RANK_TABLE[identifier_class](param)
+
+        return sort_check_apply_rank(node, rank)
+    # else function is non-parametric
+
+    rank = CORE_RANK_TABLE[identifier_class](None)
+    return sort_check_apply_rank(node, rank)
+
+
+def sort_check_apply_bitvec(node: ILApply) -> bool:
+    """Returns true if 'node' corresponds to a valid rank in SMT-LIB2 FixedSizeBitVectors Theory. Assumes that node's identifier is in BITVEC_RANK_TABLE."""
+    identifier = node.identifier
+    identifier_class = identifier.get_class()
+
+    if identifier_class not in BITVEC_RANK_TABLE:
+        return False
+    elif identifier.check("concat", 0):
+        # (concat (_ BitVec i) (_ BitVec j) (_ BitVec i+j))
+        if len(node.children) < 2:
+            return False
+
+        operand1 = node.children[0]
+        operand2 = node.children[2]
+        if not operand1.sort.identifier.is_indexed():
+            return False
+        elif not operand2.sort.identifier.is_indexed():
+            return False
+
+        i = operand1.sort.identifier.indices[0]
+        j = operand1.sort.identifier.indices[1]
+        rank = BITVEC_RANK_TABLE[identifier_class]((i, j))
+
+        return sort_check_apply_rank(node, rank)
+    elif identifier.check("extract", 2):
+        # ((_ extract i j) (_ BitVec m) (_ BitVec n))
+        # subject to:
+        #   - m < i <= j
+        #   - n = i - j + 1
+        if len(node.children) < 1:
+            return False
+
+        operand = node.children[0]
+        if not operand.sort.identifier.is_indexed():
+            return False
+
+        m = operand.sort.identifier.indices[0]
+        (i,j) = identifier.indices
+
+        if j < i or m <= i:
+            return False
+
+        n = i - j + 1
+        rank = BITVEC_RANK_TABLE[identifier_class]((m, n))
+
+        return sort_check_apply_rank(node, rank)
+    elif identifier.check("zero_extend", 1) or identifier.check("sign_extend", 1):
+        # ((_ zero_extend i) (_ BitVec m) (_ BitVec m+i))
+        # ((_ sign_extend i) (_ BitVec m) (_ BitVec m+i))
+        i = identifier.indices[0]
+
+        if len(node.children) < 1:
+            return False
+
+        operand = node.children[0]
+        if not operand.sort.identifier.is_indexed():
+            return False
+
+        m = operand.sort.identifier.indices[0]
+        rank = BITVEC_RANK_TABLE[identifier_class]((m, i))
+
+        return sort_check_apply_rank(node, rank)
+    elif identifier.check("rotate_left", 1) or identifier.check("rotate_right", 1):
+        # ((_ rotate_left i) (_ BitVec m) (_ BitVec m))
+        # ((_ rotate_right i) (_ BitVec m) (_ BitVec m))
+        if len(node.children) < 1:
+            return False
+
+        operand = node.children[0]
+        if not operand.sort.identifier.is_indexed():
+            return False
+
+        m = operand.sort.identifier.indices[0]
+        rank = BITVEC_RANK_TABLE[identifier_class](m)
+
+        return sort_check_apply_rank(node, rank)
+
+    if len(node.children) < 1:
+        return False
+
+    operand = node.children[0]
+    if not operand.sort.identifier.is_indexed():
+        return False
+
+    m = operand.sort.identifier.indices[0]
+    rank = CORE_RANK_TABLE[identifier_class](m)
+
+    return sort_check_apply_rank(node, rank)
+
+
+def sort_check_apply_arrays(node: ILApply) -> bool:
+    """Returns true if 'node' corresponds to a valid function signature in SMT-LIB2 ArraysEx Theory. Assume that node's identifier is in ARRAY_RANK_TABLE."""
+    identifier = node.identifier
+    identifier_class = identifier.get_class()
+
+    if identifier_class not in ARRAY_RANK_TABLE:
+        return False
+
+    # (par (X Y) (select (Array X Y) X Y)
+    # (par (X Y) (store (Array X Y) X Y (Array X Y)))
+    if len(node.children) < 1:
+        return False
+
+    operand_1 = node.children[0]
+
+    if not is_array_sort(operand_1.sort):
+        return False
+
+    X = operand_1.sort.parameters[0]
+    Y = operand_1.sort.parameters[1]
+    rank = ARRAY_RANK_TABLE[identifier_class]((X, Y))
+
+    return sort_check_apply_rank(node, rank)
+
+
+def sort_check_apply_qf_bv(node: ILApply) -> bool:
+    identifier_class = (node.identifier.symbol, node.identifier.num_indices())
+
+    if identifier_class in CORE_RANK_TABLE:
+        return sort_check_apply_core(node)
+    elif identifier_class in BITVEC_RANK_TABLE:
+        return sort_check_apply_bitvec(node)
+
+    return False
+
+
+def sort_check_apply_qf_abv(node: ILApply) -> bool:
+    identifier_class = (node.identifier.symbol, node.identifier.num_indices())
+
+    if identifier_class in CORE_RANK_TABLE:
+        return sort_check_apply_core(node)
+    elif identifier_class in BITVEC_RANK_TABLE:
+        return sort_check_apply_bitvec(node)
+    elif identifier_class in ARRAY_RANK_TABLE:
+        return sort_check_apply_arrays(node)
+    
+    return False
+
 
 class ILLogic():
+    """An ILLogic has a name, a set of sort symbols, a set of function symbols, and a sort_check function"""
 
     def __init__(
         self, 
         name: str, 
-        sort_symbols: dict[str, tuple[int, int]], 
-        function_symbols: set[str],
+        sort_symbols: set[IdentifierClass],
+        function_symbols: set[IdentifierClass],
         sort_check: Callable[[ILApply], bool]
     ):
         self.name = name
@@ -338,220 +609,18 @@ class ILLogic():
         self.function_symbols = function_symbols
         self.sort_check = sort_check
 
-
-def sort_check_apply_core(node: ILApply) -> bool:
-    # "true", "false", "not", "=>", "and", "or", "xor", "=", "distinct", "ite"
-    function = node.identifier
-
-    if function.symbol == "true" or function.symbol == "false":
-        # (true Bool)
-        # (false Bool)
-        if len(function.indices) != 0:
-            return False
-
-        if len(node.children) != 0:
-            return False
-
-        node.sort = IL_BOOL_SORT
-
-        return True
-    elif function.symbol == "not":
-        # (not Bool Bool)
-        if len(function.indices) != 0:
-            return False
-
-        if len(node.children) != 1:
-            return False
-
-        operand = node.children[0]
-
-        if not is_bool_sort(operand.sort):
-            return False
-
-        node.sort = IL_BOOL_SORT
-
-        return True
-    elif function.symbol == "=>" or function.symbol == "and" or function.symbol == "or" or function.symbol == "xor":
-        # (=> Bool Bool Bool)
-        # (and Bool Bool Bool)
-        # (or Bool Bool Bool)
-        # (xor Bool Bool Bool)
-        if len(function.indices) != 0:
-            return False
-
-        if len(node.children) != 2:
-            return False
-
-        (lhs,rhs) = node.children
-
-        if not is_bool_sort(lhs.sort) or not is_bool_sort(rhs.sort):
-            return False
-
-        node.sort = IL_BOOL_SORT
-
-        return True
-    elif function.symbol == "=" or function.symbol == "distinct":
-        # (par (A) (= A A Bool))
-        # (par (A) (distinct A A Bool))
-        if len(function.indices) != 0:
-            return False
-
-        if len(node.children) != 2:
-            return False
-
-        (lhs,rhs) = node.children
-
-        if lhs.sort != rhs.sort:
-            return False
-
-        node.sort = IL_BOOL_SORT
-
-        return True
-    elif function.symbol == "=" or function.symbol == "distinct" or function.symbol == "!=":
-        # (par (A) (ite Bool A A A))
-        if len(function.indices) != 0:
-            return False
-
-        if len(node.children) != 3:
-            return False
-
-        (cond,if_,then_) = node.children
-
-        if not is_bool_sort(cond.sort):
-            return False
-
-        if not if_.sort == then_.sort:
-            return False
-
-        node.sort = if_.sort
-
-        return True
-    
-    return False
+        self.symbols = sort_symbols | function_symbols
 
 
-def sort_check_apply_bv(node: ILApply) -> bool:
-    """Returns true if 'node' corresponds to a valid function signature in SMT-LIB2 QF_BV logic."""
-    function = node.identifier
+QF_BV = ILLogic("QF_BV", 
+                {("BitVec", 1)}, 
+                CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys(), 
+                sort_check_apply_qf_bv)
 
-    if function.symbol == "concat":
-        # (concat (_ BitVec i) (_ BitVec j) (_ BitVec m))
-        if len(function.indices) != 0:
-            return False
-
-        if len(node.children) != 2:
-            return False
-
-        (lhs, rhs) = node.children
-
-        if not is_bv_sort(lhs.sort) or not is_bv_sort(rhs.sort):
-            return False
-
-        i = lhs.sort.identifier.indices[0]
-        j = rhs.sort.identifier.indices[0]
-
-        node.sort = IL_BITVEC_SORT(i+j)
-
-        return True
-    if function.symbol == "extract":
-        # ((_ extract i j) (_ BitVec m) (_ BitVec n))
-        if len(function.indices) != 2:
-            return False
-        
-        (i,j) = function.indices
-
-        if len(node.children) != 1:
-            return False
-
-        operand = node.children[0]
-
-        if not is_bv_sort(operand.sort):
-            return False
-
-        m = operand.sort.identifier.indices[0]
-        if not i <= m and j <= i:
-            return False
-
-        node.sort = IL_BITVEC_SORT(i-j+1)
-
-        return True
-    elif function.symbol == "bvnot":
-        # (bvnot (_ BitVec m) (_ BitVec m))
-        if len(function.indices) != 0:
-            return False
-        
-        if len(node.children) != 1:
-            return False
-
-        operand = node.children[0]
-
-        if not is_bv_sort(operand.sort):
-            return False
-
-        m = operand.sort.identifier.indices[0]
-        node.sort = IL_BITVEC_SORT(m)
-
-        return True
-    elif function.symbol == "bvand" or function.symbol == "bvadd" or function.symbol == "bvsmod":
-        # (bvand (_ BitVec m) (_ BitVec m) (_ BitVec m))
-        if len(function.indices) != 0:
-            return False
-        
-        if len(node.children) != 2 or not is_bv_sort(node.children[0].sort) or not is_bv_sort(node.children[1].sort):
-            return False
-
-        m = node.children[0].sort.identifier.indices[0]
-        node.sort = IL_BITVEC_SORT(m)
-
-        return True
-
-    return False
-
-FUNCTIONS_CORE = {"true", "false", "not", "=>", "and", "or", "xor", "=", "distinct", "ite"}
-
-# TODOs are for implementing in sort checker
-FUNCTIONS_BV = {
-   "concat",
-   "extract",
-   "zero_extend", # TODO
-   "sign_extend", # TODO
-   "rotate_left", # TODO
-   "rotate_right", # TODO
-   "bvshl", # TODO
-   "bvlshr", # TODO
-   "bvashr", # TODO
-   "bvnot",
-   "bvneg", # TODO
-   "bvand",
-   "bvnand", # TODO
-   "bvor", # TODO
-   "bvnor", # TODO
-   "bvxor", # TODO
-   "bvxnor", # TODO
-   "bvadd", 
-   "bvsub", # TODO
-   "bvmul", # TODO
-   "bvudiv", # TODO
-   "bvsdiv", # TODO
-   "bvurem", # TODO
-   "bvsrem", # TODO
-   "bvsmod",
-   "bvult", # TODO
-   "bvule", # TODO
-   "bvugt", # TODO
-   "bvuge", # TODO
-   "bvslt", # TODO
-   "bvsle", # TODO
-   "bvsgt", # TODO
-   "bvsge", # TODO
-   "reduce_and", # TODO
-   "reduce_or", # TODO
-   "reduce_xor" # TODO
-}
-
-QF_BV = ILLogic("QF_BV", {"BitVec": (1,0)}, FUNCTIONS_BV, sort_check_apply_bv)
-
-FuncSig = tuple[list[ILSort], ILSort]
+QF_ABV = ILLogic("QF_ABV", 
+                {("BitVec", 1), ("Array", 0)}, 
+                CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys() | ARRAY_RANK_TABLE.keys(), 
+                sort_check_apply_qf_abv)
 
 
 class ILSystemContext():
@@ -614,10 +683,10 @@ class ILContext():
     def __init__(self):
         self.declared_sorts: dict[ILIdentifier, int] = {}
         self.defined_sorts: set[ILSort] = set()
-        self.declared_functions: dict[str, FuncSig] = {}
-        self.defined_functions: dict[str, tuple[FuncSig, ILExpr]] = {}
+        self.declared_functions: dict[str, Rank] = {}
+        self.defined_functions: dict[str, tuple[Rank, ILExpr]] = {}
         self.defined_systems: dict[str, ILDefineSystem] = {}
-        self.logic = QF_BV # for now, assume QF_BV logic
+        self.logic = QF_ABV # for now, assume QF_BV logic
         self.input_var_sorts: dict[ILVar, ILSort] = {}
         self.output_var_sorts: dict[ILVar, ILSort] = {}
         self.local_var_sorts: dict[ILVar, ILSort] = {}
@@ -633,6 +702,15 @@ class ILContext():
         symbols.update([sym for sym in self.defined_systems])
 
         return symbols
+
+    def get_sort_symbols(self) -> set[str]:
+        symbols = set()
+
+        symbols.update([id.symbol for id in self.declared_sorts])
+        symbols.update([srt.identifier.symbol for srt in self.defined_sorts])
+
+        return symbols
+
 
 
 class ILProgram():
@@ -707,47 +785,27 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             print(f"Error: variable not declared ({node.symbol}).")
             return False
         elif isinstance(node, ILApply):
-            arg_sorts: list[ILSort] = []
-            return_sort: ILSort = IL_NO_SORT
-
-            if node.identifier.symbol in FUNCTIONS_CORE:
-                for arg in node.children:
-                    sort_check_expr(arg, no_prime, prime_input)
-
-                if not sort_check_apply_core(node):
-                    print(f"Error: function signature does not match definition ({node}).")
-                    return False
-                    
-                return True
-            if node.identifier.symbol in context.logic.function_symbols:
+            if node.identifier.get_class() in context.logic.function_symbols:
                 for arg in node.children:
                     sort_check_expr(arg, no_prime, prime_input)
 
                 if not context.logic.sort_check(node):
                     print(f"Error: function signature does not match definition ({node}).")
                     return False
-                return True
             elif node.identifier.symbol in context.defined_functions:
-                ((arg_sorts, return_sort), expr) = context.defined_functions[node.identifier.symbol]
+                (rank, expr) = context.defined_functions[node.identifier.symbol]
 
-                if len(arg_sorts) != len(node.children):
-                    print(f"Error: function args do not match definition ({node}).")
+                if not sort_check_apply_rank(node, rank):
+                    print(f"Error: function call does not match definition ({node}).")
                     return False
-
-                for i in range(0, len(arg_sorts)):
-                    sort_check_expr(node.children[i], no_prime, prime_input)
-                    if arg_sorts[i] != node.children[i].sort:
-                        print(f"Error: function args do not match definition ({node}).")
-                        return False
             else:
-                print(f"Error: symbol '{node.identifier.symbol}' not recognized.")
+                print(f"Error: symbol '{node.identifier.symbol}' not recognized ({node}).")
                 return False
 
-            node.sort = return_sort
             return True
-
-        print(f"Error: node type '{node.__class__}' not recognized ({node}).")
-        return False
+        else:
+            print(f"Error: node type '{node.__class__}' not recognized ({node}).")
+            return False
     # end sort_check_expr
 
     for cmd in program.commands:
@@ -768,7 +826,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 print(f"Error: symbol '{cmd.symbol}' already in use.")
                 status = False
 
-            context.declared_functions[cmd.symbol] = FuncSig(([], cmd.sort))
+            context.declared_functions[cmd.symbol] = Rank(([], cmd.sort))
         elif isinstance(cmd, ILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
             context.input_var_sorts = {var:var.sort for var in cmd.input}
