@@ -1,5 +1,49 @@
 [
     {
+        "command": "declare-sort",
+        "symbol": "test_sort_1",
+        "arity": 3
+    },
+    {
+        "command": "define-sort",
+        "symbol": "test_sort_2",
+        "parameters": ["A", "B"],
+        "parametric-type": "(A B)"
+    },
+    {
+        "command": "declare-const",
+        "symbol": "const",
+        "sort": {"symbol": "Bool"} 
+    },
+    {
+        "command": "declare-fun",
+        "symbol": "f",
+        "inputs": [
+            {"symbol": "i1", "sort": {"symbol": "Bool"}},
+            {"symbol": "i2", "sort": {"symbol": "Bool"}}
+        ],
+        "outputs": [
+            {"symbol": "o1", "sort": {"symbol": "Bool"}},
+            {"symbol": "o2", "sort": {"symbol": "Bool"}}
+        ]
+    },
+    {
+        "command": "define-fun",
+        "symbol": "g",
+        "inputs": [
+            {"symbol": "i1", "sort": {"symbol": "Bool"}},
+            {"symbol": "i2", "sort": {"symbol": "Bool"}}
+        ],
+        "output": {"symbol": "Bool"},
+        "body": {
+            "symbol": "and", 
+            "args": [
+                {"symbol": "i1"},
+                {"symbol": "i2"}
+            ]
+        }
+    },
+    {
         "command": "define-system",
         "symbol": "Cnt",
         "input": [
@@ -15,18 +59,18 @@
         "init": {
             "symbol": "=", 
             "args": [
-                {"symbol": "out", "args": []}, 
-                {"symbol": "#b00000001", "args": []}]
+                {"symbol": "out"}, 
+                {"symbol": "#b00000001"}]
         },
         "trans": {
             "symbol": "=", 
             "args": [
-                {"symbol": "out'", "args": []}, 
+                {"symbol": "out'"}, 
                 {"symbol": "bvadd", "args": [
-                    {"symbol": "out", "args": []}, 
+                    {"symbol": "out"}, 
                     {"symbol": "bvsmod", "args": [
-                        {"symbol": "in", "args": []},
-                        {"symbol": "#b00000011", "args": []}
+                        {"symbol": "in"},
+                        {"symbol": "#b00000011"}
                     ]}
                 ]}
             ]
@@ -51,8 +95,8 @@
                 "formula": {
                     "symbol": "=",
                     "args": [
-                        {"symbol": "i", "args": []},
-                        {"symbol": "#b00000010", "args": []}
+                        {"symbol": "i"},
+                        {"symbol": "#b00000010"}
                     ]
                 }
             }
@@ -63,8 +107,8 @@
                 "formula": {
                     "symbol": "=",
                     "args": [
-                        {"symbol": "o", "args": []},
-                        {"symbol": "#b00001010", "args": []}
+                        {"symbol": "o"},
+                        {"symbol": "#b00001010"}
                     ]
                 }
             }

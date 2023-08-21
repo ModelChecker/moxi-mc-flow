@@ -250,6 +250,14 @@ class ILDefineSort(ILCommand):
         self.definition = definition
 
 
+class ILDeclareEnumSort(ILCommand):
+
+    def __init__(self, symbol: str, values: list[str]):
+        super().__init__()
+        self.symbol = symbol
+        self.values = values
+
+
 class ILDeclareConst(ILCommand):
 
     def __init__(self, symbol: str, sort: ILSort):
@@ -928,6 +936,13 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
     return (status, context)
 
 
+def from_json_identifier(contents: dict | str) -> ILIdentifier:
+    if isinstance(contents, dict):
+        return ILIdentifier(contents["symbol"], contents["indices"])
+    else: # isinstance(contents, str)
+        return ILIdentifier(contents, [])
+
+
 def from_json(contents: dict) -> Optional[ILProgram]:
     with open("IL-JSON/schema/il.json") as f:
         il_schema = json.load(f)
@@ -938,11 +953,16 @@ def from_json(contents: dict) -> Optional[ILProgram]:
     if not validate(contents, il_schema, resolver=resolver):
         return None
 
+    program: list[ILCommand] = []
+
     for cmd in contents:
         if cmd["command"] == "declare-sort":
-            pass
+            new = ILDeclareSort(cmd["symbol"], int(cmd["arity"]))
+            program.append(new)
         elif cmd["command"] == "define-sort":
-            pass
+            # TODO: need to properly handle parametric sorts in schema
+            new = ILDefineSort(cmd["symbol"], cmd["parameters"], IL_NO_SORT)
+            program.append(new)
         elif cmd["command"] == "declare-const":
             pass
         elif cmd["command"] == "define-fun":
