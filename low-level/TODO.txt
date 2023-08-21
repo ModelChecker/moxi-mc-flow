@@ -2,11 +2,9 @@
   [ ] General arrays (test)
 
 IL commands:
-  [ ] declare-sort
   [ ] define-sort
-  [ ] declare-const
-  [ ] define-fun
-  [ ] set-logic (?)
+  [X] declare-const
+  [X] define-fun
 
 check-system:
   [ ] Assumptions

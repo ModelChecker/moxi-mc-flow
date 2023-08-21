@@ -1,0 +1,79 @@
+[
+    {
+        "command": "define-system",
+        "symbol": "Cnt",
+        "input": [
+            {
+                "symbol": "in", "sort": {"symbol": "BitVec", "indices": [8]}
+            }
+        ],
+        "output": [
+            {
+                "symbol": "out", "sort": {"symbol": "BitVec", "indices": [8]}
+            }
+        ],
+        "init": {
+            "symbol": "=", 
+            "args": [
+                {"symbol": "out", "args": []}, 
+                {"symbol": "#b00000001", "args": []}]
+        },
+        "trans": {
+            "symbol": "=", 
+            "args": [
+                {"symbol": "out'", "args": []}, 
+                {"symbol": "bvadd", "args": [
+                    {"symbol": "out", "args": []}, 
+                    {"symbol": "bvsmod", "args": [
+                        {"symbol": "in", "args": []},
+                        {"symbol": "#b00000011", "args": []}
+                    ]}
+                ]}
+            ]
+        }
+    },
+    {
+        "command": "check-system",
+        "symbol": "Cnt",
+        "input": [
+            {
+                "symbol": "i", "sort": {"symbol": "BitVec", "indices": [8]}
+            }
+        ],
+        "output": [
+            {
+                "symbol": "o", "sort": {"symbol": "BitVec", "indices": [8]}
+            }
+        ],
+        "assumption": [
+            {
+                "symbol": "a",
+                "formula": {
+                    "symbol": "=",
+                    "args": [
+                        {"symbol": "i", "args": []},
+                        {"symbol": "#b00000010", "args": []}
+                    ]
+                }
+            }
+        ],
+        "reachable": [
+            {
+                "symbol": "rch",
+                "formula": {
+                    "symbol": "=",
+                    "args": [
+                        {"symbol": "o", "args": []},
+                        {"symbol": "#b00001010", "args": []}
+                    ]
+                }
+            }
+        ],
+        "query": [
+            {
+                "symbol": "q",
+                "formulas": ["rch"]
+            }
+        ]
+    }
+]

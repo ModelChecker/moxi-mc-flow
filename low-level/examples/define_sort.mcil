@@ -1,0 +1,19 @@
+(define-sort BitVec8 () (_ BitVec 8))
+(define-sort Array2 (A B) (Array A B))
+
+(define-system Cnt 
+    :input ((in BitVec8))
+    :output ((out BitVec8))
+    :init (= out #b00000001)
+    :trans (= out' 
+              (bvadd out 
+                     (bvsmod in #b00000011)))
+)
+
+(check-system Cnt
+    :input ((i BitVec8))
+    :output ((o BitVec8))
+    :assumption (a (= i #b00000010))
+    :reachable (rch (= o #b00001010))
+    :query (q (rch))
+)

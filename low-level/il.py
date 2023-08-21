@@ -3,6 +3,9 @@ Representation of IL
 """
 from __future__ import annotations
 from enum import Enum
+import json
+import os
+from jsonschema import validate, exceptions, RefResolver
 from typing import Any, Callable, Optional
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts
@@ -194,7 +197,6 @@ class ILVar(ILExpr):
         self.var_type = var_type
         self.symbol = symbol
         self.prime = prime
-        self.scope: list[ILDefineSystem] = []
 
     def __eq__(self, __value: object) -> bool:
         """Two ILVars are equal if they have the same symbol."""
@@ -225,25 +227,6 @@ class ILApply(ILExpr):
         for child in self.children:
             s += f"{child} "
         return s[:-1] + ")"
-
-
-class ILSystem():
-    
-    def __init__(
-        self, 
-        input: list[ILVar], 
-        state: list[ILVar],
-        output: list[ILVar], 
-        init: ILExpr,
-        trans: ILExpr, 
-        inv: ILExpr
-    ):
-        self.input = input
-        self.state = state
-        self.output = output
-        self.init = init
-        self.trans = trans
-        self.inv = inv
 
 
 class ILCommand():
@@ -310,6 +293,9 @@ class ILDefineSystem(ILCommand):
         self.inv = inv
         self.subsystem_signatures = subsystems
 
+        # convenient data structures
+        self.symbol_map = { var.symbol : var for var in input + output + local }
+
         # this gets populated by sort checker
         self.subsystems: dict[str, ILDefineSystem] = {}
 
@@ -337,7 +323,6 @@ class ILCheckSystem(ILCommand):
         self.reachable = reachable
         self.current = current
         self.query = query
-        # self.rename_map: dict[str, str] = {}
 
 
 class ILExit(ILCommand):
@@ -412,6 +397,7 @@ ARRAY_RANK_TABLE: RankTable = {
     ("select", 0): lambda A: ([IL_ARRAY_SORT(A[0], A[1]), A[0]], A[1]),
     ("store", 0):  lambda A: ([IL_ARRAY_SORT(A[0], A[1]), A[0], A[1]], IL_ARRAY_SORT(A[0], A[1]))
 }
+
 
 def sort_check_apply_rank(node: ILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
@@ -703,15 +689,6 @@ class ILContext():
 
         return symbols
 
-    def get_sort_symbols(self) -> set[str]:
-        symbols = set()
-
-        symbols.update([id.symbol for id in self.declared_sorts])
-        symbols.update([srt.identifier.symbol for srt in self.defined_sorts])
-
-        return symbols
-
-
 
 class ILProgram():
 
@@ -810,11 +787,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
     for cmd in program.commands:
         if isinstance(cmd, ILDeclareSort):
-            if cmd.symbol in context.get_symbols():
-                print(f"Error: symbol '{cmd.symbol}' already in use.")
-                status = False
-
-            # TODO
+            print(f"Warning: declare-sort command unsupported. ignoring.")
         elif isinstance(cmd, ILDefineSort):
             if cmd.symbol in context.get_symbols():
                 print(f"Error: symbol '{cmd.symbol}' already in use.")
@@ -953,3 +926,30 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             raise NotImplementedError
 
     return (status, context)
+
+
+def from_json(contents: dict) -> Optional[ILProgram]:
+    with open("IL-JSON/schema/il.json") as f:
+        il_schema = json.load(f)
+
+    dirname = os.path.dirname(__file__)
+    resolver = RefResolver(f"file://{dirname}/IL-JSON/schema/", {})
+
+    if not validate(contents, il_schema, resolver=resolver):
+        return None
+
+    for cmd in contents:
+        if cmd["command"] == "declare-sort":
+            pass
+        elif cmd["command"] == "define-sort":
+            pass
+        elif cmd["command"] == "declare-const":
+            pass
+        elif cmd["command"] == "define-fun":
+            pass
+        elif cmd["command"] == "define-system":
+            pass
+        elif cmd["command"] == "check-system":
+            pass
+
+    
