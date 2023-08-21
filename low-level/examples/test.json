@@ -8,7 +8,7 @@
         "command": "define-sort",
         "symbol": "test_sort_2",
         "parameters": ["A", "B"],
-        "parametric-type": "(A B)"
+        "definition": {"symbol": "A", "parameters": [ { "symbol": "B" } ]}
     },
     {
         "command": "declare-const",
@@ -19,13 +19,10 @@
         "command": "declare-fun",
         "symbol": "f",
         "inputs": [
-            {"symbol": "i1", "sort": {"symbol": "Bool"}},
-            {"symbol": "i2", "sort": {"symbol": "Bool"}}
+            { "symbol": "Bool" },
+            { "symbol": "Bool" }
         ],
-        "outputs": [
-            {"symbol": "o1", "sort": {"symbol": "Bool"}},
-            {"symbol": "o2", "sort": {"symbol": "Bool"}}
-        ]
+        "output": { "symbol": "Bool" }
     },
     {
         "command": "define-fun",
@@ -48,12 +45,12 @@
         "symbol": "Cnt",
         "input": [
             {
-                "symbol": "in", "sort": {"symbol": "BitVec", "indices": [8]}
+                "symbol": "in", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
             }
         ],
         "output": [
             {
-                "symbol": "out", "sort": {"symbol": "BitVec", "indices": [8]}
+                "symbol": "out", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
             }
         ],
         "init": {
@@ -81,12 +78,12 @@
         "symbol": "Cnt",
         "input": [
             {
-                "symbol": "i", "sort": {"symbol": "BitVec", "indices": [8]}
+                "symbol": "i", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
             }
         ],
         "output": [
             {
-                "symbol": "o", "sort": {"symbol": "BitVec", "indices": [8]}
+                "symbol": "o", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
             }
         ],
         "assumption": [
@@ -115,7 +112,7 @@
         ],
         "query": [
             {
-                "symbol": "q",
+                "symbol": "query1",
                 "formulas": ["rch"]
             }
         ]

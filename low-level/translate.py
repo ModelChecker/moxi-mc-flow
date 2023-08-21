@@ -2,7 +2,7 @@ from copy import copy
 import json
 from pathlib import Path
 import sys
-from typing import MappingView, TypeVar, cast
+from typing import cast
 
 from il import *
 from btor2 import *
@@ -324,6 +324,8 @@ def ilchecksystem_to_btor2(
     context.system_context.push((check.sys_symbol, context.defined_systems[check.sys_symbol]))
     ilsystem_to_btor2(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map)
     context.system_context.pop()
+
+    print(check.query)
 
     for sym,query in check.query.items():
         # shallow copy the prog since we don't want to lose sort_map/var_map

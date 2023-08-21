@@ -5,6 +5,7 @@ from __future__ import annotations
 from enum import Enum
 import json
 import os
+import re
 from jsonschema import validate, exceptions, RefResolver
 from typing import Any, Callable, Optional
 
@@ -266,15 +267,37 @@ class ILDeclareConst(ILCommand):
         self.sort = sort
 
 
+class ILDeclareFun(ILCommand):
+
+    def __init__(
+            self, 
+            symbol: str, 
+            inputs: list[ILSort], 
+            output: ILSort):
+        super().__init__()
+        self.symbol = symbol
+        self.inputs = inputs
+        self.output = output
+
+
 class ILDefineFun(ILCommand):
 
-    def __init__(self) -> None:
+    def __init__(
+            self, 
+            symbol: str, 
+            inputs: list[ILVar], 
+            output: ILSort,  
+            body: ILExpr):
         super().__init__()
+        self.symbol = symbol
+        self.inputs = inputs
+        self.output = output
+        self.body = body
 
 
 class ILSetLogic(ILCommand):
     
-    def __init__(self, logic: str) -> None:
+    def __init__(self, logic: str):
         super().__init__()
         self.logic = logic
 
@@ -534,7 +557,7 @@ def sort_check_apply_bitvec(node: ILApply) -> bool:
         return False
 
     m = operand.sort.identifier.indices[0]
-    rank = CORE_RANK_TABLE[identifier_class](m)
+    rank = BITVEC_RANK_TABLE[identifier_class](m)
 
     return sort_check_apply_rank(node, rank)
 
@@ -795,7 +818,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
     for cmd in program.commands:
         if isinstance(cmd, ILDeclareSort):
-            print(f"Warning: declare-sort command unsupported. ignoring.")
+            print(f"Warning: declare-sort command unsupported, ignoring.")
         elif isinstance(cmd, ILDefineSort):
             if cmd.symbol in context.get_symbols():
                 print(f"Error: symbol '{cmd.symbol}' already in use.")
@@ -808,6 +831,19 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 status = False
 
             context.declared_functions[cmd.symbol] = Rank(([], cmd.sort))
+        elif isinstance(cmd, ILDeclareFun):
+            if cmd.symbol in context.get_symbols():
+                print(f"Error: symbol '{cmd.symbol}' already in use.")
+                status = False
+
+            context.declared_functions[cmd.symbol] = Rank((cmd.inputs, cmd.output))
+        elif isinstance(cmd, ILDefineFun):
+            if cmd.symbol in context.get_symbols():
+                print(f"Error: symbol '{cmd.symbol}' already in use.")
+                status = False
+
+            input_sorts = [s.sort for s in cmd.inputs]
+            context.defined_functions[cmd.symbol] = (Rank((input_sorts, cmd.output)), cmd.body)
         elif isinstance(cmd, ILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
             context.input_var_sorts = {var:var.sort for var in cmd.input}
@@ -943,16 +979,65 @@ def from_json_identifier(contents: dict | str) -> ILIdentifier:
         return ILIdentifier(contents, [])
 
 
+def from_json_sort(contents: dict) -> ILSort:
+    params: list[ILSort] =  []
+    if "parameters" in contents:
+        params = [from_json_sort(param) for param in contents["parameters"]]
+
+    identifier = from_json_identifier(contents["symbol"])
+
+    return ILSort(identifier, params)
+
+
+def from_json_sorted_var(contents: dict) -> ILVar:
+    sort = from_json_sort(contents["sort"])
+    return ILVar(ILVarType.NONE, sort, contents["symbol"], False)
+
+
+def from_json_expr(contents: dict) ->  ILExpr:
+    args: list[ILExpr] = []
+    if "args" in contents:
+        args = [from_json_expr(a) for a in contents["args"]]
+    
+    identifier = from_json_identifier(contents["symbol"])
+
+    if len(args) != 0:
+        return ILApply(IL_NO_SORT, identifier, args)
+    
+    if re.match(r"0|[1-9]\d*", identifier.symbol):
+        return ILConstant(IL_INT_SORT, int(identifier.symbol))
+    elif re.match(r"#x[A-F0-9]+", identifier.symbol):
+        return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])*4), int(identifier.symbol[2:], base=16))
+    elif re.match(r"#b[01]+", identifier.symbol):
+        return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])), int(identifier.symbol[2:], base=2))
+    # else is variable
+
+    prime: bool = False
+    symbol: str = identifier.symbol
+    if symbol[len(symbol)-1] == "'":
+        prime = True
+        symbol = symbol[:-1]
+
+    return ILVar(ILVarType.NONE, IL_NO_SORT, symbol, prime)
+
+
 def from_json(contents: dict) -> Optional[ILProgram]:
-    with open("IL-JSON/schema/il.json") as f:
+    dirname = os.path.dirname(__file__)
+
+    with open(f"{dirname}/IL-JSON/schema/il.json", "r") as f:
         il_schema = json.load(f)
 
-    dirname = os.path.dirname(__file__)
     resolver = RefResolver(f"file://{dirname}/IL-JSON/schema/", {})
 
-    if not validate(contents, il_schema, resolver=resolver):
+    try:
+        validate(contents, il_schema, resolver=resolver)
+    except exceptions.SchemaError as se:
+        print("Error: json schema invalid", se)
         return None
-
+    except exceptions.ValidationError as ve:
+        print("Error: json failed validation against schema.", ve)
+        return None
+    
     program: list[ILCommand] = []
 
     for cmd in contents:
@@ -960,16 +1045,75 @@ def from_json(contents: dict) -> Optional[ILProgram]:
             new = ILDeclareSort(cmd["symbol"], int(cmd["arity"]))
             program.append(new)
         elif cmd["command"] == "define-sort":
-            # TODO: need to properly handle parametric sorts in schema
-            new = ILDefineSort(cmd["symbol"], cmd["parameters"], IL_NO_SORT)
+            definition = from_json_sort(cmd["definition"])
+
+            new = ILDefineSort(cmd["symbol"], cmd["parameters"], definition)
             program.append(new)
         elif cmd["command"] == "declare-const":
+            sort = from_json_sort(cmd["sort"])
+
+            new = ILDeclareConst(cmd["symbol"], sort)
+            program.append(new)
+        elif cmd["command"] == "declare-fun":
             pass
         elif cmd["command"] == "define-fun":
-            pass
-        elif cmd["command"] == "define-system":
-            pass
-        elif cmd["command"] == "check-system":
-            pass
+            inputs = [from_json_sorted_var(i) for i in cmd["inputs"]]
+            output = from_json_sort(cmd["output"])
+            body = from_json_expr(cmd["body"])
 
-    
+            new = ILDefineFun(cmd["symbol"], inputs, output, body)
+            program.append(new)
+        elif cmd["command"] == "define-system":
+            input, output, local = [], [], []
+            init, trans, inv = ILConstant(IL_BOOL_SORT, True), ILConstant(IL_BOOL_SORT, True), ILConstant(IL_BOOL_SORT, True)
+            subsys = {}
+
+            if "input" in cmd:
+                input =  [from_json_sorted_var(i) for i in cmd["input"]]
+            if "output" in cmd:
+                output =  [from_json_sorted_var(i) for i in cmd["output"]]
+            if "local" in cmd:
+                local =  [from_json_sorted_var(i) for i in cmd["local"]]
+
+            if "init" in cmd:
+                init = from_json_expr(cmd["init"])
+            if "trans" in cmd:
+                trans = from_json_expr(cmd["trans"])
+            if "inv" in cmd:
+                inv = from_json_expr(cmd["inv"])
+
+            if "subsys" in cmd:
+                for subsystem in cmd["subsys"]:
+                    target = subsystem["target"]
+                    subsys[subsystem["symbol"]] = (target["symbol"], target["arguments"])
+                
+            new  = ILDefineSystem(cmd["symbol"],  input, output, local, init, trans, inv, subsys)
+            program.append(new)
+        elif cmd["command"] == "check-system":
+            # TODO: queries
+            input, output, local = [], [], []
+            assumption, reachable, fairness, current, query, queries = {}, {}, {}, {}, {}, {}
+
+            if "input" in cmd:
+                input =  [from_json_sorted_var(i) for i in cmd["input"]]
+            if "output" in cmd:
+                output =  [from_json_sorted_var(i) for i in cmd["output"]]
+            if "local" in cmd:
+                local =  [from_json_sorted_var(i) for i in cmd["local"]]
+
+            if "assumption" in cmd:
+                assumption = { entry["symbol"]: from_json_expr(entry["formula"]) for entry in cmd["assumption"] }
+            if "reachable" in cmd:
+                reachable = { entry["symbol"]: from_json_expr(entry["formula"]) for entry in cmd["reachable"] }
+            if "fairness" in cmd:
+                fairness = { entry["symbol"]: from_json_expr(entry["formula"]) for entry in cmd["fairness"] }
+            if "current" in cmd:
+                current = { entry["symbol"]: from_json_expr(entry["formula"]) for entry in cmd["current"] }
+
+            if "query" in cmd:
+                query = { entry["symbol"]: entry["formulas"] for entry in cmd["query"] }
+                
+            new  = ILCheckSystem(cmd["symbol"],  input, output, local, assumption, fairness, reachable, current, query)
+            program.append(new)
+
+    return ILProgram(program)
