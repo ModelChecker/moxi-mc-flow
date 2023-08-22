@@ -1,0 +1,5 @@
+MODULE main
+ASSIGN
+init(foo1) := bar1 ;
+next(foo2) := bar2 ;
+foo3 := bar3 ;

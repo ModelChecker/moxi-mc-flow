@@ -1,0 +1,7 @@
+MODULE main
+VAR
+x : boolean;
+y : boolean;
+z : integer;
+w32 : word[32];
+w22 : word[22];

@@ -44,7 +44,7 @@ def _reduce_list_to_expr(list_):
 
 
 # Identifiers
-identifier = ~reserved + Word(alphas + "_", alphanums + "_$#-")
+identifier = ~reserved + Word(alphas + "_$", alphanums + "_$#-")
 identifier.setParseAction(lambda s, l, t: Identifier(t[0]))
 
 simple_expression = Forward()
@@ -55,8 +55,10 @@ _cip <<= Optional("." + Literal("self") + _cip
                   | "." + identifier + _cip
                   | "." + Word(nums) + _cip
                   | "[" + simple_expression + "]" + _cip)
-complex_identifier = ((FollowedBy("self") + Literal("self") + _cip)
-                      | (identifier + _cip))
+complex_identifier = Forward()
+complex_identifier <<= ((FollowedBy("self") + Literal("self") + _cip)
+                      | (identifier + _cip)
+                      | Suppress('"') + complex_identifier + Suppress('"'))
 
 
 def _handle_ci(tokens):
@@ -103,8 +105,10 @@ _word_constant = Combine(Literal("0") + Optional(_word_sign_specifier)
                          + _word_value)
 _word_constant.setParseAction(lambda s, l, t: NumberWord(t[0]))
 
+_string_constant = Suppress('"') + Word(alphanums + "_!:;@#$%^&*(),.`|\\") + Suppress('"')
+
 constant = (_word_constant
-            | _range_constant
+            # | _range_constant
             | _integer_constant | _boolean_constant | _symbolic_constant)
 
 # Basic expressions
@@ -236,6 +240,9 @@ _simple_type_specifier = Forward()
 _boolean_type = Literal("boolean")
 _boolean_type.setParseAction(lambda s, l, t: Boolean())
 
+_integer_type = Literal("integer")
+_integer_type.setParseAction(lambda s, l, t: Integer())
+
 _word_type = (Optional(Literal("unsigned") | Literal("signed"))
               + Literal("word") + Suppress("[") + _basic_expr + Suppress("]"))
 _word_type.setParseAction(lambda s, l, t: MWord(t[1]) if t[0] == "word"
@@ -257,7 +264,8 @@ _simple_type_specifier <<= (_boolean_type
                             | _word_type
                             | _enum_type
                             | _array_type
-                            | _range_type)
+                            | _range_type
+                            | _integer_type)
 
 _module_type_specifier = (identifier
                           + Optional(Suppress("(")
@@ -270,15 +278,23 @@ _module_type_specifier.setParseAction(
 type_identifier = _simple_type_specifier | _module_type_specifier
 
 # Variables
-_var_declaration = identifier + Suppress(":") + type_identifier + Suppress(";")
+_var_declaration1 = complex_identifier + Suppress(":") + type_identifier + Suppress(";")
+_var_declaration2 = Suppress('"') + complex_identifier + Suppress('"') + Suppress(":") + type_identifier + Suppress(";")
+_var_declaration = _var_declaration1 | _var_declaration2
+
 _var_section_body = OneOrMore(_var_declaration)
 _var_section_body.setParseAction(lambda s, l, t:
                                  OrderedDict(zip(t[::2], t[1::2])))
 var_section = Suppress("VAR") + _var_section_body
 var_section.setParseAction(lambda s, l, t: Variables(t[0]))
 
-_ivar_declaration = (complex_identifier + Suppress(":") + _simple_type_specifier
+_ivar_declaration1 = (complex_identifier + Suppress(":") + _simple_type_specifier
                      + Suppress(";"))
+
+_ivar_declaration2 = (Suppress('"') + complex_identifier + Suppress('"') + Suppress(":") + _simple_type_specifier
+                     + Suppress(";"))
+_ivar_declaration = _ivar_declaration1 | _ivar_declaration2
+
 _ivar_section_body = OneOrMore(_ivar_declaration)
 _ivar_section_body.setParseAction(lambda s, l, t:
                                   OrderedDict(zip(t[::2], t[1::2])))
@@ -343,7 +359,7 @@ trans_constraint = Suppress("TRANS") + _trans_constraint_body
 trans_constraint.setParseAction(lambda s, l, t: Trans(list(t)))
 
 _init_constraint_body = simple_expression + Optional(Suppress(";"))
-_init_constraint_body.setParseAction(lambda s, l, t: list(t))
+# _init_constraint_body.setParseAction(lambda s, l, t: list(t))
 init_constraint = Suppress("INIT") + _init_constraint_body
 init_constraint.setParseAction(lambda s, l, t: Init(list(t)))
 
@@ -351,6 +367,17 @@ _invar_constraint_body = simple_expression + Optional(Suppress(";"))
 _invar_constraint_body.setParseAction(lambda s, l, t: list(t))
 invar_constraint = Suppress("INVAR") + _invar_constraint_body
 invar_constraint.setParseAction(lambda s, l, t: Invar(list(t)))
+
+_invarspec_constraint_body = simple_expression + Optional(Suppress(";"))
+_invarspec_constraint_body.setParseAction(lambda s, l, t: list(t))
+invarspec_constraint = Suppress("INVARSPEC") + _invarspec_constraint_body
+invarspec_constraint.setParseAction(lambda s, l, t: InvarSpec(list(t)))
+
+_spec_constraint_body = simple_expression + Optional(Suppress(";"))
+_spec_constraint_body.setParseAction(lambda s, l, t: list(t))
+spec_constraint = Suppress("SPEC") + _invarspec_constraint_body
+spec_constraint.setParseAction(lambda s, l, t: Spec(list(t)))
+
 
 _fairness_constraint_body = simple_expression + Optional(Suppress(";"))
 _fairness_constraint_body.setParseAction(lambda s, l, t: list(t))
@@ -482,10 +509,10 @@ compute_specification.setParseAction(lambda s, l, t: Compute(list(t)))
 # Function declaration ---------------------------------
 
 function_args_type_specifier = ZeroOrMore(_simple_type_specifier + Suppress("*")) + _simple_type_specifier
-# function_args_type_specifier.setParseAction(lambda s, l, t: list(t[0:]))
+function_args_type_specifier.setParseAction(lambda s, l, t: Prod(t))
 function_type_specifier = function_args_type_specifier + Suppress("->") + _simple_type_specifier
 function_type_specifier.setParseAction(lambda s, l, t: FunType(t[0], t[1]))
-function_declaration2 = identifier + function_type_specifier + Suppress(";")
+function_declaration2 = identifier + Suppress(":") + function_type_specifier + Suppress(";")
 function_declaration2.setParseAction(lambda s, l, t: FunDecl(name=t[0], type=t[1]))
 function_list = OneOrMore(function_declaration2)
 function_list.setParseAction(lambda s, l, t: list(t[0:]))
@@ -502,11 +529,13 @@ _module_element = (var_section
                    | assign_constraint
                    | trans_constraint
                    | init_constraint
+                   | invarspec_constraint
+                   | spec_constraint
                    | invar_constraint
                    | fairness_constraint
                    | justice_constraint
                    | compassion_constraint
-                   | ctl_specification
+                #    | ctl_specification
                    | ltl_specification
                    | compute_specification)
 
@@ -569,6 +598,8 @@ def update(old, new):
 # =========================================================
 
 def main():
+    # test()
+
     argparser = argparse.ArgumentParser(
                            prog='nuXmv/NuSMV pyparsing parser',
                            description='Parses a nuXmv/NuSMV (.smv) file using pyparsing'
@@ -586,6 +617,14 @@ def main():
     for p in parsed:
         print(p)
 
+
+def test():
+    string = """
+    SPEC
+    AG AF bit2.carry_out
+    """
+
+    print(spec_constraint.parseString(string, parseAll=True))
 
 
 if __name__ == '__main__':

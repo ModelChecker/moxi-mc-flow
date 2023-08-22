@@ -1,0 +1,212 @@
+import argparse, rich
+import nuxmv_pyparser as Parser
+import json
+
+from translate import *
+
+
+def expr_json(expr):
+    ecn = expr.__class__.__name__
+    match ecn:
+        case "list":
+            return {
+                "identifier": "True"
+            }
+        case "And":
+            return {
+                "identifier": "&",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+            
+        case "Equal":
+            return {
+                "identifier": "=",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+
+        case "Xor":
+            return {
+                "identifier": "^",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "Identifier":
+            return {
+                "identifier": expr.name
+            }
+        case "Dot":
+            return {
+                "identifier": expr.instance.name + "_" + expr.element.name
+            }
+        case _:
+            print("match all exprs", ecn)
+
+def subsystem_json(subsystem):
+    synonym = subsystem.synonym
+    name = subsystem.name
+    ivars = subsystem.ivars
+    ovars = subsystem.ovars
+    vars = ivars + ovars
+
+    nvars = []
+    for v in vars:
+        while v.__class__.__name__ != "str":
+            v = v.name
+        nvars.append(v)
+
+    return {
+        "symbol": synonym.name,
+        "target": {
+            "symbol": name.name,
+            "arguments": nvars
+        }
+    }
+
+def type_to_sort(typ):
+    tcn = typ.__class__.__name__
+    match tcn:
+        case "Boolean":
+            return {
+                "identifier": "Bool"
+            }
+        case "Integer":
+            return {
+                "identifier": "Int"
+            }
+        case "MWord":
+            return {
+                "identifier": {
+                    "symbol": "BitVec",
+                    "indices": [typ.size]
+                }
+            }
+        case "ArrayType": # fix this
+            return {
+                "symbol": "Array",
+                "domain": type_to_sort(typ.domain),
+                "range": type_to_sort(typ.range)
+            }
+        case "Prod": # fix this
+            return {
+                "symbol": "Prod",
+                "args": list(map(lambda x : type_to_sort(x), typ.list))
+            }
+        case _:
+            print("match all types", tcn, typ)
+
+
+def var_json(var_list):
+    result = []
+    for (var, typ) in var_list:
+        if var.__class__.__name__ == "str":
+            result.append({
+                "symbol": var,
+                "sort": type_to_sort(typ)
+            })
+        else:
+            result.append({
+                "symbol": var.name,
+                "sort": type_to_sort(typ)
+            })
+
+
+    return result
+
+def to_json(ast):
+    result = []
+    for a in ast:
+        match a:
+            case DefineSystem(name=name, 
+                              input=input,
+                              output=output,
+                              local=local,
+                              init=init,
+                              trans=trans,
+                              inv=inv,
+                              subsystems=subsys):
+
+                j = {
+                    "command": "define-system",
+                    "symbol": name.name,
+                    "input": var_json(input),
+                    "output": var_json(output),
+                    "local": local,
+                    "init": expr_json(init),
+                    "trans": expr_json(trans),
+                    "inv": expr_json(inv),
+                    "subsys": list(map(lambda x : subsystem_json(x), subsys))
+                }
+                result.append(j)
+            case CheckSystem(name=name,
+                             input=input,
+                             output=output,
+                             local=local,
+                             assumption=assumption,
+                             fairness=fairness,
+                             current=current,
+                             reachable=reachable,
+                             queries=queries):
+                
+                j = {
+                    "command": "check-system",
+                    "symbol": name,
+                    "input": var_json(input),
+                    "output": var_json(output),
+                    "local": local,
+                    "assumption": assumption,
+                    "fairness": fairness,
+                    "reachable": reachable,
+                    "current": current,
+                    "queries": queries
+                }
+                result.append(j)
+
+            case DeclareConst(constant=const, sort=sort):
+                j = {
+                    "command": "declare-const",
+                    "symbol": const.name,
+                    "sort": type_to_sort(sort)
+                }
+                result.append(j)
+            case _:
+                print("match all il commands", a)
+
+    return result
+
+
+def main():
+    argparser = argparse.ArgumentParser(
+                           prog='nuXmv/NuSMV parser',
+                           description='Parses a nuXmv/NuSMV (.smv) file and translates the resulting AST into IL'
+   )
+
+    argparser.add_argument('filename')
+
+    args = argparser.parse_args()
+
+    file = open(args.filename)
+
+    parse_tree = Parser.parse(file)
+    ast = translate_parse_tree(parse_tree, print_ast=False)
+
+    json_list = to_json(ast)
+    rich.print(json_list)
+
+    main_filename = args.filename.split("/")[-1]
+    file_prefix = main_filename.split(".")[0]
+    new_filename = file_prefix + ".json"
+    print(new_filename)
+    with open(new_filename, "w+") as json_file:
+        json.dump(json_list, json_file, ensure_ascii=False, indent=4)
+
+
+if __name__ == '__main__':
+    main()

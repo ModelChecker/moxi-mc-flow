@@ -56,6 +56,7 @@ __all__ = [
     "Gt",
     "Le",
     "Ge",
+    "Prod",
     "And",
     "Or",
     "Xor",
@@ -65,6 +66,7 @@ __all__ = [
     "Implies",
     "ArrayExpr",
     "Boolean",
+    "Integer",
     "MWord",
     "Scalar",
     "Range",
@@ -79,6 +81,8 @@ __all__ = [
     "Trans",
     "Init",
     "Invar",
+    "InvarSpec",
+    "Spec",
     "Fairness",
     "Justice",
     "Compassion",
@@ -884,7 +888,7 @@ class Case(Expression):
             return False
 
     def __hash__(self):
-        return 17 + 23 * hash("Case") + 23 ** 2 * hash(self.values)
+        return 17 + 23 * hash("Case") + 23 ** 2 * hash(len(self.values))
 
     def __deepcopy__(self, memo):
         return Case(deepcopy(self.values, memo))
@@ -1605,6 +1609,42 @@ class Ge(Operator):
                   deepcopy(self.right, memo))
 
 
+class Prod(Operator):
+
+    """The `*` (type) expression."""
+
+    _precedence = 10
+
+    def __init__(self, list, *args, **kwargs):
+        super(Prod, self).__init__(*args, **kwargs)
+        self.list = list
+
+    def __str__(self):
+        string = "*(" + self._enclose(self.list) + ")"
+        return super(Prod, self).__str__(string=string)
+
+    def _equals(self, other):
+        """Return whether `self` is equals to `other`."""
+        if isinstance(self, type(other)):
+            if (len(self.list) == len(other.list)):
+                i = 0
+                for j in self.list:
+                    if j != other.list[i]:
+                        break
+                    i += 1
+                return True
+        else:
+            return False
+
+    def __hash__(self):
+        return (17 + 23 * hash("Prod") + 23 ** 2 * hash(self.list)
+                + 23)
+
+    def __deepcopy__(self, memo):
+        return Prod(deepcopy(self.list, memo))
+
+
+
 class And(Operator):
 
     """The `&` expression."""
@@ -1895,6 +1935,17 @@ class Boolean(SimpleType):
     def __deepcopy__(self, memo):
         return Boolean()
 
+
+class Integer(SimpleType):
+
+    """An integer type."""
+
+    def __str__(self):
+        string = "integer"
+        return super(Integer, self).__str__(string=string)
+
+    def __deepcopy__(self, memo):
+        return Integer()
 
 class MWord(SimpleType):
 
@@ -2269,7 +2320,28 @@ class Invar(ListingSection):
                                     separator="\nINVAR\n",
                                     *args,
                                     **kwargs)
+        
+class InvarSpec(ListingSection):
 
+    """An INVARSPEC section."""
+
+    def __init__(self, body, *args, **kwargs):
+        super(InvarSpec, self).__init__("INVARSPEC",
+                                    body,
+                                    separator="\nINVARSPEC\n",
+                                    *args,
+                                    **kwargs)
+
+class Spec(ListingSection):
+
+    """A SPEC section."""
+
+    def __init__(self, body, *args, **kwargs):
+        super(Spec, self).__init__("SPEC",
+                                    body,
+                                    separator="\nSPEC\n",
+                                    *args,
+                                    **kwargs)
 
 class Fairness(ListingSection):
 
@@ -2455,7 +2527,8 @@ class ModuleMetaClass(type):
                  "INVAR": ("bodies",),
                  "FAIRNESS": ("bodies",),
                  "JUSTICE": ("bodies",),
-                 "COMPASSION": ("bodies",)}
+                 "COMPASSION": ("bodies",),
+                 "INVARSPEC": ("bodies",)}
 
     @classmethod
     def __prepare__(mcs, name, bases, **keywords):
@@ -2587,6 +2660,7 @@ class ModuleMetaClass(type):
                              simple_expression, _constants_section_body,
                              _trans_constraint_body, _init_constraint_body,
                              _invar_constraint_body, _fairness_constraint_body,
+                             _invarspec_constraint_body,
                              _justice_constraint_body,
                              _compassion_constraint_body)
 
@@ -2625,7 +2699,8 @@ class ModuleMetaClass(type):
             "INVAR": ("bodies", _invar_constraint_body),
             "FAIRNESS": ("bodies", _fairness_constraint_body),
             "JUSTICE": ("bodies", _justice_constraint_body),
-            "COMPASSION": ("bodies", _compassion_constraint_body)}
+            "COMPASSION": ("bodies", _compassion_constraint_body),
+            "INVARSPEC": ("bodies", _invarspec_constraint_body)}
 
         # if section not in mcs._sections:
         #     raise NuSMVModuleError("Unknown section: {}.".format(section))

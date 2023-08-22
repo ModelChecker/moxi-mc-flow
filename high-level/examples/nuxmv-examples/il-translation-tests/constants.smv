@@ -1,0 +1,4 @@
+MODULE main
+CONSTANTS
+constant1,
+constant2;

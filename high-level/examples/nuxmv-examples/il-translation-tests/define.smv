@@ -1,0 +1,4 @@
+MODULE main
+DEFINE
+var1 := expr1
+var2 := expr2
