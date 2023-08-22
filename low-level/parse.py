@@ -1,18 +1,17 @@
 #type: ignore
-from typing import ItemsView
 from sly import Lexer, Parser
-from mochil import *
+from il import *
 
-class MCILLexer(Lexer):
+class ILLexer(Lexer):
 
-    tokens = { NUMERAL, BINARY,
+    tokens = { NUMERAL, BINARY, HEXADECIMAL,
                SYMBOL, KEYWORD,
                LPAREN, RPAREN,
                RW_UNDERSCORE,
                PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV, PK_SUBSYS,
                PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY,
                CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
-               CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, CMD_EXIT }
+               CMD_DECLARE_ENUM_SORT, CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, CMD_EXIT }
 
     # String containing ignored characters between tokens
     ignore = " \t"
@@ -21,7 +20,7 @@ class MCILLexer(Lexer):
 
     NUMERAL     = r"0|[1-9]\d*"
     # DECIMAL     = r"-?\d*\.\d+"
-    # HEXADECIMAL = r"#x[A-F0-9]+"
+    HEXADECIMAL = r"#x[A-F0-9]+"
     BINARY      = r"#b[01]+"
 
     SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@$%^&*_+=<>.?/-]*'?"
@@ -68,7 +67,7 @@ class MCILLexer(Lexer):
     SYMBOL["define-sort"]   = CMD_DEFINE_SORT
     SYMBOL["declare-const"] = CMD_DECLARE_CONST
     SYMBOL["define-fun"]    = CMD_DEFINE_FUN
-    #SYMBOL["declare-enum"]  = CMD_DECLARE_ENUM_SORT
+    SYMBOL["declare-enum"]  = CMD_DECLARE_ENUM_SORT
     SYMBOL["define-system"] = CMD_DEFINE_SYSTEM
     SYMBOL["check-system"]  = CMD_CHECK_SYSTEM
     SYMBOL["exit"]  = CMD_EXIT
@@ -82,15 +81,11 @@ class MCILLexer(Lexer):
         self.index += 1
 
 
-class MCILParser(Parser):
-    tokens = MCILLexer.tokens
+class ILParser(Parser):
+    tokens = ILLexer.tokens
 
-    def __init__(self) -> None:
+    def __init__(self) :
         super().__init__()
-        self.input_context = []
-        self.output_context = []
-        self.local_context = []
-        self.logic_context = []
         self.status = True
 
     def error(self, token):
@@ -109,121 +104,132 @@ class MCILParser(Parser):
 
     @_("LPAREN CMD_DECLARE_SORT SYMBOL NUMERAL RPAREN")
     def command(self, p):
-        return MPTDeclareSort(p[2], p[3])
+        return ILDeclareSort(p[2], p[3])
     
-    @_("LPAREN CMD_DEFINE_SORT SYMBOL LPAREN sort_list RPAREN RPAREN")
+    @_("LPAREN CMD_DEFINE_SORT SYMBOL LPAREN symbol_list RPAREN sort RPAREN")
     def command(self, p):
-        return None
+        return ILDefineSort(p[2], p[4], p[6])
     
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
-        self.logic_context.append((p[2], p[3]))
-        return MPTDeclareConst(p[2], p[3])
+        return ILDeclareConst(p[2], p[3])
     
     @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sort_list RPAREN RPAREN")
     def command(self, p):
         return None
     
-    # @_("LPAREN CMD_DECLARE_ENUM_SORT SYMBOL LPAREN symbol_list RPAREN RPAREN")
-    # def command(self, p):
-    #     return []
+    @_("LPAREN CMD_DECLARE_ENUM_SORT SYMBOL LPAREN symbol_list RPAREN RPAREN")
+    def command(self, p):
+        return []
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
-        if MPTAttribute.INPUT.value in p[3]:
-            in_vars = p[3][MPTAttribute.INPUT.value]
-            self.input_context = []
+        if ILAttribute.INPUT in p[3]:
+            in_vars = p[3][ILAttribute.INPUT]
         else:
-            in_vars = {}
+            in_vars = []
             
-        if MPTAttribute.OUTPUT.value in p[3]:
-            out_vars = p[3][MPTAttribute.OUTPUT.value]
-            self.output_context = []
+        if ILAttribute.OUTPUT in p[3]:
+            out_vars = p[3][ILAttribute.OUTPUT]
         else:
-            out_vars = {}
+            out_vars = []
 
-        if MPTAttribute.LOCAL.value in p[3]:
-            local_vars = p[3][MPTAttribute.LOCAL.value]
-            self.local_context = []
+        if ILAttribute.LOCAL in p[3]:
+            local_vars = p[3][ILAttribute.LOCAL]
         else:
-            local_vars = {}
+            local_vars = []
             
-        if MPTAttribute.INIT.value in p[3]:
-            init_expr = p[3][MPTAttribute.INIT.value]
+        if ILAttribute.INIT in p[3]:
+            init_expr = p[3][ILAttribute.INIT]
         else:
-            init_expr = MPTConstant(MPT_BOOL_SORT, True)
+            init_expr = ILConstant(IL_BOOL_SORT, True)
             
-        if MPTAttribute.TRANS.value in p[3]:
-            trans_expr = p[3][MPTAttribute.TRANS.value]
+        if ILAttribute.TRANS in p[3]:
+            trans_expr = p[3][ILAttribute.TRANS]
         else:
-            trans_expr = MPTConstant(MPT_BOOL_SORT, True)
+            trans_expr = ILConstant(IL_BOOL_SORT, True)
             
-        if MPTAttribute.INV.value in p[3]:
-            inv_expr = p[3][MPTAttribute.TRANS.value]
+        if ILAttribute.INV in p[3]:
+            inv_expr = p[3][ILAttribute.INV]
         else:
-            inv_expr = MPTConstant(MPT_BOOL_SORT, True)
+            inv_expr = ILConstant(IL_BOOL_SORT, True)
 
-        return MPTDefineSystem(str(p[2]), in_vars, out_vars, local_vars,
-            init_expr, trans_expr, inv_expr, [])
+        if ILAttribute.SUBSYS in p[3]:
+            subsystems = p[3][ILAttribute.SUBSYS]
+        else:
+            subsystems = {}
+
+        return ILDefineSystem(str(p[2]), in_vars, out_vars, local_vars,
+            init_expr, trans_expr, inv_expr, subsystems)
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
-        if MPTAttribute.INPUT.value in p[3]:
-            in_vars = p[3][MPTAttribute.INPUT.value]
-            self.input_context = []
+        if ILAttribute.INPUT in p[3]:
+            in_vars = p[3][ILAttribute.INPUT]
         else:
-            in_vars = {}
+            in_vars = []
             
-        if MPTAttribute.OUTPUT.value in p[3]:
-            out_vars = p[3][MPTAttribute.OUTPUT.value]
-            self.output_context = []
+        if ILAttribute.OUTPUT in p[3]:
+            out_vars = p[3][ILAttribute.OUTPUT]
         else:
-            out_vars = {}
+            out_vars = []
 
-        if MPTAttribute.LOCAL.value in p[3]:
-            local_vars = p[3][MPTAttribute.LOCAL.value]
-            self.local_context = []
+        if ILAttribute.LOCAL in p[3]:
+            local_vars = p[3][ILAttribute.LOCAL]
         else:
-            local_vars = {}
-            
-        if MPTAttribute.ASSUMPTION.value in p[3]:
-            assume_dict = p[3][MPTAttribute.ASSUMPTION.value]
+            local_vars = []
+
+        if ILAttribute.ASSUMPTION in p[3]:
+            assume_dict = p[3][ILAttribute.ASSUMPTION]
         else:
             assume_dict = {}
             
-        if MPTAttribute.FAIRNESS.value in p[3]:
-            fair_dict = p[3][MPTAttribute.FAIRNESS.value]
+        if ILAttribute.FAIRNESS in p[3]:
+            fair_dict = p[3][ILAttribute.FAIRNESS]
         else:
             fair_dict = {}
             
-        if MPTAttribute.REACHABLE.value in p[3]:
-            reach_dict = p[3][MPTAttribute.REACHABLE.value]
+        if ILAttribute.REACHABLE in p[3]:
+            reach_dict = p[3][ILAttribute.REACHABLE]
         else:
             reach_dict = {}
             
-        if MPTAttribute.CURRENT.value in p[3]:
-            current_dict = p[3][MPTAttribute.CURRENT.value]
+        if ILAttribute.CURRENT in p[3]:
+            current_dict = p[3][ILAttribute.CURRENT]
         else:
             current_dict = {}
             
-        if MPTAttribute.QUERY.value in p[3]:
-            query_dict = p[3][MPTAttribute.QUERY.value]
+        if ILAttribute.QUERY in p[3]:
+            query_dict = p[3][ILAttribute.QUERY]
         else:
             query_dict = {}
 
-        return MPTCheckSystem(p[2], in_vars, out_vars, local_vars,
+        return ILCheckSystem(p[2], in_vars, out_vars, local_vars,
             assume_dict, fair_dict, reach_dict, current_dict, query_dict)
 
     @_("LPAREN CMD_EXIT RPAREN")
     def command(self, p):
-        return MPTExit()
+        return ILExit()
 
     @_("define_system_attribute_list define_system_attribute")
     def define_system_attribute_list(self, p):
-        if p[1][0] in p[0]:
-            print(f"Error: multiple instances of attribute ({p[1][0]}).")
+        (attr, value) = p[1]
+
+        if attr not in p[0]:
+            p[0][attr] = value
+        elif attr.is_definable_once():
+            print(f"Error: multiple instances of attribute ({attr.value}).")
             self.status = False
-        p[0][p[1][0]] = p[1][1]
+        elif attr.get_value_type() == dict:
+            p[0][attr].update(value)
+        elif attr.get_value_type() == ILExpr and isinstance(attr, ILAttribute.TRANS):
+            p[0][attr] = ILApply(IL_NO_SORT, ILIdentifier("or", []), [p[0][attr], value])
+        elif attr.get_value_type() == ILExpr and isinstance(attr, ILAttribute.INV):
+            p[0][attr] = ILApply(IL_NO_SORT, ILIdentifier("and", []), [p[0][attr], value])
+        else:
+            print(f"Error: parser error ({attr.value}).")
+            self.status = False
+
         return p[0]
 
     @_("")
@@ -232,42 +238,48 @@ class MCILParser(Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        self.input_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        self.output_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        self.local_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.LOCAL, p[2])
 
-    @_("PK_INIT term",
-       "PK_TRANS term",
-       "PK_INV term")
+    @_("PK_INIT term")
     def define_system_attribute(self, p):
-        return (p[0], p[1])
+        return (ILAttribute.INIT, p[1])
 
-    @_("PK_SUBSYS LPAREN SYMBOL LPAREN SYMBOL symbol_list symbol_list RPAREN RPAREN")
+    @_("PK_TRANS term")
     def define_system_attribute(self, p):
-        return (p[0], (p[2], p[4], p[5], p[6]))
+        return (ILAttribute.TRANS, p[1])
+
+    @_("PK_INV term")
+    def define_system_attribute(self, p):
+        return (ILAttribute.INV, p[1])
+
+    @_("PK_SUBSYS LPAREN SYMBOL LPAREN SYMBOL symbol_list RPAREN RPAREN")
+    def define_system_attribute(self, p):
+        return (ILAttribute.SUBSYS, {p[2] : (p[4], p[5])})
 
     @_("check_system_attribute_list check_system_attribute")
     def check_system_attribute_list(self, p):
-        if p[1][0] == MPTAttribute.INPUT.value or p[1][0] == MPTAttribute.OUTPUT.value or p[1][0] == MPTAttribute.LOCAL.value:
-            if p[1][0] in p[0]:
-                print(f"Error: multiple instances of attribute ({p[1][0]}).")
-                self.status = False
-            p[0][p[1][0]] = p[1][1]
-            return p[0]
+        (attr, value) = p[1]
+
+        if attr not in p[0]:
+            p[0][attr] = value
+        elif attr.is_definable_once():
+            print(f"Error: multiple instances of attribute '{attr.value}'.")
+            self.status = False
+        elif attr.get_value_type() == dict:
+            p[0][attr].update(value)
         else:
-            if not p[1][0] in p[0]:
-                p[0][p[1][0]] = {}
-            p[0][p[1][0]].update(p[1][1])
-            return p[0]
+            print(f"Error: parser error ({attr.value}).")
+            self.status = False
+
+        return p[0]
 
     @_("")
     def check_system_attribute_list(self, p):
@@ -275,30 +287,36 @@ class MCILParser(Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        self.input_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        self.output_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        self.local_context = p[2]
-        return (p[0], p[2])
+        return (ILAttribute.LOCAL, p[2])
 
-    @_("PK_ASSUMPTION LPAREN SYMBOL term RPAREN",
-       "PK_FAIRNESS LPAREN SYMBOL term RPAREN",
-       "PK_REACHABLE LPAREN SYMBOL term RPAREN",
-       "PK_CURRENT LPAREN SYMBOL term RPAREN")
+    @_("PK_ASSUMPTION LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (p[0], {p[2]: p[3]})
+        return (ILAttribute.ASSUMPTION, {p[2]: p[3]})
+
+    @_("PK_FAIRNESS LPAREN SYMBOL term RPAREN")
+    def check_system_attribute(self, p):
+        return (ILAttribute.FAIRNESS, {p[2]: p[3]})
+
+    @_("PK_REACHABLE LPAREN SYMBOL term RPAREN")
+    def check_system_attribute(self, p):
+        return (ILAttribute.REACHABLE, {p[2]: p[3]})
+
+    @_("PK_CURRENT LPAREN SYMBOL term RPAREN")
+    def check_system_attribute(self, p):
+        return (ILAttribute.CURRENT, {p[2]: p[3]})
 
     @_("PK_QUERY LPAREN SYMBOL LPAREN symbol_list SYMBOL RPAREN RPAREN")
     def check_system_attribute(self, p):
         p[4].append(p[5])
-        return (p[0], {p[2]: p[4]})
+        return (ILAttribute.QUERY, {p[2]: p[4]})
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
@@ -311,7 +329,7 @@ class MCILParser(Parser):
     
     @_("SYMBOL sort")
     def sorted_var(self, p):
-        return (p[0], p[1])
+        return ILVar(ILVarType.NONE, p[1], p[0], False)
     
     @_("term_list term")
     def term_list(self, p):
@@ -343,49 +361,33 @@ class MCILParser(Parser):
             prime = True
             symbol = symbol[:-1]
 
-        for sym,sort in self.input_context:
-            if sym == symbol:
-                return MPTInputVar(sort, symbol, prime)
-
-        for sym,sort in self.output_context:
-            if sym == symbol:
-                return MPTOutputVar(sort, symbol, prime)
-
-        for sym,sort in self.local_context:
-            if sym == symbol:
-                return MPTLocalVar(sort, symbol, prime)
-
-        for sym,sort in self.logic_context:
-            if prime:
-                print(f"Error: logic variable cannot be primed ({symbol}).")
-                self.status = False
-            if symbol == sym:
-                return MPTLogicVar(sort, symbol)
-
-        print(f"Error: variable undeclared ({symbol})")
-        self.status = False
+        return ILVar(ILVarType.NONE, IL_NO_SORT, symbol, prime)
 
     @_("NUMERAL")
     def term(self, p):
-        return MPTConstant(MPT_NO_SORT, int(p[0]))
+        return ILConstant(IL_INT_SORT, int(p[0]))
 
-    @_("BINARY")
+    @_("HEXADECIMAL") # example: "#x123"
     def term(self, p):
-        return MPTConstant(MPT_BITVEC_SORT(len(p[0][2:])), int(p[0][2:], base=2))
+        return ILConstant(IL_BITVEC_SORT(len(p[0][2:])*4), int(p[0][2:], base=16))
+
+    @_("BINARY") # example: "#b101"
+    def term(self, p):
+        return ILConstant(IL_BITVEC_SORT(len(p[0][2:])), int(p[0][2:], base=2))
 
     @_("LPAREN identifier term_list term RPAREN")
     def term(self, p):
         p[2].append(p[3])
-        return MPTApply(MPT_NO_SORT, p[1], p[2])
+        return ILApply(IL_NO_SORT, p[1], p[2])
 
     @_("identifier")
     def sort(self, p):
-        return MPTSort(p[0], [])
+        return ILSort(p[0], [])
 
     @_("LPAREN identifier sort_list sort RPAREN")
     def sort(self, p):
         p[2].append(p[3])
-        return MPTSort(p[0], p[2])
+        return ILSort(p[1], p[2])
 
     @_("sort_list sort")
     def sort_list(self, p):
@@ -399,12 +401,12 @@ class MCILParser(Parser):
     # Identifiers
     @_("SYMBOL")
     def identifier(self, p):
-        return MPTIdentifier(p[0], [])
+        return ILIdentifier(p[0], [])
 
     @_("LPAREN RW_UNDERSCORE SYMBOL index_list index RPAREN")
     def identifier(self, p):
         p[3].append(p[4])
-        return MPTIdentifier(p[2], p[3])
+        return ILIdentifier(p[2], p[3])
 
     # Indices
     @_("index_list index")

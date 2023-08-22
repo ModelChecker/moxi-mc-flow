@@ -2,7 +2,9 @@
     :input ((in (_ BitVec 8)))
     :output ((out (_ BitVec 8)))
     :init (= out #b00000001)
-    :trans (= out' (bvadd out (bvsmod in #b00000011)))
+    :trans (= out' 
+              (bvadd out 
+                     (bvsmod in #b00000011)))
 )
 
 (check-system Cnt
@@ -14,9 +16,9 @@
 )
 
 ;(define-system DoubleCnt 
-;  :input ( (in Int) ) 
-;  :output ( (out Int) )
-;  :local ( (temp Int) )
+;  :input ( (in (_ BitVec 64)) ) 
+;  :output ( (out (_ BitVec 64)) )
+;  :local ( (temp (_ BitVec 64)) )
 ;  :subsys  (C1 (Cnt in temp))
 ;  :subsys  (C2 (Cnt temp out))
 ;)

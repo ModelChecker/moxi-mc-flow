@@ -312,9 +312,9 @@ class Lexer(metaclass=LexerMeta):
             except Exception as e:
                 raise PatternError(f'Invalid regex for token {tokname}') from e
 
-            # Verify that the pattern doesn't match the empty string
+            # Verify that the pattern doesn't match the eILy string
             if cpat.match(''):
-                raise PatternError(f'Regex for token {tokname} matches empty input')
+                raise PatternError(f'Regex for token {tokname} matches eILy input')
 
             parts.append(part)
 

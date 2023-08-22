@@ -1,0 +1,120 @@
+[
+    {
+        "command": "declare-sort",
+        "symbol": "test_sort_1",
+        "arity": 3
+    },
+    {
+        "command": "define-sort",
+        "symbol": "test_sort_2",
+        "parameters": ["A", "B"],
+        "definition": {"symbol": "A", "parameters": [ { "symbol": "B" } ]}
+    },
+    {
+        "command": "declare-const",
+        "symbol": "const",
+        "sort": {"symbol": "Bool"} 
+    },
+    {
+        "command": "declare-fun",
+        "symbol": "f",
+        "inputs": [
+            { "symbol": "Bool" },
+            { "symbol": "Bool" }
+        ],
+        "output": { "symbol": "Bool" }
+    },
+    {
+        "command": "define-fun",
+        "symbol": "g",
+        "inputs": [
+            {"symbol": "i1", "sort": {"symbol": "Bool"}},
+            {"symbol": "i2", "sort": {"symbol": "Bool"}}
+        ],
+        "output": {"symbol": "Bool"},
+        "body": {
+            "symbol": "and", 
+            "args": [
+                {"symbol": "i1"},
+                {"symbol": "i2"}
+            ]
+        }
+    },
+    {
+        "command": "define-system",
+        "symbol": "Cnt",
+        "input": [
+            {
+                "symbol": "in", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
+            }
+        ],
+        "output": [
+            {
+                "symbol": "out", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
+            }
+        ],
+        "init": {
+            "symbol": "=", 
+            "args": [
+                {"symbol": "out"}, 
+                {"symbol": "#b00000001"}]
+        },
+        "trans": {
+            "symbol": "=", 
+            "args": [
+                {"symbol": "out'"}, 
+                {"symbol": "bvadd", "args": [
+                    {"symbol": "out"}, 
+                    {"symbol": "bvsmod", "args": [
+                        {"symbol": "in"},
+                        {"symbol": "#b00000011"}
+                    ]}
+                ]}
+            ]
+        }
+    },
+    {
+        "command": "check-system",
+        "symbol": "Cnt",
+        "input": [
+            {
+                "symbol": "i", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
+            }
+        ],
+        "output": [
+            {
+                "symbol": "o", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
+            }
+        ],
+        "assumption": [
+            {
+                "symbol": "a",
+                "formula": {
+                    "symbol": "=",
+                    "args": [
+                        {"symbol": "i"},
+                        {"symbol": "#b00000010"}
+                    ]
+                }
+            }
+        ],
+        "reachable": [
+            {
+                "symbol": "rch",
+                "formula": {
+                    "symbol": "=",
+                    "args": [
+                        {"symbol": "o"},
+                        {"symbol": "#b00001010"}
+                    ]
+                }
+            }
+        ],
+        "query": [
+            {
+                "symbol": "query1",
+                "formulas": ["rch"]
+            }
+        ]
+    }
+]
