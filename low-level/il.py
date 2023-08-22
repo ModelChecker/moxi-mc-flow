@@ -143,6 +143,7 @@ IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("Bool", []), [])
 IL_INT_SORT: ILSort = ILSort(ILIdentifier("Int", []), [])
 IL_BITVEC_SORT: Callable[[int], ILSort] = lambda n: ILSort(ILIdentifier("BitVec", [n]), [])
 IL_ARRAY_SORT: Callable[[ILSort, ILSort], ILSort] = lambda A,B: ILSort(ILIdentifier("Array", []), [A,B])
+IL_ENUM_SORT:  Callable[[str], ILSort] = lambda s: ILSort(ILIdentifier(s, []), [])
 
 
 def is_bool_sort(sort: ILSort) -> bool:
@@ -800,10 +801,9 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 return False
 
             return True
-        elif isinstance(node, ILVar) and node.symbol in context.get_enum_symbols():
-            pass
         elif isinstance(node, ILVar):
-            pass
+            print(f"Error: symbol `{node.symbol}` not declared.")
+            return False
         elif isinstance(node, ILApply):
             if node.identifier.get_class() in context.logic.function_symbols:
                 for arg in node.children:
@@ -1012,7 +1012,7 @@ def from_json_sorted_var(contents: dict) -> ILVar:
     return ILVar(ILVarType.NONE, sort, contents["symbol"], False)
 
 
-def from_json_expr(contents: dict, enums: dict[]) ->  ILExpr:
+def from_json_expr(contents: dict, enums: dict[str, str]) ->  ILExpr:
     args: list[ILExpr] = []
     if "args" in contents:
         args = [from_json_expr(a, enums) for a in contents["args"]]
@@ -1028,8 +1028,8 @@ def from_json_expr(contents: dict, enums: dict[]) ->  ILExpr:
         return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])*4), int(identifier.symbol[2:], base=16))
     elif re.match(r"#b[01]+", identifier.symbol):
         return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])), int(identifier.symbol[2:], base=2))
-    # elif identifier.symbol in enums:
-    #     return ILConstant(iden)
+    elif identifier.symbol in enums:
+        return ILConstant(IL_ENUM_SORT(enums[identifier.symbol]), identifier.symbol)
     # else is variable
 
     prime: bool = False
@@ -1059,6 +1059,7 @@ def from_json(contents: dict) -> Optional[ILProgram]:
         return None
     
     program: list[ILCommand] = []
+    enums: dict[str, str] = {} # maps enum values to their sort symbol
 
     for cmd in contents:
         if cmd["command"] == "declare-sort":
@@ -1069,7 +1070,11 @@ def from_json(contents: dict) -> Optional[ILProgram]:
             new = ILDefineSort(cmd["symbol"], cmd["parameters"], definition)
             program.append(new)
         elif cmd["command"] == "declare-enum-sort":
-            values = [val for val in cmd["values"]]
+            values = []
+            for value in cmd["values"]:
+                values.append(value)
+                enums[value] = cmd["symbol"]
+
             new = ILDeclareEnumSort(cmd["symbol"], values)
             program.append(new)
         elif cmd["command"] == "declare-const":
@@ -1082,7 +1087,7 @@ def from_json(contents: dict) -> Optional[ILProgram]:
         elif cmd["command"] == "define-fun":
             inputs = [from_json_sorted_var(i) for i in cmd["inputs"]]
             output = from_json_sort(cmd["output"])
-            body = from_json_expr(cmd["body"])
+            body = from_json_expr(cmd["body"], enums)
 
             new = ILDefineFun(cmd["symbol"], inputs, output, body)
             program.append(new)
@@ -1099,11 +1104,11 @@ def from_json(contents: dict) -> Optional[ILProgram]:
                 local =  [from_json_sorted_var(i) for i in cmd["local"]]
 
             if "init" in cmd:
-                init = from_json_expr(cmd["init"])
+                init = from_json_expr(cmd["init"], enums)
             if "trans" in cmd:
-                trans = from_json_expr(cmd["trans"])
+                trans = from_json_expr(cmd["trans"], enums)
             if "inv" in cmd:
-                inv = from_json_expr(cmd["inv"])
+                inv = from_json_expr(cmd["inv"], enums)
 
             if "subsys" in cmd:
                 for subsystem in cmd["subsys"]:
@@ -1125,13 +1130,13 @@ def from_json(contents: dict) -> Optional[ILProgram]:
                 local =  [from_json_sorted_var(i) for i in cmd["local"]]
 
             if "assumption" in cmd:
-                assumption = { entry["symbol"]: from_json_expr(entry["formula"]) for entry in cmd["assumption"] }
+                assumption = { entry["symbol"]: from_json_expr(entry["formula"], enums) for entry in cmd["assumption"] }
             if "reachable" in cmd:
-                reachable = { entry["symbol"]: from_json_expr(entry["formula"]) for entry in cmd["reachable"] }
+                reachable = { entry["symbol"]: from_json_expr(entry["formula"], enums) for entry in cmd["reachable"] }
             if "fairness" in cmd:
-                fairness = { entry["symbol"]: from_json_expr(entry["formula"]) for entry in cmd["fairness"] }
+                fairness = { entry["symbol"]: from_json_expr(entry["formula"], enums) for entry in cmd["fairness"] }
             if "current" in cmd:
-                current = { entry["symbol"]: from_json_expr(entry["formula"]) for entry in cmd["current"] }
+                current = { entry["symbol"]: from_json_expr(entry["formula"], enums) for entry in cmd["current"] }
 
             if "query" in cmd:
                 query = { entry["symbol"]: entry["formulas"] for entry in cmd["query"] }

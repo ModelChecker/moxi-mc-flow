@@ -89,7 +89,6 @@ def update_rename_map(
     signature: list[ILVar],
     target_signature: list[ILVar],
     rename_map: RenameMap):
-
     target_context = system_context.copy() # need to copy (only copies pointers)
     target_context.push((target_system_symbol, target_system))
     for cmd_var,target_var in zip(signature, target_signature):
