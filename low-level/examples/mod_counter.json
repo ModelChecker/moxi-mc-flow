@@ -8,35 +8,35 @@
         "command": "define-sort",
         "symbol": "test_sort_2",
         "parameters": ["A", "B"],
-        "definition": {"symbol": "A", "parameters": [ { "symbol": "B" } ]}
+        "definition": {"identifier": "A", "parameters": [ { "identifier": "B" } ]}
     },
     {
         "command": "declare-const",
         "symbol": "const",
-        "sort": {"symbol": "Bool"} 
+        "sort": {"identifier": "Bool"} 
     },
     {
         "command": "declare-fun",
         "symbol": "f",
         "inputs": [
-            { "symbol": "Bool" },
-            { "symbol": "Bool" }
+            { "identifier": "Bool" },
+            { "identifier": "Bool" }
         ],
-        "output": { "symbol": "Bool" }
+        "output": { "identifier": "Bool" }
     },
     {
         "command": "define-fun",
         "symbol": "g",
         "inputs": [
-            {"symbol": "i1", "sort": {"symbol": "Bool"}},
-            {"symbol": "i2", "sort": {"symbol": "Bool"}}
+            {"symbol": "i1", "sort": {"identifier": "Bool"}},
+            {"symbol": "i2", "sort": {"identifier": "Bool"}}
         ],
-        "output": {"symbol": "Bool"},
+        "output": {"identifier": "Bool"},
         "body": {
-            "symbol": "and", 
+            "identifier": "and", 
             "args": [
-                {"symbol": "i1"},
-                {"symbol": "i2"}
+                {"identifier": "i1"},
+                {"identifier": "i2"}
             ]
         }
     },
@@ -45,29 +45,29 @@
         "symbol": "Cnt",
         "input": [
             {
-                "symbol": "in", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
+                "symbol": "in", "sort": {"identifier": {"symbol": "BitVec", "indices": [8]}}
             }
         ],
         "output": [
             {
-                "symbol": "out", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
+                "symbol": "out", "sort": {"identifier": {"symbol": "BitVec", "indices": [8]}}
             }
         ],
         "init": {
-            "symbol": "=", 
+            "identifier": "=", 
             "args": [
-                {"symbol": "out"}, 
-                {"symbol": "#b00000001"}]
+                {"identifier": "out"}, 
+                {"identifier": "#b00000001"}]
         },
         "trans": {
-            "symbol": "=", 
+            "identifier": "=", 
             "args": [
-                {"symbol": "out'"}, 
-                {"symbol": "bvadd", "args": [
-                    {"symbol": "out"}, 
-                    {"symbol": "bvsmod", "args": [
-                        {"symbol": "in"},
-                        {"symbol": "#b00000011"}
+                {"identifier": "out'"}, 
+                {"identifier": "bvadd", "args": [
+                    {"identifier": "out"}, 
+                    {"identifier": "bvsmod", "args": [
+                        {"identifier": "in"},
+                        {"identifier": "#b00000011"}
                     ]}
                 ]}
             ]
@@ -78,22 +78,22 @@
         "symbol": "Cnt",
         "input": [
             {
-                "symbol": "i", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
+                "symbol": "i", "sort": {"identifier": {"symbol": "BitVec", "indices": [8]}}
             }
         ],
         "output": [
             {
-                "symbol": "o", "sort": {"symbol": {"symbol": "BitVec", "indices": [8]}}
+                "symbol": "o", "sort": {"identifier": {"symbol": "BitVec", "indices": [8]}}
             }
         ],
         "assumption": [
             {
                 "symbol": "a",
                 "formula": {
-                    "symbol": "=",
+                    "identifier": "=",
                     "args": [
-                        {"symbol": "i"},
-                        {"symbol": "#b00000010"}
+                        {"identifier": "i"},
+                        {"identifier": "#b00000010"}
                     ]
                 }
             }
@@ -102,10 +102,10 @@
             {
                 "symbol": "rch",
                 "formula": {
-                    "symbol": "=",
+                    "identifier": "=",
                     "args": [
-                        {"symbol": "o"},
-                        {"symbol": "#b00001010"}
+                        {"identifier": "o"},
+                        {"identifier": "#b00001010"}
                     ]
                 }
             }

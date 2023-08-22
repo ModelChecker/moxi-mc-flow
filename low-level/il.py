@@ -699,6 +699,7 @@ class ILContext():
 
     def __init__(self):
         self.declared_sorts: dict[ILIdentifier, int] = {}
+        self.declared_enum_sorts: dict[str, list[str]] = {}
         self.defined_sorts: set[ILSort] = set()
         self.declared_functions: dict[str, Rank] = {}
         self.defined_functions: dict[str, tuple[Rank, ILExpr]] = {}
@@ -710,14 +711,24 @@ class ILContext():
         self.system_context = ILSystemContext() # used during system flattening
 
     def get_symbols(self) -> set[str]:
+        # TODO: this is computed EVERY time, optimize this
         symbols = set()
 
         symbols.update([id.symbol for id in self.declared_sorts])
+        symbols.update([id for id in self.declared_enum_sorts])
+        for syms in self.declared_enum_sorts.values():
+            symbols.update(syms)
         symbols.update([srt.identifier.symbol for srt in self.defined_sorts])
         symbols.update([sym for sym in self.declared_functions])
         symbols.update([sym for sym in self.defined_functions])
         symbols.update([sym for sym in self.defined_systems])
 
+        return symbols
+
+    def get_enum_symbols(self) -> set[str]:
+        symbols: set[str] = set()
+        for syms in self.declared_enum_sorts.values():
+            symbols.update(syms)
         return symbols
 
 
@@ -789,9 +800,10 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 return False
 
             return True
+        elif isinstance(node, ILVar) and node.symbol in context.get_enum_symbols():
+            pass
         elif isinstance(node, ILVar):
-            print(f"Error: variable not declared ({node.symbol}).")
-            return False
+            pass
         elif isinstance(node, ILApply):
             if node.identifier.get_class() in context.logic.function_symbols:
                 for arg in node.children:
@@ -825,6 +837,12 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 status = False
 
             # TODO
+        elif isinstance(cmd, ILDeclareEnumSort):
+            if cmd.symbol in context.get_symbols():
+                print(f"Error: symbol '{cmd.symbol}' already in use.")
+                status = False
+
+            context.declared_enum_sorts[cmd.symbol] = cmd.values
         elif isinstance(cmd, ILDeclareConst):
             if cmd.symbol in context.get_symbols():
                 print(f"Error: symbol '{cmd.symbol}' already in use.")
@@ -984,7 +1002,7 @@ def from_json_sort(contents: dict) -> ILSort:
     if "parameters" in contents:
         params = [from_json_sort(param) for param in contents["parameters"]]
 
-    identifier = from_json_identifier(contents["symbol"])
+    identifier = from_json_identifier(contents["identifier"])
 
     return ILSort(identifier, params)
 
@@ -994,12 +1012,12 @@ def from_json_sorted_var(contents: dict) -> ILVar:
     return ILVar(ILVarType.NONE, sort, contents["symbol"], False)
 
 
-def from_json_expr(contents: dict) ->  ILExpr:
+def from_json_expr(contents: dict, enums: dict[]) ->  ILExpr:
     args: list[ILExpr] = []
     if "args" in contents:
-        args = [from_json_expr(a) for a in contents["args"]]
+        args = [from_json_expr(a, enums) for a in contents["args"]]
     
-    identifier = from_json_identifier(contents["symbol"])
+    identifier = from_json_identifier(contents["identifier"])
 
     if len(args) != 0:
         return ILApply(IL_NO_SORT, identifier, args)
@@ -1010,6 +1028,8 @@ def from_json_expr(contents: dict) ->  ILExpr:
         return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])*4), int(identifier.symbol[2:], base=16))
     elif re.match(r"#b[01]+", identifier.symbol):
         return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])), int(identifier.symbol[2:], base=2))
+    # elif identifier.symbol in enums:
+    #     return ILConstant(iden)
     # else is variable
 
     prime: bool = False
@@ -1046,8 +1066,11 @@ def from_json(contents: dict) -> Optional[ILProgram]:
             program.append(new)
         elif cmd["command"] == "define-sort":
             definition = from_json_sort(cmd["definition"])
-
             new = ILDefineSort(cmd["symbol"], cmd["parameters"], definition)
+            program.append(new)
+        elif cmd["command"] == "declare-enum-sort":
+            values = [val for val in cmd["values"]]
+            new = ILDeclareEnumSort(cmd["symbol"], values)
             program.append(new)
         elif cmd["command"] == "declare-const":
             sort = from_json_sort(cmd["sort"])
