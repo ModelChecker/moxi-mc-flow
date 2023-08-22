@@ -1,0 +1,305 @@
+lfoot: {}
+title: {\textbf{8/23 IL Update: JSON bridge + System Translation}}
+abbrtitle: \greencol{il-update}
+date: \today
+
+preamble: \usepackage{tabularx}\usepackage{relative}
+\newcommand{\plet}[2]{\texttt{let}\ #1\ \texttt{in}\ #2}
+\author[Chris Johannsen, Karthik Nukala]{C. Johannsen, K. Nukala}
+\setbeamercolor{title}{fg=white!80!blue}
+\setbeamercovered{transparent}
+%\logo{\includegraphics[height=0.5cm]{/Users/shankar/images/sri_blue_logo.jpg}}
+ \input{smacros}
+% \newcommand{\inred}[1]{\textcolor{Red}{#1}}
+% \newcommand{\ingreen}[1]{\textcolor{Green}{#1}}
+% \newcommand{\htriple}[3]{\{#1\} #2 \{#3\}}
+% \newcommand{\pclause}[2]{[#1 \pif #2]}
+% \newcommand{\plet}[2]{\mbox{let }\ #1 \mbox{ in } #2}
+% \newcommand{\ifte}[3]{\mbox{if } #1 \mbox{ then } #2 \mbox{ else } #3}
+% \newcommand{\mupdate}[3]{\mathit{update}(#1, #2, #3)}
+% \newcommand{\incr}[2]{\mathit{inc}(#1, #2)}
+% \newcommand{\decr}[2]{\mathit{dec}(#1, #2)}
+% \newcommand{\mmark}{\mathit{mark}}
+% \newcommand{\bfnewint}{\mathbf{newInt}}
+% \newcommand{\bfnewref}{\mathbf{newRef}}
+% \newcommand{\bfpop}{\mathbf{pop}}
+% \newcommand{\rlongrightarrow}{\stackrel{+}{\longrightarrow}}
+% \newcommand{\rLongrightarrow}{\stackrel{+}{\Longrightarrow}}
+% \newcommand{\slongrightarrow}{\stackrel{*}{\longrightarrow}}
+% \newcommand{\sLongrightarrow}{\stackrel{*}{\Longrightarrow}}
+% \newcommand{\dlongrightarrow}{\stackrel{\delta}{\longrightarrow}}
+% \newcommand{\ttnil}{\texttt{nil}}
+% \newcommand{\mvars}[1]{\mathit{mvars}(#1)}
+% \newcommand{\plambda}[2]{\lambda (#1): #2}
+% \newcommand{\rectype}[1]{[\# #1 \#]}
+\usepackage{fancyvrb}
+\usepackage[mathletters]{ucs}
+%\usepackage[utf8]{inputenc}
+%\DeclareUnicodeCharacter{00A0}{~}
+\newcommand{\bftrue}{\mathbf{true}}
+\newcommand{\bffalse}{\mathbf{false}}
+% \newcommand{\plet}[2]{\texttt{let } #1 \texttt{ in } #2}
+% \newcommand{\vlet}[2]{\texttt{withview } #1 \texttt{ in } #2}
+ \newcommand{\letthen}[2]{\texttt{letthen } #1 \texttt{ in } #2}
+ \newcommand{\letelse}[2]{ #1 \texttt{ else } #2}
+  \newcommand{\pletelse}[3]{\texttt{let } #1 \texttt{ then } #2 \texttt{ else } #3}
+  \usepackage{relative}
+% -----------------------------------------------------------------------------
+
+slide: What's JSON?
+
+\begin{itemize}
+\item JSON is a "lightweight data-interchange format"
+
+\item Highly standardized
+\begin{itemize}
+\item IETF RFC 8259
+\item ECMA-404
+\item ISO/IEC 21778:2017
+\end{itemize}
+
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+
+slide: What's JSON Schema?
+
+\begin{itemize}
+\item JSON Schema is a JSON format to define JSON objects
+
+\item To be standardized as an IETF RFC (already adopted by HTTP API working group)
+
+\item There exist many JSON \textit{schema validators} which, given a schema, tell you if an object conforms to the schema.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+
+islide: Why JSON for us?
+
+Essentially a standard way of defining dictionaries/arrays and thereby language ASTs, making it suitable for our IL.
+
+JSON has a lot of tooling and investment, thereby giving us performant parsers for multiple languages (\verb|simdjson| in C++, \verb|jsoniter| in Java/Go)
+
+Moreover, JSON schema validators in this context are \textit{typecheckers}!
+
+We get great parsers and typecheckers for free, allowing ease of use for all the tools in play.
+
+Shankar has a JSON parser in PVS and when combined with the PVS2C/PVS2Lisp/PVS2Rust code generators, this could be a great case study.
+% -----------------------------------------------------------------------------
+
+islide: IL-JSON
+
+I've created a repo located at https://github.com/ModelChecker/IL-JSON with an initial draft of a schema, along with some test cases.
+
+It still needs to be fleshed out to incorporate all the features we desire (and accommodate changes we make to the IL design).
+% -----------------------------------------------------------------------------
+
+slide: Example: Typechecking via schema validation
+
+\begin{smallersession}
+declare_sort_schema = \{
+    "$schema": "http://json-schema.org/schema",
+    "$id": "declare-sort",
+    "title": "DeclareSort",
+    "description": "A sort declaration in the IL (taken from SMTlib)",
+    "type": "object",
+    "properties": \{
+        "name": \{
+            "description": "Name of `declare-sort` object",
+            "type": "string"
+        \},
+        "arity": \{
+            "description": "Arity of `declare-sort` object",
+            "type": "integer",
+            "minimum": 0
+        \}
+    \},
+    "required": [ "name", "arity" ],
+    "additionalProperties": False
+\}
+\end{smallersession}
+
+% -----------------------------------------------------------------------------
+
+slide: Example: Typechecking via schema validation (contd.)
+
+We can define instances of our \verb|declare-sort| objects as follows, and check that they conform to the previous schema.
+
+\begin{smallersession}
+# passing tests
+dsp1 = \{"name": "A", "arity": 0\}, 
+dsp2 = \{"name": "Set", "arity": 1\}
+
+# failing tests
+dsf1 = \{"name": 3, "arity": 3\}, 
+dsf2 = \{"name": "A", "arity": -1\}
+\end{smallersession}
+
+% -----------------------------------------------------------------------------
+
+slide: Example: Typechecking via schema validation (contd.)
+
+Test/call:
+\begin{smallersession}
+dsf1 = {"name": 3, "arity": 3}
+validate(instance=dsf1, schema=declare_sort_schema)
+\end{smallersession}
+
+
+Test output:
+\begin{smallersession}
+jsonschema.exceptions.ValidationError: 3 is not of type 'string'
+
+Failed validating 'type' in schema['properties']['name']:
+    {'description': 'Name of `declare-sort` object', 'type': 'string'}
+
+On instance['name']:
+    3
+\end{smallersession}
+
+
+% -----------------------------------------------------------------------------
+
+slide: Example: Typechecking via schema validation (contd.)
+
+Test/call:
+\begin{smallersession}
+dsf2 = {"name": "A", "arity": -1}
+validate(instance=dsf2, schema=declare_sort_schema)
+\end{smallersession}
+
+
+Test output:
+\begin{smallersession}
+jsonschema.exceptions.ValidationError: -1 is less than 
+the minimum of 0
+
+Failed validating 'minimum' in schema['properties']['arity']:
+    {'description': 'Arity of `declare-sort` object',
+     'minimum': 0,
+     'type': 'integer'}
+
+On instance['arity']:
+    -1
+\end{smallersession}
+
+
+% -----------------------------------------------------------------------------
+islide: Remaining delta
+
+Corners were cut to get initial drafts through (arbitrary strings instead of well-defined identifiers, etc)
+
+Since the IL is a bit more complex than what can be defined in one file, I've been working to make the schema modular and have schema components refer to objects specified elsewhere.
+
+Need to fill in syntax/requirements surrounding expressions and formulas (one-state, two-state, LTL, etc)
+% -----------------------------------------------------------------------------
+islide: Roadmap
+
+Once this is fully fleshed out, it can serve as a target for my high-level - IL translations and a source for Chris's IL - BTor2 translations.
+
+I'll be working on making the schema match our intentions as close as possible and reach out if I need clarification.
+% -----------------------------------------------------------------------------
+slide: Example: Encoding nuXmv range constants
+
+\begin{smallersession}
+MODULE main
+VAR
+    test : 0 .. 10 ;
+    test2 : 0 .. 20 ;
+ASSIGN
+    init(test) := 5 ;
+    init(test2) := 5 ;
+    next(test) := test ;
+    next(test2) := 15 ;
+\end{smallersession}
+
+
+\begin{smallersession}
+{DefineSystem(
+    name=main, 
+    input=[], 
+    output=[(test, 'Int'), (test2, 'Int')], 
+    local=[(test, 'Int'), (test2, 'Int')], 
+    init=[test = 5, test2 = 5], 
+    trans=[test' = test, test2' = 15], 
+    inv=[test >= 0, test <= 10, test2 >= 0, test2 <= 20], 
+    subsystems=[]
+)}
+\end{smallersession}
+% -----------------------------------------------------------------------------
+slide: declare-const schema
+
+\begin{smallersession}
+\{
+    "$schema": "http://json-schema.org/schema",
+    "$id": "declare-const",
+    "title": "DeclareConst",
+    "description": "A const declaration in the IL (taken from SMTlib)",
+    "type": "object",
+    "properties": \{
+        "name": \{
+            "description": "Name of `declare-const` object",
+            "type": "string"
+        \},
+        "sort": \{
+            "description": "Sort of `declare-const` object",
+            "type": "string"
+        \}
+    \},
+    "required": [ "name", "sort" ],
+    "additionalProperties": false
+\}
+\end{smallersession}
+% -----------------------------------------------------------------------------
+slide: declare-enum-sort schema
+
+\begin{smallersession}
+\{
+    "$schema": "http://json-schema.org/schema",
+    "$id": "declare-enum-sort",
+    "title": "DeclareEnumSort",
+    "description": "Declares a named enumeration sort",
+    "type": "object",
+    "properties": \{
+        "name": \{
+            "description": "Name of declared enumeration type",
+            "type": "string"
+        \},
+        "values": \{
+            "description": "Components of declared enumeration type",
+            "type": "array",
+            "items": \{
+                "type": "string"
+            \}
+        \}
+    \},
+    "required": [ "name", "values" ],
+    "additionalProperties": false
+\}
+\end{smallersession}
+
+% -----------------------------------------------------------------------------
+slide: declare-sort schema
+
+\begin{smallersession}
+\{
+    "$schema": "http://json-schema.org/schema",
+    "$id": "declare-sort",
+    "title": "DeclareSort",
+    "description": "A sort declaration in the IL (taken from SMTlib)",
+    "type": "object",
+    "properties": \{
+        "name": \{
+            "description": "Name of `declare-sort` object",
+            "type": "string"
+        \},
+        "arity": \{
+            "description": "Arity of `declare-sort` object",
+            "type": "integer",
+            "minimum": 0
+        \}
+    \},
+    "required": [ "name", "arity" ],
+    "additionalProperties": false
+\}
+\end{smallersession}

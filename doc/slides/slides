@@ -1,0 +1,459 @@
+#!/usr/bin/perl --   # -*-Perl-*-
+# This is a perl executable used to quickly generate slides.
+# Usage: slides [-#] [-notes] [-pdf] [-p] [-Pprinter] file
+# switches: -#  Generate file_#.ps for nup slides (uses psnup)
+#           -notes  Include notes
+#           -pdf Generate PDF
+#           -p  Print the slides
+#           -P  The printer to send the output to; if set -p is not needed
+#           -cont Continue even if LaTeX had errors
+#
+# The input to this is a file, with different blocks each introduced with a
+# keyword followed by a colon:
+#    options: A list of slides options, separated by commas or whitespace:
+#             horizontal - horizontal slides (default is vertical)
+#                          this is the orientation used for slides by default;
+#                          use vslide or hslide to orient individual slides.
+#             tabs       - treat tabs as equivalent to islide.
+#             notes      - include notes between slides
+#    latex: The path to the latex executable (e.g., /pkg/tetex/bin/sos4/latex)
+#    dvips: The path to the dvips executable (e.g., /pkg/tetex/bin/sos4/dvips)
+#    psnup: The path to the psnup executable (e.g., /pkg/bin/psnup)
+#    styles: A list of styles, separated by commas or whitespace.
+#            These are added to the documentclass list.  The styles
+#            relsize, alltt, fancybox, semlcmss semrot, and color are
+#            automatically added.
+#            Do not put comments in this section.
+#    preamble: This contains LaTeX declarations that are inserted between
+#              \documentclass and \begin{document}.
+#              This is a good place to put
+#              \slideframe{Oval} (or oval, shadow, double)
+#    front-matter: This is text that goes on the first slide generated,
+#                  usually not meant to be shown.
+#    title: The title of the talk
+#    author: The author(s) of the talk
+#    organization: The organization (defaults to CSL)
+#    date: The date of the talk
+#    lhead: Goes over the top left of every slide (default nothing)
+#    rhead: Goes over the top right of every slide (default nothing)
+#    lfoot: Goes under the bottom left of every slide (default nothing)
+#    rfoot: Goes under the bottom right of every slide (default page number)
+
+# There should only be one occurrence of each of the above, and they should
+# all precede the following:
+#
+#       slide:		An ordinary slide
+#	islide:		An itemized slide
+#	<TAB>		An itemized slide (when the tabs option is included)
+#	eslide:		An enumerated slide
+#	dslide:		A description slide
+#	aslide:		A verbatim (alltt) slide
+#    The rest of the line following the colon (or <TAB>) is treated
+#        as the title of the slide
+#    For itemized, enumerated, and description lists, each line
+#        must be separated by at least one empty line.  Those lines
+#        not separated by an empty line are treated as a continuation
+#        of the preceding item.
+#    Each of these slides may be have an 'h' or 'v' in front (case
+#        doesn't matter) to specify that the slide is to be printed
+#        horizontally (resp. vertically) regardless of the overall mode.
+#    Each slide may also be followed by a '*', e.g., islide*:
+#        in which case the slide contents are wrapped in a \stepwise command
+#        for the list environments, each item is automatically put in a \step
+# Between slides you may create notes using notes:
+
+$latex = "latex";
+$pdflatex = "pdflatex";
+$dvips = "dvips";
+$ps2pdf = "ps2pdf";
+$psnup = "psnup";
+$program = $0;
+$recognize_tabs = 0;
+$include_notes = 0;
+$generate_pdf = 1;
+$slide = "frame";
+$horiz = 0;
+$printp = 0;
+$nup = 0;
+$section = "";
+$packages = "relsize,alltt,fancybox";
+%sections = ('styles:', 'semlcmss,semrot');
+@preamble = ();
+@front_matter = ();
+@title = ();
+@author = ();
+$inslide = 0;
+$instep = 0;
+$continue = 0;
+
+# Seminar.sty parameters
+$slideframe = "none";
+
+while ($ARGV[0] =~ /^-/) {
+    $_ = shift;
+    push(@options,$_);
+    if (/^-pdf/) {$generate_pdf = 1}
+    elsif (/^-nopdf/) {$generate_pdf = 0}
+    elsif (/^-notes/) {$include_notes = 1}
+    elsif (/^-cont/) {$continue = 1}
+    elsif (/^-p/) {$printp = 1}
+    elsif (/^-(\d+)/) {$nup = $1}
+    elsif (/^-P/) {$_ = shift; $printer = "$_",$printp = 1}
+    else {die "Unrecognized switch: $_\n"}
+}
+
+die "Usage: slides [-\#] [-notes] [-pdf] [-nopdf] [-p] [-P printer] file\n" unless @ARGV;
+
+die "Input file must not have extension .tex\n" unless ($ARGV[0] !~ /\.tex$/);
+
+open(IN,$ARGV[0]) || die "Cannot open $ARGV[0]\n";
+
+@rootfile = split('\.',$ARGV[0]);
+if ($#rootfile > 0) {pop(@rootfile)};
+@texfile = join('.',@rootfile,'tex');
+
+if ($nup) {$psfile="@{rootfile}_$nup.ps"} else {$psfile="@{rootfile}.ps"};
+
+if ((! -e @texfile) ||
+    (-M @texfile < -M $ARGV[0] && !($printp || $nup))) {
+    open(TEX,">@texfile") || die "Cannot create @texfile\n";
+
+    print "Generating @texfile\n";
+
+    while (<IN>) {
+	# Chop screws up if the file doesn't end with \n
+	s/\n$//;
+	if (/^(options:)[ \t\n]*/) {
+	    if (/horiz/) {$slide = "frame"; $horiz = 1;}
+	    if (/tab/) {$recognize_tabs = 1};
+	}
+	elsif (/^(latex:)[ \t\n]*/) {
+	    print "Setting latex to $'\n";
+	    $latex = $';
+	}
+	elsif (/^(styles:)[ \t\n]*/ && !$preambleprinted) {
+	    $section = $1;
+	    $styles = join(',',split(/[ \t\n,]+/,$'));
+	    if ($styles) {
+		@sections{$section} = "$sections{$section},".$styles;
+	    }
+	}
+	elsif (/^(preamble:)[ \t\n]*/ && !$preambleprinted) {
+	    $section = $1;
+	    @sections{$section} = "$sections{$section}"."$'\n";
+	}
+	elsif (/^(front-matter:)[ \t\n]*/ && !$preambleprinted) {
+	    $section = $1;
+	    @sections{$section} = "$sections{$section}"."$'\n";
+	}
+	elsif (/^(lhead:|rhead:|lfoot:|rfoot:)[ \t\n]*/ && !$preambleprinted) {
+	    $section = $1;
+	    @sections{$section} = "$'\n";
+	}
+	elsif (/^(title:)[ \t\n]*/ && !$preambleprinted) {
+	    $section = $1;
+	    $title = trim("$'");
+	    @sections{$section} = "$sections{$section}"."$title\n";
+	}
+	elsif (/^(abbrtitle:)[ \t\n]*/ && !$preambleprinted) {
+	    $section = $1;
+	    $abbrtitle = trim("$'");
+	    @sections{$section} = "$sections{$section}"."$abbrtitle\n";
+	}
+	elsif (/^(author:)[ \t\n]*/ && !$preambleprinted) {
+	    $section = $1;
+	    $author = trim("$'");
+	    print TEX "\n% author = $author\n";
+	    @sections{$section} = "$sections{$section}"."$author\n";
+	}
+	elsif (/^(organization:)[ \t\n]*/ && !$preambleprinted) {
+	    $section = $1;
+	    @sections{$section} = "$sections{$section}"."$'\n";
+	}
+	elsif (/^(date:)[ \t\n]*/ && !$preambleprinted) {
+	    $section = $1;
+	    $sections{$section} = "$'\n";
+	}
+        elsif (/^(section:)[ \t\n]*/ && $preambleprinted) {
+	    endslide();
+	    print TEX "\\section{$'}\n";
+        }
+        elsif (/^(subsection:)[ \t\n]*/ && $preambleprinted) {
+	    endslide();
+	    print TEX "\\subsection{$'}\n";
+        }
+	elsif (/^[ \t]*([VvHh]?)slide([*]?):[ \t]*/) {
+	    newslide("slide",$1,$2,$');
+	}
+	elsif (/^[ \t]*([VvHh]?)islide([*]?):[ \t]*/
+	       || ($recognize_tabs && /^\t[ \t]*/)) {
+	    newslide("itemize",$1,$2,$');
+	}
+	elsif (/^[ \t]*([VvHh]?)eslide([*]?):[ \t]*/) {
+	    ewslide("enumerate",$1,$2,$');
+	}
+	elsif (/^[ \t]*([VvHh]?)dslide([*]?):[ \t]*/) {
+	    newslide("description",$1,$2,$');
+	}
+	elsif (/^[ \t]*([VvHh]?)aslide([*]?):[ \t]*/) {
+	    newslide("alltt",$1,$2,$');
+	}
+	elsif (/^[ \t]*(notes:)[ \t]*/) {
+	    endslide();
+	    $section = "notes:";
+	    $holditem = "";
+	    if ($include_notes) {
+		print TEX "\\pagestyle{empty}\n\\begin{note}\n$'\n";
+	    }
+	}
+	elsif (/^\s*$/) {
+	    if (!$preambleprinted) {
+		if ($section ne "styles:") {
+		    @sections{$section} = "$sections{$section}"."$_\n";
+		}
+	    }
+	    elsif (&listenv) {
+		if ($step) {
+		    if ($instep > 1) {
+			$holditem = "\}%end step\n\\step\{\\item ";
+		    }
+		    elsif ($instep > 0) {
+			$holditem = "\\step\{\\item ";
+		    }
+		    else {
+			$holditem = "\\item ";
+		    }
+		    $instep += 1;
+		} else {
+		    $holditem = "\\item ";
+		}
+	    }
+	    else {print TEX "\n";}
+	}
+	elsif (/^\s%/) {
+	    if (!$preambleprinted) {
+		if ($section != "styles:") {
+		    @sections{$section} = "$sections{$section}"."$_\n";
+		}
+	    }
+	    else {print TEX "%$'\n";}
+	}
+	else {
+	    if (!$preambleprinted) {
+		@sections{$section} = "$sections{$section}"."$_\n";
+	    }
+	    else {
+		if (($include_notes) || ("$section" ne "notes:")) {
+		    print TEX "$holditem$_\n";
+		    $holditem = "";
+		}
+	    }
+	}
+    }
+
+    if (&environment) {
+	if ($step) {print TEX "\}\n"};
+	print TEX "\\end{$section}\n";
+	if ("$section" eq "alltt") {print TEX "\}\n"};
+    }
+    print TEX "\\end{$sld}\n\n";
+    if ($include_notes && "$section" ne "notes:") {
+	print TEX "\\pagestyle{empty}\n\\begin{note}\nNotes: \n\n\\end{note}\n";
+    }
+    print TEX "\\end{document}\n";
+
+    close(TEX);
+
+    if ($generate_pdf && ! $nup) {
+	$exit = system("($pdflatex @rootfile)");
+    } else {
+	$exit = system("($latex @rootfile)");
+    }
+    if ($exit && ! $continue) {die 'Abnormal exit from LaTeX'}
+} else {
+    print "@texfile is up to date - not regenerating\n";
+}
+
+if (! $generate_pdf || $nup) {
+    # Generate the .ps file
+    $dvipsenv = 'unset TEXCONFIG; unset DVIPSHEADERS; unset TEXINPUTS;';
+    print "\nGenerating $psfile...\n";
+    if ($nup) {
+	if ($sections{'front-matter:'}) {
+	    $dvips_args = "-p \\=2 -P www -f @rootfile.dvi";}
+	else {$dvips_args = "-f @rootfile.dvi";};
+	if ($horiz) {$nup_args = "-l -c -$nup"} else {$nup_args = "-$nup"}
+	print "$dvips $dvips_args | $psnup $nup_args > $psfile\n";
+	system "($dvipsenv $dvips $dvips_args | $psnup $nup_args > $psfile)";
+	print "Generated $psfile\n";
+	if ($generate_pdf) {
+	    system "($ps2pdf $psfile)";
+	    print "Generated PDF file\n";
+	}
+    }
+    else {
+	print "$dvips -f @rootfile.dvi > $psfile\n";
+	system "($dvipsenv $dvips -f @rootfile.dvi > $psfile)";
+	print "Generated $psfile\n";
+    }
+
+    # Print the .ps file
+    if ($printer) {$printersw = "-P$printer"};
+    if ($printp) {
+	print "lpr $printersw $psfile\n";
+    #    system "(lpr $printersw $psfile)"
+    }
+}
+
+# Subroutines
+
+sub endslide {
+    if (!$preambleprinted) {
+	printpreamble();
+	$preambleprinted = 1
+	}
+    elsif ($inslide) {
+	    if (&environment) {
+		if ($step) {
+		    print TEX "\}%end step\n\n";
+		    $instep = 0;
+		}
+		print TEX "\\end{$section}\n";
+		if ("$section" eq "alltt") {print TEX "\}%end alltt\n"}
+		if ($step) {print TEX "\}%end stepwise\n"}
+	        };
+	    print TEX "\\end{$sld}\n\n";
+	    $inslide = 0;
+        }
+    elsif ("$section" eq "notes:") {
+	if ($include_notes) {
+	    print TEX "\\end{note}\n";
+	}
+    }
+}
+
+sub newslide {
+    local ($sec,$orientation,$star,$title) = @_;
+	endslide();
+    # do endslide();
+    if ($include_notes && "$section" ne "notes:") {
+	print TEX "\\begin{note}\nNotes: \n\n\\end{note}\n";
+    }
+    $section = $sec;
+    if ($orientation =~ /[hH]/) {$sld = 'frame'}
+    elsif ($orientation =~ /[vV]/) {$sld = 'frame*'}
+    else {$sld = $slide};
+    if ($star =~ /[*]/) {$step = 1} else {$step = 0};
+    $inslide = 1;
+    print TEX "\n\\begin{$sld}[fragile]\n";
+#    print TEX "\\pagestyle{mypagestyle}\n";
+#    if ("$sld" eq "$slide") {print TEX "\\rotateheadersfalse\n"}
+#    else {print TEX "\\rotateheaderstrue\n"};
+    if ($step) {print TEX "\\centerslidesfalse\n";}
+    print TEX "\\frametitle{$title}\n";
+    if (&environment) {
+	if ($step) {print TEX "\\stepwise\n\{%\n"};
+	if ("$section" eq "alltt") {print TEX "\{\\smaller\n"};
+	print TEX "\\begin{$section}\n";
+	if (&listenv) {$holditem = "\\item ";}
+    }
+    else {$holditem = "";}
+}
+
+sub printpreamble {
+    if (! $horiz) {@sections{'styles:'} .= ',portrait'};
+    $sty = $sections{'styles:'};
+    print TEX "% Slide file generated by $program from $ARGV[0]\n";
+    if (@options) {print TEX "%   Options used: @options\n";}
+    print TEX "\n\\documentclass[xcolor=dvipsnames]{beamer}\n";
+    print TEX "\n\\mode<presentation>\n";
+    print TEX "\\usetheme{Warsaw}\n";
+	print TEX "\\usecolortheme[named=Mahogany]{structure}\n";
+    # print TEX "\\usecolortheme[named=RoyalBlue]{structure}\n";
+    
+    print TEX "\\usepackage{$packages,color}\n";
+#      print TEX "\\renewcommand{\\slideleftmargin}{1.5in}\n";
+#      print TEX "\\renewcommand{\\sliderightmargin}{1.5in}\n";
+#      print TEX "\\renewcommand{\\slideitemsep}{2.5ex minus 1.9ex}\n";
+#     if ($horiz) {
+# 	print TEX "\\renewcommand{\\printlandscape}{\\special{landscape}}\n";
+# 	print TEX "\\special{! /landplus90 true store}\n";
+#    }
+    print TEX "\\def\\labelitemii{\$\\circ\$}\n";
+    print TEX "\\def\\labelitemiii{\$\\star\$}\n";
+    print TEX "\\def\\labelitemiv{\$\\diamond\$}\n";
+#    print TEX "\\slideframe{$slideframe}\n";
+    print TEX "$sections{'preamble:'}";
+    if ($horiz) {
+	print TEX "\\makeatletter\n\\def\\special\@paper{11in,8.5in}%\n";
+	print TEX "\\def\\Hy\@pageheight{612}%\n\\makeatother\n\n";
+    }
+    # Title slide
+#    print TEX "\\pagenumbering{arabic}\n";
+#    print TEX "\\setcounter{slide}{0}\n";
+#    print TEX "\\begin{$slide}\n";
+#    print TEX "\\pagestyle{mypagestyle}\n";
+#    print TEX "\\begin{center}{\\larger\\bf\n";
+    # Title
+    if ($sections{'title:'}) {
+	if ($sections{'abbrtitle:'}) {
+	    print TEX "\\title[{\\makebox[.45\\paperwidth]{$sections{'abbrtitle:'}\\hfill%\n";
+	    print TEX "        \\insertframenumber/\\inserttotalframenumber}}]{$sections{'title:'}}\n";
+	} else {
+	    print TEX "\\title[{\\makebox[.45\\paperwidth]{$sections{'title:'}\\hfill%\n";
+	    print TEX "        \\insertframenumber/\\inserttotalframenumber}}]{$sections{'title:'}}\n";
+	}
+    } else {
+	print TEX "\\title{Untitled}\n";
+    }
+    # Author
+    if ($sections{'author:'}) {
+	print TEX "\\author{$sections{'author:'}}\n";
+    }
+    if ($sections{'organization:'}) {
+	print TEX "\\institute{$sections{'organization:'}}\n";
+    }
+    else {
+	print TEX "\\institute{";
+	print TEX "  Computer Science Laboratory\\\\\n";
+	print TEX "  SRI International\\\\\n";
+	print TEX "  Menlo Park, CA}\n";
+    }
+    if ($sections{'date:'}) {
+	print TEX "\\date{$sections{'date:'}}\n";
+    }
+    print TEX "\\beamertemplatenavigationsymbolsempty\n";    
+    print TEX "\\begin{document}\n\n";
+#    print TEX "\\pagestyle{empty}\n";
+#    print TEX "\\newpagestyle{mypagestyle}%\n";
+#     print TEX " {\\smaller $sections{'lhead:'}";
+#     print TEX "\\hfill $sections{'rhead:'}}\n";
+#     print TEX " {\\smaller $sections{'lfoot:'}";
+#     if ($sections{'rfoot:'}) {print TEX "\\hfill $sections{'rfoot:'}}\n";}
+#     else {print TEX "\\hfill \\thepage}\n";}
+    # Front matter slide
+    if ($sections{'front-matter:'}) {
+	print TEX "\\begin{$slide}\n";
+	print TEX "$sections{'front-matter:'}";
+	print TEX "\\end{$slide}\n";
+    }
+    print TEX "\n\\begin{frame}[plain]\n\\titlepage\n\\end{frame}\n";
+    }
+
+sub environment {
+    &listenv || $section eq "alltt"
+    }
+
+sub listenv {
+    $section eq "itemize"
+	|| $section eq "enumerate"
+	    || $section eq "description";
+}
+# Perl trim function to remove whitespace from the start and end of the string
+sub trim($)
+{
+	my $string = shift;
+	$string =~ s/^\s+//;
+	$string =~ s/\s+$//;
+	return $string;
+}

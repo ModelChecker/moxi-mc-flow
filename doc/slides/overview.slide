@@ -1,0 +1,483 @@
+lfoot: {}
+title: {\textbf{The Parsley Project}\footnote{This work was supported by DARPA under agreement number HR001119C0075. The views and conclusions contained herein are those of the authors and should not be interpreted as necessarily representing the official policies or endorsements, either expressed or implied, of DARPA or the U.S. Government.}}
+abbrtitle: \greencol{Parsley}
+date: May 16, 2023\\{\small Statement A: Approved for public release; distribution is unlimited.}
+
+preamble: \usepackage{tabularx}\usepackage{relative}
+\newcommand{\plet}[2]{\texttt{let}\ #1\ \texttt{in}\ #2}
+\author[Natarajan Shankar]{N. Shankar}
+\setbeamercolor{title}{fg=white!80!blue}
+\setbeamercovered{transparent}
+%\logo{\includegraphics[height=0.5cm]{/Users/shankar/images/sri_blue_logo.jpg}}
+ \input{smacros}
+% \newcommand{\inred}[1]{\textcolor{Red}{#1}}
+% \newcommand{\ingreen}[1]{\textcolor{Green}{#1}}
+% \newcommand{\htriple}[3]{\{#1\} #2 \{#3\}}
+% \newcommand{\pclause}[2]{[#1 \pif #2]}
+% \newcommand{\plet}[2]{\mbox{let }\ #1 \mbox{ in } #2}
+% \newcommand{\ifte}[3]{\mbox{if } #1 \mbox{ then } #2 \mbox{ else } #3}
+% \newcommand{\mupdate}[3]{\mathit{update}(#1, #2, #3)}
+% \newcommand{\incr}[2]{\mathit{inc}(#1, #2)}
+% \newcommand{\decr}[2]{\mathit{dec}(#1, #2)}
+% \newcommand{\mmark}{\mathit{mark}}
+% \newcommand{\bfnewint}{\mathbf{newInt}}
+% \newcommand{\bfnewref}{\mathbf{newRef}}
+% \newcommand{\bfpop}{\mathbf{pop}}
+% \newcommand{\rlongrightarrow}{\stackrel{+}{\longrightarrow}}
+% \newcommand{\rLongrightarrow}{\stackrel{+}{\Longrightarrow}}
+% \newcommand{\slongrightarrow}{\stackrel{*}{\longrightarrow}}
+% \newcommand{\sLongrightarrow}{\stackrel{*}{\Longrightarrow}}
+% \newcommand{\dlongrightarrow}{\stackrel{\delta}{\longrightarrow}}
+% \newcommand{\ttnil}{\texttt{nil}}
+% \newcommand{\mvars}[1]{\mathit{mvars}(#1)}
+% \newcommand{\plambda}[2]{\lambda (#1): #2}
+% \newcommand{\rectype}[1]{[\# #1 \#]}
+\usepackage{fancyvrb}
+\usepackage[mathletters]{ucs}
+%\usepackage[utf8]{inputenc}
+%\DeclareUnicodeCharacter{00A0}{~}
+\newcommand{\bftrue}{\mathbf{true}}
+\newcommand{\bffalse}{\mathbf{false}}
+% \newcommand{\plet}[2]{\texttt{let } #1 \texttt{ in } #2}
+% \newcommand{\vlet}[2]{\texttt{withview } #1 \texttt{ in } #2}
+ \newcommand{\letthen}[2]{\texttt{letthen } #1 \texttt{ in } #2}
+ \newcommand{\letelse}[2]{ #1 \texttt{ else } #2}
+  \newcommand{\pletelse}[3]{\texttt{let } #1 \texttt{ then } #2 \texttt{ else } #3}
+  \usepackage{relative}
+
+\comment{-Technical approach and why it matters to the DoD.  Address game changes in both underlying technologies and in potential mission applications.  Address your technical challenges.  What are the uncertainties?  Any unexpected developments? Provide an architecture slide.
+-Representative examples of major accomplishments, both technical steps forward and transitions to (and relationships with) mission partners.  State technical advances, mission concepts, transition stories, etc.
+-Transition status - Who are your mission partners, and what actions have you taken to facilitate transition? Any issues and challenges with respect to transition and partnering relationships?
+-Issues being faced.
+-Include the phase 3 metrics and how you met them. Provide a metric status slide that addresses
+the BAA metrics. Include any additional metrics (or insights regarding metrics) that you may have developed.
+-List all technical publications under the SafeDocs program, if any. }
+
+islide: The Parsley Research Group
+SRI's team consists of
+{\small\smaller\begin{enumerate}
+\item \bluecol{Natarajan Shankar: Principal Investigator}
+\item \bluecol{Prashanth Mundkur: Systems/Languages expert on RISC-V, CHERI.}
+\item \bluecol{Briland Hitaj: ML/Security expert}
+\item \bluecol{Joe Hendrix: Formal Methods expert}
+\end{enumerate}}
+
+The Dartmouth team consists of
+{\small\smaller\begin{enumerate}
+\item \rdcol{Prof. Sean Smith: Expert on information/language-theoretic security}
+\item \rdcol{Prof. George Cybenko: Pioneering researcher on information security}
+\item \rdcol{Dr. Vijay Kothari (competed post-doc): Expert on trustworthy systems}  
+\item \rdcol{Students: Prashant Anantharaman (graduated),  Sameed Ali,  Zephyr Lucas,  Joshua Ackerman, Ben Kallas }
+\end{enumerate}}
+
+slide: Outline
+The high-level goals of the Parsley project are:
+\begin{enumerate}
+\item Developing a theory of input validity that covers popular file
+  formats
+\item Study the language expressiveness of language models
+\item Define the Parsley data description language building on 
+      the above theoretical foundation for input validity
+\item Verified parser generators that implement Parsley data descriptions
+\item Static analysis of application code on validated inputs  
+\item Case studies on significant file formats
+\end{enumerate}
+\begin{center}
+  \includegraphics[width=.6\linewidth]{../images/ParsleyFlow.pdf}
+\end{center}
+
+islide: Presentation Outline
+Motivation
+
+Technical approach
+
+Transition status
+
+Metrics
+
+Parser formalization verification
+
+Publications
+
+NITF Case Study
+
+Fuzzing and concolic evaluation of parsers and parser differentials
+
+Language, Learning, and Topology
+
+islide: Motivation from Language-Theoretic Security
+Data format definitions used in file and wire formats are different from
+formal grammars employed, for example, in programming notations.
+
+They have data dependencies, e.g., tag-length-value encodings, and bit-level
+flags and masks.
+
+Examples of data formats include UDP, TCP, ELF, PDF, Wasm,
+BMP, PNG, JPEG, MP3, HTML, Base-64, YAML, JSON, XML, CSV, MAVLink, etc.
+
+Formats can often nest other encodings and formats.  
+
+Data formats that are needlessly complex leading to parser complexity,
+parsing errors, parser differentials. %and schizophrenic content.
+
+Goal:  Semantically well-formed data formats that can be unambiguously parsed by
+verified parsers.
+
+slide: LangSec Vulnerabilities
+\begin{center}
+  \includegraphics[width=\linewidth]{figs/ChromeBug.png}
+\end{center}
+\begin{itemize}
+\item 
+Google has disclosed five zero-day vulnerabilities in Chrome related to
+``insufficient validation of untrusted input in Intents,'' heap buffer overflow,
+type confusion, and use-after-free.
+\item 
+There were sixteen zero-day vulnerabilities reported in 2021.
+\item 
+These vulnerabilities typically exploit ``insufficient input validation''
+and admit remote code execution by the attacker.  
+\end{itemize}
+
+slide: Technical Approach
+\begin{center}
+  \includegraphics[width =.8\linewidth]{figs/NITFheader.png}
+\end{center}
+
+islide: Data Definition Languages
+File and wire formats for data are proliferating rapidly.
+
+Many vulnerabilities can be traced to poor/nonexistent data validation and badly defined
+data formats.  
+
+The pure grammar formalisms used to define programming notations are unsuitable for data definitions.
+
+They do not capture complex \emph{data dependencies} within the format
+such as 
+\begin{enumerate}
+\item Encodings
+\item Little and big endian byte order and byte alignment
+  \item Bit patterns
+\item Scanning and offsets
+\item Ordered And Unordered Sequences, sets and dictionaries
+\item Optional fields and default values
+\item  Data dependencies such as Tag-Length-Value, cardinalities,
+\item Views
+  \item Sessions
+  \end{enumerate}
+
+DDL examples include DFDL, ASN.1, Kaitai, DaeDaLus, and Hammer. 
+
+islide: The Parsley DDL
+Parsley is a self-contained data definition language with
+\begin{itemize}
+\item A PEG grammar
+\item Data-dependent constraints and  inherited and synthesized attributes defined in a strongly-typed, memory-safe functional language
+\item Views for defining parsing windows,  transformations for handling embedded formats, and streams for online input processing
+  \item Module system for composing grammars
+  \item Parsing API for compartmentalizing parser and application
+\end{itemize}
+
+Parsley has been implemented with
+\begin{enumerate}
+\item A parser combinator library
+\item A parser interpreter
+  \item A parser compiler that interprets bytecode. 
+  \end{enumerate}
+
+We are adding support for debugging and compartmentalization.
+
+  islide: The Parsley DDL
+
+Parsley has been applied to a number of case studies
+\begin{itemize}
+\item PDF, ICCMax, UDP, DNS, RTPS, NITF
+\end{itemize}
+
+Parsley has been supported by theoretical studies
+\begin{itemize}
+\item Verified parsing with proof-of-parse representation
+  \item Parsing abstract machine
+  \end{itemize}
+
+  islide: Parsley Case Studies/Metrics
+  PDF formalization identified a number of clarifications to the specification:
+  \begin{enumerate}
+  \item Required fields that could be optional
+  \item Indirect references that could be direct
+  \item Type confusion between strings (per standard) and name objects (per practices)
+    for \texttt{Language} field, and interpretation of default choice (Unknown language).
+    \item No specification for error handling/recovery for Graphical Object State Machine
+    \end{enumerate}
+
+    Automated extraction of grammar constraints from Arlington DOM using SPARTA.  
+
+    iccMax \texttt{calculatorElement} formalized in a number of formats with feedback (typos, ambiguities, gaps)
+    for standards developers
+
+    RTPS formalized in Parsley: detected 9/15 malformed files.
+
+    NITF formalization (2.4B files, 25 fuzzers, 0 crashes, 0 hangs)
+
+  islide: Parsley in A-Normal Form (ANF)
+  The Parsley language can be transformed to ANF:
+  $$\pletelse{x = A}{B}{C},$$ which means \emph{parse $A$, if it succeeds, bind the result to $x$ and continue parsing with $B$, and if it fails, backtrack to parse with $C$.}
+
+  Here $A$ could be a grammar expression, a computation, a data transformation, or a view.
+
+
+  islide: Semantics
+  A semantics for the ANF can be given by the judgement  $$\rho, \nu \models e \mapsto v, \pi,$$
+  with
+  \begin{itemize}
+  \item   Variable stack $\rho$, 
+  \item Input view $\sigma$,
+  \item Output view $\pi$ is the residue of the parse,   and
+    \item Output value $v$  (with option for failure).
+    \end{itemize}
+
+    Symbolic SMT constraints can be generated for each path through the ANF for successful/failed parses for concolic test generation.
+    \begin{eqnarray*}
+              \mean{\sigma}(f, v, s, p, r) &:= &
+                                              \begin{array}{cl}
+                                              & (f \wedge s \in \sigma \wedge v = \sigma \wedge p = \sigma\wedge s = p\circ r) \\ \vee & (\neg f \wedge s\not\in \sigma \mathbf{any}^*)
+                                              \end{array}
+\end{eqnarray*}                                                                                                                                         
+
+
+  islide: Parsley in ANF
+  We can model various Parsley constructs using the bare-bones ANF representation:
+  \begin{itemize}
+  \item Constraint $[a]$: $\pletelse{x = a\uparrow}{ \mathbf{empty}}{\mathbf{fail}}$.
+  \item Negation $!A$:  $\pletelse{x = A}{ \mathbf{fail}}{\mathbf{empty}}$.
+  \item Check $\&A$:
+    $$
+    \begin{array}{{rcll}}
+      !!A & = & \mathtt{let }\ x = &\pletelse{y = A}{\mathbf{fail}}{\mathbf{empty}}\\
+          & & & \mathtt{then }\ {\mathbf{fail}} \\
+      & & & \mathtt{else }\ {\mathbf{empty}}                                    
+    \end{array}$$
+  \item Concatenation $A B$: $\pletelse{x = A}{B}{\mathbf{fail}}$
+    \item Choice $A / B$: $\pletelse{x = A}{x}{B}$
+    \end{itemize}
+
+    
+
+    The ANF representation is used for
+    \begin{enumerate}
+    \item Semantics
+      \item Concolic constraint generation
+    \item Code generation
+    \item Abstract machine definition
+      \item Compilation
+    \end{enumerate}
+
+
+    islide: Parsing Abstract Machine
+    The key concepts in Parsley are
+    \begin{enumerate}
+    \item \emph{Buffers } that contain data for parsing
+    \item \emph{Views} that are windows into the buffer consisting of a start position, length, and cursor position.
+    \item Parsing code
+    \end{enumerate}
+
+    The abstract machine consists of
+    \begin{enumerate}
+    \item Nonterminal stack
+    \item Variable stack 
+      \item Data store (including buffers)
+      \item Success/failure continuations
+    \end{enumerate}
+
+      In each step, the parser can
+      \begin{enumerate}
+      \item Bind a value on the stack (including the return value and current view)
+      \item Check a constraint, possibly update the view, and invoke the success or failure continuation
+      \item Add or modify data in the data store
+        \item Push a success or failure continuation
+        \end{enumerate}
+
+        slide: Parser Verification
+Defined and verified a state machine parser for Chomsky Normal Form PEG Grammars with a scaffold data structure for memoization.
+\begin{smallersession}
+  parse(len, G, (s: strings(len)),
+          (start: upto(len)), (root: non_terminal))
+        (St : state(len, G, s, start, root))
+        : RECURSIVE endstate(len, G, s, start, root)
+  = (IF St`depth = 0
+      THEN St
+      ELSE parse(len, G, s, start, root)
+                (step(len, G, s, start, root)(St))
+      ENDIF)
+      MEASURE size(len, G, s, start, root)(St) BY <
+    \end{smallersession}
+
+slide: Proof-of-Parse Verification    
+    Defined a proof-of-parse format for success, failure, loop outcomes and extracted valid proofs from parser output.
+\begin{smallersession}
+  buildproof(len, G, (s: strings(len)),
+              (rootpos: upto(len)), (rootnt: non_terminal))
+            (st: endstate(len, G, s, rootpos, rootnt),
+              n, (i | i <= len)): 
+     \{P | good_parsetree?(len, G, s)(qempty, n, i, P)
+           AND entry(P) = st`scaf(i)(n)\}
+  = (IF loop?(st`scaf(i)(n))
+     THEN  (LET pendfun = (LAMBDA (n: non_terminal): pending),
+                      A = (LAMBDA (i: upto(len)): pendfun)
+             IN buildloop(len, G, s, rootpos, rootnt)
+                         (st, A, qempty, n, i))
+     ELSE buildtree(len, G, s, rootpos, rootnt)(st, qempty, n, i)
+     ENDIF)
+      
+    \end{smallersession}
+
+slide: PVS2C: A Type-Safe/Memory-Safe Functional Language
+The full PVS2C implementation covers
+\begin{enumerate}
+\item Multi-precision rational numbers and integers, and floats
+\item Fixed-size arithmetic: \texttt{uint8}, \texttt{uint16}, \texttt{uint32}, \texttt{uint64}, \texttt{int8}, \texttt{int16}, \texttt{int32}, \texttt{int64}, with safe casting  
+\item Dependent (dynamically sized) and infinite arrays 
+\item Dependent records and tuples
+\item Higher-order functions and closures (with updates) 
+\item Characters (ASCII and Unicode)  and strings  
+\item Algebraic datatypes
+\item Parametric theories with type parameters (unboxed polymorphism)
+\item Memory-mapped File I/O
+\item Semantic attachments
+\item JSON representation for data
+  \item Bounded quantification
+\end{enumerate}
+
+\pause
+Code generated from PVS is memory-safe/type-safe
+- a well-typed program cannot fail (modulo resource limitations).
+
+islide: Secure Parsing Architectures and APIs
+Parsers protect the data gateway for systems to ensure that applications
+operate on trusted representations extracted from untrusted inputs.  
+
+From the application's point of view, the parser itself is untrusted and only its
+output is trusted as being a valid parse of the input given the grammar.
+
+The validity of the parse can be established by a trusted proof-of-parse checker. 
+
+The grammar itself could be untrusted and could contain malicious code that
+might trigger remote code execution within the parser.
+
+The application also controls the API to the parser as well as the access to
+resources.
+
+Eventually, we would like to have resource contracts associated with the operation of the
+parser for a given grammar.
+
+islide: Transition
+The Parsley grammar formalization has impacted the PDF and iccMax specifications.
+
+Technology transfer discussions with LMCO, PDFA
+
+Formalization of  NITF in Parsley
+
+Technology transfer to other DARPA projects, e.g., OPS5G, ARCOS.   
+
+PVS2C-generated code is embedded into applications using a string-to-string API for type safety --
+parsing is critical to the safety of the interface.
+
+islide: Future Work
+Theoretical studies of learning abilities of large language models.
+
+More Parsley case studies and expanded tutorials
+
+Concolic testing for Parsley grammars
+
+Enhanced Parsley bytecode compiler with advanced error diagnostics.
+
+Formal description/verification of Parsing Abstract Machine
+
+WASM implementation of Parsing Abstract Machine
+
+islide: Publications
+{\scriptsize
+C. Blaudeau and N. Shankar, “A verified packrat parser interpreter for parsing expression grammars,” Proceedings of the 9th ACM SIGPLAN International Conference on Certified Programs and Proofs, Jan 2020.
+
+P. Mundkur, P. Anantharaman, S. Ali, L. Briesemeister, N. Shankar, and S. Smith, “The Parsley Data Format Definition Language,” in Sixth Workshop on Language-Theoretic Security (LangSec), IEEE Security and Privacy, May 2020.
+
+P. Anantharaman and S. W. Smith, “On Session Languages,” Computer Science Technical Report, vol. TR2020-881, 2020.
+
+L. Xiao, “Automatic Generation of Input Grammars Using Symbolic Execution,” Dartmouth College Undergraduate Theses, vol. 163, 2020.
+
+P. A. Zephyr Lucas, Joanna Liu and S. Smith, “Pegmatite: Parsing PEGs with Length Fields in Software and Hardware,” in IEEE Security and Privacy Symposium Language-Theoretic Security Workshop, May 2021.
+
+S. Ali and S. W. Smith, “A Verified Parser Generator For Micro- controller Applications,” in IEEE Security and Privacy Symposium Language-Theoretic Security Workshop, May 2021.
+
+S. Ali, P. Anantharaman, Z. Lucas and S. Smith.
+"What We Have Here Is Failure to Validate: Summer of LangSec."
+IEEE Security and Privacy. May/June 2021.
+
+Z. Lucas, Joanna Liu, Prashant Anantharaman and Sean Smith.
+"Pegmatite: Parsing PEGs with Length Fields in Software and Hardware."
+The Seventh IEEE Workshop on Language-Theoretic Security (LangSec 2021) May 2021.
+}
+
+islide: Publications
+{\scriptsize
+S. Ali, P. Anantharaman and S.W. Smith.
+"Armor Within: Defending against Vulnerabilities in Third-Party Libraries."
+The Sixth IEEE Workshop on Language-Theoretic Security (LangSec 2020)
+2020 IEEE Security and Privacy Workshops (SPW)
+May 2020.
+
+P. Mundkur, P. Anantharaman, S. Ali, L. Briesemeister, N. Shankar and S.W. Smith.
+"The Parsley Data Format Definition Language."
+The Sixth IEEE Workshop on Language-Theoretic Security (LangSec 2020)
+2020 IEEE Security and Privacy Workshops (SPW)
+May 2020.
+
+Prashant Anantharaman, Steven Cheung, Nicholas Boorman and Michael Locasto
+"A Format-Aware Reducer for Scriptable Rewriting of PDF Files"
+The Eighth IEEE Workshop on Language-Theoretic Security (LangSec 2022)
+2022 IEEE Security and Privacy Workshops (SPW)
+May 2022.
+}
+
+islide: Publications
+{\scriptsize
+Vijay Kothari, Prashant Anantharaman, Sean Smith, Briland Hitaj, Prashanth Mundkur, Natarajan Shankar, Letitia Li, Iavor Diatchki and William Harris
+"Capturing the iccMAX calculatorElement: A Case Study on Format Design"
+The Eighth IEEE Workshop on Language-Theoretic Security (LangSec 2022)
+2022 IEEE Security and Privacy Workshops (SPW)
+May 2022.
+
+J. Ackerman \& G. Cybenko, G. (2021, May). Formal Languages, Deep Learning, Topology and Algebraic
+Word Problems. In 2021 IEEE Security and Privacy Workshops (SPW) (pp. 134-141). IEEE.
+
+Joshua Ackerman and George Cybenko. "A survey of neural networks and formal languages." arXiv preprint arXiv:2006.01338 (2020).
+
+Sameed Ali and Sean Smith, A Secure Parser Generation Framework for IoT Protocols on Microcontrollers, presented at LangSec 2022
+
+Prashant Anantharaman, Protecting Systems from Exploits Using Language- Theoretic Security (2022), Dartmouth College Ph.D Dissertations, 80. \url{https://digitalcommons.dartmouth.edu/dissertations/80/}
+
+S. Ali and S. W. Smith, "A Survey of Parser Differential Anti-Patterns," 2023 IEEE Security and Privacy Workshops (SPW) (to appear).
+
+"dippy\_gram: Grammar-Aware, Coverage-Guided Differential Fuzzing". Ben Kallus and Sean W. Smith (Dartmouth College).
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+      
