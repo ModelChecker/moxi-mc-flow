@@ -88,14 +88,15 @@ def update_rename_map(
     target_system_symbol: str,
     signature: list[ILVar],
     target_signature: list[ILVar],
-    rename_map: RenameMap):
+    rename_map: RenameMap
+):
     target_context = system_context.copy() # need to copy (only copies pointers)
     target_context.push((target_system_symbol, target_system))
     for cmd_var,target_var in zip(signature, target_signature):
         rename_map[(target_var, target_context)] = (cmd_var, system_context.copy())
 
 
-def ilsort_to_btor2(sort: ILSort, sort_map: SortMap) -> Btor2Sort:
+def ilsort_to_btor2(sort: ILSort, enums: dict[str, int], sort_map: SortMap) -> Btor2Sort:
     if sort in sort_map:
         return sort_map[sort]
     elif is_bool_sort(sort):
@@ -103,39 +104,41 @@ def ilsort_to_btor2(sort: ILSort, sort_map: SortMap) -> Btor2Sort:
     elif is_bitvec_sort(sort):
         return Btor2BitVec(sort.identifier.indices[0])
     elif sort.identifier.symbol == "Array":
-        return Btor2Array(ilsort_to_btor2(sort.parameters[0], sort_map), 
-                          ilsort_to_btor2(sort.parameters[1], sort_map))
+        return Btor2Array(ilsort_to_btor2(sort.parameters[0], enums, sort_map), 
+                          ilsort_to_btor2(sort.parameters[1], enums, sort_map))
+    elif sort.identifier.symbol in enums:
+        return Btor2BitVec(enums[sort.identifier.symbol])
     else:
         raise NotImplementedError
 
 
-def build_sort_map_expr(expr: ILExpr, sort_map: SortMap) -> SortMap:
+def build_sort_map_expr(expr: ILExpr, enums: dict[str, int], sort_map: SortMap) -> SortMap:
     """Iteratively recurse the expr IL and map each unique ILSort of each node to a new Btor2Sort."""
     def build_sort_map_util(cur: ILExpr):
         if cur.sort not in sort_map:
-            sort_map[cur.sort] = ilsort_to_btor2(cur.sort, sort_map)
+            sort_map[cur.sort] = ilsort_to_btor2(cur.sort, enums, sort_map)
     
     postorder_iterative(expr, build_sort_map_util)
     return sort_map
 
 
-def build_sort_map_cmd(cmd: ILCommand, sort_map: SortMap) -> SortMap:
+def build_sort_map_cmd(cmd: ILCommand, enums: dict[str, int], sort_map: SortMap) -> SortMap:
     if isinstance(cmd, ILDefineSystem):
         for subsystem in cmd.subsystems.values():
-            build_sort_map_cmd(subsystem, sort_map)
+            build_sort_map_cmd(subsystem, enums, sort_map)
 
-        build_sort_map_expr(cmd.init, sort_map)
-        build_sort_map_expr(cmd.trans, sort_map)
-        build_sort_map_expr(cmd.inv, sort_map)
+        build_sort_map_expr(cmd.init, enums, sort_map)
+        build_sort_map_expr(cmd.trans, enums, sort_map)
+        build_sort_map_expr(cmd.inv,enums,  sort_map)
     elif isinstance(cmd, ILCheckSystem):
         for assume in cmd.assumption.values():
-            build_sort_map_expr(assume, sort_map)
+            build_sort_map_expr(assume, enums, sort_map)
         for fair in cmd.fairness.values():
-            build_sort_map_expr(fair, sort_map)
+            build_sort_map_expr(fair, enums, sort_map)
         for reach in cmd.reachable.values():
-            build_sort_map_expr(reach, sort_map)
+            build_sort_map_expr(reach, enums, sort_map)
         for current in cmd.current.values():
-            build_sort_map_expr(current, sort_map)
+            build_sort_map_expr(current, enums, sort_map)
     else:
         raise NotImplementedError
 
@@ -385,21 +388,22 @@ def translate(il_prog: ILProgram) -> dict[str, list[Btor2Node]]:
 
     Note that the output programs will have input/output/local variables renamed based on the query, but all subsystem variables will remain as defined.
     """
-    btor2_prog_list: dict[str, list[Btor2Node]] = {}
-    sort_map: SortMap = {}
-    var_map: VarMap = {}
-
     (well_sorted, context) = sort_check(il_prog)
 
     if not well_sorted:
         print("Failed sort check")
         return {}
+    
+    btor2_prog_list: dict[str, list[Btor2Node]] = {}
+    sort_map: SortMap = {}
+    var_map: VarMap = {}
+    enums: dict[str, int] = { sym:len(vals) for sym,vals in context.declared_enum_sorts.items() }
 
     for check_system in il_prog.get_check_system_cmds():
         btor2_prog_list[check_system.sys_symbol] = []
         target_system = context.defined_systems[check_system.sys_symbol]
 
-        build_sort_map_cmd(target_system, sort_map)
+        build_sort_map_cmd(target_system, enums, sort_map)
         build_var_map_cmd(check_system, context, {}, sort_map, var_map)
 
         btor2_prog_list.update(ilchecksystem_to_btor2(check_system, context, sort_map, var_map))
