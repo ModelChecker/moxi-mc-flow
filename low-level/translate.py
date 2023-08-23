@@ -236,6 +236,9 @@ def ilexpr_to_btor2(
         return cast(tuple[Btor2Var,Btor2Var,Btor2Var], var_map[(expr, context.system_context)])[idx]
     elif isinstance(expr, ILVar):
         return cast(Btor2Var, var_map[(expr, context.system_context)])
+    elif isinstance(expr, ILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
+        value = context.declared_enum_sorts[expr.sort.identifier.symbol].index(expr.value)
+        return Btor2Const(sort_map[expr.sort], value)
     elif isinstance(expr, ILConstant):
         return Btor2Const(sort_map[expr.sort], expr.value)
     elif isinstance(expr, ILApply):
@@ -397,7 +400,7 @@ def translate(il_prog: ILProgram) -> dict[str, list[Btor2Node]]:
     btor2_prog_list: dict[str, list[Btor2Node]] = {}
     sort_map: SortMap = {}
     var_map: VarMap = {}
-    enums: dict[str, int] = { sym:len(vals) for sym,vals in context.declared_enum_sorts.items() }
+    enums: dict[str, int] = { sym:len(vals).bit_length() for sym,vals in context.declared_enum_sorts.items() }
 
     for check_system in il_prog.get_check_system_cmds():
         btor2_prog_list[check_system.sys_symbol] = []
