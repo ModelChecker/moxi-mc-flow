@@ -46,8 +46,31 @@ def expr_json(expr):
             return {
                 "identifier": expr.instance.name + "_" + expr.element.name
             }
+        case "ITE":
+            if expr.e == None:
+                return {
+                    "identifier": "ite",
+                    "args": [
+                        expr_json(expr.cond),
+                        expr_json(expr.t)
+                    ]
+                }
+            else:
+                return {
+                    "identifier": "ite",
+                    "args": [
+                        expr_json(expr.cond),
+                        expr_json(expr.t),
+                        expr_json(expr.e)
+                    ]
+                }
+        case "Set":
+            return {
+                "identifier": "set",
+                "args": list(map(lambda x : { "identifier": x.name }, expr.elements))
+            }
         case _:
-            print("match all exprs", ecn)
+            print("match all exprs", ecn, expr)
 
 def subsystem_json(subsystem):
     synonym = subsystem.synonym
@@ -98,6 +121,10 @@ def type_to_sort(typ):
             return {
                 "symbol": "Prod",
                 "args": list(map(lambda x : type_to_sort(x), typ.list))
+            }
+        case "str": # enum
+            return {
+                "identifier": typ
             }
         case _:
             print("match all types", tcn, typ)
@@ -176,16 +203,35 @@ def to_json(ast):
                     "sort": type_to_sort(sort)
                 }
                 result.append(j)
+
+            case DefEnumSort(name=name, summands=summands):
+                j = {
+                    "command": "declare-enum-sort",
+                    "symbol": name,
+                    "values": list(map(lambda x : x.name, summands))
+                }
+                result.append(j)
             case _:
                 print("match all il commands", a)
 
     return result
 
 
+def ast_to_json_to_file(ast, filename, print_json=False):
+    json_list = to_json(ast)
+
+    if print_json:
+        rich.print(json_list)
+
+    with open(filename, "w+") as json_file:
+        json.dump(json_list, json_file, ensure_ascii=False, indent=4)
+
+
+
 def main():
     argparser = argparse.ArgumentParser(
-                           prog='nuXmv/NuSMV parser',
-                           description='Parses a nuXmv/NuSMV (.smv) file and translates the resulting AST into IL'
+                           prog='IL AST to JSON',
+                           description='Converts an IL AST (described in translate.py) into a JSON object (conforming to the IL schema)'
    )
 
     argparser.add_argument('filename')
