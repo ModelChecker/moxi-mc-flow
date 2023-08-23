@@ -20,7 +20,13 @@ def expr_json(expr):
                     expr_json(expr.right)
                 ]
             }
-            
+        case "Not":
+            return {
+                "identifier": "not",
+                "args": [
+                    expr_json(expr.value)
+                ]
+            }
         case "Equal":
             return {
                 "identifier": "=",
@@ -39,8 +45,15 @@ def expr_json(expr):
                 ]
             }
         case "Identifier":
+            ret = ""
+            if expr.name == "TRUE":
+                ret = "True"
+            elif expr.name == "FALSE":
+                ret = "False"
+            else:
+                ret = expr.name
             return {
-                "identifier": expr.name
+                "identifier": ret
             }
         case "Dot":
             return {
@@ -182,9 +195,13 @@ def to_json(ast):
                              reachable=reachable,
                              queries=queries):
                 
+                name_str = name
+                if name.__class__.__name__ == 'Identifier':
+                    name_str = name.name
+                
                 j = {
                     "command": "check-system",
-                    "symbol": name,
+                    "symbol": name_str,
                     "input": var_json(input),
                     "output": var_json(output),
                     "local": local,
@@ -192,7 +209,7 @@ def to_json(ast):
                     "fairness": fairness,
                     "reachable": reachable,
                     "current": current,
-                    "queries": queries
+                    "queries": list(map(lambda x : x.name, queries))
                 }
                 result.append(j)
 
