@@ -96,6 +96,18 @@ def expr_json(expr):
                 "identifier": "set",
                 "args": list(map(lambda x : { "identifier": x.name }, expr.elements))
             }
+        case "Implies":
+            return {
+                "identifier": "implies",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        # case "int":
+        #     return {
+
+        #     }
         case _:
             print("match all exprs", ecn, expr)
 

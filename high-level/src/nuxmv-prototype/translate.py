@@ -138,8 +138,13 @@ def translate_expression(expr):
     elif ecn == "Equal":
         return Equal(left=translate_expression(expr.left),
                      right=translate_expression(expr.right))
+    elif ecn == "Implies":
+        return Implies(left=translate_expression(expr.left),
+                       right=translate_expression(expr.right))
+    elif ecn == "list":
+        return list(map(lambda x : translate_expression(x), expr))
     else: 
-        # print("translate_expression", ecn)
+        print("translate_expression", ecn)
         return expr
 
 
@@ -428,7 +433,7 @@ def translate(parse_tree):
         elif ugskey == "INVAR":
             module_inv += (parse_tree[key])
         elif ugskey == "TRANS":
-            module_trans += (parse_tree[key])
+            module_trans += (translate_expression(parse_tree[key]))
         elif ugskey == "FAIRNESS" or ugskey == "JUSTICE": # FAIRNESS is a backwards-compatible version of JUSTICE
             check = True
             module_justice.append(parse_tree[key])
