@@ -124,8 +124,22 @@ def translate_expression(expr):
         branch_list = list(vars(expr)['values'].items())
         return translate_case_branches(branch_list, None)
     elif ecn == "Next":
-        print("NEXT CASE!")
+        return Identifier(name=primed(expr.value.name))
+    elif ecn == "Not":
+        return Not(translate_expression(expr.value))
+    elif ecn == "Identifier":
+        return Identifier(expr)
+    elif ecn == "And":
+        return And(left=translate_expression(expr.left),
+                  right=translate_expression(expr.right))
+    elif ecn == "Or":
+        return Or(left=translate_expression(expr.left),
+                  right=translate_expression(expr.right))
+    elif ecn == "Equal":
+        return Equal(left=translate_expression(expr.left),
+                     right=translate_expression(expr.right))
     else: 
+        # print("translate_expression", ecn)
         return expr
 
 

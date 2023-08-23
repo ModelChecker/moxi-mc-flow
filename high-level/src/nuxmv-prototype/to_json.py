@@ -20,6 +20,14 @@ def expr_json(expr):
                     expr_json(expr.right)
                 ]
             }
+        case "Or":
+            return {
+                "identifier": "|",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
         case "Not":
             return {
                 "identifier": "not",
@@ -45,13 +53,19 @@ def expr_json(expr):
                 ]
             }
         case "Identifier":
+            e = expr
+
+            # todo: fix nests of identifiers
+            while e.__class__.__name__ != "str":
+                e = e.name
+
             ret = ""
-            if expr.name == "TRUE":
+            if e == "TRUE":
                 ret = "True"
-            elif expr.name == "FALSE":
+            elif e == "FALSE":
                 ret = "False"
             else:
-                ret = expr.name
+                ret = e
             return {
                 "identifier": ret
             }
@@ -209,8 +223,15 @@ def to_json(ast):
                     "fairness": fairness,
                     "reachable": reachable,
                     "current": current,
-                    "queries": list(map(lambda x : x.name, queries))
+                    "queries": list(map(lambda x : list(map(lambda x : { "identifier": x.name }, x)), queries))
                 }
+
+                if assumption == None:
+                    j['assumption'] = []
+                
+                if reachable == None:
+                    j['reachable'] = []
+
                 result.append(j)
 
             case DeclareConst(constant=const, sort=sort):
