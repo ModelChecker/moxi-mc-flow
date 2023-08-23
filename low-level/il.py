@@ -112,7 +112,10 @@ class ILSort():
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, ILSort):
             return False
-
+        
+        if is_bool_sort(self) and is_bool_sort(__value):
+            return True
+        
         if is_bool_sort(self) and is_bitvec_sort(__value) and __value.identifier.indices[0] == 1:
             return True
 
@@ -139,7 +142,7 @@ class ILSort():
 
 # Built-in sorts
 IL_NO_SORT: ILSort = ILSort(ILIdentifier("", []), []) # placeholder sort
-IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("Bool", []), [])
+IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("BitVec", [1]), [])
 IL_INT_SORT: ILSort = ILSort(ILIdentifier("Int", []), [])
 IL_BITVEC_SORT: Callable[[int], ILSort] = lambda n: ILSort(ILIdentifier("BitVec", [n]), [])
 IL_ARRAY_SORT: Callable[[ILSort, ILSort], ILSort] = lambda A,B: ILSort(ILIdentifier("Array", []), [A,B])
@@ -1004,6 +1007,9 @@ def from_json_sort(contents: dict) -> ILSort:
 
     identifier = from_json_identifier(contents["identifier"])
 
+    if identifier.symbol == "Bool" and len(identifier.indices) == 0:
+        return IL_BOOL_SORT
+
     return ILSort(identifier, params)
 
 
@@ -1022,7 +1028,11 @@ def from_json_expr(contents: dict, enums: dict[str, str]) ->  ILExpr:
     if len(args) != 0:
         return ILApply(IL_NO_SORT, identifier, args)
     
-    if re.match(r"0|[1-9]\d*", identifier.symbol):
+    if identifier.symbol == "True":
+        return ILConstant(IL_BOOL_SORT, True)
+    elif identifier.symbol == "False":
+        return ILConstant(IL_BOOL_SORT, False)
+    elif re.match(r"0|[1-9]\d*", identifier.symbol):
         return ILConstant(IL_INT_SORT, int(identifier.symbol))
     elif re.match(r"#x[A-F0-9]+", identifier.symbol):
         return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])*4), int(identifier.symbol[2:], base=16))
