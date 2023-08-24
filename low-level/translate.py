@@ -334,8 +334,6 @@ def ilchecksystem_to_btor2(
     ilsystem_to_btor2(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map)
     context.system_context.pop()
 
-    print(check.query)
-
     for sym,query in check.query.items():
         # shallow copy the prog since we don't want to lose sort_map/var_map
         btor2_prog = copy(btor2_model)
@@ -449,7 +447,7 @@ if __name__ == "__main__":
 
     output = translate(program)
     
-    with open("test.btor", "w") as f:
+    with open(f"{filename.stem}.btor", "w") as f:
         for label,nodes in output.items():
             # f.write(f"; {label}\n")
             for n in nodes:

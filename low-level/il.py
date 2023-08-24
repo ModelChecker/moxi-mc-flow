@@ -96,6 +96,9 @@ class ILIdentifier():
             s += f"{index} "
         return s[:-1]+")"
 
+    def to_json(self) -> dict:
+        return {"symbol": self.symbol, "indices": self.indices}
+
 
 class ILSort():
 
@@ -139,6 +142,11 @@ class ILSort():
             s += f"{sort} "
         return s[:-1]+")"
 
+    def to_json(self) -> dict:
+        identifier = self.identifier.to_json()
+        parameters = [s.to_json() for s in self.parameters]
+        return {"identifier": identifier, "parameters": parameters}
+
 
 # Built-in sorts
 IL_NO_SORT: ILSort = ILSort(ILIdentifier("", []), []) # placeholder sort
@@ -175,6 +183,9 @@ class ILExpr():
     def __hash__(self) -> int:
         return id(self)
 
+    def to_json(self) -> dict:
+        return {}
+
 
 class ILConstant(ILExpr):
 
@@ -184,6 +195,11 @@ class ILConstant(ILExpr):
 
     def __str__(self) -> str:
         return f"{self.value}"
+
+    def to_json(self) -> dict:
+        if isinstance(self.value, int):
+            return {"identifier": self.value}
+        return {"identifier": str(self.value)}
 
 
 class ILVarType(Enum):
@@ -215,8 +231,12 @@ class ILVar(ILExpr):
     def __str__(self) -> str:
         return f"{self.symbol}"
 
-    def rename(self, new: str) -> ILVar:
-        return ILVar(self.var_type, self.sort, new, self.prime)
+    def to_json(self) -> dict:
+        return {"identifier": self.symbol + "'" if self.prime else self.symbol}
+
+    def to_json_sorted_var(self) -> dict:
+        return {"symbol": self.symbol, "sort": self.sort.to_json()}
+
 
 IL_EMPTY_VAR = ILVar(ILVarType.NONE, IL_NO_SORT, "", False)
 
@@ -233,9 +253,16 @@ class ILApply(ILExpr):
             s += f"{child} "
         return s[:-1] + ")"
 
+    def to_json(self) -> dict:
+        identifier = self.identifier.to_json()
+        args = [c.to_json() for c in self.children]
+        return {"identifier": identifier, "args": args}
+
 
 class ILCommand():
-    pass
+
+    def to_json(self) -> dict:
+        return {}
 
 
 class ILDeclareSort(ILCommand):
@@ -244,6 +271,9 @@ class ILDeclareSort(ILCommand):
         super().__init__()
         self.symbol = symbol
         self.arity = arity
+
+    def to_json(self) -> dict:
+        return {"command": "declare-sort", "symbol": self.symbol, "arity": self.arity}
 
 
 class ILDefineSort(ILCommand):
@@ -254,6 +284,14 @@ class ILDefineSort(ILCommand):
         self.params = params
         self.definition = definition
 
+    def to_json(self) -> dict:
+        return {
+            "command": "define-sort", 
+            "symbol": self.symbol, 
+            "parameters": self.params,
+            "definition": self.definition.to_json()    
+        }
+
 
 class ILDeclareEnumSort(ILCommand):
 
@@ -262,6 +300,13 @@ class ILDeclareEnumSort(ILCommand):
         self.symbol = symbol
         self.values = values
 
+    def to_json(self) -> dict:
+        return {
+            "command": "declare-enum-sort",
+            "symbol": self.symbol,
+            "values": self.values
+        }
+
 
 class ILDeclareConst(ILCommand):
 
@@ -269,6 +314,13 @@ class ILDeclareConst(ILCommand):
         super().__init__()
         self.symbol = symbol
         self.sort = sort
+
+    def to_json(self) -> dict:
+        return {
+            "command": "declare-const",
+            "symbol": self.symbol,
+            "values": self.sort.to_json()
+        }
 
 
 class ILDeclareFun(ILCommand):
@@ -282,6 +334,14 @@ class ILDeclareFun(ILCommand):
         self.symbol = symbol
         self.inputs = inputs
         self.output = output
+
+    def to_json(self) -> dict:
+        return {
+            "command": "declare-fun",
+            "symbol": self.symbol,
+            "inputs": [i.to_json() for i in self.inputs],
+            "output": self.output.to_json()
+        }
 
 
 class ILDefineFun(ILCommand):
@@ -298,12 +358,27 @@ class ILDefineFun(ILCommand):
         self.output = output
         self.body = body
 
+    def to_json(self) -> dict:
+        return {
+            "command": "define-fun",
+            "symbol": self.symbol,
+            "inputs": [i.to_json_sorted_var() for i in self.inputs],
+            "output": self.output.to_json(),
+            "body": self.body.to_json()
+        }
+
 
 class ILSetLogic(ILCommand):
     
     def __init__(self, logic: str):
         super().__init__()
         self.logic = logic
+
+    def to_json(self) -> dict:
+        return {
+            "command": "set-logic",
+            "symbol": self.logic
+        }
 
 
 class ILDefineSystem(ILCommand):
@@ -334,6 +409,27 @@ class ILDefineSystem(ILCommand):
         # this gets populated by sort checker
         self.subsystems: dict[str, ILDefineSystem] = {}
 
+    def to_json(self) -> dict:
+        return {
+            "command": "define-system",
+            "symbol": self.symbol,
+            "input": [i.to_json_sorted_var() for i in self.input],
+            "output": [o.to_json_sorted_var() for o in self.output],
+            "local": [l.to_json_sorted_var() for l in self.local],
+            "init": self.init.to_json(),
+            "trans": self.trans.to_json(),
+            "inv": self.inv.to_json(),
+            "subsys": [
+                {
+                    "symbol": s, 
+                    "target": {
+                        "symbol": t,
+                        "arguments": v
+                    }
+                } for s,(t,v) in self.subsystem_signatures.items()
+            ]
+        }
+
 
 class ILCheckSystem(ILCommand):
     
@@ -358,6 +454,33 @@ class ILCheckSystem(ILCommand):
         self.reachable = reachable
         self.current = current
         self.query = query
+
+    def to_json(self) -> dict:
+        return {
+            "command": "check-system",
+            "symbol": self.sys_symbol,
+            "input": [i.to_json_sorted_var() for i in self.input],
+            "output": [o.to_json_sorted_var() for o in self.output],
+            "local": [l.to_json_sorted_var() for l in self.local],
+            "assumption": [{"symbol": s, "formula": a.to_json()} for s,a in self.assumption.items()],
+            "fairness": [{"symbol": s, "formula": f.to_json()} for s,f in self.fairness.items()],
+            "reachable": [{"symbol": s, "formula": r.to_json()} for s,r in self.reachable.items()],
+            "current": [{"symbol": s, "formula": c.to_json()} for s,c in self.current.items()],
+            "query": [{"symbol": s, "formulas": q} for s,q in self.query.items()],
+            "queries": []
+        }
+
+
+class ILProgram():
+
+    def __init__(self, commands: list[ILCommand]):
+        self.commands: list[ILCommand] = commands
+
+    def get_check_system_cmds(self) -> list[ILCheckSystem]:
+        return [cmd for cmd in self.commands if isinstance(cmd, ILCheckSystem)]
+
+    def to_json(self) -> list:
+        return [cmd.to_json() for cmd in self.commands]
 
 
 class ILExit(ILCommand):
@@ -620,12 +743,12 @@ class ILLogic():
 
     def __init__(
         self, 
-        name: str, 
+        symbol: str, 
         sort_symbols: set[IdentifierClass],
         function_symbols: set[IdentifierClass],
         sort_check: Callable[[ILApply], bool]
     ):
-        self.name = name
+        self.symbol = symbol
         self.sort_symbols = sort_symbols
         self.function_symbols = function_symbols
         self.sort_check = sort_check
@@ -734,15 +857,6 @@ class ILContext():
         for syms in self.declared_enum_sorts.values():
             symbols.update(syms)
         return symbols
-
-
-class ILProgram():
-
-    def __init__(self, commands: list[ILCommand]):
-        self.commands: list[ILCommand] = commands
-
-    def get_check_system_cmds(self) -> list[ILCheckSystem]:
-        return [cmd for cmd in self.commands if isinstance(cmd, ILCheckSystem)]
 
 
 def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]):
@@ -997,7 +1111,7 @@ def from_json_identifier(contents: dict | str) -> ILIdentifier:
     if isinstance(contents, dict):
         return ILIdentifier(contents["symbol"], contents["indices"])
     else: # isinstance(contents, str)
-        return ILIdentifier(contents, [])
+        return ILIdentifier(str(contents), [])
 
 
 def from_json_sort(contents: dict) -> ILSort:
@@ -1093,7 +1207,7 @@ def from_json(contents: dict) -> Optional[ILProgram]:
             new = ILDeclareConst(cmd["symbol"], sort)
             program.append(new)
         elif cmd["command"] == "declare-fun":
-            pass
+            pass # TODO
         elif cmd["command"] == "define-fun":
             inputs = [from_json_sorted_var(i) for i in cmd["inputs"]]
             output = from_json_sort(cmd["output"])

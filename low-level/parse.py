@@ -67,7 +67,7 @@ class ILLexer(Lexer):
     SYMBOL["define-sort"]   = CMD_DEFINE_SORT
     SYMBOL["declare-const"] = CMD_DECLARE_CONST
     SYMBOL["define-fun"]    = CMD_DEFINE_FUN
-    SYMBOL["declare-enum"]  = CMD_DECLARE_ENUM_SORT
+    SYMBOL["declare-enum-sort"]  = CMD_DECLARE_ENUM_SORT
     SYMBOL["define-system"] = CMD_DEFINE_SYSTEM
     SYMBOL["check-system"]  = CMD_CHECK_SYSTEM
     SYMBOL["exit"]  = CMD_EXIT
@@ -87,6 +87,7 @@ class ILParser(Parser):
     def __init__(self) :
         super().__init__()
         self.status = True
+        self.enums = {}
 
     def error(self, token):
         self.status = False
@@ -114,98 +115,80 @@ class ILParser(Parser):
     def command(self, p):
         return ILDeclareConst(p[2], p[3])
     
-    @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sort_list RPAREN RPAREN")
+    @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sorted_var_list RPAREN sort LPAREN term RPAREN RPAREN")
     def command(self, p):
-        return None
+        return ILDefineFun(p[2], p[4], p[6], p[8])
     
     @_("LPAREN CMD_DECLARE_ENUM_SORT SYMBOL LPAREN symbol_list RPAREN RPAREN")
     def command(self, p):
-        return []
+        values = []
+        for value in p[4]:
+            values.append(value)
+            self.enums[value] = p[2]
+
+        return ILDeclareEnumSort(p[2], values)
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
+        input, output, local = [], [], []
+        init_expr = ILConstant(IL_BOOL_SORT, True)
+        trans_expr = ILConstant(IL_BOOL_SORT, True)
+        inv_expr = ILConstant(IL_BOOL_SORT, True)
+        subsystems = {}
+
         if ILAttribute.INPUT in p[3]:
-            in_vars = p[3][ILAttribute.INPUT]
-        else:
-            in_vars = []
+            input = p[3][ILAttribute.INPUT]
             
         if ILAttribute.OUTPUT in p[3]:
-            out_vars = p[3][ILAttribute.OUTPUT]
-        else:
-            out_vars = []
+            output = p[3][ILAttribute.OUTPUT]
 
         if ILAttribute.LOCAL in p[3]:
-            local_vars = p[3][ILAttribute.LOCAL]
-        else:
-            local_vars = []
+            local = p[3][ILAttribute.LOCAL]
             
         if ILAttribute.INIT in p[3]:
             init_expr = p[3][ILAttribute.INIT]
-        else:
-            init_expr = ILConstant(IL_BOOL_SORT, True)
             
         if ILAttribute.TRANS in p[3]:
             trans_expr = p[3][ILAttribute.TRANS]
-        else:
-            trans_expr = ILConstant(IL_BOOL_SORT, True)
             
         if ILAttribute.INV in p[3]:
             inv_expr = p[3][ILAttribute.INV]
-        else:
-            inv_expr = ILConstant(IL_BOOL_SORT, True)
 
         if ILAttribute.SUBSYS in p[3]:
             subsystems = p[3][ILAttribute.SUBSYS]
-        else:
-            subsystems = {}
 
-        return ILDefineSystem(str(p[2]), in_vars, out_vars, local_vars,
-            init_expr, trans_expr, inv_expr, subsystems)
+        return ILDefineSystem(str(p[2]), input, output, local, init_expr, trans_expr, inv_expr, subsystems)
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
+        input, output, local = [], [], []
+        assume, fair, reach, current, query = {}, {}, {}, {}, {}
+
         if ILAttribute.INPUT in p[3]:
-            in_vars = p[3][ILAttribute.INPUT]
-        else:
-            in_vars = []
+            input = p[3][ILAttribute.INPUT]
             
         if ILAttribute.OUTPUT in p[3]:
-            out_vars = p[3][ILAttribute.OUTPUT]
-        else:
-            out_vars = []
+            output = p[3][ILAttribute.OUTPUT]
 
         if ILAttribute.LOCAL in p[3]:
-            local_vars = p[3][ILAttribute.LOCAL]
-        else:
-            local_vars = []
+            local = p[3][ILAttribute.LOCAL]
 
         if ILAttribute.ASSUMPTION in p[3]:
-            assume_dict = p[3][ILAttribute.ASSUMPTION]
-        else:
-            assume_dict = {}
+            assume = p[3][ILAttribute.ASSUMPTION]
             
         if ILAttribute.FAIRNESS in p[3]:
-            fair_dict = p[3][ILAttribute.FAIRNESS]
-        else:
-            fair_dict = {}
+            fair = p[3][ILAttribute.FAIRNESS]
             
         if ILAttribute.REACHABLE in p[3]:
-            reach_dict = p[3][ILAttribute.REACHABLE]
-        else:
-            reach_dict = {}
+            reach = p[3][ILAttribute.REACHABLE]
             
         if ILAttribute.CURRENT in p[3]:
-            current_dict = p[3][ILAttribute.CURRENT]
-        else:
-            current_dict = {}
+            current = p[3][ILAttribute.CURRENT]
             
         if ILAttribute.QUERY in p[3]:
-            query_dict = p[3][ILAttribute.QUERY]
-        else:
-            query_dict = {}
+            query = p[3][ILAttribute.QUERY]
 
-        return ILCheckSystem(p[2], in_vars, out_vars, local_vars,
-            assume_dict, fair_dict, reach_dict, current_dict, query_dict)
+        return ILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query)
 
     @_("LPAREN CMD_EXIT RPAREN")
     def command(self, p):
@@ -352,10 +335,18 @@ class ILParser(Parser):
     @_("identifier")
     def term(self, p):
         if len(p[0].indices) > 0:
-            print("Error, variable identifiers must not be indexed.")
+            print(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
             self.status = False
 
         symbol: str = p[0].symbol
+
+        if symbol == "True":
+            return ILConstant(IL_BOOL_SORT, True)
+        elif symbol == "False":
+            return ILConstant(IL_BOOL_SORT, False)
+        elif symbol in self.enums:
+            return ILConstant(IL_ENUM_SORT(self.enums[symbol]), symbol)
+
         prime: bool = False
         if symbol[len(symbol)-1] == "'":
             prime = True
