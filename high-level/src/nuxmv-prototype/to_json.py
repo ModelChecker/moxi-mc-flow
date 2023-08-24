@@ -14,7 +14,7 @@ def expr_json(expr):
             }
         case "And":
             return {
-                "identifier": "&",
+                "identifier": "and",
                 "args": [
                     expr_json(expr.left),
                     expr_json(expr.right)
@@ -22,7 +22,7 @@ def expr_json(expr):
             }
         case "Or":
             return {
-                "identifier": "|",
+                "identifier": "or",
                 "args": [
                     expr_json(expr.left),
                     expr_json(expr.right)
@@ -46,7 +46,7 @@ def expr_json(expr):
 
         case "Xor":
             return {
-                "identifier": "^",
+                "identifier": "xor",
                 "args": [
                     expr_json(expr.left),
                     expr_json(expr.right)
