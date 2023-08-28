@@ -1,0 +1,21 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "identifier.json",
+    "title": "Identifier",
+    "description": "Indexed and non-indexed IL Identifiers",
+    "type": "object",
+    "properties": {
+        "symbol": {
+            "type": "string"
+        },
+        "indices": {
+            "type": "array",
+            "items": {
+                "type": "integer",
+                "minimum": 0
+            }
+        }
+    },
+    "required": ["symbol"],
+    "additionalProperties": false
+}

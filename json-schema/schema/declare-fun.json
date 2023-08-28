@@ -1,0 +1,29 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "declare-fun.json",
+    "title": "DeclareFun",
+    "description": "A function declaration in the IL (taken from SMTlib)",
+    "type": "object",
+    "properties": {
+        "command": {
+            "const": "declare-fun"
+        },
+        "symbol": {
+            "description": "Name of `declare-fun` object",
+            "type": "string"
+        },
+        "inputs": {
+            "description": "List of input sorts to the function",
+            "type": "array",
+            "items": { "$ref": "sort.json" }
+        },
+        "output": {
+            "description": "Output sort of the function",
+            "$ref": "sort.json"
+        }
+    },
+    "required": [ "command", "symbol", "inputs", "output"  ],
+    "additionalProperties": false
+}
+
+

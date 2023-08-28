@@ -1,0 +1,25 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "il.json",
+    "title": "ILFile",
+    "description": "An IL specification",
+    "type": "array",
+    "items": { 
+        "oneOf": [
+            { "$ref": "declare-sort.json" },
+            { "$ref": "define-sort.json" },
+            { "$ref": "declare-const.json" },
+            { "$ref": "declare-fun.json"},
+            { "$ref": "define-fun.json"},
+            { "$ref": "set-logic.json"},
+            { "$ref": "declare-enum-sort.json"},
+            { "$ref": "define-system.json" },
+            { "$ref": "check-system.json" }
+        ] 
+    },
+    "additionalProperties": false
+} 
+
+
+
+

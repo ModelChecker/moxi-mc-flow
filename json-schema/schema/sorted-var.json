@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sorted-var.json",
+    "title": "Sorted Variable",
+    "description": "IL Sorted Identifier",
+    "type": "object",
+    "properties": {
+        "symbol": {
+            "type": "string"
+        },
+        "sort": {
+            "$ref": "sort.json"
+        }
+    },
+    "required": ["symbol", "sort"],
+    "additionalProperties": false
+}

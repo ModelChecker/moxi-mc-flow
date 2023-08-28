@@ -1,0 +1,108 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "check-system.json",
+    "title": "CheckSystem",
+    "description": "Queries/predicates over the transition system",
+    "type": "object",
+    "properties": {
+        "command": {
+            "const": "check-system"
+        },
+        "symbol": {
+            "description": "System to be checked",
+            "type": "string"
+        },
+        "input": {
+            "description": "Inputs to the transition system",
+            "type": "array",
+            "items": { "$ref": "sorted-var.json" }
+        },
+        "output": {
+            "description": "Outputs of the transition system",
+            "type": "array",
+            "items": { "$ref": "sorted-var.json" }
+        },
+        "local": {
+            "description": "Variables local to the transition system",
+            "type": "array",
+            "items": { "$ref": "sorted-var.json" }
+        },
+        "assumption": {
+            "description": "Environmental Assumptions",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "symbol": { "type": "string" },
+                    "formula": { "$ref": "expr.json" }
+                }
+            }
+        },
+        "fairness": {
+            "description": "Fairness Conditions",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "symbol": { "type": "string" },
+                    "formula": { "$ref": "expr.json" }
+                }
+            }
+        },
+        "reachable": {
+            "description": "Reachability Conditions",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "symbol": { "type": "string" },
+                    "formula": { "$ref": "expr.json" }
+                }
+            }
+        },
+        "current": {
+            "description": "Initiality Conditions",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "symbol": { "type": "string" },
+                    "formula": { "$ref": "expr.json" }
+                }
+            }
+        },
+        "query": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "symbol": { "type": "string" },
+                    "formulas": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "queries": {
+            "type": "array",
+            "items": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": {
+                        "symbol": { "type": "string" },
+                        "formulas": {
+                            "type": "array",
+                            "items": { "type": "string" }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "required": [ "command", "symbol" ],
+    "additionalProperties": false
+}

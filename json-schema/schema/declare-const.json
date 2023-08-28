@@ -1,0 +1,22 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "declare-const.json",
+    "title": "DeclareConst",
+    "description": "A const declaration in the IL (taken from SMTlib)",
+    "type": "object",
+    "properties": {
+        "command": {
+            "const": "declare-const"
+        },
+        "symbol": {
+            "description": "symbol of `declare-const` object",
+            "type": "string"
+        },
+        "sort": {
+            "description": "Sort of `declare-const` object",
+            "$ref": "sort.json"
+        }
+    },
+    "required": [ "symbol", "sort" ],
+    "additionalProperties": false
+}

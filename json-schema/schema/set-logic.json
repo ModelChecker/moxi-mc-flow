@@ -1,0 +1,18 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "set-logic.json",
+    "title": "SetLogic",
+    "description": "Command for setting logic (taken from SMTlib)",
+    "type": "object",
+    "properties": {
+        "command": {
+            "const": "set-logic"
+        },
+        "logic": {
+            "description": "symbol of logic for underlying solver",
+            "type": "string"
+        }
+    },
+    "required": [ "command", "logic" ],
+    "additionalProperties": false
+}

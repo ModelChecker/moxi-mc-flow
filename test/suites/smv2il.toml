@@ -1,0 +1,14 @@
+suite = "smv2il"
+
+[options]
+source = "smv"
+target = "il"
+use_json = true
+
+[test]
+smv = [
+  "_6counter.smv",
+  "_6counter2.smv",
+  "counter.smv",
+  "short.smv"
+]

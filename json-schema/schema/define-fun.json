@@ -1,0 +1,33 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "define-fun.json",
+    "title": "DefineFun",
+    "description": "A function definition in the IL (taken from SMTlib)",
+    "type": "object",
+    "properties": {
+        "command": {
+            "const": "define-fun"
+        },
+        "symbol": {
+            "description": "Name of `define-fun` object",
+            "type": "string"
+        },
+        "inputs": {
+            "description": "List of inputs (parameters) to the function",
+            "type": "array",
+            "items": { "$ref": "sorted-var.json" }
+        },
+        "output": {
+            "description": "Output sort of the function",
+            "$ref": "sort.json"
+        },
+        "body": { 
+            "description": "Function body",
+            "$ref": "expr.json" 
+        }
+    },
+    "required": [ "command", "symbol", "inputs", "output", "body" ],
+    "additionalProperties": false
+}
+
+

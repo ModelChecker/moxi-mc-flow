@@ -1,0 +1,31 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "define-sort.json",
+    "title": "DefineSort",
+    "description": "A sort definition in the IL (taken from SMTlib)",
+    "type": "object",
+    "properties": {
+        "command": {
+            "const": "define-sort"
+        },
+        "symbol": {
+            "description": "Symbol of `define-sort` object",
+            "type": "string"
+        },
+        "parameters": {
+            "description": "List of inputs (parameters) to parametric type `tau`",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "definition": {
+            "description": "Parametric type of `define-sort` object",
+            "$ref": "sort.json"
+        }
+    },
+    "required": [ "command", "symbol", "definition", "parameters" ],
+    "additionalProperties": false
+}
+
+

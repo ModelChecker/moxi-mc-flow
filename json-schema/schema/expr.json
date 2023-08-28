@@ -1,0 +1,23 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "expr.json",
+    "title": "Expression",
+    "description": "IL Expressions",
+    "type": "object",
+    "properties": {
+        "identifier": {
+            "oneOf": [
+                { "type": "string" },
+                { "$ref": "identifier.json" }
+            ]
+        },
+        "args": {
+            "type": "array",
+            "items": {
+                "$ref": "expr.json"
+            }
+        }
+    },
+    "required": ["identifier"],
+    "additionalProperties": false
+}

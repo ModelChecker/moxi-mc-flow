@@ -131,3 +131,6 @@ dmypy.json
 btor2tools/
 boolector/
 out
+__pycache__/
+
+.DS_Store

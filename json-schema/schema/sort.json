@@ -1,0 +1,23 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "sort.json",
+    "title": "Sort",
+    "description": "IL Sorts",
+    "type": "object",
+    "properties": {
+        "identifier": {
+            "oneOf": [
+                { "type": "string" },
+                { "$ref": "identifier.json" }
+            ]
+        },
+        "parameters": {
+            "type": "array",
+            "items": {
+                "$ref": "sort.json"
+            }
+        }
+    },
+    "required": ["identifier"],
+    "additionalProperties": false
+}

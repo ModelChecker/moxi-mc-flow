@@ -1,0 +1,25 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "declare-enum-sort.json",
+    "title": "DeclareEnumSort",
+    "description": "Declares a symbold enumeration sort",
+    "type": "object",
+    "properties": {
+        "command": {
+            "const": "declare-enum-sort"
+        },
+        "symbol": {
+            "description": "symbol of declared enumeration type",
+            "type": "string"
+        },
+        "values": {
+            "description": "Components of declared enumeration type",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        }
+    },
+    "required": [ "command", "symbol", "values" ],
+    "additionalProperties": false
+}

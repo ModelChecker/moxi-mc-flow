@@ -1,0 +1,73 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "define-system",
+    "title": "DefineSystem",
+    "description": "Defines the transition system",
+    "type": "object",
+    "properties": {
+        "command": {
+            "const": "define-system"
+        },
+        "symbol": {
+            "description": "Identifier of system",
+            "type": "string"
+        },
+        "input": {
+            "description": "Inputs to the transition system",
+            "type": "array",
+            "items": { "$ref": "sorted-var.json" }
+        },
+        "output": {
+            "description": "Outputs of the transition system",
+            "type": "array",
+            "items": { "$ref": "sorted-var.json" }
+        },
+        "local": {
+            "description": "Variables local to the transition system",
+            "type": "array",
+            "items": { "$ref": "sorted-var.json" }
+        },
+        "init": { 
+            "description": "Initial states",
+            "$ref": "expr.json" 
+        },
+        "trans": { 
+            "description": "Transitions between states",
+            "$ref": "expr.json" 
+        },
+        "inv": { 
+            "description": "Invariants on states",
+            "$ref": "expr.json" 
+        },
+        "subsys": {
+            "description": "Subsystem instantiations",
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "description": "Identifier of subsystem",
+                        "type": "string"
+                    },
+                    "target": {
+                        "description": "Subsystem instantiation",
+                        "type": "object",
+                        "properties": {
+                            "symbol": {
+                                "description": "Identifier of system definition",
+                                "type": "string"
+                            },
+                            "arguments": {
+                                "description": "List of input and output bindings to subsystem",
+                                "type": "array",
+                                "items": { "type": "string" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "required": [ "command", "symbol" ],
+    "additionalProperties": false
+}
