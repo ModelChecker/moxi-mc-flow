@@ -1,14 +1,16 @@
 suite = "smv2il"
 
 [options]
-source = "smv"
 target = "il"
-use_json = true
 
 [test]
-smv = [
+dir = "smv"
+source = [
   "_6counter.smv",
   "_6counter2.smv",
   "counter.smv",
   "short.smv"
 ]
+
+# add oracles -- 
+# research area in its own right

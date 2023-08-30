@@ -1,0 +1,19 @@
+Traceback (most recent call last):
+  File "/home/chris/git/ILToBtor2Python/test/../src/translate.py", line 110, in <module>
+    returncode = main(src_path, target_lang, target_path)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chris/git/ILToBtor2Python/test/../src/translate.py", line 61, in main
+    tmp = smv2json(src_path, json_path)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chris/git/ILToBtor2Python/src/smv2il/smv2json.py", line 22, in main
+    nuxmv_ast = parse(file.read())
+                ^^^^^^^^^^^^^^^^^^
+  File "/home/chris/git/ILToBtor2Python/src/smv2il/nuxmv_pyparser.py", line 593, in parse
+    return parseAllString(start, string)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/chris/git/ILToBtor2Python/src/smv2il/nuxmv_pyparser.py", line 580, in parseAllString
+    res = parser.parseString(string, parseAll=True)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/lib/python3.11/site-packages/pyparsing/core.py", line 1141, in parse_string
+    raise exc.with_traceback(None)
+pyparsing.exceptions.ParseException: Expected end of text, found 'SPEC'  (at char 236), (line:11, col:1)

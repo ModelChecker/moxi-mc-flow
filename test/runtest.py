@@ -1,5 +1,4 @@
 from __future__ import annotations
-from ctypes.wintypes import WORD
 from glob import glob
 from pathlib import Path
 from typing import Any
@@ -15,7 +14,7 @@ import logging
 from logger import toplevel_logger, Color, Formatter, ColorFormatter
 
 
-TEST_DIR = Path(__file__).parent
+TEST_DIR = Path(__file__).parent.absolute()
 SUITES_DIR = TEST_DIR / "suites"
 FILES_DIR = TEST_DIR / "inputs"
 WORK_DIR = TEST_DIR / "__workdir"
@@ -51,10 +50,12 @@ class TestCase():
     def __init__(self, 
                  suite_name: str, 
                  test_name: str, 
+                 test_path: Path, 
                  top_results_dir: Path):
         self.status = True
         self.suite_name: str = suite_name
         self.test_name: str = test_name
+        self.test_path: Path = test_path
         self.top_results_dir: Path = top_results_dir
         self.suite_results_dir: Path = top_results_dir / suite_name
         self.test_results_dir: Path = self.suite_results_dir / test_name
@@ -90,18 +91,18 @@ class TestCase():
     def test_pass(self, msg: str):
         self.logger.info(f"{self.test_name} [{Color.PASS}PASS{Color.ENDC}] {msg}")
 
-    def run(self, program: Path, copyback: bool):
+    def run(self, program: Path, options: list[str], copyback: bool):
         """CHANGE ME!"""
         os.chdir(WORK_DIR)
 
-        proc = subprocess.run([program], capture_output=True)
+        proc = subprocess.run(["python", str(program), str(self.test_path)] + options, capture_output=True)
 
         if proc.stdout != b"":
-            with open(self.test_results_dir / f"{program.stem}.stdout", "wb") as f:
+            with open(self.test_results_dir / "stdout", "wb") as f:
                 f.write(proc.stdout)
 
         if proc.stderr != b"":
-            with open(self.test_results_dir / f"{program.stem}.stderr", "wb") as f:
+            with open(self.test_results_dir / "stderr", "wb") as f:
                 f.write(proc.stderr)
 
         if proc.returncode != 0:
@@ -117,8 +118,10 @@ class TestCase():
             # copy source/temp files into results directory
             pass
 
-        for f in glob(f"{WORK_DIR}/*"):
+        for f in glob(f"./*"):
             os.remove(f)
+
+        os.chdir(TEST_DIR)
 
 
 class TestSuite():
@@ -128,6 +131,7 @@ class TestSuite():
         self.status: bool = True
         self.suite_name: str = name
         self.tests: list[TestCase] = []
+        self.options: list[str] = []
         self.top_results_dir: Path = top_results_dir
         self.suite_results_dir: Path = top_results_dir / name
         
@@ -161,9 +165,11 @@ class TestSuite():
     def suite_fail_msg(self, msg: str):
         self.logger.error(msg)
         self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
+        self.status = False
 
     def suite_fail(self):
         self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.FAIL}FAIL{Color.ENDC}")
+        self.status = False
 
     def suite_pass(self):
         self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.PASS}PASS{Color.ENDC}")
@@ -180,24 +186,44 @@ class TestSuite():
             config: dict[str, Any] = tomllib.load(f)
 
         if "options" in config:
-            pass
+            opt = config["options"]
+
+            if "target" not in opt:
+                self.suite_fail_msg("Suite requires `target` language option")
+            elif opt["target"] not in ["il", "il-json", "btor2"]:
+                self.suite_fail_msg(f"Source language {opt['target']} invalid")
+            else:
+                self.options.append(opt["target"])
 
         if "test" not in config:
             return
 
-        
+        if "dir" not in config["test"]:
+            self.suite_fail_msg("Suite requires `dir` language option")
+            return
+
+        test_file_dir = TEST_DIR / str(config["test"]["dir"])
+        if not test_file_dir.is_dir():
+            self.suite_fail_msg(f"File directory `{test_file_dir}` not a directory")
+
+        if "source" not in config["test"]:
+            self.suite_fail_msg("Suite requires `source` program list")
+
+        for test_filename in config["test"]["source"]:
+            test_path = test_file_dir / test_filename
+            self.tests.append(TestCase(self.suite_name, test_path.stem, test_path, self.top_results_dir))
 
     def run(self, program: Path, copyback: bool):
         """CHANGE ME!"""
         if not program.is_file():
-            self.suite_fail_msg(f"Program `{program}` is not a valid executable.")
+            self.suite_fail_msg(f"`{program}` is not a file.")
             return
 
         if not self.status:
             return
 
         for test in self.tests:
-            test.run(program, copyback)
+            test.run(program, self.options, copyback)
             self.status = test.status and self.status
 
         if not self.status:
@@ -213,7 +239,7 @@ def main(program: Path,
     """Runs `program` on each suite in `suite_names` and stores results in `results_dir`."""
     suites: list[TestSuite] = []
     for suite_name in suite_names:
-        suites.append(TestSuite(suite_name, results_dir))
+        suites.append(TestSuite(suite_name, results_dir.absolute()))
 
     for suite in suites:
         suite.run(program, copyback)
@@ -221,8 +247,6 @@ def main(program: Path,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("program",
-                        help="program to test")
     parser.add_argument("resultsdir",
                         help="directory to output test logs and copyback data")
     parser.add_argument("suites", nargs="+",
@@ -231,4 +255,6 @@ if __name__ == "__main__":
                         help="copy all source, compiled, and log files from each testcase")
     args = parser.parse_args()
 
-    main(Path(args.program), Path(args.resultsdir), args.suites, args.copyback)
+    program = TEST_DIR / "../src/translate.py"
+
+    main(program, Path(args.resultsdir), args.suites, args.copyback)
