@@ -1,0 +1,115 @@
+[
+    {
+        "command": "declare-enum-sort",
+        "symbol": "Enum1",
+        "values": [
+            "Tr",
+            "Fa"
+        ]
+    },
+    {
+        "command": "declare-enum-sort",
+        "symbol": "Enum2",
+        "values": [
+            "ready",
+            "busy"
+        ]
+    },
+    {
+        "command": "define-system",
+        "symbol": "main",
+        "input": [],
+        "output": [
+            {
+                "symbol": "request",
+                "sort": {
+                    "identifier": "Enum1"
+                }
+            },
+            {
+                "symbol": "state",
+                "sort": {
+                    "identifier": "Enum2"
+                }
+            }
+        ],
+        "local": [],
+        "init": {
+            "identifier": "=",
+            "args": [
+                {
+                    "identifier": "state"
+                },
+                {
+                    "identifier": "ready"
+                }
+            ]
+        },
+        "trans": {
+            "identifier": "=",
+            "args": [
+                {
+                    "identifier": "state'"
+                },
+                {
+                    "identifier": "ite",
+                    "args": [
+                        {
+                            "identifier": "and",
+                            "args": [
+                                {
+                                    "identifier": "=",
+                                    "args": [
+                                        {
+                                            "identifier": "state"
+                                        },
+                                        {
+                                            "identifier": "ready"
+                                        }
+                                    ]
+                                },
+                                {
+                                    "identifier": "=",
+                                    "args": [
+                                        {
+                                            "identifier": "request"
+                                        },
+                                        {
+                                            "identifier": "Tr"
+                                        }
+                                    ]
+                                }
+                            ]
+                        },
+                        {
+                            "identifier": "busy"
+                        },
+                        {
+                            "identifier": "ite",
+                            "args": [
+                                {
+                                    "identifier": "True"
+                                },
+                                {
+                                    "identifier": "set",
+                                    "args": [
+                                        {
+                                            "identifier": "ready"
+                                        },
+                                        {
+                                            "identifier": "busy"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "inv": {
+            "identifier": "True"
+        },
+        "subsys": []
+    }
+]
