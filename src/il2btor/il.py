@@ -232,10 +232,10 @@ class ILVar(ILExpr):
         return hash(self.symbol)
 
     def __str__(self) -> str:
-        return f"{self.symbol}" + "'" if self.prime else ""
+        return f"{self.symbol}" + ("'" if self.prime else "")
 
     def to_json(self) -> dict:
-        return {"identifier": self.symbol + "'" if self.prime else self.symbol}
+        return {"identifier": self.symbol + ("'" if self.prime else self.symbol)}
 
     def to_json_sorted_var(self) -> dict:
         return {"symbol": self.symbol, "sort": self.sort.to_json()}
