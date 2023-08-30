@@ -1,6 +1,10 @@
 #type: ignore
-from sly import Lexer, Parser
-from il import *
+if __package__ == "":
+    from sly import Lexer, Parser
+    from il import *
+else:
+    from .sly import Lexer, Parser
+    from .il import *
 
 class ILLexer(Lexer):
 

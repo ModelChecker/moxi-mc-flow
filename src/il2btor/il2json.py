@@ -3,39 +3,49 @@ import json
 from argparse import ArgumentParser
 from pathlib import Path
 
-from il import sort_check
-from parse import parse
+if __name__ == "__main__" and __package__ is None:
+    from il import sort_check
+    from parse import parse
+else:
+    from .il import sort_check
+    from .parse import parse
 
-ERROR_CODE_PARSE = 1
-ERROR_CODE_SORT_CHECK = 2
 
-argparser = ArgumentParser(description="Translates an input IL program to JSON format.")
-argparser.add_argument("input", help="input IL file")
-argparser.add_argument("--output", help="output file to dump JSON data")
-argparser.add_argument("--pretty", action="store_true", help="enable pretty JSON")
-argparser.add_argument("--sort-check", action="store_true", help="enable sort checking")
+def main(input_path: Path, output_path: Path, do_sort_check: bool, do_pretty: bool) -> int:
+    if not input_path.is_file():
+        print(f"Error: `{input_path}` is not a valid file.")
+        return 1
 
-args = argparser.parse_args()
+    with open(input_path,"r") as file:
+        program = parse(file.read())
 
-input_filename = Path(args.input)
-output_filename = Path(args.output) if args.output else Path(f"{input_filename.stem}.json")
+    if not program:
+        print("Failed parsing")
+        return 1
 
-if not input_filename.is_file():
-    print(f"Error: `{input_filename}` is not a valid file.")
-    sys.exit(1)
+    if do_sort_check:
+        (well_sorted, _) = sort_check(program)
+        if not well_sorted:
+            print("Failed sort check")
+            return 2
 
-with open(input_filename,"r") as file:
-    program = parse(file.read())
+    with open(output_path, "w") as f:
+        json.dump(program.to_json(), f, indent=4 if do_pretty else None)
+        return 0
 
-if not program:
-    print("Failed parsing")
-    sys.exit(ERROR_CODE_PARSE)
 
-if args.sort_check:
-    (well_sorted, _) = sort_check(program)
-    if not well_sorted:
-        print("Failed sort check")
-        sys.exit(ERROR_CODE_SORT_CHECK)
+if __name__ == "__main__":
+    argparser = ArgumentParser(description="Translates an input IL program to JSON format.")
+    argparser.add_argument("input", help="input IL file")
+    argparser.add_argument("--output", help="output file to dump JSON data")
+    argparser.add_argument("--pretty", action="store_true", help="enable pretty JSON")
+    argparser.add_argument("--sort-check", action="store_true", help="enable sort checking")
 
-with open(output_filename, "w") as f:
-    json.dump(program.to_json(), f, indent=4 if args.pretty else None)
+    args = argparser.parse_args()
+
+    input_path = Path(args.input)
+    output_path = Path(args.output) if args.output else Path(f"{input_path.stem}.json")
+
+    returncode = main(input_path, output_path, args.sort_check, args.pretty)
+    sys.exit(returncode)
+

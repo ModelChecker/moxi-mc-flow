@@ -1,7 +1,11 @@
 from argparse import ArgumentParser
 from pathlib import Path
 import sys
-from il import *
+
+if __name__ == "__main__" and __package__ is None:
+    from il import *
+else:
+    from .il import *
 
 
 def from_json_identifier(contents: dict | str) -> ILIdentifier:
@@ -168,12 +172,9 @@ def from_json(contents: dict) -> Optional[ILProgram]:
     return ILProgram(program)
 
 
-def main(input_filename: str, output_filename: str, do_sort_check: bool) -> int:
-    input_path = Path(input_filename)
-    output_path = Path(output_filename)
-
+def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
     if not input_path.is_file():
-        print(f"Error: `{input_filename}` is not a valid file.")
+        print(f"Error: `{input_path}` is not a valid file.")
         sys.exit(1)
 
     with open(input_path, "r") as file:
@@ -204,8 +205,8 @@ if __name__ == "__main__":
 
     args = argparser.parse_args()
 
-    input_filename = Path(args.input)
-    output_filename = Path(args.output) if args.output else Path(f"{input_filename.stem}.mcil")
+    input_path = Path(args.input)
+    output_path = Path(args.output) if args.output else Path(f"{input_path.stem}.mcil")
 
-    main(str(input_filename), str(output_filename), args.sort_check)
+    main(input_path, output_path, args.sort_check)
 

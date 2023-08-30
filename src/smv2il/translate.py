@@ -3,10 +3,10 @@ import argparse, rich
 
 from typing import Tuple
 
-from model import *
-from model import Expression
-
-import nuxmv_pyparser as Parser
+if __package__ == "":
+    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le
+else:
+    from .model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le
 
 """
 This file prototypes a translation from nuXmv to the IL 
@@ -144,7 +144,6 @@ def translate_expression(expr):
     elif ecn == "list":
         return list(map(lambda x : translate_expression(x), expr))
     else: 
-        print("translate_expression", ecn)
         return expr
 
 

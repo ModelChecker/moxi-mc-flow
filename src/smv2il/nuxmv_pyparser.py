@@ -1,13 +1,17 @@
 from collections import OrderedDict
 from functools import reduce
+import argparse
+
 from pyparsing import *
 
-from model import *
-from model import Expression, Bound, Inf, FunType, FunDecl, FunctionDeclaration
+if __package__ == "":
+    from model import *
+else:
+    from .model import *
+    from .model import Expression
 
 ParserElement.enable_packrat()
 
-import argparse
 
 """
 This file prototypes a parser from (a subset of) nuXmv into the IL.
@@ -552,7 +556,7 @@ def gensym(string):
     return (string + str(counter))
 
 def _create_module(string, location, tokens):
-    from model import ModuleMetaClass, Module as ModuleClass
+    # from model import ModuleMetaClass, Module as ModuleClass
 
     name = tokens[0]
     args = tokens[1]

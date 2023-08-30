@@ -1,8 +1,10 @@
 import argparse, rich
-import nuxmv_pyparser as Parser
 import json
 
-from translate import *
+if __package__ == "":
+    from translate import *
+else:
+    from .translate import *
 
 
 def expr_json(expr):

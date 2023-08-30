@@ -3,15 +3,18 @@ from enum import Enum
 from pathlib import Path
 import sys
 
+from smv2il.smv2json import main as smv2json
+from il2btor.json2il import main as json2il
+from il2btor.il2json import main as il2json
 from il2btor.il2btor import main as il2btor
-from smv2il.smv2il_json import main as smv2il_json
 
 
 class Lang(Enum):
-    SMV = 0
-    IL = 1
-    IL_JSON = 1
-    BTOR2 = 2
+    NONE = 0
+    SMV = 1
+    IL = 2
+    IL_JSON = 3
+    BTOR2 = 4
 
 
 def ext_to_lang(ext: str) -> Lang:
@@ -28,9 +31,7 @@ def ext_to_lang(ext: str) -> Lang:
             raise NotImplementedError
 
 
-def main(src_filename: str, target_lang: str) -> int:
-    src_path = Path(src_filename)
-
+def main(src_path: Path, target_lang: Lang, target_path: Path) -> int:
     if not src_path.is_file():
         sys.stderr.write(f"Error: source is not a file ({src_path})")
         return 1
@@ -40,38 +41,71 @@ def main(src_filename: str, target_lang: str) -> int:
 
     src_lang = ""
     if src_path.suffix == ".smv":
-        src_lang = "smv"
+        src_lang = Lang.SMV
     elif src_path.suffix == ".mcil":
-        src_lang = "il"
+        src_lang = Lang.IL
     elif src_path.suffix == ".json":
         # assuming JSON files are IL representations
-        src_lang = "il-json"
+        src_lang = Lang.IL_JSON
     else:
         sys.stderr.write(f"Error: file type unsupported ({src_path.suffix})")
         return 1
 
     if src_lang == target_lang:
         return 0
-    elif src_lang == "smv":
-        smv2il_json(src_filename, "tmp.json")
-
-    
-    elif src_lang == "il":
-        il2btor(src_filename, "tmp.btor")
-    
+    elif src_lang == Lang.SMV:
+        if target_lang == Lang.IL_JSON:
+            return smv2json(src_path, target_path)
+        elif target_lang == Lang.IL:
+            json_path = Path(f"{target_path.stem}.json")
+            tmp = smv2json(src_path, json_path)
+            if tmp:
+                return tmp
+            return json2il(json_path, target_path, do_sort_check=False)
+        elif target_lang == Lang.BTOR2:
+            json_path = Path(f"{target_path.stem}.json")
+            tmp = smv2json(src_path, json_path)
+            if tmp:
+                return tmp
+            tmp = il2btor(json_path, target_path)
+    elif src_lang == Lang.IL:
+        if target_lang == Lang.IL_JSON:
+            return il2json(src_path, target_path, False, False)
+        elif target_lang == Lang.BTOR2:
+            return il2btor(src_path, target_path)
+    elif src_lang == Lang.IL_JSON:
+        if target_lang == Lang.IL:
+            return json2il(src_path, target_path, do_sort_check=False)
+        elif target_lang == Lang.BTOR2:
+            return il2btor(src_path, target_path)
 
     return 0
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("src", help="source program to translate, language is inferred from file extension")
-    parser.add_argument("target", choices=["il", "il-json", "btor2"],
+    parser.add_argument("source", help="source program to translate, language is inferred from file extension")
+    parser.add_argument("targetlang", choices=["il", "il-json", "btor2"],
                         help="target language")
     parser.add_argument("--target-filename", help="target filename")
     # parser.add_argument("--use-json", action="store_true",
     #                     help="use json as interchange format between translators")
     args = parser.parse_args()
 
-    returncode = main(args.src, args.target)
+    src_path = Path(args.source)
+
+    if args.targetlang == "il":
+        target_lang = Lang.IL
+        target_path = Path(args.target_filename) if args.target_filename else Path(f"{src_path.stem}.mcil")
+    elif args.targetlang == "il-json":
+        target_lang = Lang.IL_JSON
+        target_path = Path(args.target_filename) if args.target_filename else Path(f"{src_path.stem}.json")
+    elif args.targetlang == "btor2":
+        target_lang = Lang.BTOR2
+        target_path = Path(args.target_filename) if args.target_filename else Path(f"{src_path.stem}.btor")
+    else:
+        target_lang = Lang.NONE
+        target_path = Path("")
+
+    returncode = main(src_path, target_lang, target_path)
     sys.exit(returncode)

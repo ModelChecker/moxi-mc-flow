@@ -5,10 +5,16 @@ from pathlib import Path
 import sys
 from typing import cast
 
-from il import *
-from json2il import from_json
-from btor import *
-from parse import parse
+if __name__ == "__main__" and __package__ is None:
+    from il import *
+    from json2il import from_json
+    from btor import *
+    from parse import parse
+else:
+    from .il import *
+    from .json2il import from_json
+    from .btor import *
+    from .parse import parse
 
 
 ilfunc_map: dict[str, BtorOperator] = {
@@ -416,9 +422,7 @@ def translate(il_prog: ILProgram) -> dict[str, list[BtorNode]]:
     return btor2_prog_list
 
 
-def main(input_filename: str, output_filename: str) -> int:
-    input_path = Path(input_filename)
-
+def main(input_path: Path, output_path: Path) -> int:
     if not input_path.is_file():
         sys.stderr.write(f"Error: `{input_path}` is not a valid file.")
         return 1
@@ -438,7 +442,7 @@ def main(input_filename: str, output_filename: str) -> int:
 
     output = translate(program)
     
-    with open(output_filename, "w") as f:
+    with open(output_path, "w") as f:
         for label,nodes in output.items():
             # f.write(f"; {label}\n")
             for n in nodes:
@@ -449,9 +453,12 @@ def main(input_filename: str, output_filename: str) -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="source program to translate, should have either .json or .mcil extension.")
-    parser.add_argument("output", help="path of file to output BTOR2")
+    parser.add_argument("input", help="source program to translate, should have either .json or .mcil extension")
+    parser.add_argument("--output", help="path of file to output BTOR2; defaults to input filename with .btor extension")
     args = parser.parse_args()
 
-    returncode = main(args.input, args.output)
+    input_path = Path(args.input)
+    output_path = Path(args.output) if args.output else Path(f"{input_path.stem}.btor")
+
+    returncode = main(input_path, output_path)
     sys.exit(returncode)

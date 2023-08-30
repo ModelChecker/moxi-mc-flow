@@ -235,7 +235,7 @@ class ILVar(ILExpr):
         return f"{self.symbol}" + ("'" if self.prime else "")
 
     def to_json(self) -> dict:
-        return {"identifier": self.symbol + ("'" if self.prime else self.symbol)}
+        return {"identifier": self.symbol + ("'" if self.prime else "")}
 
     def to_json_sorted_var(self) -> dict:
         return {"symbol": self.symbol, "sort": self.sort.to_json()}

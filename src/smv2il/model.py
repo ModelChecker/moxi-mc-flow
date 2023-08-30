@@ -104,7 +104,10 @@ from copy import deepcopy
 
 # from .nusmv.node import node as nsnode
 
-from utils import update
+if __package__ == "":
+    from utils import update
+else:
+    from .utils import update
 # from .exception import NuSMVModuleError
 
 
@@ -210,7 +213,10 @@ class Expression(Element):
         return self.lt(other)
 
     def lt(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Lt(self, other)
@@ -219,7 +225,10 @@ class Expression(Element):
         return self.le(other)
 
     def le(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Le(self, other)
@@ -228,7 +237,10 @@ class Expression(Element):
         return self.eq(other)
 
     def eq(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Equal(self, other)
@@ -237,7 +249,10 @@ class Expression(Element):
         return self.ne(other)
 
     def ne(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return NotEqual(self, other)
@@ -246,7 +261,10 @@ class Expression(Element):
         return self.gt(other)
 
     def gt(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Gt(self, other)
@@ -255,7 +273,10 @@ class Expression(Element):
         return self.ge(other)
 
     def ge(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Ge(self, other)
@@ -264,7 +285,10 @@ class Expression(Element):
     #     return self.add(other)
 
     def add(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Add(self, other)
@@ -273,13 +297,19 @@ class Expression(Element):
         return self.sub(other)
     
     def __rsub__(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Sub(other, self)
 
     def sub(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Sub(self, other)
@@ -288,7 +318,10 @@ class Expression(Element):
         return self.mul(other)
 
     def mul(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Mult(self, other)
@@ -297,7 +330,10 @@ class Expression(Element):
         return self.div(other)
 
     def div(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Div(self, other)
@@ -306,7 +342,10 @@ class Expression(Element):
         return self.mod(other)
 
     def mod(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Mod(self, other)
@@ -315,7 +354,10 @@ class Expression(Element):
         return self.lshift(other)
 
     def lshift(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return LShift(self, other)
@@ -324,7 +366,10 @@ class Expression(Element):
         return self.rshift(other)
 
     def rshift(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return RShift(self, other)
@@ -333,7 +378,10 @@ class Expression(Element):
         return self.and_(other)
 
     def and_(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return And(self, other)
@@ -342,13 +390,19 @@ class Expression(Element):
         return self.xor(other)
 
     def xor(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Xor(self, other)
 
     def xnor(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Xnor(self, other)
@@ -357,7 +411,10 @@ class Expression(Element):
         return self.or_(other)
 
     def or_(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Or(self, other)
@@ -381,7 +438,10 @@ class Expression(Element):
         return Not(self)
 
     def __getitem__(self, key):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(key, slice):
             start, stop = slice.start, slice.stop
             if isinstance(start, str):
@@ -417,25 +477,37 @@ class Expression(Element):
         return Init(self)
 
     def concat(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Concat(self, other)
 
     def union(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Union(self, other)
 
     def in_(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return In(self, other)
 
     def ite(self, true_expr, false_expr):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(true_expr, str):
             true_expr = parseAllString(next_expression, true_expr)
         if isinstance(false_expr, str):
@@ -443,13 +515,19 @@ class Expression(Element):
         return Ite(self, true_expr, false_expr)
 
     def iff(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Iff(self, other)
 
     def implies(self, other):
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         if isinstance(other, str):
             other = parseAllString(next_expression, other)
         return Implies(self, other)
@@ -473,7 +551,10 @@ class Expression(Element):
         """
         Create a new Expression from the given string `expr`.
         """
-        from nuxmv_pyparser import parseAllString, next_expression
+        if __package__ == "":
+            from nuxmv_pyparser import parseAllString, next_expression
+        else:
+            from .nuxmv_pyparser import parseAllString, next_expression
         return parseAllString(next_expression, expr)
 
 
@@ -500,7 +581,7 @@ class Identifier(Expression):
         return 17 + 23 * hash("Identifier") + 23 ** 2 * hash(self.name)
 
     def __getattr__(self, name):
-        if name is not "name":
+        if name != "name":
             return Dot(self, Identifier(name))
         else:
             raise AttributeError("'{}' object ha no attribute '{}'"
