@@ -137,6 +137,9 @@ class ILSort():
         return hash(self.identifier)
     
     def __str__(self) -> str:
+        if not self.is_parametric():
+            return str(self.identifier)
+
         parameters_str = " ".join([str(p) for p in self.parameters])
         return f"({self.identifier} {parameters_str})"
 
@@ -148,7 +151,7 @@ class ILSort():
 
 # Built-in sorts
 IL_NO_SORT: ILSort = ILSort(ILIdentifier("", []), []) # placeholder sort
-IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("BitVec", [1]), [])
+IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("Bool", []), [])
 IL_INT_SORT: ILSort = ILSort(ILIdentifier("Int", []), [])
 IL_BITVEC_SORT: Callable[[int], ILSort] = lambda n: ILSort(ILIdentifier("BitVec", [n]), [])
 IL_ARRAY_SORT: Callable[[ILSort, ILSort], ILSort] = lambda A,B: ILSort(ILIdentifier("Array", []), [A,B])
@@ -156,20 +159,20 @@ IL_ENUM_SORT:  Callable[[str], ILSort] = lambda s: ILSort(ILIdentifier(s, []), [
 
 
 def is_bool_sort(sort: ILSort) -> bool:
-    """A Bool sort has an identifier that is the symbol 'Bool' and is non-parametric."""
+    """A Bool sort has an identifier that is the symbol 'Bool' and is non-parametric"""
     return sort.identifier.is_symbol("Bool") and not sort.is_parametric()
 
 def is_bitvec_sort(sort: ILSort) -> bool:
-    """A bit vector sort has an identifier with the symbol 'BitVec' and is indexed with a single numeral. Bool type is an implicit name for a bit vector of length one."""
-    return (sort.identifier.symbol == "BitVec" and len(sort.identifier.indices) == 1) or is_bool_sort(sort)
+    """A bit vector sort has an identifier with the symbol 'BitVec' and is indexed with a single numeral"""
+    return (sort.identifier.symbol == "BitVec" and len(sort.identifier.indices) == 1)
 
 def is_int_sort(sort: ILSort) -> bool:
-    """An Int sort has an identifier that is the symbol 'Int' and is non-parametric."""
+    """An Int sort has an identifier that is the symbol 'Int' and is non-parametric"""
     return sort.identifier.is_symbol("Int") and not sort.is_parametric()
 
 def is_array_sort(sort: ILSort) -> bool:
     """An Array sort has an identifier that is the symbol 'Array' and has two parameters"""
-    return sort.identifier.is_symbol("Array") and sort.arity() == 2
+    return sort.identifier.is_symbol("Array") and not sort.is_parametric() and sort.arity() == 2
 
 
 class ILExpr():
@@ -192,12 +195,14 @@ class ILConstant(ILExpr):
         self.value = value
 
     def __str__(self) -> str:
-        return f"{self.value}"
+        if is_bitvec_sort(self.sort):
+            format_str = f"#b{'{'}0:0{self.sort.identifier.indices[0]}b{'}'}"
+            return format_str.format(self.value)
+
+        return str(self.value)
 
     def to_json(self) -> dict:
-        if isinstance(self.value, int):
-            return {"identifier": self.value}
-        return {"identifier": str(self.value)}
+        return {"identifier": str(self)}
 
 
 class ILVarType(Enum):
@@ -432,18 +437,18 @@ class ILDefineSystem(ILCommand):
         output_str = " ".join([f"({o.symbol} {o.sort})" for o in self.output])
         local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.input])
 
-        subsystem_str = ":subsys "
+        # subsystem_str = ":subsys " # TODO
 
-        s =  f"(define-fun {self.symbol} "
+        s =  f"(define-system {self.symbol} "
         s += f":input ({input_str}) "
         s += f":output ({output_str}) "
         s += f":local ({local_str}) "
         s += f":init {self.init} "
         s += f":trans {self.trans} "
         s += f":inv {self.inv} "
-        s += f":subsys ({input_str}) "
+        # s += f":subsys ({input_str}) "
 
-        return s
+        return s + ")"
 
     def to_json(self) -> dict:
         return {
@@ -491,6 +496,30 @@ class ILCheckSystem(ILCommand):
         self.current = current
         self.query = query
 
+    def __str__(self) -> str:
+        input_str = " ".join([f"({i.symbol} {i.sort})" for i in self.input])
+        output_str = " ".join([f"({o.symbol} {o.sort})" for o in self.output])
+        local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.input])
+
+        assumption_str = " ".join([f":assumption ({symbol} {expr})" for symbol,expr in self.assumption.items()])
+        fairness_str = " ".join([f":fairness ({symbol} {expr})" for symbol,expr in self.fairness.items()])
+        reachable_str = " ".join([f":reachable ({symbol} {expr})" for symbol,expr in self.reachable.items()])
+        current_str = " ".join([f":current ({symbol} {expr})" for symbol,expr in self.current.items()])
+
+        query_str = " ".join([f"({symbol} ({' '.join(exprs)}))" for symbol,exprs in self.query.items()])
+
+        s =  f"(check-system {self.sys_symbol} "
+        s += f":input ({input_str}) "
+        s += f":output ({output_str}) "
+        s += f":local ({local_str}) "
+        s += f"{assumption_str} "
+        s += f"{fairness_str} "
+        s += f"{reachable_str} "
+        s += f"{current_str} "
+        s += f":query {query_str} "
+
+        return s + ")"
+
     def to_json(self) -> dict:
         return {
             "command": "check-system",
@@ -514,6 +543,9 @@ class ILProgram():
 
     def get_check_system_cmds(self) -> list[ILCheckSystem]:
         return [cmd for cmd in self.commands if isinstance(cmd, ILCheckSystem)]
+
+    def __str__(self) -> str:
+        return "\n".join(str(cmd) for cmd in self.commands)
 
     def to_json(self) -> list:
         return [cmd.to_json() for cmd in self.commands]
@@ -852,9 +884,8 @@ class ILSystemContext():
         return True
         
     def __hash__(self) -> int:
-        # TODO: need hash that is sensitive to order?
-        # I think this may work due to the assumption of a dependency graph
-        # i.e., there is only one unique order for each system context
+        # this works due to assumption of a dependency graph; 
+        # there is only one unique order for each system context
         return sum([hash(name)+hash(sys.symbol) for name,sys in self._system_stack])
 
 
@@ -875,6 +906,7 @@ class ILContext():
 
     def get_symbols(self) -> set[str]:
         # TODO: this is computed EVERY time, optimize this
+        # need to implement setters/update functions for each data structure
         symbols = set()
 
         symbols.update([id.symbol for id in self.declared_sorts])
@@ -983,6 +1015,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
     for cmd in program.commands:
         if isinstance(cmd, ILDeclareSort):
+            # TODO: move this warning to il2btor.py
             print(f"Warning: declare-sort command unsupported, ignoring.")
         elif isinstance(cmd, ILDefineSort):
             if cmd.symbol in context.get_symbols():
@@ -1041,14 +1074,15 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                         print(f"Error: variable '{symbol}' not declared.")
                         status = False
                         signature.append(IL_EMPTY_VAR)
-                    else:
-                        signature.append(variables[symbol])
-                        if variables[symbol] in cmd.input:
-                            variables[symbol].var_type = ILVarType.INPUT
-                        elif variables[symbol] in cmd.output:
-                            variables[symbol].var_type = ILVarType.OUTPUT
-                        elif variables[symbol] in cmd.local:
-                            variables[symbol].var_type = ILVarType.LOCAL
+                        continue
+
+                    signature.append(variables[symbol])
+                    if variables[symbol] in cmd.input:
+                        variables[symbol].var_type = ILVarType.INPUT
+                    elif variables[symbol] in cmd.output:
+                        variables[symbol].var_type = ILVarType.OUTPUT
+                    elif variables[symbol] in cmd.local:
+                        variables[symbol].var_type = ILVarType.LOCAL
 
                 target_system = context.defined_systems[sys_symbol]
                 target_signature = target_system.input + target_system.output
@@ -1142,166 +1176,3 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
 
     return (status, context)
 
-
-def from_json_identifier(contents: dict | str) -> ILIdentifier:
-    if isinstance(contents, dict):
-        return ILIdentifier(contents["symbol"], contents["indices"])
-    else: # isinstance(contents, str)
-        return ILIdentifier(str(contents), [])
-
-
-def from_json_sort(contents: dict) -> ILSort:
-    params: list[ILSort] =  []
-    if "parameters" in contents:
-        params = [from_json_sort(param) for param in contents["parameters"]]
-
-    identifier = from_json_identifier(contents["identifier"])
-
-    if identifier.symbol == "Bool" and len(identifier.indices) == 0:
-        return IL_BOOL_SORT
-
-    return ILSort(identifier, params)
-
-
-def from_json_sorted_var(contents: dict) -> ILVar:
-    sort = from_json_sort(contents["sort"])
-    return ILVar(ILVarType.NONE, sort, contents["symbol"], False)
-
-
-def from_json_expr(contents: dict, enums: dict[str, str]) ->  ILExpr:
-    args: list[ILExpr] = []
-    if "args" in contents:
-        args = [from_json_expr(a, enums) for a in contents["args"]]
-    
-    identifier = from_json_identifier(contents["identifier"])
-
-    if len(args) != 0:
-        return ILApply(IL_NO_SORT, identifier, args)
-    
-    if identifier.symbol == "True":
-        return ILConstant(IL_BOOL_SORT, True)
-    elif identifier.symbol == "False":
-        return ILConstant(IL_BOOL_SORT, False)
-    elif re.match(r"0|[1-9]\d*", identifier.symbol):
-        return ILConstant(IL_INT_SORT, int(identifier.symbol))
-    elif re.match(r"#x[A-F0-9]+", identifier.symbol):
-        return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])*4), int(identifier.symbol[2:], base=16))
-    elif re.match(r"#b[01]+", identifier.symbol):
-        return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])), int(identifier.symbol[2:], base=2))
-    elif identifier.symbol in enums:
-        return ILConstant(IL_ENUM_SORT(enums[identifier.symbol]), identifier.symbol)
-    # else is variable
-
-    prime: bool = False
-    symbol: str = identifier.symbol
-    if symbol[len(symbol)-1] == "'":
-        prime = True
-        symbol = symbol[:-1]
-
-    return ILVar(ILVarType.NONE, IL_NO_SORT, symbol, prime)
-
-
-def from_json(contents: dict) -> Optional[ILProgram]:
-    dirname = os.path.dirname(__file__)
-
-    with open(f"{dirname}/IL-JSON/schema/il.json", "r") as f:
-        il_schema = json.load(f)
-
-    resolver = RefResolver(f"file://{dirname}/IL-JSON/schema/", {})
-
-    try:
-        validate(contents, il_schema, resolver=resolver)
-    except exceptions.SchemaError as se:
-        print("Error: json schema invalid", se)
-        return None
-    except exceptions.ValidationError as ve:
-        print("Error: json failed validation against schema.", ve)
-        return None
-    
-    program: list[ILCommand] = []
-    enums: dict[str, str] = {} # maps enum values to their sort symbol
-
-    for cmd in contents:
-        if cmd["command"] == "declare-sort":
-            new = ILDeclareSort(cmd["symbol"], int(cmd["arity"]))
-            program.append(new)
-        elif cmd["command"] == "define-sort":
-            definition = from_json_sort(cmd["definition"])
-            new = ILDefineSort(cmd["symbol"], cmd["parameters"], definition)
-            program.append(new)
-        elif cmd["command"] == "declare-enum-sort":
-            values = []
-            for value in cmd["values"]:
-                values.append(value)
-                enums[value] = cmd["symbol"]
-
-            new = ILDeclareEnumSort(cmd["symbol"], values)
-            program.append(new)
-        elif cmd["command"] == "declare-const":
-            sort = from_json_sort(cmd["sort"])
-
-            new = ILDeclareConst(cmd["symbol"], sort)
-            program.append(new)
-        elif cmd["command"] == "declare-fun":
-            pass # TODO
-        elif cmd["command"] == "define-fun":
-            inputs = [from_json_sorted_var(i) for i in cmd["inputs"]]
-            output = from_json_sort(cmd["output"])
-            body = from_json_expr(cmd["body"], enums)
-
-            new = ILDefineFun(cmd["symbol"], inputs, output, body)
-            program.append(new)
-        elif cmd["command"] == "define-system":
-            input, output, local = [], [], []
-            init, trans, inv = ILConstant(IL_BOOL_SORT, True), ILConstant(IL_BOOL_SORT, True), ILConstant(IL_BOOL_SORT, True)
-            subsys = {}
-
-            if "input" in cmd:
-                input =  [from_json_sorted_var(i) for i in cmd["input"]]
-            if "output" in cmd:
-                output =  [from_json_sorted_var(i) for i in cmd["output"]]
-            if "local" in cmd:
-                local =  [from_json_sorted_var(i) for i in cmd["local"]]
-
-            if "init" in cmd:
-                init = from_json_expr(cmd["init"], enums)
-            if "trans" in cmd:
-                trans = from_json_expr(cmd["trans"], enums)
-            if "inv" in cmd:
-                inv = from_json_expr(cmd["inv"], enums)
-
-            if "subsys" in cmd:
-                for subsystem in cmd["subsys"]:
-                    target = subsystem["target"]
-                    subsys[subsystem["symbol"]] = (target["symbol"], target["arguments"])
-                
-            new  = ILDefineSystem(cmd["symbol"],  input, output, local, init, trans, inv, subsys)
-            program.append(new)
-        elif cmd["command"] == "check-system":
-            # TODO: queries
-            input, output, local = [], [], []
-            assumption, reachable, fairness, current, query, queries = {}, {}, {}, {}, {}, {}
-
-            if "input" in cmd:
-                input =  [from_json_sorted_var(i) for i in cmd["input"]]
-            if "output" in cmd:
-                output =  [from_json_sorted_var(i) for i in cmd["output"]]
-            if "local" in cmd:
-                local =  [from_json_sorted_var(i) for i in cmd["local"]]
-
-            if "assumption" in cmd:
-                assumption = { entry["symbol"]: from_json_expr(entry["formula"], enums) for entry in cmd["assumption"] }
-            if "reachable" in cmd:
-                reachable = { entry["symbol"]: from_json_expr(entry["formula"], enums) for entry in cmd["reachable"] }
-            if "fairness" in cmd:
-                fairness = { entry["symbol"]: from_json_expr(entry["formula"], enums) for entry in cmd["fairness"] }
-            if "current" in cmd:
-                current = { entry["symbol"]: from_json_expr(entry["formula"], enums) for entry in cmd["current"] }
-
-            if "query" in cmd:
-                query = { entry["symbol"]: entry["formulas"] for entry in cmd["query"] }
-                
-            new  = ILCheckSystem(cmd["symbol"],  input, output, local, assumption, fairness, reachable, current, query)
-            program.append(new)
-
-    return ILProgram(program)

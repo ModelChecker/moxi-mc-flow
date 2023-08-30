@@ -6,6 +6,7 @@ import sys
 from typing import cast
 
 from il import *
+from json2il import from_json
 from btor import *
 from parse import parse
 
