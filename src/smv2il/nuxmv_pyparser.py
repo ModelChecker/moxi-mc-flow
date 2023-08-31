@@ -539,7 +539,7 @@ _module_element = (var_section
                    | fairness_constraint
                    | justice_constraint
                    | compassion_constraint
-                #    | ctl_specification
+                   | ctl_specification
                    | ltl_specification
                    | compute_specification)
 
