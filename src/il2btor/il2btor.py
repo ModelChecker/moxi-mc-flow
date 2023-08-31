@@ -1,9 +1,12 @@
 import argparse
 from copy import copy
 import json
+import os
 from pathlib import Path
 import sys
 from typing import cast
+
+from sympy import Implies
 
 if __name__ == "__main__" and __package__ is None:
     from il import *
@@ -249,7 +252,10 @@ def ilexpr_to_btor2(
         idx = int(not is_init_expr) + (expr.prime)
         return cast(tuple[BtorVar,BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
     elif isinstance(expr, ILVar) and len(var_map[(expr, context.system_context)]) == 2:
-        return cast(tuple[BtorVar,BtorVar], var_map[(expr, context.system_context)])
+        # We use "int(expr.prime)" to compute the index in var_map tuple:
+        #   var_map[var] = (cur, next)
+        idx = int(expr.prime)
+        return cast(tuple[BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
     elif isinstance(expr, ILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
         value = context.declared_enum_sorts[expr.sort.identifier.symbol].index(expr.value)
         return BtorConst(sort_map[expr.sort], value)
@@ -265,6 +271,7 @@ def ilexpr_to_btor2(
         btor2_args = (ilexpr_to_btor2(arg1, context, is_init_expr, sort_map, var_map) if arg1 else None,
                       ilexpr_to_btor2(arg2, context, is_init_expr, sort_map, var_map) if arg2 else None,
                       ilexpr_to_btor2(arg3, context, is_init_expr, sort_map, var_map) if arg3 else None)
+
         return BtorApply(sort_map[expr.sort], ilfunc_map[expr.identifier.symbol], btor2_args)
 
     raise NotImplementedError
@@ -272,11 +279,7 @@ def ilexpr_to_btor2(
 
 def flatten_btor2_expr(expr: BtorExpr) -> list[BtorExpr]:
     out: list[BtorExpr] = []
-
-    def flatten_btor2_expr_util(cur: BtorExpr):
-        out.append(cur)
-    
-    postorder_iterative_btor2(expr, flatten_btor2_expr_util)
+    postorder_iterative_btor2(expr, lambda cur: out.append(cur))
     return out
 
 
@@ -288,9 +291,7 @@ def ilsystem_to_btor2(
     var_map: VarMap):
     for symbol,subsystem in system.subsystems.items():
         context.system_context.push((symbol, subsystem))
-        # btor2_model[-1].set_comment(f"begin {system.symbol}::{symbol}")
         ilsystem_to_btor2(btor2_model, subsystem, context, sort_map, var_map)
-        # btor2_model[-1].set_comment(f"end {system.symbol}::{symbol}")
         context.system_context.pop()
 
     btor2_init = ilexpr_to_btor2(system.init, context, True, sort_map, var_map)
@@ -351,7 +352,7 @@ def ilchecksystem_to_btor2(
     ilsystem_to_btor2(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map)
     context.system_context.pop()
 
-    for sym,query in check.query.items():
+    for sym, query in check.query.items():
         # shallow copy the prog since we don't want to lose sort_map/var_map
         btor2_prog = copy(btor2_model)
 
@@ -422,7 +423,7 @@ def translate(il_prog: ILProgram) -> Optional[dict[str, list[BtorNode]]]:
     enums: dict[str, int] = { sym:len(vals).bit_length() for sym,vals in context.declared_enum_sorts.items() }
 
     for check_system in il_prog.get_check_system_cmds():
-        btor2_prog_list[check_system.sys_symbol] = []
+        # btor2_prog_list[check_system.sys_symbol] = []
         target_system = context.defined_systems[check_system.sys_symbol]
 
         build_sort_map_cmd(target_system, enums, sort_map)
@@ -437,6 +438,13 @@ def main(input_path: Path, output_path: Path) -> int:
     if not input_path.is_file():
         sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
         return 1
+
+    if output_path.is_file():
+        sys.stderr.write(f"Error: `{output_path}` is a file.\n")
+        return 1
+
+    if not output_path.is_dir():
+        os.mkdir(output_path)
 
     with open(input_path, "r") as file:
         if input_path.suffix == ".json":
@@ -455,9 +463,9 @@ def main(input_path: Path, output_path: Path) -> int:
 
     if not output:
         return 1
-    
-    with open(output_path, "w") as f:
-        for label,nodes in output.items():
+
+    for label, nodes in output.items():
+        with open(output_path / f"{input_path.stem}_{label}.btor", "w") as f:
             # f.write(f"; {label}\n")
             for n in nodes:
                 f.write(f"{n}\n")
@@ -468,11 +476,11 @@ def main(input_path: Path, output_path: Path) -> int:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="source program to translate, should have either .json or .mcil extension")
-    parser.add_argument("--output", help="path of file to output BTOR2; defaults to input filename with .btor extension")
+    parser.add_argument("--output", help="path of directory to output BTOR2 files; defaults to input filename stem")
     args = parser.parse_args()
 
     input_path = Path(args.input)
-    output_path = Path(args.output) if args.output else Path(f"{input_path.stem}.btor")
+    output_path = Path(args.output) if args.output else Path(f"{input_path.stem}")
 
     returncode = main(input_path, output_path)
     sys.exit(returncode)

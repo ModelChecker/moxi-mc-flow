@@ -1,5 +1,6 @@
 from __future__ import annotations
 from glob import glob
+from operator import is_
 from pathlib import Path
 
 import argparse
@@ -58,7 +59,7 @@ def mkdir(dir: Path, quiet: bool):
             toplevel_logger.warning(f"Overwriting '{dir}'")
         os.remove(dir)
 
-    if not os.path.isdir(dir):
+    if not dir.is_dir():
         os.mkdir(dir)
 
 
@@ -112,7 +113,7 @@ class TestCase():
         """CHANGE ME!"""
         os.chdir(WORK_DIR)
 
-        proc = subprocess.run(["python", str(program), str(self.test_path)] + options, capture_output=True)
+        proc = subprocess.run(["python", str(program), str(self.test_path), "--targetloc", "out"] + options, capture_output=True)
 
         if proc.stdout != b"":
             with open(self.test_results_dir / "stdout", "wb") as f:
@@ -136,7 +137,11 @@ class TestCase():
             pass
 
         for f in glob(f"./*"):
-            os.remove(f)
+            p = Path(f)
+            if p.is_dir():
+                shutil.rmtree(p)
+            else:
+                os.remove(f)
 
         os.chdir(TEST_DIR)
 

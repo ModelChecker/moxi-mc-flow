@@ -98,12 +98,6 @@ class BtorNode():
     def __str__(self) -> str:
         return f"{self.nid}{self.comment}"
 
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, BtorNode) and self.__str__() == __o.__str__()
-
-    def __hash__(self) -> int:
-        return self.nid
-
 
 class BtorSort(BtorNode):
 
@@ -118,6 +112,9 @@ class BtorBitVec(BtorSort):
         self.length = len
         self.name = "bitvec"
         
+    def __repr__(self) -> str:
+        return f"({self.nid} sort {self.name} {self.length})"
+
     def __str__(self) -> str:
         return f"{self.nid} sort {self.name} {self.length}{self.comment}"
     
@@ -137,6 +134,9 @@ class BtorArray(BtorSort):
         self.domain = domain
         self.range = range
         self.name = "array"
+        
+    def __repr__(self) -> str:
+        return f"({self.nid} sort  {self.name} {repr(self.domain)} {repr(self.range)})"
 
     def __str__(self) -> str:
         return f"{self.nid} sort {self.name} {self.domain.nid} {self.range.nid}{self.comment}"
@@ -184,7 +184,7 @@ class BtorVar(BtorExpr):
         return self.name == __o.name
 
     def __hash__(self) -> int:
-        return hash(self.name)
+        return hash((self.sort, self.name))
 
 
 class BtorInputVar(BtorVar):
@@ -200,6 +200,9 @@ class BtorStateVar(BtorVar):
 
     def __init__(self, sort: BtorSort, name: str = ""):
         super().__init__(sort, name)
+
+    def __repr__(self) -> str:
+        return f"({self.nid} state {self.name})"
 
     def __str__(self) -> str:
         return f"{self.nid} state {self.sort.nid} {self.name}{self.comment}"
@@ -231,11 +234,11 @@ class BtorApply(BtorExpr):
         self.sort = sort
         self.operator = op
 
+    def __repr__(self) -> str:
+        return f"({id(self)} {self.nid} {self.operator.name.lower()} {' '.join([repr(c) for c in self.children if c])})"
+
     def __str__(self) -> str:
-        s = f"{self.nid} {self.operator.name.lower()} {self.sort.nid} "
-        for arg in [c for c in self.children if c]:
-            s += f"{arg.nid} "
-        return f"{s[:-1]}{self.comment}"
+        return f"{self.nid} {self.operator.name.lower()} {self.sort.nid} {' '.join([str(c.nid) for c in self.children if c])}{self.comment}"
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, BtorApply):
@@ -359,7 +362,7 @@ operator_table: dict[BtorOperator, tuple[list[type], type]] = {
 def postorder_iterative_btor2(expr: BtorExpr, func: Callable[[BtorExpr], Any]):
     """Perform an iterative postorder traversal of node, calling func on each node."""
     stack: list[tuple[bool, BtorExpr]] = []
-    visited: set[BtorExpr] = set()
+    visited: set[int] = set()
 
     stack.append((False, expr))
 
@@ -372,7 +375,7 @@ def postorder_iterative_btor2(expr: BtorExpr, func: Callable[[BtorExpr], Any]):
         elif cur in visited:
             continue
 
-        visited.add(cur)
+        visited.add(id(cur))
         stack.append((True, cur))
 
         for child in [c for c in cur.children if c]:

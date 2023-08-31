@@ -87,7 +87,7 @@ if __name__ == "__main__":
     parser.add_argument("source", help="source program to translate, language is inferred from file extension")
     parser.add_argument("targetlang", choices=["il", "il-json", "btor2"],
                         help="target language")
-    parser.add_argument("--target-filename", help="target filename")
+    parser.add_argument("--targetloc", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
     # parser.add_argument("--use-json", action="store_true",
     #                     help="use json as interchange format between translators")
     args = parser.parse_args()
@@ -96,13 +96,16 @@ if __name__ == "__main__":
 
     if args.targetlang == "il":
         target_lang = Lang.IL
-        target_path = Path(args.target_filename) if args.target_filename else Path(f"{src_path.stem}.mcil")
+        target_path = Path(args.args.targetloc) if args.args.targetloc else Path(f"{src_path.stem}.mcil")
     elif args.targetlang == "il-json":
         target_lang = Lang.IL_JSON
-        target_path = Path(args.target_filename) if args.target_filename else Path(f"{src_path.stem}.json")
+        target_path = Path(args.args.targetloc) if args.args.targetloc else Path(f"{src_path.stem}.json")
     elif args.targetlang == "btor2":
         target_lang = Lang.BTOR2
-        target_path = Path(args.target_filename) if args.target_filename else Path(f"{src_path.stem}.btor")
+        if not args.targetloc:
+            sys.stderr.write("Error: option 'targetloc' required for 'btor2' target")
+            sys.exit(1)
+        target_path = Path(args.targetloc)
     else:
         target_lang = Lang.NONE
         target_path = Path("")
