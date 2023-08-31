@@ -97,7 +97,7 @@ class ILParser(Parser):
 
     def error(self, token):
         self.status = False
-        return super().error(token)
+        sys.stderr.write(f"Error: Unexpected token ({token})")
 
     @_("command_list command")
     def command_list(self, p):
@@ -376,6 +376,10 @@ class ILParser(Parser):
     def term(self, p):
         p[2].append(p[3])
         return ILApply(IL_NO_SORT, p[1], p[2])
+
+    @_("LPAREN term RPAREN")
+    def term(self, p):
+        return p[1]
 
     @_("identifier")
     def sort(self, p):

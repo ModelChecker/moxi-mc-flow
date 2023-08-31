@@ -33,7 +33,7 @@ def ext_to_lang(ext: str) -> Lang:
 
 def main(src_path: Path, target_lang: Lang, target_path: Path) -> int:
     if not src_path.is_file():
-        sys.stderr.write(f"Error: source is not a file ({src_path})")
+        sys.stderr.write(f"Error: source is not a file ({src_path})\n")
         return 1
 
     with open(src_path, "r") as f:
@@ -48,7 +48,7 @@ def main(src_path: Path, target_lang: Lang, target_path: Path) -> int:
         # assuming JSON files are IL representations
         src_lang = Lang.IL_JSON
     else:
-        sys.stderr.write(f"Error: file type unsupported ({src_path.suffix})")
+        sys.stderr.write(f"Error: file type unsupported ({src_path.suffix})\n")
         return 1
 
     if src_lang == target_lang:

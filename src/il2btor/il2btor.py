@@ -70,9 +70,12 @@ ilfunc_map: dict[str, BtorOperator] = {
 # A SortMap maps ILSorts to BTOR2 sorts
 SortMap = dict[ILSort, BtorSort]
 
+InputVar = tuple[BtorVar, BtorVar] # :input variables
+StateVar = tuple[BtorVar, BtorVar, BtorVar] # :local, :output variables
+
 # A VarMap maps variables in a system context to BTOR2 variables. BTOR2 variables are tuples by default (to handle
 # initial, current, and next values) for output and state variables, whereas inputs are just a single variable.
-VarMap = dict[tuple[ILVar, ILSystemContext], tuple[BtorVar,BtorVar,BtorVar] | BtorVar]
+VarMap = dict[tuple[ILVar, ILSystemContext], InputVar | StateVar]
 
 # A RenameMap maps variables in a system context to another variable and system context. This is used for mapping
 # input/output variables of subsystem. The mapped-to variable/system context pair may also be in the rename map, in
@@ -171,7 +174,8 @@ def build_var_map_expr(
 
             # note: those system context copies only copy the pointers + they are only as big as the subsystems are deep
             if var.var_type == ILVarType.INPUT:
-                var_map[(expr, context.system_context.copy())] = BtorInputVar(sort_map[var.sort], symbol)
+                var_map[(expr, context.system_context.copy())] = (BtorStateVar(sort_map[var.sort], f"{symbol}.cur"),
+                                                 BtorStateVar(sort_map[var.sort], f"{symbol}.next"))
             elif var.var_type == ILVarType.OUTPUT or var.var_type == ILVarType.LOCAL:
                 var_map[(expr, context.system_context.copy())] = (BtorStateVar(sort_map[var.sort], f"{symbol}.init"),
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.cur"),
@@ -239,13 +243,13 @@ def ilexpr_to_btor2(
     sort_map: SortMap,
     var_map: VarMap
 ) -> BtorExpr:
-    if isinstance(expr, ILVar) and isinstance(var_map[(expr, context.system_context)], tuple):
+    if isinstance(expr, ILVar) and len(var_map[(expr, context.system_context)]) == 3:
         # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
         #   var_map[var] = (init, cur, next)
         idx = int(not is_init_expr) + (expr.prime)
         return cast(tuple[BtorVar,BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
-    elif isinstance(expr, ILVar):
-        return cast(BtorVar, var_map[(expr, context.system_context)])
+    elif isinstance(expr, ILVar) and len(var_map[(expr, context.system_context)]) == 2:
+        return cast(tuple[BtorVar,BtorVar], var_map[(expr, context.system_context)])
     elif isinstance(expr, ILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
         value = context.declared_enum_sorts[expr.sort.identifier.symbol].index(expr.value)
         return BtorConst(sort_map[expr.sort], value)
@@ -294,8 +298,9 @@ def ilsystem_to_btor2(
     btor2_model.append(BtorConstraint(btor2_init))
     btor2_model[-1].set_comment(f"init {system.symbol}")
 
-    for btor2_var in [v for v in var_map.values() if isinstance(v, tuple)]:
-        (init, cur, next) = btor2_var
+    # type-checking hack: check for len instead of InputVar/StateVar
+    for btor2_var in [v for v in var_map.values() if len(v) == 3]: 
+        (init, cur, _) = btor2_var
         btor2_model.append(BtorInit(cast(BtorStateVar, cur), init))
 
     btor2_trans = ilexpr_to_btor2(system.trans, context, False, sort_map, var_map)
@@ -303,9 +308,13 @@ def ilsystem_to_btor2(
     btor2_model.append(BtorConstraint(btor2_trans))
     btor2_model[-1].set_comment(f"trans {system.symbol}")
 
-    for btor2_var in [v for v in var_map.values() if isinstance(v, tuple)]:
-        (init, cur, next) = btor2_var
-        btor2_model.append(BtorNext(cast(BtorStateVar, cur), next))
+    for btor2_var in var_map.values():
+        if len(btor2_var) == 3:
+            (_, cur, next) = btor2_var
+            btor2_model.append(BtorNext(cast(BtorStateVar, cur), next))
+        elif len(btor2_var) == 2:
+            (cur, next) = btor2_var
+            btor2_model.append(BtorNext(cast(BtorStateVar, cur), next))
 
     btor2_inv = ilexpr_to_btor2(system.inv, context, False, sort_map, var_map)
     btor2_model += flatten_btor2_expr(btor2_inv)
@@ -328,11 +337,13 @@ def ilchecksystem_to_btor2(
 
     # Note: var_map may have repeat values (i.e., renamed variables point to same Btor variables)
     for btor2_var in set(var_map.values()):
-        if isinstance(btor2_var, BtorVar):
-            btor2_model.append(btor2_var)
-        elif isinstance(btor2_var, tuple):
+        if len(btor2_var) == 3:
             (init, cur, next) = btor2_var
             btor2_model.append(init)
+            btor2_model.append(cur)
+            btor2_model.append(next)
+        elif len(btor2_var) == 2:
+            (cur, next) = btor2_var
             btor2_model.append(cur)
             btor2_model.append(next)
 

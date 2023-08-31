@@ -952,7 +952,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
     context: ILContext = ILContext()
     status: bool = True
 
-    def sort_check_expr(node: ILExpr, no_prime: bool, prime_input: bool) -> bool:
+    def sort_check_expr(node: ILExpr, no_prime: bool) -> bool:
         """Return true if node is well-sorted where 'no_prime' is true if primed variables are disabled and 'prime_input' is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions). """
         nonlocal context
 
@@ -962,8 +962,8 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             node.var_type = ILVarType.INPUT
             node.sort = context.input_var_sorts[node]
 
-            if node.prime and not prime_input:
-                sys.stderr.write(f"Error: primed input variables only allowed in check system assumptions and reachability conditions ({node.symbol}).\n\t{context.cur_command}\n")
+            if node.prime and no_prime:
+                sys.stderr.write(f"Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
                 return False
 
             return True
@@ -972,7 +972,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             node.sort = context.output_var_sorts[node]
 
             if node.prime and no_prime:
-                sys.stderr.write(f"Error: primed variables only allowed in system transition relation ({node.symbol}).\n\t{context.cur_command}\n")
+                sys.stderr.write(f"Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
                 return False
 
             return True
@@ -981,7 +981,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             node.sort = context.local_var_sorts[node]
 
             if node.prime and no_prime:
-                sys.stderr.write(f"Error: primed variables only allowed in system transition relation ({node.symbol}).\n\t{context.cur_command}\n")
+                sys.stderr.write(f"Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
                 return False
 
             return True
@@ -991,7 +991,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
         elif isinstance(node, ILApply):
             if node.identifier.get_class() in context.logic.function_symbols:
                 for arg in node.children:
-                    sort_check_expr(arg, no_prime, prime_input)
+                    sort_check_expr(arg, no_prime)
 
                 if not context.logic.sort_check(node):
                     sys.stderr.write(f"Error: function signature does not match definition ({node}).\n\t{context.cur_command}\n")
@@ -1055,9 +1055,9 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             context.output_var_sorts = {var:var.sort for var in cmd.output}
             context.local_var_sorts = {var:var.sort for var in cmd.local}
 
-            status = status and sort_check_expr(cmd.init, True, False)
-            status = status and sort_check_expr(cmd.trans, False, False)
-            status = status and sort_check_expr(cmd.inv, True, False)
+            status = status and sort_check_expr(cmd.init, True)
+            status = status and sort_check_expr(cmd.trans, False)
+            status = status and sort_check_expr(cmd.inv, True)
 
             for name,subsystem in cmd.subsystem_signatures.items():
                 # TODO: check for cycles in system dependency graph
@@ -1146,7 +1146,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 # cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
-                sys.stderr.write(f"Error: local variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}\n")
+                sys.stderr.write(f"Error: local variables do not match target system ({system.symbol}).\n\t{[str(i.sort) for i in system.input]}\n\t{[str(i.sort) for i in cmd.input]}\n")
                 status = False
                 continue
 
@@ -1159,16 +1159,16 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 # cmd.rename_map[v1] = v2
 
             for expr in cmd.assumption.values():
-                status = status and sort_check_expr(expr, False, True)
+                status = status and sort_check_expr(expr, False)
 
             for expr in cmd.reachable.values():
-                status = status and sort_check_expr(expr, False, True)
+                status = status and sort_check_expr(expr, False)
 
             for expr in cmd.fairness.values():
-                status = status and sort_check_expr(expr, False, True)
+                status = status and sort_check_expr(expr, False)
 
             for expr in cmd.current.values():
-                status = status and sort_check_expr(expr, False, True)
+                status = status and sort_check_expr(expr, False)
 
             context.input_var_sorts = {}
             context.output_var_sorts = {}
