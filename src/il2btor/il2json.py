@@ -13,20 +13,20 @@ else:
 
 def main(input_path: Path, output_path: Path, do_sort_check: bool, do_pretty: bool) -> int:
     if not input_path.is_file():
-        print(f"Error: `{input_path}` is not a valid file.")
+        sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
         return 1
 
     with open(input_path,"r") as file:
         program = parse(file.read())
 
     if not program:
-        print("Failed parsing")
+        sys.stderr.write("Failed parsing\n")
         return 1
 
     if do_sort_check:
         (well_sorted, _) = sort_check(program)
         if not well_sorted:
-            print("Failed sort check")
+            sys.stderr.write("Failed sort check\n")
             return 2
 
     with open(output_path, "w") as f:

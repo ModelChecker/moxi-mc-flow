@@ -1,6 +1,10 @@
 from argparse import ArgumentParser
 from pathlib import Path
 import sys
+import os
+import re
+import json
+from jsonschema import validate, exceptions, RefResolver
 
 if __name__ == "__main__" and __package__ is None:
     from il import *
@@ -43,9 +47,9 @@ def from_json_expr(contents: dict, enums: dict[str, str]) ->  ILExpr:
     if len(args) != 0:
         return ILApply(IL_NO_SORT, identifier, args)
     
-    if identifier.symbol == "True":
+    if identifier.symbol == "true":
         return ILConstant(IL_BOOL_SORT, True)
-    elif identifier.symbol == "False":
+    elif identifier.symbol == "false":
         return ILConstant(IL_BOOL_SORT, False)
     elif re.match(r"0|[1-9]\d*", identifier.symbol):
         return ILConstant(IL_INT_SORT, int(identifier.symbol))
@@ -77,10 +81,10 @@ def from_json(contents: dict) -> Optional[ILProgram]:
     try:
         validate(contents, il_schema, resolver=resolver)
     except exceptions.SchemaError as se:
-        print("Error: json schema invalid", se)
+        sys.stderr.write(f"Error: json schema invalid {se}\n")
         return None
     except exceptions.ValidationError as ve:
-        print("Error: json failed validation against schema.", ve)
+        sys.stderr.write(f"Error: json failed validation against schema {ve}\n")
         return None
     
     program: list[ILCommand] = []
@@ -174,7 +178,7 @@ def from_json(contents: dict) -> Optional[ILProgram]:
 
 def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
     if not input_path.is_file():
-        print(f"Error: `{input_path}` is not a valid file.")
+        sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
         sys.exit(1)
 
     with open(input_path, "r") as file:
@@ -182,13 +186,13 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
         program = from_json(contents)
 
     if not program:
-        print("Failed parsing")
+        sys.stderr.write("Failed parsing\n")
         sys.exit(1)
 
     if do_sort_check:
         (well_sorted, _) = sort_check(program)
         if not well_sorted:
-            print("Failed sort check")
+            sys.stderr.write("Failed sort check\n")
             sys.exit(2)
 
     with open(output_path, "w") as f:

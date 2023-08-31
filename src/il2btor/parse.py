@@ -1,4 +1,6 @@
 #type: ignore
+import sys
+
 if __package__ == "":
     from sly import Lexer, Parser
     from il import *
@@ -81,7 +83,7 @@ class ILLexer(Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        print(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}")
+        sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}")
         self.index += 1
 
 
@@ -205,7 +207,7 @@ class ILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            print(f"Error: multiple instances of attribute ({attr.value}).")
+            sys.stderr.write(f"Error: multiple instances of attribute ({attr.value}).")
             self.status = False
         elif attr.get_value_type() == dict:
             p[0][attr].update(value)
@@ -214,7 +216,7 @@ class ILParser(Parser):
         elif attr.get_value_type() == ILExpr and isinstance(attr, ILAttribute.INV):
             p[0][attr] = ILApply(IL_NO_SORT, ILIdentifier("and", []), [p[0][attr], value])
         else:
-            print(f"Error: parser error ({attr.value}).")
+            sys.stderr.write(f"Error: parser error ({attr.value}).")
             self.status = False
 
         return p[0]
@@ -258,12 +260,12 @@ class ILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            print(f"Error: multiple instances of attribute '{attr.value}'.")
+            sys.stderr.write(f"Error: multiple instances of attribute '{attr.value}'.")
             self.status = False
         elif attr.get_value_type() == dict:
             p[0][attr].update(value)
         else:
-            print(f"Error: parser error ({attr.value}).")
+            sys.stderr.write(f"Error: parser error ({attr.value}).")
             self.status = False
 
         return p[0]
@@ -339,14 +341,14 @@ class ILParser(Parser):
     @_("identifier")
     def term(self, p):
         if len(p[0].indices) > 0:
-            print(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
+            sys.stderr.write(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
             self.status = False
 
         symbol: str = p[0].symbol
 
-        if symbol == "True":
+        if symbol == "true":
             return ILConstant(IL_BOOL_SORT, True)
-        elif symbol == "False":
+        elif symbol == "false":
             return ILConstant(IL_BOOL_SORT, False)
         elif symbol in self.enums:
             return ILConstant(IL_ENUM_SORT(self.enums[symbol]), symbol)
@@ -423,4 +425,7 @@ def parse(input: str) -> Optional[ILProgram]:
     lexer: ILLexer = ILLexer()
     parser: ILParser = ILParser()
     cmds = parser.parse(lexer.tokenize(input))
-    return ILProgram(cmds) if not cmds == None else None
+
+    if parser.status and cmds:
+        return ILProgram(cmds)
+    return None

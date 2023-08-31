@@ -2,12 +2,10 @@
 Representation of IL
 """
 from __future__ import annotations
+import sys
 from enum import Enum
-import json
-import os
-import re
-from jsonschema import validate, exceptions, RefResolver
 from typing import Any, Callable, Optional
+
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts
 INT_WIDTH = 64
@@ -172,8 +170,8 @@ def is_int_sort(sort: ILSort) -> bool:
 
 def is_array_sort(sort: ILSort) -> bool:
     """An Array sort has an identifier that is the symbol 'Array' and has two parameters"""
-    return sort.identifier.is_symbol("Array") and not sort.is_parametric() and sort.arity() == 2
-
+    return sort.identifier.is_symbol("Array") and sort.arity() == 2
+    
 
 class ILExpr():
 
@@ -628,6 +626,9 @@ ARRAY_RANK_TABLE: RankTable = {
 def sort_check_apply_rank(node: ILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
 
+    print([str(s) for s in rank_args])
+    print([str(c.sort) for c in node.children])
+
     if rank_args != [c.sort for c in node.children]:
         return False
 
@@ -903,6 +904,7 @@ class ILContext():
         self.output_var_sorts: dict[ILVar, ILSort] = {}
         self.local_var_sorts: dict[ILVar, ILSort] = {}
         self.system_context = ILSystemContext() # used during system flattening
+        self.cur_command: Optional[ILCommand] = None
 
     def get_symbols(self) -> set[str]:
         # TODO: this is computed EVERY time, optimize this
@@ -964,7 +966,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             node.sort = context.input_var_sorts[node]
 
             if node.prime and not prime_input:
-                print(f"Error: primed input variables only allowed in check system assumptions and reachability conditions ({node.symbol}).")
+                sys.stderr.write(f"Error: primed input variables only allowed in check system assumptions and reachability conditions ({node.symbol}).\n\t{context.cur_command}\n")
                 return False
 
             return True
@@ -973,7 +975,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             node.sort = context.output_var_sorts[node]
 
             if node.prime and no_prime:
-                print(f"Error: primed variables only allowed in system transition relation ({node.symbol}).")
+                sys.stderr.write(f"Error: primed variables only allowed in system transition relation ({node.symbol}).\n\t{context.cur_command}\n")
                 return False
 
             return True
@@ -982,12 +984,12 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             node.sort = context.local_var_sorts[node]
 
             if node.prime and no_prime:
-                print(f"Error: primed variables only allowed in system transition relation ({node.symbol}).")
+                sys.stderr.write(f"Error: primed variables only allowed in system transition relation ({node.symbol}).\n\t{context.cur_command}\n")
                 return False
 
             return True
         elif isinstance(node, ILVar):
-            print(f"Error: symbol `{node.symbol}` not declared.")
+            sys.stderr.write(f"Error: symbol `{node.symbol}` not declared.\n\t{context.cur_command}\n")
             return False
         elif isinstance(node, ILApply):
             if node.identifier.get_class() in context.logic.function_symbols:
@@ -995,55 +997,57 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                     sort_check_expr(arg, no_prime, prime_input)
 
                 if not context.logic.sort_check(node):
-                    print(f"Error: function signature does not match definition ({node}).")
+                    sys.stderr.write(f"Error: function signature does not match definition ({node}).\n\t{context.cur_command}\n")
                     return False
             elif node.identifier.symbol in context.defined_functions:
                 (rank, expr) = context.defined_functions[node.identifier.symbol]
 
                 if not sort_check_apply_rank(node, rank):
-                    print(f"Error: function call does not match definition ({node}).")
+                    sys.stderr.write(f"Error: function call does not match definition ({node}).\n\t{context.cur_command}\n")
                     return False
             else:
-                print(f"Error: symbol '{node.identifier.symbol}' not recognized ({node}).")
+                sys.stderr.write(f"Error: symbol '{node.identifier.symbol}' not recognized ({node}).\n\t{context.cur_command}\n")
                 return False
 
             return True
         else:
-            print(f"Error: node type '{node.__class__}' not recognized ({node}).")
+            sys.stderr.write(f"Error: node type '{node.__class__}' not recognized ({node}).\n\t{context.cur_command}\n")
             return False
     # end sort_check_expr
 
     for cmd in program.commands:
+        context.cur_command = cmd
+
         if isinstance(cmd, ILDeclareSort):
             # TODO: move this warning to il2btor.py
-            print(f"Warning: declare-sort command unsupported, ignoring.")
+            sys.stderr.write(f"Warning: declare-sort command unsupported, ignoring.\n")
         elif isinstance(cmd, ILDefineSort):
             if cmd.symbol in context.get_symbols():
-                print(f"Error: symbol '{cmd.symbol}' already in use.")
+                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             # TODO
         elif isinstance(cmd, ILDeclareEnumSort):
             if cmd.symbol in context.get_symbols():
-                print(f"Error: symbol '{cmd.symbol}' already in use.")
+                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             context.declared_enum_sorts[cmd.symbol] = cmd.values
         elif isinstance(cmd, ILDeclareConst):
             if cmd.symbol in context.get_symbols():
-                print(f"Error: symbol '{cmd.symbol}' already in use.")
+                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             context.declared_functions[cmd.symbol] = Rank(([], cmd.sort))
         elif isinstance(cmd, ILDeclareFun):
             if cmd.symbol in context.get_symbols():
-                print(f"Error: symbol '{cmd.symbol}' already in use.")
+                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             context.declared_functions[cmd.symbol] = Rank((cmd.inputs, cmd.output))
         elif isinstance(cmd, ILDefineFun):
             if cmd.symbol in context.get_symbols():
-                print(f"Error: symbol '{cmd.symbol}' already in use.")
+                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             input_sorts = [s.sort for s in cmd.input]
@@ -1063,15 +1067,16 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 (sys_symbol, signature_symbols) = subsystem
 
                 if sys_symbol not in context.defined_systems:
-                    print(f"Error: system '{sys_symbol}' not defined in context.")
+                    sys.stderr.write(f"Error: system '{sys_symbol}' not defined in context.\n\t{cmd}\n")
                     status = False
+                    return (False, context)
 
                 # check that each symbol in signature is in the context
                 signature: list[ILVar] = []
                 variables: dict[str, ILVar] = {var.symbol:var for var in cmd.input + cmd.output + cmd.local}
                 for symbol in signature_symbols:
                     if symbol not in variables:
-                        print(f"Error: variable '{symbol}' not declared.")
+                        sys.stderr.write(f"Error: variable '{symbol}' not declared.\n\t{cmd}\n")
                         status = False
                         signature.append(IL_EMPTY_VAR)
                         continue
@@ -1088,13 +1093,13 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 target_signature = target_system.input + target_system.output
 
                 if len(signature) != len(target_signature):
-                    print(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
+                    sys.stderr.write(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}\n")
                     status = False
                     continue
 
                 for cmd_var,target_var in zip(signature, target_signature):
                     if cmd_var.sort != target_var.sort:
-                        print(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
+                        sys.stderr.write(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}\n")
                         status = False
                         continue
 
@@ -1107,7 +1112,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             context.local_var_sorts = {}
         elif isinstance(cmd, ILCheckSystem):
             if not cmd.sys_symbol in context.defined_systems:
-                print(f"Error: system '{cmd.sys_symbol}' undefined.")
+                sys.stderr.write(f"Error: system '{cmd.sys_symbol}' undefined.\n\t{cmd}\n")
                 status = False
                 continue
 
@@ -1118,39 +1123,39 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             system = context.defined_systems[cmd.sys_symbol]
 
             if len(system.input) != len(cmd.input):
-                print(f"Error: input variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}")
+                sys.stderr.write(f"Error: input variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}\n")
                 status = False
                 continue
 
             for i1,i2 in zip(system.input, cmd.input):
                 if i1.sort != i2.sort:
-                    print(f"Error: sorts do not match in check-system (expected {i1.sort}, got {i2.sort})")
+                    sys.stderr.write(f"Error: sorts do not match in check-system (expected {i1.sort}, got {i2.sort})\n")
                     status = False
                 else:
                     i2.var_type = ILVarType.INPUT
                 # cmd.rename_map[v1] = v2
 
             if len(system.output) != len(cmd.output):
-                print(f"Error: output variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}")
+                sys.stderr.write(f"Error: output variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}\n")
                 status = False
                 continue
 
             for o1,o2 in zip(system.output, cmd.output):
                 if o1.sort != o2.sort:
-                    print(f"Error: sorts do not match in check-system (expected {o1.sort}, got {o2.sort})")
+                    sys.stderr.write(f"Error: sorts do not match in check-system (expected {o1.sort}, got {o2.sort})\n")
                     status = False
                 else:
                     o2.var_type = ILVarType.OUTPUT
                 # cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
-                print(f"Error: local variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}")
+                sys.stderr.write(f"Error: local variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}\n")
                 status = False
                 continue
 
             for l1,l2 in zip(system.local, cmd.local):
                 if l1.sort != l2.sort:
-                    print(f"Error: sorts do not match in check-system (expected {l1.sort}, got {l2.sort})")
+                    sys.stderr.write(f"Error: sorts do not match in check-system (expected {l1.sort}, got {l2.sort})\n")
                     status = False
                 else:
                     l2.var_type = ILVarType.LOCAL

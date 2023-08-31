@@ -386,7 +386,7 @@ def ilchecksystem_to_btor2(
     
 
 
-def translate(il_prog: ILProgram) -> dict[str, list[BtorNode]]:
+def translate(il_prog: ILProgram) -> Optional[dict[str, list[BtorNode]]]:
     """Translate `il_prog` to an equivalent set of Btor programs, labeled by query name.
     
     The strategy for translation is to sort check the input then construct a Btor program for each query (and targeted system) by:
@@ -402,8 +402,8 @@ def translate(il_prog: ILProgram) -> dict[str, list[BtorNode]]:
     (well_sorted, context) = sort_check(il_prog)
 
     if not well_sorted:
-        print("Failed sort check")
-        return {}
+        sys.stderr.write("Failed sort check\n")
+        return None
     
     btor2_prog_list: dict[str, list[BtorNode]] = {}
     sort_map: SortMap = {}
@@ -424,7 +424,7 @@ def translate(il_prog: ILProgram) -> dict[str, list[BtorNode]]:
 
 def main(input_path: Path, output_path: Path) -> int:
     if not input_path.is_file():
-        sys.stderr.write(f"Error: `{input_path}` is not a valid file.")
+        sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
         return 1
 
     with open(input_path, "r") as file:
@@ -433,14 +433,17 @@ def main(input_path: Path, output_path: Path) -> int:
         elif input_path.suffix == ".mcil":
             program = parse(file.read())
         else:
-            sys.stderr.write(f"File format unsupported ({input_path.suffix})")
+            sys.stderr.write(f"File format unsupported ({input_path.suffix})\n")
             return 1
 
     if not program:
-        sys.stderr.write("Failed parsing")
+        sys.stderr.write("Failed parsing\n")
         return 1
 
     output = translate(program)
+
+    if not output:
+        return 1
     
     with open(output_path, "w") as f:
         for label,nodes in output.items():
