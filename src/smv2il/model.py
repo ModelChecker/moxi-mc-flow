@@ -20,6 +20,7 @@ Python. The module is composed of several classes that fall in five sections:
 """
 
 __all__ = [
+    "Expression",
     "Comment",
     "Identifier",
     "Self",
@@ -91,7 +92,12 @@ __all__ = [
     "IVar",
     "FVar",
     "Def",
-    "Module"]
+    "Module",
+    "FunType",
+    "FunDecl",
+    "FunctionDeclaration",
+    "Bound",
+    "Inf"]
 
 import sys
 from collections import OrderedDict

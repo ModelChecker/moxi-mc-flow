@@ -6,7 +6,7 @@ from typing import Tuple
 if __package__ == "":
     from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le
 else:
-    from .model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le
+    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le
 
 """
 This file prototypes a translation from nuXmv to the IL 
@@ -109,44 +109,6 @@ def ungensym(string):
     return ''.join([i for i in string if not i.isdigit()])
 
 
-def translate_case_branches(branch_list, acc):
-    if (branch_list == []):
-        return acc
-    else:
-        head, *tail = branch_list
-        cond, t = head
-        acc = ITE(cond=cond, t=t, e=translate_case_branches(tail, None))
-        return acc
-    
-def translate_expression(expr):
-    ecn = expr.__class__.__name__
-    if ecn == "Case":
-        branch_list = list(vars(expr)['values'].items())
-        return translate_case_branches(branch_list, None)
-    elif ecn == "Next":
-        return Identifier(name=primed(expr.value.name))
-    elif ecn == "Not":
-        return Not(translate_expression(expr.value))
-    elif ecn == "Identifier":
-        return Identifier(expr)
-    elif ecn == "And":
-        return And(left=translate_expression(expr.left),
-                  right=translate_expression(expr.right))
-    elif ecn == "Or":
-        return Or(left=translate_expression(expr.left),
-                  right=translate_expression(expr.right))
-    elif ecn == "Equal":
-        return Equal(left=translate_expression(expr.left),
-                     right=translate_expression(expr.right))
-    elif ecn == "Implies":
-        return Implies(left=translate_expression(expr.left),
-                       right=translate_expression(expr.right))
-    elif ecn == "list":
-        return list(map(lambda x : translate_expression(x), expr))
-    else: 
-        return expr
-
-
 def conjoin_list(exp_list):
     if len(exp_list) == 0:
         return exp_list
@@ -155,6 +117,62 @@ def conjoin_list(exp_list):
     else:
         head, *tail = exp_list
         return And(head, conjoin_list(tail))
+    
+def disjoin_list(exp_list):
+    if len(exp_list) == 0:
+        return exp_list
+    if len(exp_list) == 1:
+        return exp_list[0]
+    else:
+        head, *tail = exp_list
+        return Or(head, disjoin_list(tail))
+
+
+def translate_case_branches(branch_list, acc, lhs):
+    if (branch_list == []):
+        return acc
+    else:
+        head, *tail = branch_list
+        cond, t = head
+
+        if (t.__class__.__name__ == "Set"):
+            # print("Set", lhs)
+            disjuncts = []
+            for elem in t.elements:
+                disjuncts.append(Equal(left=Identifier(primed(lhs.name)), right=elem))
+            t = disjoin_list(disjuncts)
+
+        acc = ITE(cond=cond, t=Equal(left=Identifier(primed(lhs.name)), right=t), e=translate_case_branches(tail, None, lhs))
+        return acc
+    
+def translate_expression(expr, lhs=None):
+    ecn = expr.__class__.__name__
+    if ecn == "Case":
+        branch_list = list(vars(expr)['values'].items())
+        return translate_case_branches(branch_list, [], lhs)
+    elif ecn == "Next":
+        return Identifier(name=primed(expr.value.name))
+    elif ecn == "Not":
+        return Not(translate_expression(expr.value, lhs))
+    elif ecn == "Identifier":
+        return Identifier(expr)
+    elif ecn == "And":
+        return And(left=translate_expression(expr.left, lhs),
+                  right=translate_expression(expr.right, lhs))
+    elif ecn == "Or":
+        return Or(left=translate_expression(expr.left, lhs),
+                  right=translate_expression(expr.right, lhs))
+    elif ecn == "Equal":
+        return Equal(left=translate_expression(expr.left, lhs),
+                     right=translate_expression(expr.right, lhs))
+    elif ecn == "Implies":
+        return Implies(left=translate_expression(expr.left, lhs),
+                       right=translate_expression(expr.right, lhs))
+    elif ecn == "list":
+        return list(map(lambda x : translate_expression(x, lhs), expr))
+    else: 
+        return expr
+
 
 def typecheck_exp(exp):
     if str(exp) == "TRUE" or str(exp) == "FALSE":
@@ -394,9 +412,13 @@ def translate(parse_tree):
                 if kcn == "Smallinit":
                     module_init.append(Equal(left=vars(k)['value'], right=v))
                 elif kcn == "Next":
-                    case_translation = translate_expression(v)
-                    primed_ident = Identifier(name=primed(str(vars(k)['value'])))
-                    module_trans.append(Equal(left=primed_ident, right=case_translation))
+                    print("next case")
+                    if (v.__class__.__name__ == "Case"):
+                        case_translation = translate_expression(v, k.value)
+                        module_trans.append(case_translation)
+                    else:
+                        primed_ident = Identifier(name=primed(str(vars(k)['value'])))
+                        module_trans.append(Equal(left=primed_ident, right=v))
                 else:
                     module_inv.append(Equal(left=k, right=v))
     # ================== MINING DEFINE =====================
@@ -432,7 +454,7 @@ def translate(parse_tree):
         elif ugskey == "INVAR":
             module_inv += (parse_tree[key])
         elif ugskey == "TRANS":
-            module_trans += (translate_expression(parse_tree[key]))
+            module_trans += (translate_expression(parse_tree[key], None))
         elif ugskey == "FAIRNESS" or ugskey == "JUSTICE": # FAIRNESS is a backwards-compatible version of JUSTICE
             check = True
             module_justice.append(parse_tree[key])
@@ -441,6 +463,8 @@ def translate(parse_tree):
             module_compassion.append(parse_tree[key])
         elif ugskey == "ISA" or ugskey == "PRED" or ugskey == "MIRROR": # deprecated feature to be removed
             assert(False)
+        elif (ugskey == "SPEC" or ugskey == "CTLSPEC"):
+            raise ValueError("CTL specifications are not supported!")
         elif ugskey == "INVARSPEC":
             check = True
             module_query.append(parse_tree[key])
@@ -514,6 +538,7 @@ def main():
 
     file = open(args.filename)
 
+    import nuxmv_pyparser as Parser
     parse_tree = Parser.parse(file)
 
     rich.print(translate_parse_tree(parse_tree))
