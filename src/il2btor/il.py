@@ -626,9 +626,6 @@ ARRAY_RANK_TABLE: RankTable = {
 def sort_check_apply_rank(node: ILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
 
-    print([str(s) for s in rank_args])
-    print([str(c.sort) for c in node.children])
-
     if rank_args != [c.sort for c in node.children]:
         return False
 
