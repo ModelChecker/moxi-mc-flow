@@ -1,12 +1,10 @@
 from __future__ import annotations
 from glob import glob
 from pathlib import Path
-from typing import Any
 
 import argparse
 import shutil
 import sys
-import tomllib
 import os
 import subprocess
 import logging
@@ -18,6 +16,25 @@ TEST_DIR = Path(__file__).parent.absolute()
 SUITES_DIR = TEST_DIR / "suites"
 FILES_DIR = TEST_DIR / "inputs"
 WORK_DIR = TEST_DIR / "__workdir"
+
+
+SMV2IL = {
+    "name": "smv2il",
+    "source": "smv",
+    "target": "il",
+    "dir": "smv" 
+}
+
+IL2BTOR = {
+    "name": "il2btor",
+    "source": "il",
+    "target": "btor2",
+    "dir": "il"
+}
+
+SUITES = [ SMV2IL, IL2BTOR ]
+SUITE_NAMES = [ suite["name"] for suite in SUITES ]
+SUITE_NAME_MAP = { suite["name"]:suite for suite in SUITES }
 
 
 def cleandir(dir: Path, quiet: bool):
@@ -126,10 +143,11 @@ class TestCase():
 
 class TestSuite():
 
-    def __init__(self, name: str, top_results_dir: Path) -> None:
+    def __init__(self, name: str, config: dict, top_results_dir: Path) -> None:
         """Initialize TestSuite by cleaning directories and loading TOML data."""
         self.status: bool = True
         self.suite_name: str = name
+        self.config: dict = config
         self.tests: list[TestCase] = []
         self.options: list[str] = []
         self.top_results_dir: Path = top_results_dir
@@ -175,46 +193,17 @@ class TestSuite():
         self.logger.info(f"Suite {self.suite_name} finished with status {Color.BOLD}{Color.PASS}PASS{Color.ENDC}")
 
     def configure_tests(self):
-        """CHANGE ME! Configure test suite according to TOML file."""
-        config_file = SUITES_DIR / f"{self.suite_name}.toml"
+        self.options.append(self.config["target"])
 
-        if not config_file.is_file():
-            self.suite_fail_msg(f"Suite configuration file '{config_file}' does not exist")
-            return
-
-        with open(config_file, "rb") as f:
-            config: dict[str, Any] = tomllib.load(f)
-
-        if "options" in config:
-            opt = config["options"]
-
-            if "target" not in opt:
-                self.suite_fail_msg("Suite requires `target` language option")
-            elif opt["target"] not in ["il", "il-json", "btor2"]:
-                self.suite_fail_msg(f"Source language {opt['target']} invalid")
-            else:
-                self.options.append(opt["target"])
-
-        if "test" not in config:
-            return
-
-        if "dir" not in config["test"]:
-            self.suite_fail_msg("Suite requires `dir` language option")
-            return
-
-        test_file_dir = TEST_DIR / str(config["test"]["dir"])
+        test_file_dir = TEST_DIR / str(self.config["dir"])
         if not test_file_dir.is_dir():
             self.suite_fail_msg(f"File directory `{test_file_dir}` not a directory")
 
-        if "source" not in config["test"]:
-            self.suite_fail_msg("Suite requires `source` program list")
-
-        for test_filename in config["test"]["source"]:
+        for test_filename in glob(f"{test_file_dir}/*"):
             test_path = test_file_dir / test_filename
             self.tests.append(TestCase(self.suite_name, test_path.stem, test_path, self.top_results_dir))
 
     def run(self, program: Path, copyback: bool):
-        """CHANGE ME!"""
         if not program.is_file():
             self.suite_fail_msg(f"`{program}` is not a file.")
             return
@@ -239,7 +228,7 @@ def main(program: Path,
     """Runs `program` on each suite in `suite_names` and stores results in `results_dir`."""
     suites: list[TestSuite] = []
     for suite_name in suite_names:
-        suites.append(TestSuite(suite_name, results_dir.absolute()))
+        suites.append(TestSuite(suite_name, SUITE_NAME_MAP[suite_name], results_dir.absolute()))
 
     for suite in suites:
         suite.run(program, copyback)
@@ -247,10 +236,10 @@ def main(program: Path,
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("resultsdir",
+    parser.add_argument("suites", nargs="+", choices=SUITE_NAMES,
+                        help="names of test suites to run")
+    parser.add_argument("--resultsdir", default=f"{TEST_DIR.absolute()}/resultsdir",
                         help="directory to output test logs and copyback data")
-    parser.add_argument("suites", nargs="+",
-                        help="names of test suites to run; should be names of .toml files in suites/")
     parser.add_argument("--copyback", action="store_true",
                         help="copy all source, compiled, and log files from each testcase")
     args = parser.parse_args()
