@@ -133,5 +133,7 @@ boolector/
 out
 __pycache__/
 .vscode/
+__workdir/
+resultsdir/
 
 .DS_Store
