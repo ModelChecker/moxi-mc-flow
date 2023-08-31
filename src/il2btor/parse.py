@@ -346,9 +346,9 @@ class ILParser(Parser):
 
         symbol: str = p[0].symbol
 
-        if symbol == "true":
+        if symbol == "True":
             return ILConstant(IL_BOOL_SORT, True)
-        elif symbol == "false":
+        elif symbol == "False":
             return ILConstant(IL_BOOL_SORT, False)
         elif symbol in self.enums:
             return ILConstant(IL_ENUM_SORT(self.enums[symbol]), symbol)

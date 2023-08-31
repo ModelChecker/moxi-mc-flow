@@ -566,8 +566,8 @@ IdentifierClass = tuple[str, int]
 RankTable = dict[IdentifierClass, Callable[[Any], Rank]]
 
 CORE_RANK_TABLE: RankTable = {
-    ("true", 0):     lambda _: ([], IL_BOOL_SORT),
-    ("false", 0):    lambda _: ([], IL_BOOL_SORT),
+    ("True", 0):     lambda _: ([], IL_BOOL_SORT),
+    ("False", 0):    lambda _: ([], IL_BOOL_SORT),
     ("not", 0):      lambda _: ([IL_BOOL_SORT], IL_BOOL_SORT),
     ("=>", 0):       lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),
     ("and", 0):      lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),

@@ -47,9 +47,9 @@ def from_json_expr(contents: dict, enums: dict[str, str]) ->  ILExpr:
     if len(args) != 0:
         return ILApply(IL_NO_SORT, identifier, args)
     
-    if identifier.symbol == "true":
+    if identifier.symbol == "True":
         return ILConstant(IL_BOOL_SORT, True)
-    elif identifier.symbol == "false":
+    elif identifier.symbol == "False":
         return ILConstant(IL_BOOL_SORT, False)
     elif re.match(r"0|[1-9]\d*", identifier.symbol):
         return ILConstant(IL_INT_SORT, int(identifier.symbol))
@@ -179,7 +179,7 @@ def from_json(contents: dict) -> Optional[ILProgram]:
 def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
     if not input_path.is_file():
         sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
-        sys.exit(1)
+        return 1
 
     with open(input_path, "r") as file:
         contents = json.load(file)
@@ -187,13 +187,13 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
 
     if not program:
         sys.stderr.write("Failed parsing\n")
-        sys.exit(1)
+        return 1
 
     if do_sort_check:
         (well_sorted, _) = sort_check(program)
         if not well_sorted:
             sys.stderr.write("Failed sort check\n")
-            sys.exit(2)
+            return 2
 
     with open(output_path, "w") as f:
         f.write(str(program))

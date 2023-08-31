@@ -8,5 +8,5 @@ ASSIGN
                    state = ready & (request = Tr): busy;
                    TRUE : {ready,busy};
                  esac;
--- SPEC
---   AG((request = Tr) -> AF state = busy)
+SPEC
+  AG((request = Tr) -> AF state = busy)

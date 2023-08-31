@@ -63,9 +63,9 @@ def expr_json(expr):
 
             ret = ""
             if e == "TRUE":
-                ret = "true"
+                ret = "True"
             elif e == "FALSE":
-                ret = "false"
+                ret = "False"
             else:
                 ret = e
             return {

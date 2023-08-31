@@ -461,7 +461,8 @@ def main(input_path: Path, output_path: Path) -> int:
 
     output = translate(program)
 
-    if not output:
+    if output is None:
+        print("here")
         return 1
 
     for label, nodes in output.items():
@@ -469,7 +470,7 @@ def main(input_path: Path, output_path: Path) -> int:
             # f.write(f"; {label}\n")
             for n in nodes:
                 f.write(f"{n}\n")
-
+    
     return 0
 
 

@@ -26,6 +26,13 @@ SMV2IL = {
     "dir": "smv" 
 }
 
+SMV2BTOR = {
+    "name": "smv2btor",
+    "source": "smv",
+    "target": "btor2",
+    "dir": "smv" 
+}
+
 IL2BTOR = {
     "name": "il2btor",
     "source": "il",
@@ -33,9 +40,9 @@ IL2BTOR = {
     "dir": "il"
 }
 
-SUITES = [ SMV2IL, IL2BTOR ]
+SUITES = [ SMV2IL, SMV2BTOR, IL2BTOR ]
 SUITE_NAMES = [ suite["name"] for suite in SUITES ]
-SUITE_NAME_MAP = { suite["name"]:suite for suite in SUITES }
+SUITE_NAME_MAP = { suite["name"]: suite for suite in SUITES }
 
 
 def cleandir(dir: Path, quiet: bool):
@@ -110,7 +117,6 @@ class TestCase():
         self.logger.info(f"{self.test_name} [{Color.PASS}PASS{Color.ENDC}] {msg}")
 
     def run(self, program: Path, options: list[str], copyback: bool):
-        """CHANGE ME!"""
         os.chdir(WORK_DIR)
 
         proc = subprocess.run(["python", str(program), str(self.test_path), "--targetloc", "out"] + options, capture_output=True)

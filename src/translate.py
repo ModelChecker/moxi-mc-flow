@@ -31,7 +31,7 @@ def ext_to_lang(ext: str) -> Lang:
             raise NotImplementedError
 
 
-def main(src_path: Path, target_lang: Lang, target_path: Path) -> int:
+def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bool) -> int:
     if not src_path.is_file():
         sys.stderr.write(f"Error: source is not a file ({src_path})\n")
         return 1
@@ -61,21 +61,21 @@ def main(src_path: Path, target_lang: Lang, target_path: Path) -> int:
             tmp = smv2json(src_path, json_path)
             if tmp:
                 return tmp
-            return json2il(json_path, target_path, do_sort_check=False)
+            return json2il(json_path, target_path, do_sort_check)
         elif target_lang == Lang.BTOR2:
             json_path = Path(f"{target_path.stem}.json")
             tmp = smv2json(src_path, json_path)
             if tmp:
                 return tmp
-            tmp = il2btor(json_path, target_path)
+            return il2btor(json_path, target_path)
     elif src_lang == Lang.IL:
         if target_lang == Lang.IL_JSON:
-            return il2json(src_path, target_path, False, False)
+            return il2json(src_path, target_path, do_sort_check, False)
         elif target_lang == Lang.BTOR2:
             return il2btor(src_path, target_path)
     elif src_lang == Lang.IL_JSON:
         if target_lang == Lang.IL:
-            return json2il(src_path, target_path, do_sort_check=False)
+            return json2il(src_path, target_path, do_sort_check)
         elif target_lang == Lang.BTOR2:
             return il2btor(src_path, target_path)
 
@@ -88,18 +88,18 @@ if __name__ == "__main__":
     parser.add_argument("targetlang", choices=["il", "il-json", "btor2"],
                         help="target language")
     parser.add_argument("--targetloc", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
-    # parser.add_argument("--use-json", action="store_true",
-    #                     help="use json as interchange format between translators")
+    parser.add_argument("--sortcheck", action="store_true",
+                        help="enable sort checking if translating to il")
     args = parser.parse_args()
 
     src_path = Path(args.source)
 
     if args.targetlang == "il":
         target_lang = Lang.IL
-        target_path = Path(args.args.targetloc) if args.args.targetloc else Path(f"{src_path.stem}.mcil")
+        target_path = Path(args.targetloc) if args.targetloc else Path(f"{src_path.stem}.mcil")
     elif args.targetlang == "il-json":
         target_lang = Lang.IL_JSON
-        target_path = Path(args.args.targetloc) if args.args.targetloc else Path(f"{src_path.stem}.json")
+        target_path = Path(args.targetloc) if args.targetloc else Path(f"{src_path.stem}.json")
     elif args.targetlang == "btor2":
         target_lang = Lang.BTOR2
         if not args.targetloc:
@@ -110,5 +110,5 @@ if __name__ == "__main__":
         target_lang = Lang.NONE
         target_path = Path("")
 
-    returncode = main(src_path, target_lang, target_path)
+    returncode = main(src_path, target_lang, target_path, args.sortcheck)
     sys.exit(returncode)

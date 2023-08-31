@@ -31,7 +31,7 @@ def main():
 
         # print(f"test_file_path = {test_file_path}, json_file_path = {json_file_path}")
 
-        cmd = "python3 src/smv2il/nuxmv-json.py " + test_file_path + " " + json_file_path
+        cmd = "python3 src/smv2il/nuxmv_json.py " + test_file_path + " " + json_file_path
         process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
         try:
             stdout, stderr = process.communicate(timeout=timeout)
