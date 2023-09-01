@@ -119,7 +119,7 @@ def ilsort_to_btor2(sort: ILSort, enums: dict[str, int], sort_map: SortMap) -> B
         return BtorBitVec(1)
     elif is_bitvec_sort(sort):
         return BtorBitVec(sort.identifier.indices[0])
-    elif sort.identifier.symbol == "Array":
+    elif is_array_sort(sort):
         return BtorArray(ilsort_to_btor2(sort.parameters[0], enums, sort_map), 
                           ilsort_to_btor2(sort.parameters[1], enums, sort_map))
     elif sort.identifier.symbol in enums:

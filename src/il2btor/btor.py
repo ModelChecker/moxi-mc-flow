@@ -136,7 +136,7 @@ class BtorArray(BtorSort):
         self.name = "array"
         
     def __repr__(self) -> str:
-        return f"({self.nid} sort  {self.name} {repr(self.domain)} {repr(self.range)})"
+        return f"({self.nid} sort {self.name} {repr(self.domain)} {repr(self.range)})"
 
     def __str__(self) -> str:
         return f"{self.nid} sort {self.name} {self.domain.nid} {self.range.nid}{self.comment}"
@@ -148,18 +148,7 @@ class BtorArray(BtorSort):
             return False
 
     def __hash__(self) -> int:
-        """TODO"""
-        if isinstance(self.domain, BtorBitVec):
-            domain_hash = hash(self.domain)
-        else:
-            pass
-
-        if isinstance(self.range, BtorBitVec):
-            range_hash = hash(self.range)
-        else:
-            pass
-
-        return 0
+        return hash((self.domain, self.range))
 
 
 class BtorExpr(BtorNode):
