@@ -137,3 +137,8 @@ __workdir/
 resultsdir/
 
 .DS_Store
+
+*.bak
+*.o
+objs/
+*~
