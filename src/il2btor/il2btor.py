@@ -6,8 +6,6 @@ from pathlib import Path
 import sys
 from typing import cast
 
-from sympy import Implies
-
 if __name__ == "__main__" and __package__ is None:
     from il import *
     from json2il import from_json
