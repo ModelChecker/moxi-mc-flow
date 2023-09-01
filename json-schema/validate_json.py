@@ -7,7 +7,7 @@ from pathlib import Path
 from jsonschema import validate, exceptions, RefResolver
     
 DIR = Path(os.path.dirname(__file__))
-with open(DIR / "../json-schema/schema/il.json", "r") as f:
+with open(DIR / "schema/il.json", "r") as f:
     il_schema = json.load(f)
 resolver = RefResolver(f"file://{DIR}/../json-schema/schema/", {})
 
