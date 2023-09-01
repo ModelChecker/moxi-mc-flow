@@ -17,27 +17,10 @@ class Lang(Enum):
     BTOR2 = 4
 
 
-def ext_to_lang(ext: str) -> Lang:
-    match ext:
-        case ".smv":
-            return Lang.SMV
-        case ".mcil":
-            return Lang.IL
-        case ".json":
-            return Lang.IL_JSON
-        case ".btor2":
-            return Lang.BTOR2
-        case _:
-            raise NotImplementedError
-
-
 def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bool) -> int:
     if not src_path.is_file():
         sys.stderr.write(f"Error: source is not a file ({src_path})\n")
         return 1
-
-    with open(src_path, "r") as f:
-        source = f.read()
 
     src_lang = ""
     if src_path.suffix == ".smv":
@@ -103,7 +86,7 @@ if __name__ == "__main__":
     elif args.targetlang == "btor2":
         target_lang = Lang.BTOR2
         if not args.targetloc:
-            sys.stderr.write("Error: option 'targetloc' required for 'btor2' target")
+            sys.stderr.write("Error: option 'targetloc' required for 'btor2' target\n")
             sys.exit(1)
         target_path = Path(args.targetloc)
     else:
