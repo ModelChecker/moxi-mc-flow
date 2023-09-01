@@ -4,9 +4,9 @@ import argparse, rich
 from typing import Tuple
 
 if __package__ == "":
-    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le
+    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add
 else:
-    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le
+    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add
 
 """
 This file prototypes a translation from nuXmv to the IL 
@@ -141,6 +141,8 @@ def translate_case_branches(branch_list, acc, lhs):
             for elem in t.elements:
                 disjuncts.append(Equal(left=Identifier(primed(lhs.name)), right=elem))
             t = disjoin_list(disjuncts)
+            acc = ITE(cond=cond, t=t, e=translate_case_branches(tail, None, lhs))
+            return acc
 
         acc = ITE(cond=cond, t=Equal(left=Identifier(primed(lhs.name)), right=t), e=translate_case_branches(tail, None, lhs))
         return acc
@@ -170,7 +172,13 @@ def translate_expression(expr, lhs=None):
                        right=translate_expression(expr.right, lhs))
     elif ecn == "list":
         return list(map(lambda x : translate_expression(x, lhs), expr))
+    elif ecn == "int":
+        return expr
+    elif ecn == "Add":
+        return Add(left=translate_expression(expr.left, lhs),
+                  right=translate_expression(expr.right, lhs))
     else: 
+        print("else case", expr, ecn)
         return expr
 
 
@@ -418,7 +426,7 @@ def translate(parse_tree):
                         module_trans.append(case_translation)
                     else:
                         primed_ident = Identifier(name=primed(str(vars(k)['value'])))
-                        module_trans.append(Equal(left=primed_ident, right=v))
+                        module_trans.append(Equal(left=primed_ident, right=translate_expression(v, k.value)))
                 else:
                     module_inv.append(Equal(left=k, right=v))
     # ================== MINING DEFINE =====================
