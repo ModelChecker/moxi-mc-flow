@@ -38,14 +38,17 @@ def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bo
         return 0
     elif src_lang == Lang.SMV:
         if target_lang == Lang.IL_JSON:
+            # SMV -> json
             return smv2json(src_path, target_path)
         elif target_lang == Lang.IL:
+            # SMV -> IL
             json_path = Path(f"{target_path.stem}.json")
             tmp = smv2json(src_path, json_path)
             if tmp:
                 return tmp
             return json2il(json_path, target_path, do_sort_check)
         elif target_lang == Lang.BTOR2:
+            # SMV -> BTOR2
             json_path = Path(f"{target_path.stem}.json")
             tmp = smv2json(src_path, json_path)
             if tmp:
@@ -53,13 +56,17 @@ def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bo
             return il2btor(json_path, target_path)
     elif src_lang == Lang.IL:
         if target_lang == Lang.IL_JSON:
+            # IL -> json
             return il2json(src_path, target_path, do_sort_check, False)
         elif target_lang == Lang.BTOR2:
+            # IL -> BTOR2
             return il2btor(src_path, target_path)
     elif src_lang == Lang.IL_JSON:
         if target_lang == Lang.IL:
+            # json -> IL
             return json2il(src_path, target_path, do_sort_check)
         elif target_lang == Lang.BTOR2:
+            # json -> BTOR2
             return il2btor(src_path, target_path)
 
     return 0
