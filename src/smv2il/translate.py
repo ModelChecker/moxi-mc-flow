@@ -6,7 +6,7 @@ from typing import Tuple
 if __package__ == "":
     from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add
 else:
-    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add
+    from .model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add
 
 """
 This file prototypes a translation from nuXmv to the IL 
@@ -420,7 +420,6 @@ def translate(parse_tree):
                 if kcn == "Smallinit":
                     module_init.append(Equal(left=vars(k)['value'], right=v))
                 elif kcn == "Next":
-                    print("next case")
                     if (v.__class__.__name__ == "Case"):
                         case_translation = translate_expression(v, k.value)
                         module_trans.append(case_translation)
