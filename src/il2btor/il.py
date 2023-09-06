@@ -132,6 +132,8 @@ class ILSort():
         # TODO: not effective for parameterized sorts
         if is_bool_sort(self):
             return hash(ILIdentifier("BitVec", [1]))
+        elif is_array_sort(self):
+            return hash((self.identifier, self.parameters[0], self.parameters[1]))
         return hash(self.identifier)
     
     def __str__(self) -> str:
@@ -1051,6 +1053,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             context.defined_functions[cmd.symbol] = (Rank((input_sorts, cmd.output)), cmd.body)
         elif isinstance(cmd, ILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
+            # TODO: check for valid sort symbols
             context.input_var_sorts = {var:var.sort for var in cmd.input}
             context.output_var_sorts = {var:var.sort for var in cmd.output}
             context.local_var_sorts = {var:var.sort for var in cmd.local}

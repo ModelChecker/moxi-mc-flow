@@ -1,9 +1,10 @@
-from argparse import ArgumentParser
-from pathlib import Path
 import sys
 import os
 import re
 import json
+
+from argparse import ArgumentParser
+from pathlib import Path
 from jsonschema import validate, exceptions, RefResolver
 
 if __name__ == "__main__" and __package__ is None:

@@ -17,27 +17,10 @@ class Lang(Enum):
     BTOR2 = 4
 
 
-def ext_to_lang(ext: str) -> Lang:
-    match ext:
-        case ".smv":
-            return Lang.SMV
-        case ".mcil":
-            return Lang.IL
-        case ".json":
-            return Lang.IL_JSON
-        case ".btor2":
-            return Lang.BTOR2
-        case _:
-            raise NotImplementedError
-
-
 def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bool) -> int:
     if not src_path.is_file():
         sys.stderr.write(f"Error: source is not a file ({src_path})\n")
         return 1
-
-    with open(src_path, "r") as f:
-        source = f.read()
 
     src_lang = ""
     if src_path.suffix == ".smv":
@@ -55,14 +38,17 @@ def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bo
         return 0
     elif src_lang == Lang.SMV:
         if target_lang == Lang.IL_JSON:
+            # SMV -> json
             return smv2json(src_path, target_path)
         elif target_lang == Lang.IL:
+            # SMV -> IL
             json_path = Path(f"{target_path.stem}.json")
             tmp = smv2json(src_path, json_path)
             if tmp:
                 return tmp
             return json2il(json_path, target_path, do_sort_check)
         elif target_lang == Lang.BTOR2:
+            # SMV -> BTOR2
             json_path = Path(f"{target_path.stem}.json")
             tmp = smv2json(src_path, json_path)
             if tmp:
@@ -70,13 +56,17 @@ def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bo
             return il2btor(json_path, target_path)
     elif src_lang == Lang.IL:
         if target_lang == Lang.IL_JSON:
+            # IL -> json
             return il2json(src_path, target_path, do_sort_check, False)
         elif target_lang == Lang.BTOR2:
+            # IL -> BTOR2
             return il2btor(src_path, target_path)
     elif src_lang == Lang.IL_JSON:
         if target_lang == Lang.IL:
+            # json -> IL
             return json2il(src_path, target_path, do_sort_check)
         elif target_lang == Lang.BTOR2:
+            # json -> BTOR2
             return il2btor(src_path, target_path)
 
     return 0
@@ -103,7 +93,7 @@ if __name__ == "__main__":
     elif args.targetlang == "btor2":
         target_lang = Lang.BTOR2
         if not args.targetloc:
-            sys.stderr.write("Error: option 'targetloc' required for 'btor2' target")
+            sys.stderr.write("Error: option 'targetloc' required for 'btor2' target\n")
             sys.exit(1)
         target_path = Path(args.targetloc)
     else:

@@ -1,0 +1,100 @@
+This directory contains code used for the experiments described in "A Multi-Encoding Approach for LTL Symbolic Satisfiability Checking" by K.Y.Rozier and M.Y.Vardi. The code has been collected into a research tool called PANDA (Portfolio Approach to Navigating the Design of Automata).
+
+Disclaimer: The files distributed here contain research prototype code published in the paper above. This is not production-quality code; it may not run on your system without modification.
+
+All of the PANDA software was written by Kristin Yvonne Rozier. It is released under the included NASA Software Agreement (software_agreement.txt). Please feel free to email me concerning clarifications, bugs, or other corrections.
+
+The rgl2 directory contains software dependencies for the BDD variable ordering graph triangulation algorithms. All software in this directory was authored by Andrew Ladd.
+
+The PANDAcore directory contains the C++ code at the core of PANDA. At the lowest level, PANDA contains a module which creates one symbolic automaton encoding of one LTL formula, with the encoding and the output tool format dictated by command-line flags to the PANDA executable. Modifying the Makefile, and compiling the code, results in an executable with the following properties:
+
+Input: an LTL formula 
+
+Grammar: 
+LTL_formula -> (formula)
+formula -> 
+        -> formula & formula   //and
+        -> formula | formula   //or
+        -> ~ formula           //not
+        -> formula -> formula  //implies
+        -> X formula           //next time
+        -> formula R formula   //release
+        -> G formula           //globally, always
+        -> F formula           //in the future, eventually
+        -> TRUE  
+        -> FALSE
+        -> (formula)
+        -> atomic_proposition
+
+
+Output: a symbolic automaton model of the input formula (for NuSMV, Cadence SMV, or SAL)
+           OR (with -pnnf) just the negation normal form of the formula
+           OR (with -pbnf) just the boolean normal form of the formula
+	   OR (with -pnor) just the formula with all R-operators replaced by ~(~aU~b) constructions
+
+Dependencies:
+  lex   //we used lex 2.5.35 distributed with RedHat
+  yacc  
+  rgl2  //Graph triangulation implementation coded by the Kavraki Lab at Rice University.
+
+
+Usage: PANDA (([(-c|-n|-s) (-nnf | -bnf) (-sloppy | -fussy) (-gba | -tgba) [(-mcs & (-max | -min | -random | -zero) | -lexm | -lexp | -linear [-reverse]) -v]] | (-a | -pbnf | -pnnf | -pnor) LTL_formula_file
+        where LTL_formula_file contains one line: a formula in the following syntax.
+        Operators (in order of precedence):
+        ~ (not), & (and), | (or), -> (implication)
+        plus the following temoral operators:
+        X p is true at time t if p is true at time t + 1.
+        G p is true at time t if p is true at all times t' >= t.
+        F p is true at time t if p is true at some time t' >= t.
+        p U q is true at time t if q is true at some time t' >= t, and for all times < t' but >= t, p is true.
+        p R q is true at time t if either q is true at time t and all times following t, or if p is true at some time t' >= t, and for all times between t and t', inclusive, q is true.
+        Optional Flags:
+          -pbnf to ONLY print formula in Boolean Normal Form and exit OR
+          -pnnf to ONLY print formula in Negation Normal Form and exit OR
+          -pnor to ONLY print formula without R-operators and exit OR
+          -n for NuSMV-style comments in the symbolic automaton OR
+          -c (default) for CadenceSMV-style comments in the symbolic automaton OR
+          -s for SAL-style symbolic automaton AND
+          -nnf to convert the formula to NNF in the parse tree OR
+          -bnf (default) use Boolean Normal Form AND
+          -fussy (default) use fussy encoding OR
+          -sloppy for sloppy encoding (default is fussy encoding)
+               (-sloppy option can only be used with NNF formulas!)
+          -gba for CGH's standard state-based symbolic automaton (default)
+          -tgba for transition-based symbolic automaton instead of default state-based one
+          -mcs for MCS variable order
+               -max to start with the maximum output degree node (default)
+               -min to start with the minimum output degree node
+               -random to start with a random node
+               -zero to start with the first node encountered
+          -lexm for LEXM variable order
+          -lexp for LEXP variable order
+          -linear for Linear variable order
+          -reverse to reverse a flag-specified variable ordering
+               (default is to use the Model Checker's default var order
+          -v for verbose mode
+
+-----
+
+PANDA Perl Script
+
+The PANDA.pl perl script provides an example of how to use the PANDA core for LTL satisfiability checking. In the experiments for the paper, we used perl scripts for generating the benchmark formulas, launching the PANDA tool, model checking the symbolic automata produced with a back-end model checker (e.g. CadenceSMV), and collecting data.
+
+Please note this is a generic version of a perl script used to run the PANDA tool for the experiments described in the paper. Significant modifications are required to run this code on a system other than SUG@R, including setting path variables, replacing environment variables, and installation of the symbolic model checking tools used.
+
+-----
+
+PANDA PBS Run Script
+
+PANDA can be used to create several encodings of a formula, utilizing a symbolic model checker to check them for satisfiability in parallel and terminating when the first check completes, as described in the paper:
+
+Rozier, Kristin Y., and Vardi, Moshe Y. "A Multi-Encoding Approach for LTL Symbolic Satisfiability Checking." In 17th International Symposium on Formal Methods (FM2011), volume 6664 of Lecture Notes in Computer Science (LNCS), pages 417--431. Springer-Verlag, 2011.
+
+
+We accomplish this by using the job arrays feature in Torque on the Shared University Grid at Rice (SUG@R). (The batch job scheduling system implemented on SUG@R uses the Torque package for resource management and the Maui package for job scheduling and monitoring.) The file PANDA.pbs is an example PBS job script which we tested on SUG@R; the script may need adjustments for other supercomputers.
+
+
+-----
+Kristin Yvonne Rozier
+Kristin.Y.Rozier@nasa.gov
+2011-06-20
