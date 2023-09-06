@@ -13,7 +13,7 @@ class BitVec():
 
 class BtorAssignment():
 
-    def __init__(self, id: int, value: int | tuple[int, int], symbol: Optional[str]) -> None:
+    def __init__(self, id: int, value: BitVec | tuple[BitVec, BitVec], symbol: Optional[str]) -> None:
         self.id = id
         self.value = value
         self.symbol = symbol
@@ -21,24 +21,24 @@ class BtorAssignment():
 
 class BtorBitVecAssignment(BtorAssignment):
 
-    def __init__(self, id: int, value: int, symbol: Optional[str]) -> None:
+    def __init__(self, id: int, value: BitVec, symbol: Optional[str]) -> None:
         super().__init__(id, value, symbol)
     
     def __str__(self) -> str:
         value = cast(int, self.value)
-        return f"{self.id} {bin(value)} {self.symbol}"
+        return f"{self.id} {value} {self.symbol}"
         
 
 class BtorArrayAssignment(BtorAssignment):
 
-    def __init__(self, id: int, value: tuple[int, int], symbol: Optional[str]) -> None:
+    def __init__(self, id: int, value: tuple[BitVec, BitVec], symbol: Optional[str]) -> None:
         super().__init__(id, value, symbol)
         (index, element) = value
         self.index = index
         self.element = element
     
     def __str__(self) -> str:
-        return f"{self.id} [{bin(self.index)}] {bin(self.element)} {self.symbol}"
+        return f"{self.id} [{self.index}] {self.element} {self.symbol}"
 
 
 class BtorFrame():
@@ -55,7 +55,7 @@ class BtorFrame():
 
     def __str__(self) -> str:
         s = f"#{self.index}\n"
-        s += "\n".join([str(a) for a in self.state_assigns])
+        s += "\n".join([str(a) for a in self.state_assigns]) + "\n"
         s += f"@{self.index}\n"
         s += "\n".join([str(a) for a in self.input_assigns])
         return s
