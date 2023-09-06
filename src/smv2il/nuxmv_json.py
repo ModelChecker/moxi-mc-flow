@@ -25,11 +25,11 @@ def should_pass(instance, schema, name=None, resolver=None):
         print(name, "-", CGREEN, "PASSED", CGREEN, CEND)
     return
 
-path_to_schema = "/home/chris/git/ILToBtor2Python/json-schema/schema" # replace this!
+path_to_schema = "/Users/local/ILToBtor2Python/json-schema/schema" # replace this!
 
 resolver = RefResolver("file://%s/" % path_to_schema, {})
 
-il_file = open("/home/chris/git/ILToBtor2Python/json-schema/schema/il.json") # replace this!
+il_file = open("/Users/local/ILToBtor2Python/json-schema/schema/il.json") # replace this!
 il_schema = json.load(il_file)
 
 def translate(nuxmv: str, json_filename: str):

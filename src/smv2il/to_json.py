@@ -106,10 +106,34 @@ def expr_json(expr):
                     expr_json(expr.right)
                 ]
             }
-        # case "int":
-        #     return {
-
-        #     }
+        case "int":
+            return {
+                "identifier": expr
+            }
+        case "Add":
+            return {
+                "identifier": "+",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "Sub":
+            return {
+                "identifier": "-",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "Lt":
+            return {
+                "identifier": "<",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
         case _:
             print("match all exprs", ecn, expr)
 
@@ -226,6 +250,8 @@ def to_json(ast):
                 name_str = name
                 if name.__class__.__name__ == 'Identifier':
                     name_str = name.name
+
+
                 
                 j = {
                     "command": "check-system",
@@ -237,7 +263,9 @@ def to_json(ast):
                     "fairness": fairness,
                     "reachable": reachable,
                     "current": current,
-                    "queries": list(map(lambda x : list(map(lambda x : { "identifier": x.name }, x)), queries))
+                    "queries": 
+                    list(map(lambda x : \
+                             list(map(lambda x : expr_json(x), x)), queries))
                 }
 
                 if assumption == None:

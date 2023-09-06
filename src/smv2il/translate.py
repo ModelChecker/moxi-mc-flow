@@ -4,9 +4,9 @@ import argparse, rich
 from typing import Tuple
 
 if __package__ == "":
-    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add
+    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add, Dot
 else:
-    from .model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add
+    from .model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add, Dot
 
 """
 This file prototypes a translation from nuXmv to the IL 
@@ -177,12 +177,14 @@ def translate_expression(expr, lhs=None):
     elif ecn == "Add":
         return Add(left=translate_expression(expr.left, lhs),
                   right=translate_expression(expr.right, lhs))
+    elif ecn == "Dot":
+        return Dot(instance=expr.instance, element=expr.element)
     else: 
         print("else case", expr, ecn)
         return expr
 
 
-def typecheck_exp(exp):
+def typecheck_exp(exp, context=None):
     if str(exp) == "TRUE" or str(exp) == "FALSE":
         return Boolean()
     else:
@@ -191,22 +193,63 @@ def typecheck_exp(exp):
                 return Integer()
             case "And" | "Or" | "Iff" | "Not" | "Equal":
                 return Boolean()
-            case "Dot":
-                global res
-                for r in res:
-                    match r:
-                        case DefineSystem(name=name):
-                            if str(name) == str(exp.instance):
-                                print("FOUND DECLARATION OF MODULE", name)
-                        case _:
-                            print("FOUND", r)
-            
+            case "Dot": # handle this after handling modules
+                return Dot(instance=exp.instance, element=exp.element)
+            case "Identifier":
+                for (c, t) in context:
+                    if exp == c:
+                        return t
+
         return f"UNIMPLEMENTED, {exp.__class__.__name__}"
 
 module_components = {}
 module_typecheck_status = {}
 
 subsys_flag = False
+
+def resolve_vars(vars):
+    for i, (e, t) in enumerate(vars):
+        match t:
+            case Dot(instance=mod, element=elem):
+                # print("DOT CASE")
+                instance = mod
+                element = elem
+                var_name = mod.name + "_" + elem.name
+                # print(instance, "DOT", element)
+                global res
+                for r in res:
+                    rcn = r.__class__.__name__
+                    if rcn == "DefineSystem":
+                            # print("DEFINE SYSTEM CASE")
+                            # print("looking at", r.name, "in search of", var_name)
+                            if r.output == None:
+                                continue
+                            else:
+                                for (s, newty) in r.output:
+                                    # print(f"RESOLVING {newty} in {r.output}")
+                                    if str(var_name) == str(s):
+                                        vars[i] = (e, newty)
+            case _:
+                vars[i] = (e, t)
+
+    return vars
+
+def resolve_refs(ast):
+    for i, a in enumerate(ast):
+        match a:
+            case DefineSystem(name=name, input=input, output=output, local=local, init=init, trans=trans, inv=inv, subsystems=subsysts):
+                ds = DefineSystem(name=name,
+                                    input=resolve_vars(input),
+                                    output=resolve_vars(output),
+                                    local=resolve_vars(local),
+                                    init=init,
+                                    trans=trans,
+                                    inv=inv,
+                                    subsystems=subsysts)
+                ast[i] = ds
+            case _:
+                ast[i] = a
+    return ast
 
 # 1) loop through systems
 #     - if we ever find a subsystem declaration, synthesize types for the parameters and assign them to
@@ -218,7 +261,7 @@ def handle_modules(ast):
     # print("BEGIN: module components", module_components)
     for i, a in enumerate(ast):
         match a:
-            case DefineSystem(name=name, input=input, output=_, local=local, init=init, trans=trans, inv=inv,
+            case DefineSystem(name=name, input=input, output=output, local=local, init=init, trans=trans, inv=inv,
                               subsystems=subsysts):
                 
                 global subsys_flag
@@ -239,7 +282,8 @@ def handle_modules(ast):
                     output_typs = []
                     
                     for ie in input_exps:
-                        input_typs.append(typecheck_exp(ie))
+                        context = output
+                        input_typs.append(typecheck_exp(ie, context))
 
                     for j, b in enumerate(ast):
                         match b:
@@ -528,10 +572,14 @@ def translate_parse_tree(parse_tree, print_ast=False):
     global res
     res = hmast
 
-    if print_ast:
-        rich.print(hmast)
+    res_ast = resolve_refs(hmast)
 
-    return hmast
+    res = res_ast
+
+    if print_ast:
+        rich.print(res_ast)
+
+    return res_ast
 
 def main():
     argparser = argparse.ArgumentParser(

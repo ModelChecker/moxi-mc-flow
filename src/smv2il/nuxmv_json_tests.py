@@ -4,11 +4,27 @@ This file runs all specified tests through the nuxmv-json pipeline
 from subprocess import PIPE, Popen, TimeoutExpired
 
 test_file_paths = [
+    # ALL OF THESE WORK
     "examples/smv/nusmv-examples/counter.smv",
     "examples/smv/nusmv-examples/short.smv",
     "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counter.smv",
-    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counter2.smv"
-    # "examples/smv/nuxmv-examples/lustre/QF_LIA/_6countern.smv"
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counter2.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6countern.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counters_e3_140_e8_149.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counters_e8_371_e1_448.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counters_e8_371_e1_448.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counters_e8_371_e2_80.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counters_e8_371_e3_224.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counters_e8_371_e7_304.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counters.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_1_e7_184_e3_299.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_1.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_2_e7_1027_e1_1047.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_2_e7_1027_e7_359.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_2_e8_491_e7_826.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_2.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e1_586.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e1_924.smv"
 ]
 
 def main():
