@@ -148,7 +148,7 @@ class BtorWitnessParser(Parser):
 
     @_("NUMBER")
     def binary_string(self, p):
-        return int(p[0], base=2)
+        return BitVec(len(p[0]), int(p[0], base=2))
 
 
 def parse(input: str) -> Optional[BtorWitness]:
