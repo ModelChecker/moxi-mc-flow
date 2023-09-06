@@ -29,10 +29,10 @@ class BtorWitnessLexer(Lexer):
     BAD_PROP = r"b(0|([1-9]\d*))"
     JUSTICE_PROP = r"j(0|([1-9]\d*))"
 
-    SYMBOL = r"[a-zA-Z~!@$%^&*_+=<>.?/-:#][0-9a-zA-Z~!@$%^&*_+=<>.?/-:#]*"
-
     LBRACK = r"\["
     RBRACK = r"\]"
+
+    SYMBOL = r"[a-zA-Z~!@$%^&*_+=<>.?/-:#[\]][0-9a-zA-Z~!@$%^&*_+=<>.?/-:#[\]]*"
 
     # Reserved keywords
     SYMBOL["."] = RW_DOT
@@ -71,9 +71,9 @@ class BtorWitnessParser(Parser):
             else:
                 justice_props.append(prop_idx)
 
-        p[2].append(p[1])
+        frames = [p[1]] + p[2]
 
-        return BtorWitness(bad_props, justice_props, p[2])
+        return BtorWitness(bad_props, justice_props, frames)
 
     @_("RW_SAT NEWLINE prop_list NEWLINE")
     def header(self, p):
