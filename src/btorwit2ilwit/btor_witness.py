@@ -1,6 +1,16 @@
 from typing import Optional, cast
 
 
+class BitVec():
+
+    def __init__(self, width: int, value: int) -> None:
+        self.width = width
+        self.value = value
+
+    def __str__(self) -> str:
+        return "{0:0{w}b}".format(self.value, w=self.width)
+
+
 class BtorAssignment():
 
     def __init__(self, id: int, value: int | tuple[int, int], symbol: Optional[str]) -> None:
@@ -35,12 +45,20 @@ class BtorFrame():
 
     def __init__(
         self, 
-        assigns: list[BtorAssignment],
+        index: int,
+        state_assigns: list[BtorAssignment],
+        input_assigns: list[BtorAssignment]
     ) -> None:
-        self.assigns = assigns
+        self.index = index
+        self.state_assigns = state_assigns
+        self.input_assigns = input_assigns
 
     def __str__(self) -> str:
-        return "\n".join([str(a) for a in self.assigns])
+        s = f"#{self.index}\n"
+        s += "\n".join([str(a) for a in self.state_assigns])
+        s += f"@{self.index}\n"
+        s += "\n".join([str(a) for a in self.input_assigns])
+        return s
 
 
 class BtorWitness():
@@ -49,23 +67,15 @@ class BtorWitness():
         self, 
         bad_props: list[int], 
         justice_props: list[int], 
-        frames: list[tuple[BtorFrame, BtorFrame]]
+        frames: list[BtorFrame]
     ) -> None:
         self.bad_props = bad_props
         self.justice_props = justice_props
         self.frames = frames
-        self.state_frames, self.input_frames = list(zip(*frames))
 
     def __str__(self) -> str:
         s = "sat\n"
         s += " ".join([f"b{p}" for p in self.bad_props] + [f"j{p}" for p in self.justice_props]) + "\n"
-        frame_idx = 0
-        for frame in self.frames:
-            state_frame, input_frame = frame
-            s += f"#{frame_idx}\n"
-            s += str(state_frame)
-            s += f"@{frame_idx}\n"
-            s += str(input_frame)
-            frame_idx += 1
+        s += "\n".join([str(f) for f in self.frames])
         return s
         

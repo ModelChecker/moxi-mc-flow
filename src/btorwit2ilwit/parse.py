@@ -20,10 +20,11 @@ class BtorWitnessLexer(Lexer):
 
     NEWLINE = r"\n"
 
-    NUMBER = r"([01]+)|0|([1-9]\d*)" # token for both binary strings and uints
+    # NUMBER = r"([01]+)|0|([1-9]\d*)" # token for both binary strings and uints
+    NUMBER = r"\d+"
 
-    STATE_HEADER = r"@(0|([1-9]\d*))"
-    INPUT_HEADER = r"#(0|([1-9]\d*))"
+    STATE_HEADER = r"#(0|([1-9]\d*))"
+    INPUT_HEADER = r"@(0|([1-9]\d*))"
 
     BAD_PROP = r"b(0|([1-9]\d*))"
     JUSTICE_PROP = r"j(0|([1-9]\d*))"
@@ -37,9 +38,10 @@ class BtorWitnessLexer(Lexer):
     SYMBOL["."] = RW_DOT
     SYMBOL["sat"] = RW_SAT
 
-    # # Extra action for newlines
-    # def ignore_newline(self, t):
-    #     self.lineno += t.value.count("\n")
+    # Extra action for newlines
+    def NEWLINE(self, t):
+        self.lineno += t.value.count("\n")
+        return t
 
     def error(self, t):
         sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}")
@@ -58,7 +60,7 @@ class BtorWitnessParser(Parser):
         self.status = False
         sys.stderr.write(f"Error: Unexpected token ({token})")
 
-    @_("header frame_list frame NEWLINE RW_DOT")
+    @_("header frame frame_list RW_DOT NEWLINE")
     def witness(self, p):
         bad_props = []
         justice_props = []
@@ -69,8 +71,9 @@ class BtorWitnessParser(Parser):
             else:
                 justice_props.append(prop_idx)
 
-        p[1].append(p[2])
-        return BtorWitness(bad_props, justice_props, p[1])
+        p[2].append(p[1])
+
+        return BtorWitness(bad_props, justice_props, p[2])
 
     @_("RW_SAT NEWLINE prop_list NEWLINE")
     def header(self, p):
@@ -101,19 +104,22 @@ class BtorWitnessParser(Parser):
 
     @_("state_part input_part")
     def frame(self, p):
-        return (p[0], p[1])
+        idx, state_part = p[0]
+        _, input_part = p[1]
+        return BtorFrame(idx, state_part, input_part)
 
     @_("input_part")
     def frame(self, p):
-        return p[0]
+        idx, input_part = p[0]
+        return BtorFrame(idx, [], input_part)
 
     @_("STATE_HEADER NEWLINE model")
     def state_part(self, p):
-        return p[3]
+        return (int(p[0][1:]), p[2])
 
     @_("INPUT_HEADER NEWLINE model")
     def input_part(self, p):
-        return p[3]
+        return (int(p[0][1:]), p[2])
 
     @_("model assignment NEWLINE")
     def model(self, p):
