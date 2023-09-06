@@ -1,17 +1,18 @@
 #type: ignore
 import sys
 
-if __package__ == "":
+if __package__ == "" or not __package__:
     from sly import Lexer, Parser
     from btor_witness import *
 else:
     from .sly import Lexer, Parser
     from .btor_witness import *
 
+
 class BtorWitnessLexer(Lexer):
 
-    tokens = { NEWLINE, UINT, BINARY_STRING, SYMBOL, LBRACK, RBRACK, 
-               RW_DOT, RW_AT, RW_HASH, RW_b, RW_j, RW_sat }
+    tokens = { NEWLINE, NUMBER, SYMBOL, LBRACK, RBRACK, 
+               STATE_HEADER, INPUT_HEADER, BAD_PROP, JUSTICE_PROP, RW_DOT, RW_SAT }
 
     # String containing ignored characters between tokens
     ignore = r" "
@@ -19,25 +20,26 @@ class BtorWitnessLexer(Lexer):
 
     NEWLINE = r"\n"
 
-    UINT = r"0|([1-9]\d*)"
-    BINARY_STRING = r"[01]+"
+    NUMBER = r"([01]+)|0|([1-9]\d*)" # token for both binary strings and uints
 
-    SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@$%^&*_+=<>.?/-]*"
+    STATE_HEADER = r"@(0|([1-9]\d*))"
+    INPUT_HEADER = r"#(0|([1-9]\d*))"
+
+    BAD_PROP = r"b(0|([1-9]\d*))"
+    JUSTICE_PROP = r"j(0|([1-9]\d*))"
+
+    SYMBOL = r"[a-zA-Z~!@$%^&*_+=<>.?/-:#][0-9a-zA-Z~!@$%^&*_+=<>.?/-:#]*"
 
     LBRACK = r"\["
     RBRACK = r"\]"
 
     # Reserved keywords
     SYMBOL["."] = RW_DOT
-    SYMBOL["@"] = RW_AT
-    SYMBOL["#"] = RW_HASH
-    SYMBOL["b"] = RW_b
-    SYMBOL["j"] = RW_j
-    SYMBOL["sat"] = RW_sat
+    SYMBOL["sat"] = RW_SAT
 
-    # Extra action for newlines
-    def ignore_newline(self, t):
-        self.lineno += t.value.count("\n")
+    # # Extra action for newlines
+    # def ignore_newline(self, t):
+    #     self.lineno += t.value.count("\n")
 
     def error(self, t):
         sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}")
@@ -56,17 +58,36 @@ class BtorWitnessParser(Parser):
         self.status = False
         sys.stderr.write(f"Error: Unexpected token ({token})")
 
-    @_("header frame_list frame NEWLINE DOT")
+    @_("header frame_list frame NEWLINE RW_DOT")
     def witness(self, p):
+        bad_props = []
+        justice_props = []
+        for prop in p[0]:
+            is_bad_prop, prop_idx = prop
+            if is_bad_prop:
+                bad_props.append(prop_idx)
+            else:
+                justice_props.append(prop_idx)
+
         p[1].append(p[2])
-        return p[1]
+        return BtorWitness(bad_props, justice_props, p[1])
 
-    @_("sat NEWLINE RW_b UINT")
+    @_("RW_SAT NEWLINE prop_list NEWLINE")
     def header(self, p):
-        return []
+        return p[2]
 
-    @_("sat NEWLINE RW_j UINT")
-    def header(self, p):
+    @_("prop_list BAD_PROP")
+    def prop_list(self, p):
+        p[0].append((True, int(p[1][1:])))
+        return p[0]
+
+    @_("prop_list JUSTICE_PROP")
+    def prop_list(self, p):
+        p[0].append((False, int(p[1][1:])))
+        return p[0]
+
+    @_("")
+    def prop_list(self, p):
         return []
 
     @_("frame_list frame")
@@ -80,47 +101,61 @@ class BtorWitnessParser(Parser):
 
     @_("state_part input_part")
     def frame(self, p):
-        return []
+        return (p[0], p[1])
 
     @_("input_part")
     def frame(self, p):
-        return []
+        return p[0]
 
-    @_("RW_HASH UINT NEWLINE model")
+    @_("STATE_HEADER NEWLINE model")
     def state_part(self, p):
-        return []
+        return p[3]
 
-    @_("RW_AT UINT NEWLINE model")
+    @_("INPUT_HEADER NEWLINE model")
     def input_part(self, p):
-        return []
+        return p[3]
 
     @_("model assignment NEWLINE")
     def model(self, p):
-        return []
+        p[0].append(p[1])
+        return p[0]
 
     @_("")
     def model(self, p):
         return []
 
-    @_("UINT BINARY_STRING SYMBOL")
+    @_("NUMBER binary_string SYMBOL")
     def assignment(self, p):
-        return []
+        return BtorBitVecAssignment(int(p[0]), p[1], p[2])
 
-    @_("UINT BINARY_STRING")
+    @_("NUMBER binary_string")
     def assignment(self, p):
-        return []
+        return BtorBitVecAssignment(int(p[0]), p[1], None)
 
-    @_("UINT LBRACK BINARY_STRING RBRACK BINARY_STRING")
+    @_("NUMBER LBRACK binary_string RBRACK binary_string SYMBOL")
     def assignment(self, p):
-        return []
+        return BtorArrayAssignment(int(p[0]), (p[2], p[4]), p[5])
+
+    @_("NUMBER LBRACK binary_string RBRACK binary_string")
+    def assignment(self, p):
+        return BtorArrayAssignment(int(p[0]), (p[2], p[4]), None)
+
+    @_("NUMBER")
+    def binary_string(self, p):
+        return int(p[0], base=2)
 
 
-def parse(input: str) -> Optional[ILProgram]:
+def parse(input: str) -> Optional[BtorWitness]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
     lexer: BtorWitnessLexer = BtorWitnessLexer()
     parser: BtorWitnessParser = BtorWitnessParser()
-    cmds = parser.parse(lexer.tokenize(input))
+    witness = parser.parse(lexer.tokenize(input))
 
-    if parser.status and cmds:
-        return ILProgram(cmds)
-    return None
+    return witness if parser.status else None
+
+
+
+with open(sys.argv[1], "r") as f:
+    content = f.read()
+
+print(parse(content))

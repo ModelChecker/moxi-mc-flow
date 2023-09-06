@@ -166,6 +166,7 @@ class BtorVar(BtorExpr):
         super().__init__(EMPTY_ARGS)
         self.sort: BtorSort = sort
         self.name = name
+        self.var_index: int = 0  # used to refer to vars in witness
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, BtorVar):
