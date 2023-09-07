@@ -54,9 +54,9 @@ class BtorFrame():
         self.input_assigns = input_assigns
 
     def __str__(self) -> str:
-        s = f"#{self.index}\n"
+        s = f"#{self.index}\n" if self.state_assigns else f"#{self.index}"
         s += "\n".join([str(a) for a in self.state_assigns]) + "\n"
-        s += f"@{self.index}\n"
+        s += f"@{self.index}\n" if self.input_assigns else f"@{self.index}"
         s += "\n".join([str(a) for a in self.input_assigns])
         return s
 

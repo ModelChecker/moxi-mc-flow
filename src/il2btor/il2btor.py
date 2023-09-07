@@ -421,7 +421,6 @@ def translate(il_prog: ILProgram) -> Optional[dict[str, list[BtorNode]]]:
     enums: dict[str, int] = { sym:len(vals).bit_length() for sym,vals in context.declared_enum_sorts.items() }
 
     for check_system in il_prog.get_check_system_cmds():
-        # btor2_prog_list[check_system.sys_symbol] = []
         target_system = context.defined_systems[check_system.sys_symbol]
 
         build_sort_map_cmd(target_system, enums, sort_map)
@@ -460,11 +459,11 @@ def main(input_path: Path, output_path: Path) -> int:
     output = translate(program)
 
     if output is None:
-        print("here")
+        sys.stderr.write("Failed translation\n")
         return 1
 
     for label, nodes in output.items():
-        with open(output_path / f"{input_path.stem}_{label}.btor", "w") as f:
+        with open(output_path / f"{input_path.stem}.{label}.btor", "w") as f:
             # f.write(f"; {label}\n")
             for n in nodes:
                 f.write(f"{n}\n")

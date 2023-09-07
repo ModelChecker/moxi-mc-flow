@@ -158,10 +158,3 @@ def parse(input: str) -> Optional[BtorWitness]:
     witness = parser.parse(lexer.tokenize(input))
 
     return witness if parser.status else None
-
-
-
-with open(sys.argv[1], "r") as f:
-    content = f.read()
-
-print(parse(content))
