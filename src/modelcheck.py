@@ -26,6 +26,8 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
         sys.stderr.write(f"Error: given btorsim is not a file ({btorsim_path})\n")
         return 1
 
+    os.mkdir(WORK_DIR)
+
     with open(src_path, "r") as f:
         il_program = parse_il(f.read())
 

@@ -96,7 +96,6 @@ class ILCheckSystemResponse():
             self.certificates.append(response.certificate)
             self.models.append(response.model)
             self.traces.append(response.trace)
-            
 
     def __str__(self) -> str:
         s = "(check-system-reponse \n"
@@ -108,3 +107,4 @@ class ILCheckSystemResponse():
         return s + ")"
 
 
+ 
