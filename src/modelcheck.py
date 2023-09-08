@@ -11,7 +11,7 @@ from il2btor.il2btor import translate as il2btor
 from btorwit2ilwit.parse import parse as parse_btorwit
 
 FILE_DIR = Path(__file__).parent
-WORK_DIR = FILE_DIR / "__workdir"
+WORK_DIR = FILE_DIR / "__workdir__"
 
 def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
     if not src_path.is_file():

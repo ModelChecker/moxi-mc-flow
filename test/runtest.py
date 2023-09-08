@@ -16,7 +16,7 @@ from logger import toplevel_logger, Color, Formatter, ColorFormatter
 TEST_DIR = Path(__file__).parent.absolute()
 SUITES_DIR = TEST_DIR / "suites"
 FILES_DIR = TEST_DIR / "inputs"
-WORK_DIR = TEST_DIR / "__workdir"
+WORK_DIR = TEST_DIR / "__workdir__"
 
 
 SMV2IL = {

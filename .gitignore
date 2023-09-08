@@ -133,7 +133,7 @@ boolector/
 out
 __pycache__/
 .vscode/
-__workdir/
+__workdir__/
 resultsdir/
 
 .DS_Store
