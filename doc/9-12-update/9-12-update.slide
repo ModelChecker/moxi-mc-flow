@@ -60,11 +60,24 @@ slide: (Karthik) nuXmv - IL issues
 \begin{itemize}
 \item Python parser too slow
 \item nuXmv benchmarks don't conform to the nuXmv spec
-\item 2.2.5 Type conversion operators
-
+\item Getting PANDA built on a Mac
+\item 2.2.5 Type conversion operators \\
 Do we even intend on supporting \verb|to_int : boolean/word -> integer|?
 \end{itemize}
 
+
+slide: (Chris) IL - BTor2
+\begin{itemize}
+\item Functionally complete
+\item Covers everything in Cesare's example set
+\item Emits BTor2 AND runs the model checker over the emitted BTor2
+\end{itemize}
+
+slide: (Chris) IL Witnesses
+\begin{itemize}
+\item Each IL query is separated into multiple BTor2 programs - need to manage file handling
+\item Variable information needs to be tracked across multiple files
+\end{itemize}
 
 
 % -----------------------------------------------------------------------------
