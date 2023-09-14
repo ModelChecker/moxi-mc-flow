@@ -2,6 +2,7 @@
 This file runs all specified tests through the nuxmv-json pipeline
 """
 from subprocess import PIPE, Popen, TimeoutExpired
+import sys
 
 test_file_paths = [
     # ALL OF THESE WORK
@@ -24,7 +25,25 @@ test_file_paths = [
     "examples/smv/nuxmv-examples/lustre/QF_LIA/car_2_e8_491_e7_826.smv",
     "examples/smv/nuxmv-examples/lustre/QF_LIA/car_2.smv",
     "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e1_586.smv",
-    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e1_924.smv"
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e1_924.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e2_695.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e2_777.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e7_626_e1_305.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e7_626.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e8_33_e1_856.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e8_33_e2_1010.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e8_33_e7_220.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e8_33.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3.smv",
+    "examples/smv/nuxmv-examples/lustre/QF_LIA/car_4_e3_57_e4_1047.smv"
+
+    # DOESNT WORK
+    # "examples/smv/nuxmv-examples/beem/QF_BV/adding.1.prop1-back-serstep.btor.smv"
+    # "examples/smv/nuxmv-examples/beem/QF_BV/adding.1.prop1-func-interl.btor.smv"
+    # "examples/smv/nuxmv-examples/invgen/QF_BV/apache-escape-absolute.c.smv"
+
+    # "examples/smv/nuxmv-examples/ltlsat-polimi/krca1p1.smv"
+
 ]
 
 def main():
@@ -48,6 +67,7 @@ def main():
         # print(f"test_file_path = {test_file_path}, json_file_path = {json_file_path}")
 
         cmd = "python3 src/smv2il/nuxmv_json.py " + test_file_path + " " + json_file_path
+        # print("RUNNING COMMAND", cmd)
         process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
         try:
             stdout, stderr = process.communicate(timeout=timeout)

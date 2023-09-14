@@ -7,8 +7,14 @@ else:
     from .translate import *
 
 
+def word_constant_json(wconstant):
+    # TODO: UNIMPLEMENTED
+    pass
+
 def expr_json(expr):
     ecn = expr.__class__.__name__
+    if ecn == "NoneType":
+        raise ValueError("ecn can't be NoneType")
     match ecn:
         case "list":
             return {
@@ -106,7 +112,19 @@ def expr_json(expr):
                     expr_json(expr.right)
                 ]
             }
+        case "Iff":
+            return {
+                "identifier": "iff",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
         case "int":
+            return {
+                "identifier": expr
+            }
+        case "str":
             return {
                 "identifier": expr
             }
@@ -134,8 +152,37 @@ def expr_json(expr):
                     expr_json(expr.right)
                 ]
             }
+        case "RShift":
+            return {
+                "identifier": ">>",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "Concat":
+            return {
+                "identifier": "concat",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "BitSelection":
+            return {
+                "identifier": "extract",
+                "args": [
+                    expr_json(expr.start),
+                    expr_json(expr.stop),
+                    expr_json(expr.word)
+                ]
+            }
+        case "Conversion":
+            return expr_json(expr.value)
+        case "NumberWord":
+            return word_constant_json(expr)
         case _:
-            print("match all exprs", ecn, expr)
+            raise ValueError("match all exprs", ecn, expr)
 
 def subsystem_json(subsystem):
     synonym = subsystem.synonym
@@ -192,7 +239,7 @@ def type_to_sort(typ):
                 "identifier": typ
             }
         case _:
-            print("match all types", tcn, typ)
+            raise ValueError("match all types", tcn, typ)
 
 
 def var_json(var_list):
@@ -292,7 +339,7 @@ def to_json(ast):
                 }
                 result.append(j)
             case _:
-                print("match all il commands", a)
+                raise ValueError("match all il commands", a)
 
     return result
 

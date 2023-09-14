@@ -4,9 +4,9 @@ import argparse, rich
 from typing import Tuple
 
 if __package__ == "":
-    from model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add, Dot
+    from model import *
 else:
-    from .model import Expression, Identifier, Not, And, Or, Equal, Implies, Boolean, Integer, Ge, Le, Add, Dot
+    from .model import *
 
 """
 This file prototypes a translation from nuXmv to the IL 
@@ -170,6 +170,9 @@ def translate_expression(expr, lhs=None):
     elif ecn == "Implies":
         return Implies(left=translate_expression(expr.left, lhs),
                        right=translate_expression(expr.right, lhs))
+    elif ecn == "Iff":
+        return Iff(left=translate_expression(expr.left, lhs),
+                   right=translate_expression(expr.right, lhs))
     elif ecn == "list":
         return list(map(lambda x : translate_expression(x, lhs), expr))
     elif ecn == "int":
@@ -177,30 +180,135 @@ def translate_expression(expr, lhs=None):
     elif ecn == "Add":
         return Add(left=translate_expression(expr.left, lhs),
                   right=translate_expression(expr.right, lhs))
+    elif ecn == "Sub":
+        return Sub(left=translate_expression(expr.left, lhs),
+                   right=translate_expression(expr.right, lhs))
     elif ecn == "Dot":
         return Dot(instance=expr.instance, element=expr.element)
+    elif ecn == "Conversion":
+        # print("CONVERSION")
+        return translate_expression(expr.value)
+    elif ecn == "NumberWord":
+        return expr
+    elif ecn == "Concat":
+        return Concat(left=translate_expression(expr.left, lhs),
+                      right=translate_expression(expr.right, lhs))
+    elif ecn == "BitSelection":
+        return BitSelection(word=translate_expression(expr.word, lhs),
+                            start=expr.start,
+                            stop=expr.stop)
+    elif ecn == "Lt":
+        return Lt(left=translate_expression(expr.left, lhs),
+                  right=translate_expression(expr.right, lhs))
+    elif ecn == "Xor":
+        return Xor(left=translate_expression(expr.left, lhs),
+                   right=translate_expression(expr.right, lhs))
     else: 
         print("else case", expr, ecn)
         return expr
 
 
+def WordConstantType(wconstant):
+    assert(wconstant[0] == "0")
+    idx = 1
+    if (wconstant[idx] == "u") or (wconstant[idx] == "s"):
+        idx += 1
+
+    if (wconstant[idx] == "b") or (wconstant[idx] == "B") \
+    or (wconstant[idx] == "d") or (wconstant[idx] == "D") \
+    or (wconstant[idx] == "h") or (wconstant[idx] == "H"):
+        idx += 1
+
+    end_idx = idx
+
+    while(wconstant[end_idx] != "_"):
+        end_idx += 1
+
+    return int(wconstant[idx:end_idx])
+
+
+
 def typecheck_exp(exp, context=None):
+    print("TYPECHECKING", exp)
     if str(exp) == "TRUE" or str(exp) == "FALSE":
         return Boolean()
     else:
         match exp.__class__.__name__:
-            case "Lt" | "Gt":
-                return Integer()
-            case "And" | "Or" | "Iff" | "Not" | "Equal":
+            case "Minus":
+                tl = typecheck_exp(exp.value, context)
+                return tl
+            case "Add" | "Sub" | "Div" | "Mult" | "Mod":
+                tl = typecheck_exp(exp.left, context)
+                return tl
+            case "Not":
+                tl = typecheck_exp(exp.value, context)
+                if tl.__class__.__name__ == "Boolean":
+                    return Boolean()
+                else:
+                    assert(False)
+                    return MWord(tl.size)
+            case "Equal" | "NotEqual":
                 return Boolean()
+            case "Lt" | "Gt" | "Le" | "Ge":
+                return Boolean()
+            case "And" | "Or" | "Iff" | "Xor" | "Xnor":
+                tl = typecheck_exp(exp.left, context)
+                if tl.__class__.__name__ == "Boolean":
+                    return Boolean()
+                elif tl.__class__.__name__ == "Dot":
+                    return typecheck_exp(exp.right, context) # HACK: FIX THIS LATER
+                else:
+                    # assert(tl.__class__.__name__ == 'MWord')
+                    # raise KeyError(tl, tl.__class__.__name__)
+                    # print("Expr", exp)
+                    return MWord(tl.size)
+            case "RShift":
+                tl = typecheck_exp(exp.left, context)
+                return tl
             case "Dot": # handle this after handling modules
                 return Dot(instance=exp.instance, element=exp.element)
+            # case "ITE":
+            #     print("ITE", exp)
+            #     tb = exp.t
+            #     return typecheck_exp(tb, context)
+            case "Case":
+                # print("CASE", exp.values)
+                v0 = None
+                for c, v in exp.values.items():
+                    v0 = v
+                    break
+                # print("typechecking branch value", v0)
+                return typecheck_exp(v0, context)
+            case "Concat":
+                bv1 = typecheck_exp(exp.left, context)
+                # print("bv1 type", bv1)
+                bv2 = typecheck_exp(exp.right, context)
+                # print("bv2 type", bv2)
+                return MWord(size=bv1.size + bv2.size)
+            case "BitSelection":
+                lo = exp.start
+                hi = exp.stop
+                # if (hi - lo + 1 < 0):
+                #     print("EXPR", exp)
+                #     raise KeyError()
+                return MWord(size=abs(hi - lo) + 1)
+            case "Conversion":
+                if (exp.target_type == "unsigned") or (exp.target_type == "signed"):
+                    v = typecheck_exp(exp.value, context)
+                    return v
+                else:
+                    return f"Unimplemented, {exp.target_type}"
+                # print("CONVERSION")
+            case "NumberWord":
+                return MWord(size=WordConstantType(exp.value))
+            case "Next":
+                return typecheck_exp(exp.value, context)
             case "Identifier":
+                # print(context)
                 for (c, t) in context:
                     if exp == c:
                         return t
-
-        return f"UNIMPLEMENTED, {exp.__class__.__name__}"
+    return (f"UNIMPLEMENTED, {exp.__class__.__name__}")
 
 module_components = {}
 module_typecheck_status = {}
@@ -283,7 +391,9 @@ def handle_modules(ast):
                     
                     for ie in input_exps:
                         context = output
+                        # print("HANDLE MODULES TYPECHECKING ", ie)                        
                         input_typs.append(typecheck_exp(ie, context))
+                    # print("HANDLE MODULES", input_typs)
 
                     for j, b in enumerate(ast):
                         match b:
@@ -475,15 +585,16 @@ def translate(parse_tree):
     # ================== MINING DEFINE =====================
         elif ugskey == "DEFINE":
             for k, v in parse_tree[key].items():
-                tcev = typecheck_exp(v)
+                # v = translate_expression(v, lhs=k)
+                tcev = typecheck_exp(v, module_output)
 
                 module_components[module_name][1].append((k, tcev))
 
                 module_output.append((k, tcev))
                 try:
-                    module_inv.append(Equal(left=vars(k)['name'], right=v))
+                    module_inv.append(Equal(left=vars(k)['name'], right=translate_expression(v, lhs=k)))
                 except KeyError:
-                    module_inv.append((Access(module=vars(k)['instance'], field=vars(k)['element']), v))
+                    module_inv.append((Access(module=vars(k)['instance'], field=vars(k)['element']), translate_expression(v, lhs=k)))
         elif ugskey == "CONSTANTS":
             results.append(DeclareSort("Const", 0))
             for c in parse_tree[key]:
@@ -500,25 +611,25 @@ def translate(parse_tree):
                 results.append(DeclareConst(constant=name, sort=ArrayType(domain=dom, range=rng)))
             pass
         elif ugskey == "INIT":
-            module_init += (parse_tree[key])
+            module_init += (translate_expression(parse_tree[key]))
             pass
         elif ugskey == "INVAR":
-            module_inv += (parse_tree[key])
+            module_inv += (translate_expression(parse_tree[key]))
         elif ugskey == "TRANS":
             module_trans += (translate_expression(parse_tree[key], None))
         elif ugskey == "FAIRNESS" or ugskey == "JUSTICE": # FAIRNESS is a backwards-compatible version of JUSTICE
             check = True
-            module_justice.append(parse_tree[key])
+            module_justice.append(translate_expression(parse_tree[key]))
         elif ugskey == "COMPASSION":
             check = True
-            module_compassion.append(parse_tree[key])
+            module_compassion.append(translate_expression(parse_tree[key]))
         elif ugskey == "ISA" or ugskey == "PRED" or ugskey == "MIRROR": # deprecated feature to be removed
             assert(False)
         elif (ugskey == "SPEC" or ugskey == "CTLSPEC"):
             raise ValueError("CTL specifications are not supported!")
         elif ugskey == "INVARSPEC":
             check = True
-            module_query.append(parse_tree[key])
+            module_query.append(translate_expression(parse_tree[key]))
                     
 
     for i in module_local:

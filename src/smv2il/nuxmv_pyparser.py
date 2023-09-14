@@ -4,11 +4,13 @@ import argparse
 
 from pyparsing import *
 
-if __package__ == "":
-    from model import *
-else:
-    from .model import *
-    from .model import Expression
+# if __package__ == "":
+#     from model import *
+# else:
+#     from .model import *
+#     from .model import Expression
+
+from model import *
 
 ParserElement.enable_packrat()
 
@@ -180,7 +182,7 @@ _array.setParseAction(lambda s, l, t: _handle_array(t))
 _not = ZeroOrMore("!") + _array
 _not.setParseAction(lambda s, l, t: reduce(lambda e, n: Not(e), t[:-1], t[-1]))
 
-_concat = _not + ZeroOrMore(Suppress("::") + _not)
+_concat = _not + ZeroOrMore(oneOf("::") + _not)
 _concat.setParseAction(lambda s, l, t: reduce(lambda e, n: Concat(e, n),
                                               t[0:1] + t[2::2]))
 
@@ -624,11 +626,10 @@ def main():
 
 def test():
     string = """
-    SPEC
-    AG AF bit2.carry_out
+    a :: b
     """
 
-    print(spec_constraint.parseString(string, parseAll=True))
+    print(simple_expression.parseString(string, parse_all=True))
 
 
 if __name__ == '__main__':
