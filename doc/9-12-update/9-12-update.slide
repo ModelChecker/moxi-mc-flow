@@ -79,5 +79,13 @@ slide: (Chris) IL Witnesses
 \item Variable information needs to be tracked across multiple files
 \end{itemize}
 
+% __expr10 := next(__BLAST_NONDET__1$main) = __NONDET_INLINE_INIT__2__6$main#0;
+% __expr11 := next(scheme__3$main) = __NONDET_INLINE_INIT__4__7$main#1;
+% __expr12 := __expr11 & __expr10;
+% __expr13 := next(urilen__5$main) = __NONDET_INLINE_INIT__6__8$main#2;
+% __expr14 := __expr13 & __expr12;
+
+% :trans (= (__expr10) (= __BLAST_NONDET__1$main' __NONDET_INLINE_INIT__2__6$main#0))
+% :inv (= (__expr12) (bvand __expr13 __expr10))
 
 % -----------------------------------------------------------------------------
