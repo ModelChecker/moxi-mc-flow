@@ -7,9 +7,42 @@ else:
     from .translate import *
 
 
+
+# FORMAT:
+# 1) 0
+# 2) optional u/s
+# 3) b/B, o/O, d/D, h/H
+# 4) optional # of bits
+# 5) _
+# 6) constant value
+
+# for the moment, only deal with decimal values
 def word_constant_json(wconstant):
-    # TODO: UNIMPLEMENTED
-    pass
+    assert(wconstant.__class__.__name__ == "NumberWord")
+
+    wc = wconstant.value
+
+    print("WCONSTANT", wconstant)
+
+    fmt = max(wc.find("d"), wc.find("D"))
+    if fmt == -1:
+            raise ValueError("non-decimal word constants not supported")
+
+    
+    uscore = wc.find("_")
+
+        
+    if uscore == -1:
+        raise ValueError("word constants need underscores")
+        
+    const = wc[uscore + 1:]
+
+    bin_const = bin(int(const))[2:] # removes 0b from start
+    print("word:", wc, "const:", const, "bin_const:", bin_const)
+
+    return {
+        "identifier": ("#b" + bin_const)
+    }
 
 def expr_json(expr):
     ecn = expr.__class__.__name__
