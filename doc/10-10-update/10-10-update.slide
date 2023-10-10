@@ -60,18 +60,27 @@ slide: Overall update
 slide: (Karthik) nuXmv - IL update
 \begin{itemize}
 \item Fleshed out a significant chunk of the translation
-\item QF\_LIA, QF\_BV
-\item Outputs JSON that is being validated according to our schema
+\item Support many QF\_LIA, QF\_BV benchmarks
+\item Outputs JSON that is correctly being validated according to our schema
+\item Discussed Dolmen IL utilities with Prof. Tinelli and Daniel Larraz as a Kind2 frontend.
+\item Intend on comparing 
+\begin{itemize}
+\item nuXmv benchmarks run on nuXmv
+\item nuXmv benchmarks translated to IL (by my translation) run on the IL extension to Kind2
+\end{itemize}
 \end{itemize}
 
 slide: (Karthik) nuXmv - IL issues
 \begin{itemize}
-\item PySMV library does not scale -- parser is too slow and JSON serialization issues. 
-\item Will reimplement translation in OCaml
+\item Python translation does not scale -- both parsing and serializing timeout on many benchmarks we have. 
+\item Underway with reimplementing translation in OCaml, with the parser already complete.
 \item nuXmv benchmarks don't conform to the nuXmv spec
-\item Getting PANDA built on a Mac
-\item 2.2.5 Type conversion operators \\
-Do we even intend on supporting \verb|to_int : boolean/word -> integer|?
+\begin{itemize}
+\item Discussed this with Ahmed, looking into benchmark preprocessing
+\item Brainstormed other possible solutions (\verb|write_vmt_model| and working with the VMT translation instead) with Sam Owre
+\item Conclusion: will likely stick to benchmark preprocessing with Ahmed for now
+\end{itemize}
+\item Getting PANDA built on a Mac (\verb|makedepend| framework unable to find standard libraries)
 \end{itemize}
 
 
@@ -89,13 +98,5 @@ slide: (Chris) IL Witnesses - BTOR2 Witnesses
 \item Variable information needs to be tracked across multiple files
 \end{itemize}
 
-% __expr10 := next(__BLAST_NONDET__1$main) = __NONDET_INLINE_INIT__2__6$main#0;
-% __expr11 := next(scheme__3$main) = __NONDET_INLINE_INIT__4__7$main#1;
-% __expr12 := __expr11 & __expr10;
-% __expr13 := next(urilen__5$main) = __NONDET_INLINE_INIT__6__8$main#2;
-% __expr14 := __expr13 & __expr12;
-
-% :trans (= (__expr10) (= __BLAST_NONDET__1$main' __NONDET_INLINE_INIT__2__6$main#0))
-% :inv (= (__expr12) (bvand __expr13 __expr10))
 
 % -----------------------------------------------------------------------------
