@@ -110,13 +110,13 @@ class BtorBitVec(BtorSort):
     def __init__(self, len: int):
         super().__init__()
         self.length = len
-        self.name = "bitvec"
+        self.symbol = "bitvec"
         
     def __repr__(self) -> str:
-        return f"({self.nid} sort {self.name} {self.length})"
+        return f"({self.nid} sort {self.symbol} {self.length})"
 
     def __str__(self) -> str:
-        return f"{self.nid} sort {self.name} {self.length}{self.comment}"
+        return f"{self.nid} sort {self.symbol} {self.length}{self.comment}"
     
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, BtorBitVec):
@@ -133,13 +133,13 @@ class BtorArray(BtorSort):
         super().__init__()
         self.domain = domain
         self.range = range
-        self.name = "array"
+        self.symbol = "array"
         
     def __repr__(self) -> str:
-        return f"({self.nid} sort {self.name} {repr(self.domain)} {repr(self.range)})"
+        return f"({self.nid} sort {self.symbol} {repr(self.domain)} {repr(self.range)})"
 
     def __str__(self) -> str:
-        return f"{self.nid} sort {self.name} {self.domain.nid} {self.range.nid}{self.comment}"
+        return f"{self.nid} sort {self.symbol} {self.domain.nid} {self.range.nid}{self.comment}"
     
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, BtorArray):
@@ -162,40 +162,40 @@ BtorArgs = tuple[Optional[BtorExpr], Optional[BtorExpr], Optional[BtorExpr]]
 
 class BtorVar(BtorExpr):
 
-    def __init__(self, sort: BtorSort, name: str = ""):
+    def __init__(self, sort: BtorSort, symbol: str = ""):
         super().__init__(EMPTY_ARGS)
         self.sort: BtorSort = sort
-        self.name = name
+        self.symbol = symbol
         self.var_index: int = 0  # used to refer to vars in witness
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, BtorVar):
             return False
-        return self.name == __o.name
+        return self.symbol == __o.symbol
 
     def __hash__(self) -> int:
-        return hash((self.sort, self.name))
+        return hash((self.sort, self.symbol))
 
 
 class BtorInputVar(BtorVar):
 
-    def __init__(self, sort: BtorSort, name: str = ""):
-        super().__init__(sort, name)
+    def __init__(self, sort: BtorSort, symbol: str = ""):
+        super().__init__(sort, symbol)
 
     def __str__(self) -> str:
-        return f"{self.nid} input {self.sort.nid} {self.name}{self.comment}"
+        return f"{self.nid} input {self.sort.nid} {self.symbol}{self.comment}"
 
 
 class BtorStateVar(BtorVar):
 
-    def __init__(self, sort: BtorSort, name: str = ""):
-        super().__init__(sort, name)
+    def __init__(self, sort: BtorSort, symbol: str = ""):
+        super().__init__(sort, symbol)
 
     def __repr__(self) -> str:
-        return f"({self.nid} state {self.name})"
+        return f"({self.nid} state {self.symbol})"
 
     def __str__(self) -> str:
-        return f"{self.nid} state {self.sort.nid} {self.name}{self.comment}"
+        return f"{self.nid} state {self.sort.nid} {self.symbol}{self.comment}"
 
 
 class BtorConst(BtorExpr):

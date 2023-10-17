@@ -7,11 +7,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from jsonschema import validate, exceptions, RefResolver
 
-if __name__ == "__main__" and __package__ is None:
-    from il import *
-else:
-    from .il import *
-
+from il import *
 
 def from_json_identifier(contents: dict | str) -> ILIdentifier:
     if isinstance(contents, dict):

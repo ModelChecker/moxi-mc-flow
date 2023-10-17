@@ -1,28 +1,20 @@
 from typing import Optional, cast
-
-
-class BitVec():
-
-    def __init__(self, width: int, value: int) -> None:
-        self.width = width
-        self.value = value
-
-    def __str__(self) -> str:
-        return "{0:0{w}b}".format(self.value, w=self.width)
+from bitvec import BitVec
 
 
 class BtorAssignment():
 
-    def __init__(self, id: int, value: BitVec | tuple[BitVec, BitVec], symbol: Optional[str]) -> None:
+    def __init__(self, id: int, symbol: Optional[str]) -> None:
         self.id = id
-        self.value = value
-        self.symbol = symbol
+        self.symbol = "" # TODO
+        # self.symbol = symbol if symbol else ""
 
 
 class BtorBitVecAssignment(BtorAssignment):
 
     def __init__(self, id: int, value: BitVec, symbol: Optional[str]) -> None:
-        super().__init__(id, value, symbol)
+        super().__init__(id, symbol)
+        self.value = value
     
     def __str__(self) -> str:
         value = cast(int, self.value)
@@ -32,7 +24,7 @@ class BtorBitVecAssignment(BtorAssignment):
 class BtorArrayAssignment(BtorAssignment):
 
     def __init__(self, id: int, value: tuple[BitVec, BitVec], symbol: Optional[str]) -> None:
-        super().__init__(id, value, symbol)
+        super().__init__(id, symbol)
         (index, element) = value
         self.index = index
         self.element = element
@@ -46,8 +38,8 @@ class BtorFrame():
     def __init__(
         self, 
         index: int,
-        state_assigns: list[BtorAssignment],
-        input_assigns: list[BtorAssignment]
+        state_assigns: list[BtorAssignment], # TODO: make this a dict
+        input_assigns: list[BtorAssignment]  # TODO: make this a dict
     ) -> None:
         self.index = index
         self.state_assigns = state_assigns

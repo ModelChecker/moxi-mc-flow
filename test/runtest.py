@@ -110,11 +110,11 @@ class TestCase():
         self.logger.addHandler(file_handler)
 
     def test_fail(self, msg: str):
-        self.logger.info(f"{self.test_name} [{Color.FAIL}FAIL{Color.ENDC}] {msg}")
+        self.logger.info(f"[{Color.FAIL}FAIL{Color.ENDC}] {self.test_name}: {msg}")
         self.status = False
 
-    def test_pass(self, msg: str):
-        self.logger.info(f"{self.test_name} [{Color.PASS}PASS{Color.ENDC}] {msg}")
+    def test_pass(self):
+        self.logger.info(f"[{Color.PASS}PASS{Color.ENDC}] {self.test_name}")
 
     def run(self, program: Path, options: list[str], copyback: bool):
         os.chdir(WORK_DIR)
@@ -136,7 +136,7 @@ class TestCase():
         # do more testing
 
         if self.status:
-            self.test_pass("")
+            self.test_pass()
 
         if copyback:
             # copy source/temp files into results directory

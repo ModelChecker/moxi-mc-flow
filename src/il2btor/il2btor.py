@@ -3,20 +3,14 @@ from copy import copy
 import json
 import os
 from pathlib import Path
+import pickle
 import sys
 from typing import cast
 
-if __name__ == "__main__" and __package__ is None:
-    from il import *
-    from json2il import from_json
-    from btor import *
-    from parse import parse
-else:
-    from .il import *
-    from .json2il import from_json
-    from .btor import *
-    from .parse import parse
-
+from il import *
+from json2il import from_json
+from btor import *
+from parse import parse_il
 
 ilfunc_map: dict[str, BtorOperator] = {
     "=": BtorOperator.EQ,
@@ -325,7 +319,7 @@ def ilchecksystem_to_btor2(
     check: ILCheckSystem, 
     context: ILContext,
     sort_map: SortMap,
-    var_map: VarMap,
+    var_map: VarMap
 ) -> dict[str, list[BtorNode]]:
     """A check_system command can have many queries: each query will have the same target system but may correspond to different models of that system. First, we construct that reference BTOR2 model, then for each query we generate a new BTOR2 program with the reference model as a prefix and query as a suffix."""
     btor2_prog_list: dict[str, list[BtorNode]] = {}
@@ -392,6 +386,8 @@ def ilchecksystem_to_btor2(
 
         btor2_prog_list[sym] = reduced_btor2_prog
 
+        
+
     return btor2_prog_list
     
 
@@ -431,7 +427,11 @@ def translate(il_prog: ILProgram) -> Optional[dict[str, list[BtorNode]]]:
     return btor2_prog_list
 
 
-def main(input_path: Path, output_path: Path) -> int:
+def main(
+    input_path: Path, 
+    output_path: Path, 
+    pickle_path: Optional[Path]
+) -> int:
     if not input_path.is_file():
         sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
         return 1
@@ -447,7 +447,7 @@ def main(input_path: Path, output_path: Path) -> int:
         if input_path.suffix == ".json":
             program = from_json(json.load(file))
         elif input_path.suffix == ".mcil":
-            program = parse(file.read())
+            program = parse_il(file.read())
         else:
             sys.stderr.write(f"File format unsupported ({input_path.suffix})\n")
             return 1
@@ -464,9 +464,12 @@ def main(input_path: Path, output_path: Path) -> int:
 
     for label, nodes in output.items():
         with open(output_path / f"{input_path.stem}.{label}.btor", "w") as f:
-            # f.write(f"; {label}\n")
-            for n in nodes:
-                f.write(f"{n}\n")
+            f.write("\n".join([str(n) for n in nodes])) 
+            f.write("\n")
+
+        if pickle_path:
+            with open(pickle_path, "wb") as f:
+                pickle.dump(nodes, f)
     
     return 0
 
@@ -475,10 +478,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input", help="source program to translate, should have either .json or .mcil extension")
     parser.add_argument("--output", help="path of directory to output BTOR2 files; defaults to input filename stem")
+    parser.add_argument("--pickled-btor", help="path to output pickled btor output; will not emit by default")
     args = parser.parse_args()
 
     input_path = Path(args.input)
     output_path = Path(args.output) if args.output else Path(f"{input_path.stem}")
+    pickle_path = Path(args.pickled_btor) if args.pickled_btor else None
 
-    returncode = main(input_path, output_path)
+    returncode = main(input_path, output_path, args.pickled_btor)
     sys.exit(returncode)

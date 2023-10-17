@@ -1,13 +1,22 @@
 import argparse
 from enum import Enum
 from pathlib import Path
+import subprocess
 import sys
 
-from smv2il.smv2json import main as smv2json
-from il2btor.json2il import main as json2il
-from il2btor.il2json import main as il2json
-from il2btor.il2btor import main as il2btor
+# from smv2il.smv2json import main as smv2json
+# from il2btor.json2il import main as json2il
+# from il2btor.il2json import main as il2json
+# from il2btor.il2btor import main as il2btor
 
+CUR_DIR = Path(__file__).parent
+SMV2IL_DIR = CUR_DIR / "smv2il"
+IL2BTOR_DIR = CUR_DIR / "il2btor"
+
+SMV2JSON = SMV2IL_DIR / "smv2json.py"
+JSON2IL = IL2BTOR_DIR / "json2il.py"
+IL2JSON = IL2BTOR_DIR / "il2json.py"
+IL2BTOR = IL2BTOR_DIR / "il2btor.py"
 
 class Lang(Enum):
     NONE = 0
@@ -39,35 +48,42 @@ def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bo
     elif src_lang == Lang.SMV:
         if target_lang == Lang.IL_JSON:
             # SMV -> json
-            return smv2json(src_path, target_path)
+            proc = subprocess.run(["python3", SMV2JSON, src_path, "--output", target_path])
+            return proc.returncode
         elif target_lang == Lang.IL:
             # SMV -> IL
             json_path = Path(f"{target_path.stem}.json")
-            tmp = smv2json(src_path, json_path)
-            if tmp:
-                return tmp
-            return json2il(json_path, target_path, do_sort_check)
+            proc = subprocess.run(["python3", SMV2JSON, src_path, "--output", json_path])
+            if proc.returncode:
+                return proc.returncode
+            proc = subprocess.run(["python3", JSON2IL, json_path, "--output", target_path])
+            return proc.returncode
         elif target_lang == Lang.BTOR2:
             # SMV -> BTOR2
             json_path = Path(f"{target_path.stem}.json")
-            tmp = smv2json(src_path, json_path)
-            if tmp:
-                return tmp
-            return il2btor(json_path, target_path)
+            proc = subprocess.run(["python3", SMV2JSON, src_path, "--output", json_path])
+            if proc.returncode:
+                return proc.returncode
+            proc = subprocess.run(["python3", IL2BTOR, json_path, "--output", target_path])
+            return proc.returncode
     elif src_lang == Lang.IL:
         if target_lang == Lang.IL_JSON:
             # IL -> json
-            return il2json(src_path, target_path, do_sort_check, False)
+            proc = subprocess.run(["python3", IL2JSON, src_path, "--output", target_path])
+            return proc.returncode
         elif target_lang == Lang.BTOR2:
             # IL -> BTOR2
-            return il2btor(src_path, target_path)
+            proc = subprocess.run(["python3", IL2BTOR, src_path, "--output", target_path])
+            return proc.returncode
     elif src_lang == Lang.IL_JSON:
         if target_lang == Lang.IL:
             # json -> IL
-            return json2il(src_path, target_path, do_sort_check)
+            proc = subprocess.run(["python3", JSON2IL, src_path, "--output", target_path])
+            return proc.returncode
         elif target_lang == Lang.BTOR2:
             # json -> BTOR2
-            return il2btor(src_path, target_path)
+            proc = subprocess.run(["python3", IL2BTOR, src_path, "--output", target_path])
+            return proc.returncode
 
     return 0
 

@@ -1,6 +1,8 @@
 from enum import Enum
 from typing import Optional, Any
 
+from bitvec import BitVec
+
 
 class ILQueryResult(Enum):
     UNKNOWN = "unknown"
@@ -22,14 +24,43 @@ class ILModel():
         # TODO
 
 
+class ILAssignment():
+
+    def __init__(self, symbol: str) -> None:
+        self.symbol = symbol
+
+
+class ILBitVecAssignment(ILAssignment):
+
+    def __init__(self, symbol: str, value: BitVec) -> None:
+        super().__init__(symbol)
+        self.value = value
+
+    def __str__(self) -> str:
+        return f"({self.symbol} #b{self.value})"
+
+
+class ILArrayAssignment(ILAssignment):
+
+    def __init__(self, symbol: str, value: tuple[BitVec, BitVec]) -> None:
+        super().__init__(symbol)
+        (index, element) = value
+        self.index = index
+        self.element = element
+
+    def __str__(self) -> str:
+        return f"({self.symbol} #b{self.index} #b{self.element})"
+
+
 class ILState():
 
-    def __init__(self, index: int, assignments: dict[str, Any]) -> None:
+    def __init__(self, index: int, assignments: list[ILAssignment]) -> None:
         self.index = index
         self.assignments = assignments
 
     def __str__(self) -> str:
-        return "state"
+        assigns_str = " ".join([str(a) for a in self.assignments])
+        return f"({self.index} {assigns_str})"
 
 
 class ILTrail():
@@ -44,7 +75,7 @@ class ILTrail():
 
 class ILTrace():
 
-    def __init__(self, symbol: str, prefix: ILTrail, lasso: ILTrail) -> None:
+    def __init__(self, symbol: str, prefix: ILTrail, lasso: Optional[ILTrail]) -> None:
         self.symbol = symbol
         self.prefix = prefix
         self.lasso = lasso
@@ -93,12 +124,19 @@ class ILCheckSystemResponse():
         self.traces = []
         self.trails = []
         for response in query_reponses:
-            self.certificates.append(response.certificate)
-            self.models.append(response.model)
-            self.traces.append(response.trace)
+            if response.certificate:
+                self.certificates.append(response.certificate)
+            if response.model:
+                self.models.append(response.model)
+            if response.trace:
+                self.traces.append(response.trace)
+                if response.trace.prefix:
+                    self.trails.append(response.trace.prefix)
+                if response.trace.lasso:
+                    self.trails.append(response.trace.lasso)
 
     def __str__(self) -> str:
-        s = "(check-system-reponse \n"
+        s = "(check-system-response \n"
         s += "\n".join([f":query {q}" for q in self.query_responses]) + "\n"
         s += "\n".join([f":trace {t}" for t in self.traces]) + "\n"
         s += "\n".join([f":trail {t}" for t in self.trails]) + "\n"
