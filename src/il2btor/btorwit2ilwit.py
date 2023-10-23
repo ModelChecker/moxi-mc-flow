@@ -21,7 +21,8 @@ def collect_var_symbols(btor_program: list[BtorNode]) -> dict[int, str]:
 
 def translate(
     btor_program: list[BtorNode],
-    btor_witness: BtorWitness
+    btor_witness: BtorWitness,
+    trace_symbol: str,
 ) -> Optional[ILTrace]:
     trail: list[ILState] = []
 
@@ -36,15 +37,13 @@ def translate(
 
         for btor_assign in btor_assigns:
             if isinstance(btor_assign, BtorBitVecAssignment):
-                il_assigns.append(
-                    ILBitVecAssignment(
+                il_assigns.append(ILBitVecAssignment(
                         vars[btor_assign.id], 
                         btor_assign.value
                     )
                 )
             elif isinstance(btor_assign, BtorArrayAssignment):
-                il_assigns.append(
-                    ILArrayAssignment(
+                il_assigns.append(ILArrayAssignment(
                         vars[btor_assign.id], 
                         (btor_assign.index, btor_assign.element)
                     )
@@ -56,7 +55,7 @@ def translate(
             ILState(frame.index, il_assigns)
         )
 
-    return ILTrace("t0", ILTrail("t1", trail), None)
+    return ILTrace(trace_symbol, ILTrail(f"{trace_symbol}_0", trail), None)
 
 
 def main(
@@ -64,40 +63,50 @@ def main(
     program_path: Path,
     output_path: Path
 ) -> int:
-    with open(witness_path, "r") as f:
-        witness_content = f.read()
-    
-    btor_witness = parse_witness(witness_content)
-    if not btor_witness:
+    if witness_path.is_dir():
+        witness_paths = [p for p in witness_path.glob("*")]
+    elif witness_path.is_file():
+        witness_paths = [witness_path]
+    else:
+        sys.stderr.write(f"Error: BTOR2 witness path must be file or directory.\n")
         return 1
 
-    # print(witness_path)
+    query_responses: list[ILQueryResponse] = []
 
-    with open(program_path, "rb") as f:
-        btor_program = pickle.load(f)
+    trace_num = 0
+    for witness in witness_paths:
+        with open(witness, "r") as f:
+            witness_content = f.read()
+        
+        btor_witness = parse_witness(witness_content)
+        if not btor_witness:
+            sys.stderr.write(f"Error: parse error for BTOR2 witness file '{witness}'.\n")
+            return 1
 
-    if btor_witness:
-        il_witness = translate(btor_program, btor_witness)
+        with open(program_path, "rb") as f:
+            btor_program = pickle.load(f)
 
-        query_response = ILQueryResponse(
-            witness_path.suffixes[-2][1:],
-            ILQueryResult.SAT,
-            None,
-            il_witness,
-            None
-        )
+        if btor_witness:
+            il_trace = translate(btor_program, btor_witness, f"_t{trace_num}")
+            trace_num += 1
 
-        check_sys_reponse = ILCheckSystemResponse(
-            [query_response]
-        )
+            query_responses.append(ILQueryResponse(
+                    witness.suffixes[-2][1:],
+                    ILQueryResult.SAT,
+                    None,
+                    il_trace,
+                    None
+                )
+            )
 
-        print(check_sys_reponse)
+    check_sys_response = ILCheckSystemResponse(query_responses)
+    print(check_sys_response)
 
     return 0
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("witness", help="source BTOR2 witness program to translate")
+    parser.add_argument("witness", help="source BTOR2 witness or directory of witnesses to translate")
     parser.add_argument("program", help="pickled BTOR2 program")
     parser.add_argument("--output", help="path output IL witness file; defaults to witness filename stem")
     args = parser.parse_args()

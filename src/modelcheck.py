@@ -6,8 +6,6 @@ import shutil
 
 from pathlib import Path
 
-from sympy import capture
-
 FILE_DIR = Path(__file__).parent
 WORK_DIR = FILE_DIR / "__workdir__"
 
@@ -33,6 +31,10 @@ def cleandir(dir: Path, quiet: bool):
 
 
 def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
+    # TODO: btorsim may be useful for getting full witnesses -- as is it actually
+    # does not output valid witness output (header is missing), so we don't use it.
+    # NOTE: for a model checker like avr, this might be necessary for full traces
+
     if not src_path.is_file():
         sys.stderr.write(f"Error: given source is not a file ({src_path})\n")
         return 1
@@ -56,44 +58,48 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
         sys.stderr.write(f"Error: il2btor failure\n")
         return proc.returncode
 
-    for btor_path in [l for l in WORK_DIR.iterdir() if l.suffix == ".btor"]:
-        label = btor_path.suffixes[-2][1:]
+    for check_system_path in [d for d in WORK_DIR.iterdir() if d.is_dir()]:
+        btor_witness_dir_path = check_system_path / "wit"
+        btor_witness_dir_path.mkdir()
 
-        proc = subprocess.run([mc_path, btor_path, "--trace-gen-full"], capture_output=True)
+        for btor_path in [l for l in check_system_path.iterdir() if l.suffix == ".btor"]:
+            label = btor_path.suffixes[-2][1:]
+
+            proc = subprocess.run([mc_path, btor_path, "--trace-gen-full"], capture_output=True)
+
+            if proc.returncode:
+                sys.stderr.write(proc.stderr.decode("utf-8"))
+                sys.stderr.write(f"Error: model checker failure for query '{label}'\n")
+                return proc.returncode
+
+            # TODO: what if unsat?
+            btor_witness_bytes = proc.stdout
+
+            btor_witness_path = btor_witness_dir_path / btor_path.with_suffix(f".cex").name
+            with open(btor_witness_path, "wb") as f:
+                f.write(btor_witness_bytes)
+
+            # use btorsim to obtain full trace
+            # proc = subprocess.run([
+            #     btorsim_path, btor_path, btor_witness_path, "--states"
+            # ], capture_output=True)
+
+            # if proc.returncode:
+            #     sys.stderr.write(proc.stderr.decode("utf-8"))
+            #     sys.stderr.write(f"Error: btorsim failure for query '{label}'\n")
+            #     return proc.returncode
+
+            # btor_witness_bytes = proc.stdout
+
+            # btor_witness_path = btor_path.with_suffix(f".cex") 
+            # with open(btor_witness_path, "wb") as f:
+            #     f.write(btor_witness_bytes)
+
+        proc = subprocess.run(["python3", BTORWIT2ILWIT, btor_witness_dir_path, pickled_btor_path], capture_output=True)
 
         if proc.returncode:
             sys.stderr.write(proc.stderr.decode("utf-8"))
-            sys.stderr.write(f"Error: model checker failure for query '{label}'\n")
-            return proc.returncode
-
-        # TODO: what if unsat?
-        btor_witness_bytes = proc.stdout
-
-        btor_witness_path = btor_path.with_suffix(f".cex") 
-        with open(btor_witness_path, "wb") as f:
-            f.write(btor_witness_bytes)
-
-        # obtain full trace
-        # proc = subprocess.run([
-        #     btorsim_path, btor_path, btor_witness_path, "--states"
-        # ], capture_output=True)
-
-        # if proc.returncode:
-        #     sys.stderr.write(proc.stderr.decode("utf-8"))
-        #     sys.stderr.write(f"Error: btorsim failure for query '{label}'\n")
-        #     return proc.returncode
-
-        # btor_witness_bytes = proc.stdout
-
-        # btor_witness_path = btor_path.with_suffix(f".cex") 
-        # with open(btor_witness_path, "wb") as f:
-        #     f.write(btor_witness_bytes)
-
-        proc = subprocess.run(["python3", BTORWIT2ILWIT, btor_witness_path, pickled_btor_path], capture_output=True)
-
-        if proc.returncode:
-            sys.stderr.write(proc.stderr.decode("utf-8"))
-            sys.stderr.write(f"Error: btorwit2ilwit error for query '{label}'\n")
+            sys.stderr.write(f"Error: btorwit2ilwit error\n")
             return proc.returncode
 
         print(proc.stdout.decode("utf-8"))

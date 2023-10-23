@@ -386,14 +386,12 @@ def ilchecksystem_to_btor2(
 
         btor2_prog_list[sym] = reduced_btor2_prog
 
-        
-
     return btor2_prog_list
     
 
 
-def translate(il_prog: ILProgram) -> Optional[dict[str, list[BtorNode]]]:
-    """Translate `il_prog` to an equivalent set of Btor programs, labeled by query name.
+def translate(il_prog: ILProgram) -> Optional[list[dict[str, list[BtorNode]]]]:
+    """Translate `il_prog` to an equivalent set of Btor programs, labeled by query symbol.
     
     The strategy for translation is to sort check the input then construct a Btor program for each query (and targeted system) by:
     1) Constructing a mapping of ILSorts to BtorSorts for the target system
@@ -411,7 +409,7 @@ def translate(il_prog: ILProgram) -> Optional[dict[str, list[BtorNode]]]:
         sys.stderr.write("Failed sort check\n")
         return None
     
-    btor2_prog_list: dict[str, list[BtorNode]] = {}
+    btor2_prog_list: list[dict[str, list[BtorNode]]] = []
     sort_map: SortMap = {}
     var_map: VarMap = {}
     enums: dict[str, int] = { sym:len(vals).bit_length() for sym,vals in context.declared_enum_sorts.items() }
@@ -422,7 +420,7 @@ def translate(il_prog: ILProgram) -> Optional[dict[str, list[BtorNode]]]:
         build_sort_map_cmd(target_system, enums, sort_map)
         build_var_map_cmd(check_system, context, {}, sort_map, var_map)
 
-        btor2_prog_list.update(ilchecksystem_to_btor2(check_system, context, sort_map, var_map))
+        btor2_prog_list.append(ilchecksystem_to_btor2(check_system, context, sort_map, var_map))
 
     return btor2_prog_list
 
@@ -441,7 +439,7 @@ def main(
         return 1
 
     if not output_path.is_dir():
-        os.mkdir(output_path)
+        output_path.mkdir()
 
     with open(input_path, "r") as file:
         if input_path.suffix == ".json":
@@ -462,14 +460,19 @@ def main(
         sys.stderr.write("Failed translation\n")
         return 1
 
-    for label, nodes in output.items():
-        with open(output_path / f"{input_path.stem}.{label}.btor", "w") as f:
-            f.write("\n".join([str(n) for n in nodes])) 
-            f.write("\n")
+    check_system_index = 0
+    for check_system in output:
+        check_system_path = output_path / str(check_system_index)
+        check_system_path.mkdir()
 
-        if pickle_path:
-            with open(pickle_path, "wb") as f:
-                pickle.dump(nodes, f)
+        for label, nodes in check_system.items():
+            with open(check_system_path / f"{input_path.stem}.{label}.btor", "w") as f:
+                f.write("\n".join([str(n) for n in nodes])) 
+                f.write("\n")
+
+            if pickle_path:
+                with open(pickle_path, "wb") as f:
+                    pickle.dump(nodes, f)
     
     return 0
 
