@@ -70,7 +70,7 @@ class MCILTrail():
         self.states = states
 
     def __str__(self) -> str:
-        return f"({self.symbol} " + "\n".join([str(s) for s in self.states]) + ")"
+        return f"({self.symbol} \n\t" + "\n\t".join([str(s) for s in self.states]) + ")"
 
 
 class MCILTrace():
@@ -116,14 +116,14 @@ class MCILQueryResponse():
 
 class MCILCheckSystemResponse():
 
-    def __init__(self, query_reponses: list[MCILQueryResponse]):
-        self.query_responses = query_reponses
+    def __init__(self, query_responses: list[MCILQueryResponse]):
+        self.query_responses = query_responses
 
         self.certificates = []
         self.models = []
         self.traces = []
         self.trails = []
-        for response in query_reponses:
+        for response in query_responses:
             if response.certificate:
                 self.certificates.append(response.certificate)
             if response.model:
@@ -137,11 +137,16 @@ class MCILCheckSystemResponse():
 
     def __str__(self) -> str:
         s = "(check-system-response \n"
-        s += "\n".join([f":query {q}" for q in self.query_responses]) + "\n"
-        s += "\n".join([f":trace {t}" for t in self.traces]) + "\n"
-        s += "\n".join([f":trail {t}" for t in self.trails]) + "\n"
-        s += "\n".join([f":model {m}" for m in self.models]) + "\n"
-        s += "\n".join([f":certificate {c}" for c in self.certificates]) + "\n"
+        if self.query_responses:
+            s += "\n".join([f":query {q}" for q in self.query_responses]) + "\n"
+        if self.traces:
+            s += "\n".join([f":trace {t}" for t in self.traces]) + "\n"
+        if self.trails:
+            s += "\n".join([f":trail {t}" for t in self.trails]) + "\n"
+        if self.models:
+            s += "\n".join([f":model {m}" for m in self.models]) + "\n"
+        if self.certificates:
+            s += "\n".join([f":certificate {c}" for c in self.certificates]) + "\n"
         return s + ")"
 
 

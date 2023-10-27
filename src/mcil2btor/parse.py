@@ -94,7 +94,7 @@ class MCILParser(Parser):
 
     def error(self, token):
         self.status = False
-        sys.stderr.write(f"Error: Unexpected token ({token})")
+        sys.stderr.write(f"Error:{p.lineno}: Unexpected token ({token})")
 
     @_("command_list command")
     def command_list(self, p):
@@ -204,7 +204,7 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            sys.stderr.write(f"Error: multiple instances of attribute ({attr.value}).")
+            sys.stderr.write(f"Error:{p.lineno}: multiple instances of attribute ({attr.value}).")
             self.status = False
         elif attr.get_value_type() == dict:
             p[0][attr].update(value)
@@ -213,7 +213,7 @@ class MCILParser(Parser):
         elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.INV):
             p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("and", []), [p[0][attr], value])
         else:
-            sys.stderr.write(f"Error: parser error ({attr.value}).")
+            sys.stderr.write(f"Error:{p.lineno}: parser error ({attr.value}).")
             self.status = False
 
         return p[0]
@@ -257,12 +257,16 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            sys.stderr.write(f"Error: multiple instances of attribute '{attr.value}'.")
+            sys.stderr.write(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
             self.status = False
         elif attr.get_value_type() == dict:
+            # check for duplicate symbols
+            if [v for v in value.keys() if v in p[0][attr]]:
+                sys.stderr.write(f"Error:{p.lineno}: repeat symbol for attribute '{attr.value}'.\n")
+                self.status = False
             p[0][attr].update(value)
         else:
-            sys.stderr.write(f"Error: parser error ({attr.value}).")
+            sys.stderr.write(f"Error:{p.lineno}: parser error ({attr.value}).\n")
             self.status = False
 
         return p[0]
@@ -481,7 +485,7 @@ class BtorWitnessParser(Parser):
 
     def error(self, token):
         self.status = False
-        sys.stderr.write(f"Error: Unexpected token ({token})")
+        sys.stderr.write(f"Error:{p.lineno}: Unexpected token ({token})")
 
     @_("header frame frame_list RW_DOT NEWLINE")
     def witness(self, p):
