@@ -10,13 +10,13 @@ import sys
 # from il2btor.il2btor import main as il2btor
 
 CUR_DIR = Path(__file__).parent
-SMV2IL_DIR = CUR_DIR / "smv2il"
-IL2BTOR_DIR = CUR_DIR / "il2btor"
+SMV2MCIL_DIR = CUR_DIR / "smv2mcil"
+MCIL2BTOR_DIR = CUR_DIR / "mcil2btor"
 
-SMV2JSON = SMV2IL_DIR / "smv2json.py"
-JSON2IL = IL2BTOR_DIR / "json2il.py"
-IL2JSON = IL2BTOR_DIR / "il2json.py"
-IL2BTOR = IL2BTOR_DIR / "il2btor.py"
+SMV2JSON = SMV2MCIL_DIR / "smv2json.py"
+JSON2MCIL = MCIL2BTOR_DIR / "json2mcil.py"
+MCIL2JSON = MCIL2BTOR_DIR / "mcil2json.py"
+MCIL2BTOR = MCIL2BTOR_DIR / "mcil2btor.py"
 
 class Lang(Enum):
     NONE = 0
@@ -56,7 +56,7 @@ def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bo
             proc = subprocess.run(["python3", SMV2JSON, src_path, "--output", json_path])
             if proc.returncode:
                 return proc.returncode
-            proc = subprocess.run(["python3", JSON2IL, json_path, "--output", target_path])
+            proc = subprocess.run(["python3", JSON2MCIL, json_path, "--output", target_path])
             return proc.returncode
         elif target_lang == Lang.BTOR2:
             # SMV -> BTOR2
@@ -64,25 +64,25 @@ def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bo
             proc = subprocess.run(["python3", SMV2JSON, src_path, "--output", json_path])
             if proc.returncode:
                 return proc.returncode
-            proc = subprocess.run(["python3", IL2BTOR, json_path, "--output", target_path])
+            proc = subprocess.run(["python3", MCIL2BTOR, json_path, "--output", target_path])
             return proc.returncode
     elif src_lang == Lang.IL:
         if target_lang == Lang.IL_JSON:
             # IL -> json
-            proc = subprocess.run(["python3", IL2JSON, src_path, "--output", target_path])
+            proc = subprocess.run(["python3", MCIL2JSON, src_path, "--output", target_path])
             return proc.returncode
         elif target_lang == Lang.BTOR2:
             # IL -> BTOR2
-            proc = subprocess.run(["python3", IL2BTOR, src_path, "--output", target_path])
+            proc = subprocess.run(["python3", MCIL2BTOR, src_path, "--output", target_path])
             return proc.returncode
     elif src_lang == Lang.IL_JSON:
         if target_lang == Lang.IL:
             # json -> IL
-            proc = subprocess.run(["python3", JSON2IL, src_path, "--output", target_path])
+            proc = subprocess.run(["python3", JSON2MCIL, src_path, "--output", target_path])
             return proc.returncode
         elif target_lang == Lang.BTOR2:
             # json -> BTOR2
-            proc = subprocess.run(["python3", IL2BTOR, src_path, "--output", target_path])
+            proc = subprocess.run(["python3", MCIL2BTOR, src_path, "--output", target_path])
             return proc.returncode
 
     return 0
@@ -91,7 +91,7 @@ def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bo
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("source", help="source program to translate, language is inferred from file extension")
-    parser.add_argument("targetlang", choices=["il", "il-json", "btor2"],
+    parser.add_argument("targetlang", choices=["mcil", "mcil-json", "btor2"],
                         help="target language")
     parser.add_argument("--targetloc", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
     parser.add_argument("--sortcheck", action="store_true",
@@ -100,10 +100,10 @@ if __name__ == "__main__":
 
     src_path = Path(args.source)
 
-    if args.targetlang == "il":
+    if args.targetlang == "mcil":
         target_lang = Lang.IL
         target_path = Path(args.targetloc) if args.targetloc else Path(f"{src_path.stem}.mcil")
-    elif args.targetlang == "il-json":
+    elif args.targetlang == "mcil-json":
         target_lang = Lang.IL_JSON
         target_path = Path(args.targetloc) if args.targetloc else Path(f"{src_path.stem}.json")
     elif args.targetlang == "btor2":

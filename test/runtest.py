@@ -1,6 +1,5 @@
 from __future__ import annotations
 from glob import glob
-from operator import is_
 from pathlib import Path
 
 import argparse
@@ -22,7 +21,7 @@ WORK_DIR = TEST_DIR / "__workdir__"
 SMV2IL = {
     "name": "smv2il",
     "source": "smv",
-    "target": "il",
+    "target": "mcil",
     "dir": "smv" 
 }
 
@@ -34,10 +33,10 @@ SMV2BTOR = {
 }
 
 IL2BTOR = {
-    "name": "il2btor",
-    "source": "il",
+    "name": "mcil2btor",
+    "source": "mcil",
     "target": "btor2",
-    "dir": "il"
+    "dir": "mcil"
 }
 
 SUITES = [ SMV2IL, SMV2BTOR, IL2BTOR ]

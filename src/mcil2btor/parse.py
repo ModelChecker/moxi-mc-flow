@@ -2,10 +2,10 @@
 import sys
 
 from sly import Lexer, Parser
-from il import *
+from mcil import *
 from btor_witness import *
 
-class ILLexer(Lexer):
+class MCILLexer(Lexer):
 
     tokens = { NUMERAL, BINARY, HEXADECIMAL,
                SYMBOL, KEYWORD,
@@ -84,8 +84,8 @@ class ILLexer(Lexer):
         self.index += 1
 
 
-class ILParser(Parser):
-    tokens = ILLexer.tokens
+class MCILParser(Parser):
+    tokens = MCILLexer.tokens
 
     def __init__(self) :
         super().__init__()
@@ -108,19 +108,19 @@ class ILParser(Parser):
 
     @_("LPAREN CMD_DECLARE_SORT SYMBOL NUMERAL RPAREN")
     def command(self, p):
-        return ILDeclareSort(p[2], p[3])
+        return MCILDeclareSort(p[2], p[3])
     
     @_("LPAREN CMD_DEFINE_SORT SYMBOL LPAREN symbol_list RPAREN sort RPAREN")
     def command(self, p):
-        return ILDefineSort(p[2], p[4], p[6])
+        return MCILDefineSort(p[2], p[4], p[6])
     
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
-        return ILDeclareConst(p[2], p[3])
+        return MCILDeclareConst(p[2], p[3])
     
     @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sorted_var_list RPAREN sort LPAREN term RPAREN RPAREN")
     def command(self, p):
-        return ILDefineFun(p[2], p[4], p[6], p[8])
+        return MCILDefineFun(p[2], p[4], p[6], p[8])
     
     @_("LPAREN CMD_DECLARE_ENUM_SORT SYMBOL LPAREN symbol_list RPAREN RPAREN")
     def command(self, p):
@@ -129,73 +129,73 @@ class ILParser(Parser):
             values.append(value)
             self.enums[value] = p[2]
 
-        return ILDeclareEnumSort(p[2], values)
+        return MCILDeclareEnumSort(p[2], values)
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
         input, output, local = [], [], []
-        init_expr = ILConstant(IL_BOOL_SORT, True)
-        trans_expr = ILConstant(IL_BOOL_SORT, True)
-        inv_expr = ILConstant(IL_BOOL_SORT, True)
+        init_expr = MCILConstant(MCIL_BOOL_SORT, True)
+        trans_expr = MCILConstant(MCIL_BOOL_SORT, True)
+        inv_expr = MCILConstant(MCIL_BOOL_SORT, True)
         subsystems = {}
 
-        if ILAttribute.INPUT in p[3]:
-            input = p[3][ILAttribute.INPUT]
+        if MCILAttribute.INPUT in p[3]:
+            input = p[3][MCILAttribute.INPUT]
             
-        if ILAttribute.OUTPUT in p[3]:
-            output = p[3][ILAttribute.OUTPUT]
+        if MCILAttribute.OUTPUT in p[3]:
+            output = p[3][MCILAttribute.OUTPUT]
 
-        if ILAttribute.LOCAL in p[3]:
-            local = p[3][ILAttribute.LOCAL]
+        if MCILAttribute.LOCAL in p[3]:
+            local = p[3][MCILAttribute.LOCAL]
             
-        if ILAttribute.INIT in p[3]:
-            init_expr = p[3][ILAttribute.INIT]
+        if MCILAttribute.INIT in p[3]:
+            init_expr = p[3][MCILAttribute.INIT]
             
-        if ILAttribute.TRANS in p[3]:
-            trans_expr = p[3][ILAttribute.TRANS]
+        if MCILAttribute.TRANS in p[3]:
+            trans_expr = p[3][MCILAttribute.TRANS]
             
-        if ILAttribute.INV in p[3]:
-            inv_expr = p[3][ILAttribute.INV]
+        if MCILAttribute.INV in p[3]:
+            inv_expr = p[3][MCILAttribute.INV]
 
-        if ILAttribute.SUBSYS in p[3]:
-            subsystems = p[3][ILAttribute.SUBSYS]
+        if MCILAttribute.SUBSYS in p[3]:
+            subsystems = p[3][MCILAttribute.SUBSYS]
 
-        return ILDefineSystem(str(p[2]), input, output, local, init_expr, trans_expr, inv_expr, subsystems)
+        return MCILDefineSystem(str(p[2]), input, output, local, init_expr, trans_expr, inv_expr, subsystems)
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
         input, output, local = [], [], []
         assume, fair, reach, current, query = {}, {}, {}, {}, {}
 
-        if ILAttribute.INPUT in p[3]:
-            input = p[3][ILAttribute.INPUT]
+        if MCILAttribute.INPUT in p[3]:
+            input = p[3][MCILAttribute.INPUT]
             
-        if ILAttribute.OUTPUT in p[3]:
-            output = p[3][ILAttribute.OUTPUT]
+        if MCILAttribute.OUTPUT in p[3]:
+            output = p[3][MCILAttribute.OUTPUT]
 
-        if ILAttribute.LOCAL in p[3]:
-            local = p[3][ILAttribute.LOCAL]
+        if MCILAttribute.LOCAL in p[3]:
+            local = p[3][MCILAttribute.LOCAL]
 
-        if ILAttribute.ASSUMPTION in p[3]:
-            assume = p[3][ILAttribute.ASSUMPTION]
+        if MCILAttribute.ASSUMPTION in p[3]:
+            assume = p[3][MCILAttribute.ASSUMPTION]
             
-        if ILAttribute.FAIRNESS in p[3]:
-            fair = p[3][ILAttribute.FAIRNESS]
+        if MCILAttribute.FAIRNESS in p[3]:
+            fair = p[3][MCILAttribute.FAIRNESS]
             
-        if ILAttribute.REACHABLE in p[3]:
-            reach = p[3][ILAttribute.REACHABLE]
+        if MCILAttribute.REACHABLE in p[3]:
+            reach = p[3][MCILAttribute.REACHABLE]
             
-        if ILAttribute.CURRENT in p[3]:
-            current = p[3][ILAttribute.CURRENT]
+        if MCILAttribute.CURRENT in p[3]:
+            current = p[3][MCILAttribute.CURRENT]
             
-        if ILAttribute.QUERY in p[3]:
-            query = p[3][ILAttribute.QUERY]
+        if MCILAttribute.QUERY in p[3]:
+            query = p[3][MCILAttribute.QUERY]
 
-        return ILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query)
+        return MCILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query)
 
     @_("LPAREN CMD_EXIT RPAREN")
     def command(self, p):
-        return ILExit()
+        return MCILExit()
 
     @_("define_system_attribute_list define_system_attribute")
     def define_system_attribute_list(self, p):
@@ -208,10 +208,10 @@ class ILParser(Parser):
             self.status = False
         elif attr.get_value_type() == dict:
             p[0][attr].update(value)
-        elif attr.get_value_type() == ILExpr and isinstance(attr, ILAttribute.TRANS):
-            p[0][attr] = ILApply(IL_NO_SORT, ILIdentifier("or", []), [p[0][attr], value])
-        elif attr.get_value_type() == ILExpr and isinstance(attr, ILAttribute.INV):
-            p[0][attr] = ILApply(IL_NO_SORT, ILIdentifier("and", []), [p[0][attr], value])
+        elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.TRANS):
+            p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("or", []), [p[0][attr], value])
+        elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.INV):
+            p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("and", []), [p[0][attr], value])
         else:
             sys.stderr.write(f"Error: parser error ({attr.value}).")
             self.status = False
@@ -224,31 +224,31 @@ class ILParser(Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        return (ILAttribute.INPUT, p[2])
+        return (MCILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        return (ILAttribute.OUTPUT, p[2])
+        return (MCILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        return (ILAttribute.LOCAL, p[2])
+        return (MCILAttribute.LOCAL, p[2])
 
     @_("PK_INIT term")
     def define_system_attribute(self, p):
-        return (ILAttribute.INIT, p[1])
+        return (MCILAttribute.INIT, p[1])
 
     @_("PK_TRANS term")
     def define_system_attribute(self, p):
-        return (ILAttribute.TRANS, p[1])
+        return (MCILAttribute.TRANS, p[1])
 
     @_("PK_INV term")
     def define_system_attribute(self, p):
-        return (ILAttribute.INV, p[1])
+        return (MCILAttribute.INV, p[1])
 
     @_("PK_SUBSYS LPAREN SYMBOL LPAREN SYMBOL symbol_list RPAREN RPAREN")
     def define_system_attribute(self, p):
-        return (ILAttribute.SUBSYS, {p[2] : (p[4], p[5])})
+        return (MCILAttribute.SUBSYS, {p[2] : (p[4], p[5])})
 
     @_("check_system_attribute_list check_system_attribute")
     def check_system_attribute_list(self, p):
@@ -273,36 +273,36 @@ class ILParser(Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        return (ILAttribute.INPUT, p[2])
+        return (MCILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        return (ILAttribute.OUTPUT, p[2])
+        return (MCILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        return (ILAttribute.LOCAL, p[2])
+        return (MCILAttribute.LOCAL, p[2])
 
     @_("PK_ASSUMPTION LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (ILAttribute.ASSUMPTION, {p[2]: p[3]})
+        return (MCILAttribute.ASSUMPTION, {p[2]: p[3]})
 
     @_("PK_FAIRNESS LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (ILAttribute.FAIRNESS, {p[2]: p[3]})
+        return (MCILAttribute.FAIRNESS, {p[2]: p[3]})
 
     @_("PK_REACHABLE LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (ILAttribute.REACHABLE, {p[2]: p[3]})
+        return (MCILAttribute.REACHABLE, {p[2]: p[3]})
 
     @_("PK_CURRENT LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (ILAttribute.CURRENT, {p[2]: p[3]})
+        return (MCILAttribute.CURRENT, {p[2]: p[3]})
 
     @_("PK_QUERY LPAREN SYMBOL LPAREN symbol_list SYMBOL RPAREN RPAREN")
     def check_system_attribute(self, p):
         p[4].append(p[5])
-        return (ILAttribute.QUERY, {p[2]: p[4]})
+        return (MCILAttribute.QUERY, {p[2]: p[4]})
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
@@ -315,7 +315,7 @@ class ILParser(Parser):
     
     @_("SYMBOL sort")
     def sorted_var(self, p):
-        return ILVar(ILVarType.NONE, p[1], p[0], False)
+        return MCILVar(MCILVarType.NONE, p[1], p[0], False)
     
     @_("term_list term")
     def term_list(self, p):
@@ -343,36 +343,36 @@ class ILParser(Parser):
 
         symbol: str = p[0].symbol
 
-        if symbol == "True":
-            return ILConstant(IL_BOOL_SORT, True)
-        elif symbol == "False":
-            return ILConstant(IL_BOOL_SORT, False)
+        if symbol == "true":
+            return MCILConstant(MCIL_BOOL_SORT, True)
+        elif symbol == "false":
+            return MCILConstant(MCIL_BOOL_SORT, False)
         elif symbol in self.enums:
-            return ILConstant(IL_ENUM_SORT(self.enums[symbol]), symbol)
+            return MCILConstant(MCIL_ENUM_SORT(self.enums[symbol]), symbol)
 
         prime: bool = False
         if symbol[len(symbol)-1] == "'":
             prime = True
             symbol = symbol[:-1]
 
-        return ILVar(ILVarType.NONE, IL_NO_SORT, symbol, prime)
+        return MCILVar(MCILVarType.NONE, MCIL_NO_SORT, symbol, prime)
 
     @_("NUMERAL")
     def term(self, p):
-        return ILConstant(IL_INT_SORT, int(p[0]))
+        return MCILConstant(MCIL_INT_SORT, int(p[0]))
 
     @_("HEXADECIMAL") # example: "#x123"
     def term(self, p):
-        return ILConstant(IL_BITVEC_SORT(len(p[0][2:])*4), int(p[0][2:], base=16))
+        return MCILConstant(MCIL_BITVEC_SORT(len(p[0][2:])*4), int(p[0][2:], base=16))
 
     @_("BINARY") # example: "#b101"
     def term(self, p):
-        return ILConstant(IL_BITVEC_SORT(len(p[0][2:])), int(p[0][2:], base=2))
+        return MCILConstant(MCIL_BITVEC_SORT(len(p[0][2:])), int(p[0][2:], base=2))
 
     @_("LPAREN identifier term_list term RPAREN")
     def term(self, p):
         p[2].append(p[3])
-        return ILApply(IL_NO_SORT, p[1], p[2])
+        return MCILApply(MCIL_NO_SORT, p[1], p[2])
 
     @_("LPAREN term RPAREN")
     def term(self, p):
@@ -380,12 +380,12 @@ class ILParser(Parser):
 
     @_("identifier")
     def sort(self, p):
-        return ILSort(p[0], [])
+        return MCILSort(p[0], [])
 
     @_("LPAREN identifier sort_list sort RPAREN")
     def sort(self, p):
         p[2].append(p[3])
-        return ILSort(p[1], p[2])
+        return MCILSort(p[1], p[2])
 
     @_("sort_list sort")
     def sort_list(self, p):
@@ -399,12 +399,12 @@ class ILParser(Parser):
     # Identifiers
     @_("SYMBOL")
     def identifier(self, p):
-        return ILIdentifier(p[0], [])
+        return MCILIdentifier(p[0], [])
 
     @_("LPAREN RW_UNDERSCORE SYMBOL index_list index RPAREN")
     def identifier(self, p):
         p[3].append(p[4])
-        return ILIdentifier(p[2], p[3])
+        return MCILIdentifier(p[2], p[3])
 
     # Indices
     @_("index_list index")
@@ -421,14 +421,14 @@ class ILParser(Parser):
         return int(p[0])
 
 
-def parse_il(input: str) -> Optional[ILProgram]:
+def parse_mcil(input: str) -> Optional[MCILProgram]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
-    lexer: ILLexer = ILLexer()
-    parser: ILParser = ILParser()
+    lexer: MCILLexer = MCILLexer()
+    parser: MCILParser = MCILParser()
     cmds = parser.parse(lexer.tokenize(input))
 
     if parser.status and cmds:
-        return ILProgram(cmds)
+        return MCILProgram(cmds)
     return None
 
 

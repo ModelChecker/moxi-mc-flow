@@ -7,10 +7,10 @@ import pickle
 import sys
 from typing import cast
 
-from il import *
-from json2il import from_json
+from mcil import *
+from json2mcil import from_json
 from btor import *
-from parse import parse_il
+from parse import parse_mcil
 
 ilfunc_map: dict[str, BtorOperator] = {
     "=": BtorOperator.EQ,
@@ -63,26 +63,26 @@ ilfunc_map: dict[str, BtorOperator] = {
 }
 
 # A SortMap maps ILSorts to BTOR2 sorts
-SortMap = dict[ILSort, BtorSort]
+SortMap = dict[MCILSort, BtorSort]
 
 InputVar = tuple[BtorVar, BtorVar] # :input variables
 StateVar = tuple[BtorVar, BtorVar, BtorVar] # :local, :output variables
 
 # A VarMap maps variables in a system context to BTOR2 variables. BTOR2 variables are tuples by default (to handle
 # initial, current, and next values) for output and state variables, whereas inputs are just a single variable.
-VarMap = dict[tuple[ILVar, ILSystemContext], InputVar | StateVar]
+VarMap = dict[tuple[MCILVar, MCILSystemContext], InputVar | StateVar]
 
 # A RenameMap maps variables in a system context to another variable and system context. This is used for mapping
 # input/output variables of subsystem. The mapped-to variable/system context pair may also be in the rename map, in
 # which case another lookup is necessary.
-RenameMap = dict[tuple[ILVar, ILSystemContext], tuple[ILVar, ILSystemContext]]
+RenameMap = dict[tuple[MCILVar, MCILSystemContext], tuple[MCILVar, MCILSystemContext]]
 
 
 def rename_lookup(
-    var: ILVar, 
-    system_context: ILSystemContext, 
+    var: MCILVar, 
+    system_context: MCILSystemContext, 
     rename_map: RenameMap
-) -> tuple[ILVar, ILSystemContext]:
+) -> tuple[MCILVar, MCILSystemContext]:
     """Returns the variable and context to map the `var`/`system_context` pair to."""
     cur_var, cur_system_context = var, system_context
     while (cur_var, cur_system_context) in rename_map:
@@ -91,11 +91,11 @@ def rename_lookup(
 
 
 def update_rename_map(
-    system_context: ILSystemContext,
-    target_system: ILDefineSystem,
+    system_context: MCILSystemContext,
+    target_system: MCILDefineSystem,
     target_system_symbol: str,
-    signature: list[ILVar],
-    target_signature: list[ILVar],
+    signature: list[MCILVar],
+    target_signature: list[MCILVar],
     rename_map: RenameMap
 ):
     target_context = system_context.copy() # need to copy (only copies pointers)
@@ -104,7 +104,7 @@ def update_rename_map(
         rename_map[(target_var, target_context)] = (cmd_var, system_context.copy())
 
 
-def ilsort_to_btor2(sort: ILSort, enums: dict[str, int], sort_map: SortMap) -> BtorSort:
+def ilsort_to_btor2(sort: MCILSort, enums: dict[str, int], sort_map: SortMap) -> BtorSort:
     if sort in sort_map:
         return sort_map[sort]
     elif is_bool_sort(sort):
@@ -120,9 +120,9 @@ def ilsort_to_btor2(sort: ILSort, enums: dict[str, int], sort_map: SortMap) -> B
         raise NotImplementedError
 
 
-def build_sort_map_expr(expr: ILExpr, enums: dict[str, int], sort_map: SortMap) -> SortMap:
+def build_sort_map_expr(expr: MCILExpr, enums: dict[str, int], sort_map: SortMap) -> SortMap:
     """Iteratively recurse the expr IL and map each unique ILSort of each node to a new BtorSort."""
-    def build_sort_map_util(cur: ILExpr):
+    def build_sort_map_util(cur: MCILExpr):
         if cur.sort not in sort_map:
             sort_map[cur.sort] = ilsort_to_btor2(cur.sort, enums, sort_map)
     
@@ -130,15 +130,15 @@ def build_sort_map_expr(expr: ILExpr, enums: dict[str, int], sort_map: SortMap) 
     return sort_map
 
 
-def build_sort_map_cmd(cmd: ILCommand, enums: dict[str, int], sort_map: SortMap) -> SortMap:
-    if isinstance(cmd, ILDefineSystem):
+def build_sort_map_cmd(cmd: MCILCommand, enums: dict[str, int], sort_map: SortMap) -> SortMap:
+    if isinstance(cmd, MCILDefineSystem):
         for subsystem in cmd.subsystems.values():
             build_sort_map_cmd(subsystem, enums, sort_map)
 
         build_sort_map_expr(cmd.init, enums, sort_map)
         build_sort_map_expr(cmd.trans, enums, sort_map)
         build_sort_map_expr(cmd.inv,enums,  sort_map)
-    elif isinstance(cmd, ILCheckSystem):
+    elif isinstance(cmd, MCILCheckSystem):
         for assume in cmd.assumption.values():
             build_sort_map_expr(assume, enums, sort_map)
         for fair in cmd.fairness.values():
@@ -154,24 +154,24 @@ def build_sort_map_cmd(cmd: ILCommand, enums: dict[str, int], sort_map: SortMap)
 
 
 def build_var_map_expr(
-    expr: ILExpr,
-    context: ILContext,
+    expr: MCILExpr,
+    context: MCILContext,
     rename_map: RenameMap,
     sort_map: SortMap,
     var_map: VarMap):
     """Iteratively recurse the expr IL and map each input ILVar to a single BtorInput and each local/output var to a
     triple of BtorStates corresponding to that var's init, cur, and next values."""
-    def build_var_map_util(expr: ILExpr):
-        if isinstance(expr, ILVar) and (expr, context.system_context) not in var_map:
+    def build_var_map_util(expr: MCILExpr):
+        if isinstance(expr, MCILVar) and (expr, context.system_context) not in var_map:
             var, system_context = rename_lookup(expr, context.system_context, rename_map)
 
             symbol = "::".join(system_context.get_scope_symbols() + [var.symbol])
 
             # note: those system context copies only copy the pointers + they are only as big as the subsystems are deep
-            if var.var_type == ILVarType.INPUT:
+            if var.var_type == MCILVarType.INPUT:
                 var_map[(expr, context.system_context.copy())] = (BtorStateVar(sort_map[var.sort], f"{symbol}.cur"),
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.next"))
-            elif var.var_type == ILVarType.OUTPUT or var.var_type == ILVarType.LOCAL:
+            elif var.var_type == MCILVarType.OUTPUT or var.var_type == MCILVarType.LOCAL:
                 var_map[(expr, context.system_context.copy())] = (BtorStateVar(sort_map[var.sort], f"{symbol}.init"),
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.cur"),
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.next"))
@@ -180,15 +180,15 @@ def build_var_map_expr(
 
 
 def build_var_map_cmd(
-    cmd: ILCommand, 
-    context: ILContext,
+    cmd: MCILCommand, 
+    context: MCILContext,
     rename_map: RenameMap,
     sort_map: SortMap,
     var_map: VarMap):
     """Update var_map to map all ILVar instances to BtorVars"""
-    if isinstance(cmd, ILDefineSystem):
+    if isinstance(cmd, MCILDefineSystem):
         for (subsys_symbol, subsystem) in cmd.subsystems.items():
-            signature_1: list[ILVar] = []
+            signature_1: list[MCILVar] = []
             for symbol in cmd.subsystem_signatures[subsys_symbol][1]:
                 for var in cmd.input + cmd.output + cmd.local:
                     if var.symbol == symbol:
@@ -208,7 +208,7 @@ def build_var_map_cmd(
         build_var_map_expr(cmd.init, context, rename_map, sort_map, var_map)
         build_var_map_expr(cmd.trans, context, rename_map, sort_map, var_map)
         build_var_map_expr(cmd.inv, context, rename_map, sort_map, var_map)
-    elif isinstance(cmd, ILCheckSystem):
+    elif isinstance(cmd, MCILCheckSystem):
         for assume in cmd.assumption.values():
             build_var_map_expr(assume, context, rename_map, sort_map, var_map)
         for fair in cmd.fairness.values():
@@ -232,28 +232,28 @@ def build_var_map_cmd(
 
 
 def ilexpr_to_btor2(
-    expr: ILExpr, 
-    context: ILContext,
+    expr: MCILExpr, 
+    context: MCILContext,
     is_init_expr: bool,
     sort_map: SortMap,
     var_map: VarMap
 ) -> BtorExpr:
-    if isinstance(expr, ILVar) and len(var_map[(expr, context.system_context)]) == 3:
+    if isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 3:
         # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
         #   var_map[var] = (init, cur, next)
         idx = int(not is_init_expr) + (expr.prime)
         return cast(tuple[BtorVar,BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
-    elif isinstance(expr, ILVar) and len(var_map[(expr, context.system_context)]) == 2:
+    elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 2:
         # We use "int(expr.prime)" to compute the index in var_map tuple:
         #   var_map[var] = (cur, next)
         idx = int(expr.prime)
         return cast(tuple[BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
-    elif isinstance(expr, ILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
+    elif isinstance(expr, MCILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
         value = context.declared_enum_sorts[expr.sort.identifier.symbol].index(expr.value)
         return BtorConst(sort_map[expr.sort], value)
-    elif isinstance(expr, ILConstant):
+    elif isinstance(expr, MCILConstant):
         return BtorConst(sort_map[expr.sort], expr.value)
-    elif isinstance(expr, ILApply):
+    elif isinstance(expr, MCILApply):
         if len(expr.children) > 3:
             raise NotImplementedError
 
@@ -277,8 +277,8 @@ def flatten_btor2_expr(expr: BtorExpr) -> list[BtorExpr]:
 
 def ilsystem_to_btor2(
     btor2_model: list[BtorNode],
-    system: ILDefineSystem, 
-    context: ILContext,
+    system: MCILDefineSystem, 
+    context: MCILContext,
     sort_map: SortMap,
     var_map: VarMap):
     for symbol,subsystem in system.subsystems.items():
@@ -316,8 +316,8 @@ def ilsystem_to_btor2(
 
 
 def ilchecksystem_to_btor2(
-    check: ILCheckSystem, 
-    context: ILContext,
+    check: MCILCheckSystem, 
+    context: MCILContext,
     sort_map: SortMap,
     var_map: VarMap
 ) -> dict[str, list[BtorNode]]:
@@ -392,7 +392,7 @@ def ilchecksystem_to_btor2(
     
 
 
-def translate(il_prog: ILProgram) -> Optional[dict[str, list[BtorNode]]]:
+def translate(il_prog: MCILProgram) -> Optional[dict[str, list[BtorNode]]]:
     """Translate `il_prog` to an equivalent set of Btor programs, labeled by query name.
     
     The strategy for translation is to sort check the input then construct a Btor program for each query (and targeted system) by:
@@ -447,7 +447,7 @@ def main(
         if input_path.suffix == ".json":
             program = from_json(json.load(file))
         elif input_path.suffix == ".mcil":
-            program = parse_il(file.read())
+            program = parse_mcil(file.read())
         else:
             sys.stderr.write(f"File format unsupported ({input_path.suffix})\n")
             return 1

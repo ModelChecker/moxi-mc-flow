@@ -245,7 +245,7 @@ def typecheck_exp(exp, context=None):
                 if tl.__class__.__name__ == "Boolean":
                     return Boolean()
                 else:
-                    assert(False)
+                    # assert(False)
                     return MWord(tl.size)
             case "Equal" | "NotEqual":
                 return Boolean()

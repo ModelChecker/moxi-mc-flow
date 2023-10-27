@@ -7,55 +7,55 @@ from argparse import ArgumentParser
 from pathlib import Path
 from jsonschema import validate, exceptions, RefResolver
 
-from il import *
+from mcil import *
 
-def from_json_identifier(contents: dict | str) -> ILIdentifier:
+def from_json_identifier(contents: dict | str) -> MCILIdentifier:
     if isinstance(contents, dict):
-        return ILIdentifier(contents["symbol"], contents["indices"])
+        return MCILIdentifier(contents["symbol"], contents["indices"])
     else: # isinstance(contents, str)
-        return ILIdentifier(str(contents), [])
+        return MCILIdentifier(str(contents), [])
 
 
-def from_json_sort(contents: dict) -> ILSort:
-    params: list[ILSort] =  []
+def from_json_sort(contents: dict) -> MCILSort:
+    params: list[MCILSort] =  []
     if "parameters" in contents:
         params = [from_json_sort(param) for param in contents["parameters"]]
 
     identifier = from_json_identifier(contents["identifier"])
 
     if identifier.symbol == "Bool" and len(identifier.indices) == 0:
-        return IL_BOOL_SORT
+        return MCIL_BOOL_SORT
 
-    return ILSort(identifier, params)
+    return MCILSort(identifier, params)
 
 
-def from_json_sorted_var(contents: dict) -> ILVar:
+def from_json_sorted_var(contents: dict) -> MCILVar:
     sort = from_json_sort(contents["sort"])
-    return ILVar(ILVarType.NONE, sort, contents["symbol"], False)
+    return MCILVar(MCILVarType.NONE, sort, contents["symbol"], False)
 
 
-def from_json_expr(contents: dict, enums: dict[str, str]) ->  ILExpr:
-    args: list[ILExpr] = []
+def from_json_expr(contents: dict, enums: dict[str, str]) ->  MCILExpr:
+    args: list[MCILExpr] = []
     if "args" in contents:
         args = [from_json_expr(a, enums) for a in contents["args"]]
     
     identifier = from_json_identifier(contents["identifier"])
 
     if len(args) != 0:
-        return ILApply(IL_NO_SORT, identifier, args)
+        return MCILApply(MCIL_NO_SORT, identifier, args)
     
     if identifier.symbol == "True":
-        return ILConstant(IL_BOOL_SORT, True)
+        return MCILConstant(MCIL_BOOL_SORT, True)
     elif identifier.symbol == "False":
-        return ILConstant(IL_BOOL_SORT, False)
+        return MCILConstant(MCIL_BOOL_SORT, False)
     elif re.match(r"0|[1-9]\d*", identifier.symbol):
-        return ILConstant(IL_INT_SORT, int(identifier.symbol))
+        return MCILConstant(MCIL_INT_SORT, int(identifier.symbol))
     elif re.match(r"#x[A-F0-9]+", identifier.symbol):
-        return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])*4), int(identifier.symbol[2:], base=16))
+        return MCILConstant(MCIL_BITVEC_SORT(len(identifier.symbol[2:])*4), int(identifier.symbol[2:], base=16))
     elif re.match(r"#b[01]+", identifier.symbol):
-        return ILConstant(IL_BITVEC_SORT(len(identifier.symbol[2:])), int(identifier.symbol[2:], base=2))
+        return MCILConstant(MCIL_BITVEC_SORT(len(identifier.symbol[2:])), int(identifier.symbol[2:], base=2))
     elif identifier.symbol in enums:
-        return ILConstant(IL_ENUM_SORT(enums[identifier.symbol]), identifier.symbol)
+        return MCILConstant(MCIL_ENUM_SORT(enums[identifier.symbol]), identifier.symbol)
     # else is variable
 
     prime: bool = False
@@ -64,10 +64,10 @@ def from_json_expr(contents: dict, enums: dict[str, str]) ->  ILExpr:
         prime = True
         symbol = symbol[:-1]
 
-    return ILVar(ILVarType.NONE, IL_NO_SORT, symbol, prime)
+    return MCILVar(MCILVarType.NONE, MCIL_NO_SORT, symbol, prime)
 
 
-def from_json(contents: dict) -> Optional[ILProgram]:
+def from_json(contents: dict) -> Optional[MCILProgram]:
     dirname = os.path.dirname(__file__)
 
     with open(f"{dirname}/../../json-schema/schema/il.json", "r") as f:
@@ -84,16 +84,16 @@ def from_json(contents: dict) -> Optional[ILProgram]:
         sys.stderr.write(f"Error: json failed validation against schema {ve}\n")
         return None
     
-    program: list[ILCommand] = []
+    program: list[MCILCommand] = []
     enums: dict[str, str] = {} # maps enum values to their sort symbol
 
     for cmd in contents:
         if cmd["command"] == "declare-sort":
-            new = ILDeclareSort(cmd["symbol"], int(cmd["arity"]))
+            new = MCILDeclareSort(cmd["symbol"], int(cmd["arity"]))
             program.append(new)
         elif cmd["command"] == "define-sort":
             definition = from_json_sort(cmd["definition"])
-            new = ILDefineSort(cmd["symbol"], cmd["parameters"], definition)
+            new = MCILDefineSort(cmd["symbol"], cmd["parameters"], definition)
             program.append(new)
         elif cmd["command"] == "declare-enum-sort":
             values = []
@@ -101,12 +101,12 @@ def from_json(contents: dict) -> Optional[ILProgram]:
                 values.append(value)
                 enums[value] = cmd["symbol"]
 
-            new = ILDeclareEnumSort(cmd["symbol"], values)
+            new = MCILDeclareEnumSort(cmd["symbol"], values)
             program.append(new)
         elif cmd["command"] == "declare-const":
             sort = from_json_sort(cmd["sort"])
 
-            new = ILDeclareConst(cmd["symbol"], sort)
+            new = MCILDeclareConst(cmd["symbol"], sort)
             program.append(new)
         elif cmd["command"] == "declare-fun":
             pass # TODO
@@ -115,11 +115,11 @@ def from_json(contents: dict) -> Optional[ILProgram]:
             output = from_json_sort(cmd["output"])
             body = from_json_expr(cmd["body"], enums)
 
-            new = ILDefineFun(cmd["symbol"], inputs, output, body)
+            new = MCILDefineFun(cmd["symbol"], inputs, output, body)
             program.append(new)
         elif cmd["command"] == "define-system":
             input, output, local = [], [], []
-            init, trans, inv = ILConstant(IL_BOOL_SORT, True), ILConstant(IL_BOOL_SORT, True), ILConstant(IL_BOOL_SORT, True)
+            init, trans, inv = MCILConstant(MCIL_BOOL_SORT, True), MCILConstant(MCIL_BOOL_SORT, True), MCILConstant(MCIL_BOOL_SORT, True)
             subsys = {}
 
             if "input" in cmd:
@@ -141,7 +141,7 @@ def from_json(contents: dict) -> Optional[ILProgram]:
                     target = subsystem["target"]
                     subsys[subsystem["symbol"]] = (target["symbol"], target["arguments"])
                 
-            new  = ILDefineSystem(cmd["symbol"],  input, output, local, init, trans, inv, subsys)
+            new  = MCILDefineSystem(cmd["symbol"],  input, output, local, init, trans, inv, subsys)
             program.append(new)
         elif cmd["command"] == "check-system":
             # TODO: queries
@@ -167,10 +167,10 @@ def from_json(contents: dict) -> Optional[ILProgram]:
             if "query" in cmd:
                 query = { entry["symbol"]: entry["formulas"] for entry in cmd["query"] }
                 
-            new  = ILCheckSystem(cmd["symbol"],  input, output, local, assumption, fairness, reachable, current, query)
+            new  = MCILCheckSystem(cmd["symbol"],  input, output, local, assumption, fairness, reachable, current, query)
             program.append(new)
 
-    return ILProgram(program)
+    return MCILProgram(program)
 
 
 def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:

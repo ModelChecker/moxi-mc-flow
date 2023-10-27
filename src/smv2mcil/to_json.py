@@ -384,7 +384,7 @@ def ast_to_json_to_file(ast, filename, print_json=False):
         rich.print(json_list)
 
     with open(filename, "w+") as json_file:
-        json.dump(json_list, json_file, ensure_ascii=False, indent=4)
+        json.dump(json_list, json_file, ensure_ascii=False)
 
 
 

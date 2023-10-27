@@ -3,8 +3,8 @@ import json
 from argparse import ArgumentParser
 from pathlib import Path
 
-from il import sort_check
-from parse_il import parse_il
+from mcil import sort_check
+from parse import parse_mcil
 
 def main(input_path: Path, output_path: Path, do_sort_check: bool, do_pretty: bool) -> int:
     if not input_path.is_file():
@@ -12,7 +12,7 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool, do_pretty: bo
         return 1
 
     with open(input_path,"r") as file:
-        program = parse_il(file.read())
+        program = parse_mcil(file.read())
 
     if not program:
         sys.stderr.write("Failed parsing\n")

@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 from btor_witness import *
-from il_witness import *
+from mcil_witness import *
 from btor import *
 from parse import parse_witness
 
@@ -22,13 +22,13 @@ def collect_var_symbols(btor_program: list[BtorNode]) -> dict[int, str]:
 def translate(
     btor_program: list[BtorNode],
     btor_witness: BtorWitness
-) -> Optional[ILTrace]:
-    trail: list[ILState] = []
+) -> Optional[MCILTrace]:
+    trail: list[MCILState] = []
 
     vars = collect_var_symbols(btor_program)
 
     for frame in btor_witness.frames:
-        il_assigns: list[ILAssignment] = []
+        il_assigns: list[MCILAssignment] = []
 
         btor_assigns = [
             a for a in frame.state_assigns + frame.input_assigns if a.id in vars
@@ -37,14 +37,14 @@ def translate(
         for btor_assign in btor_assigns:
             if isinstance(btor_assign, BtorBitVecAssignment):
                 il_assigns.append(
-                    ILBitVecAssignment(
+                    MCILBitVecAssignment(
                         vars[btor_assign.id], 
                         btor_assign.value
                     )
                 )
             elif isinstance(btor_assign, BtorArrayAssignment):
                 il_assigns.append(
-                    ILArrayAssignment(
+                    MCILArrayAssignment(
                         vars[btor_assign.id], 
                         (btor_assign.index, btor_assign.element)
                     )
@@ -53,10 +53,10 @@ def translate(
                 raise NotImplementedError
 
         trail.append(
-            ILState(frame.index, il_assigns)
+            MCILState(frame.index, il_assigns)
         )
 
-    return ILTrace("t0", ILTrail("t1", trail), None)
+    return MCILTrace("t0", MCILTrail("t1", trail), None)
 
 
 def main(
@@ -79,15 +79,15 @@ def main(
     if btor_witness:
         il_witness = translate(btor_program, btor_witness)
 
-        query_response = ILQueryResponse(
+        query_response = MCILQueryResponse(
             witness_path.suffixes[-2][1:],
-            ILQueryResult.SAT,
+            MCILQueryResult.SAT,
             None,
             il_witness,
             None
         )
 
-        check_sys_reponse = ILCheckSystemResponse(
+        check_sys_reponse = MCILCheckSystemResponse(
             [query_response]
         )
 

@@ -4,33 +4,33 @@ from typing import Optional, Any
 from bitvec import BitVec
 
 
-class ILQueryResult(Enum):
+class MCILQueryResult(Enum):
     UNKNOWN = "unknown"
     SAT = "sat"
     UNSAT = "unsat"
 
 
-class ILCertificate():
+class MCILCertificate():
 
     def __init__(self, symbol: str) -> None:
         self.symbol = symbol
         # TODO
 
 
-class ILModel():
+class MCILModel():
 
     def __init__(self, symbol: str) -> None:
         self.symbol = symbol
         # TODO
 
 
-class ILAssignment():
+class MCILAssignment():
 
     def __init__(self, symbol: str) -> None:
         self.symbol = symbol
 
 
-class ILBitVecAssignment(ILAssignment):
+class MCILBitVecAssignment(MCILAssignment):
 
     def __init__(self, symbol: str, value: BitVec) -> None:
         super().__init__(symbol)
@@ -40,7 +40,7 @@ class ILBitVecAssignment(ILAssignment):
         return f"({self.symbol} #b{self.value})"
 
 
-class ILArrayAssignment(ILAssignment):
+class MCILArrayAssignment(MCILAssignment):
 
     def __init__(self, symbol: str, value: tuple[BitVec, BitVec]) -> None:
         super().__init__(symbol)
@@ -52,9 +52,9 @@ class ILArrayAssignment(ILAssignment):
         return f"({self.symbol} #b{self.index} #b{self.element})"
 
 
-class ILState():
+class MCILState():
 
-    def __init__(self, index: int, assignments: list[ILAssignment]) -> None:
+    def __init__(self, index: int, assignments: list[MCILAssignment]) -> None:
         self.index = index
         self.assignments = assignments
 
@@ -63,9 +63,9 @@ class ILState():
         return f"({self.index} {assigns_str})"
 
 
-class ILTrail():
+class MCILTrail():
 
-    def __init__(self, symbol: str, states: list[ILState]) -> None:
+    def __init__(self, symbol: str, states: list[MCILState]) -> None:
         self.symbol = symbol
         self.states = states
 
@@ -73,9 +73,9 @@ class ILTrail():
         return f"({self.symbol} " + "\n".join([str(s) for s in self.states]) + ")"
 
 
-class ILTrace():
+class MCILTrace():
 
-    def __init__(self, symbol: str, prefix: ILTrail, lasso: Optional[ILTrail]) -> None:
+    def __init__(self, symbol: str, prefix: MCILTrail, lasso: Optional[MCILTrail]) -> None:
         self.symbol = symbol
         self.prefix = prefix
         self.lasso = lasso
@@ -87,15 +87,15 @@ class ILTrace():
         return s + ")"
 
 
-class ILQueryResponse():
+class MCILQueryResponse():
 
     def __init__(
             self, 
             symbol: str, 
-            result: ILQueryResult, 
-            model: Optional[ILModel], 
-            trace: Optional[ILTrace],
-            certificate: Optional[ILCertificate]
+            result: MCILQueryResult, 
+            model: Optional[MCILModel], 
+            trace: Optional[MCILTrace],
+            certificate: Optional[MCILCertificate]
     ) -> None:
         self.symbol = symbol
         self.result = result
@@ -114,9 +114,9 @@ class ILQueryResponse():
         return s + ")"
 
 
-class ILCheckSystemResponse():
+class MCILCheckSystemResponse():
 
-    def __init__(self, query_reponses: list[ILQueryResponse]):
+    def __init__(self, query_reponses: list[MCILQueryResponse]):
         self.query_responses = query_reponses
 
         self.certificates = []

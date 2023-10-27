@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional
 # Width of integers -- used when we convert Int sorts to BitVec sorts
 INT_WIDTH = 64
 
-class ILAttribute(Enum):
+class MCILAttribute(Enum):
     INPUT      = ":input"
     OUTPUT     = ":output"
     LOCAL      = ":local"
@@ -34,12 +34,12 @@ class ILAttribute(Enum):
         if self.value == ":input" or self.value == ":output" or self.value == ":local" or self.value == ":subsys" or self.value == ":assumption" or self.value == ":fairness" or self.value == ":reachable" or self.value == ":current" or self.value == ":query":
             return dict 
         elif self.value == ":init" or self.value == ":trans" or self.value == ":inv":
-            return ILExpr
+            return MCILExpr
 
         raise NotImplementedError
 
 
-class ILIdentifier():
+class MCILIdentifier():
     """
     An identifier is a symbol and can be "indexed" with numerals. As opposed to SMT-LIB2, we restrict indices to numerals and not symbols and numerals.
 
@@ -74,7 +74,7 @@ class ILIdentifier():
         if isinstance(__value, str):
             return self.is_symbol(__value)
 
-        if not isinstance(__value, ILIdentifier):
+        if not isinstance(__value, MCILIdentifier):
             return False
 
         if self.symbol != __value.symbol or self.indices != __value.indices:
@@ -98,9 +98,9 @@ class ILIdentifier():
         return {"symbol": self.symbol, "indices": self.indices}
 
 
-class ILSort():
+class MCILSort():
 
-    def __init__(self, identifier: ILIdentifier, sorts: list[ILSort]):
+    def __init__(self, identifier: MCILIdentifier, sorts: list[MCILSort]):
         self.identifier = identifier
         self.parameters = sorts
 
@@ -111,7 +111,7 @@ class ILSort():
         return len(self.parameters) > 0 
 
     def __eq__(self, __value: object) -> bool:
-        if not isinstance(__value, ILSort):
+        if not isinstance(__value, MCILSort):
             return False
         
         if is_bool_sort(self) and is_bool_sort(__value):
@@ -131,7 +131,7 @@ class ILSort():
     def __hash__(self) -> int:
         # TODO: not effective for parameterized sorts
         if is_bool_sort(self):
-            return hash(ILIdentifier("BitVec", [1]))
+            return hash(MCILIdentifier("BitVec", [1]))
         elif is_array_sort(self):
             return hash((self.identifier, self.parameters[0], self.parameters[1]))
         return hash(self.identifier)
@@ -150,34 +150,34 @@ class ILSort():
 
 
 # Built-in sorts
-IL_NO_SORT: ILSort = ILSort(ILIdentifier("", []), []) # placeholder sort
-IL_BOOL_SORT: ILSort = ILSort(ILIdentifier("Bool", []), [])
-IL_INT_SORT: ILSort = ILSort(ILIdentifier("Int", []), [])
-IL_BITVEC_SORT: Callable[[int], ILSort] = lambda n: ILSort(ILIdentifier("BitVec", [n]), [])
-IL_ARRAY_SORT: Callable[[ILSort, ILSort], ILSort] = lambda A,B: ILSort(ILIdentifier("Array", []), [A,B])
-IL_ENUM_SORT:  Callable[[str], ILSort] = lambda s: ILSort(ILIdentifier(s, []), [])
+MCIL_NO_SORT: MCILSort = MCILSort(MCILIdentifier("", []), []) # placeholder sort
+MCIL_BOOL_SORT: MCILSort = MCILSort(MCILIdentifier("Bool", []), [])
+MCIL_INT_SORT: MCILSort = MCILSort(MCILIdentifier("Int", []), [])
+MCIL_BITVEC_SORT: Callable[[int], MCILSort] = lambda n: MCILSort(MCILIdentifier("BitVec", [n]), [])
+MCIL_ARRAY_SORT: Callable[[MCILSort, MCILSort], MCILSort] = lambda A,B: MCILSort(MCILIdentifier("Array", []), [A,B])
+MCIL_ENUM_SORT:  Callable[[str], MCILSort] = lambda s: MCILSort(MCILIdentifier(s, []), [])
 
 
-def is_bool_sort(sort: ILSort) -> bool:
+def is_bool_sort(sort: MCILSort) -> bool:
     """A Bool sort has an identifier that is the symbol 'Bool' and is non-parametric"""
     return sort.identifier.is_symbol("Bool") and not sort.is_parametric()
 
-def is_bitvec_sort(sort: ILSort) -> bool:
+def is_bitvec_sort(sort: MCILSort) -> bool:
     """A bit vector sort has an identifier with the symbol 'BitVec' and is indexed with a single numeral"""
     return (sort.identifier.symbol == "BitVec" and len(sort.identifier.indices) == 1)
 
-def is_int_sort(sort: ILSort) -> bool:
+def is_int_sort(sort: MCILSort) -> bool:
     """An Int sort has an identifier that is the symbol 'Int' and is non-parametric"""
     return sort.identifier.is_symbol("Int") and not sort.is_parametric()
 
-def is_array_sort(sort: ILSort) -> bool:
+def is_array_sort(sort: MCILSort) -> bool:
     """An Array sort has an identifier that is the symbol 'Array' and has two parameters"""
     return sort.identifier.is_symbol("Array") and sort.arity() == 2
     
 
-class ILExpr():
+class MCILExpr():
 
-    def __init__(self, sort: ILSort, children: list[ILExpr]):
+    def __init__(self, sort: MCILSort, children: list[MCILExpr]):
         self.sort = sort
         self.children = children
 
@@ -188,9 +188,9 @@ class ILExpr():
         return {}
 
 
-class ILConstant(ILExpr):
+class MCILConstant(MCILExpr):
 
-    def __init__(self, sort: ILSort, value: Any):
+    def __init__(self, sort: MCILSort, value: Any):
         super().__init__(sort, [])
         self.value = value
 
@@ -205,7 +205,7 @@ class ILConstant(ILExpr):
         return {"identifier": str(self)}
 
 
-class ILVarType(Enum):
+class MCILVarType(Enum):
     NONE   = 0
     INPUT  = 1,
     OUTPUT = 2,
@@ -213,10 +213,10 @@ class ILVarType(Enum):
     LOGIC  = 4
 
 
-class ILVar(ILExpr):
+class MCILVar(MCILExpr):
     """An ILVar requires a sort and symbol."""
 
-    def __init__(self, var_type: ILVarType, sort: ILSort, symbol: str, prime: bool):
+    def __init__(self, var_type: MCILVarType, sort: MCILSort, symbol: str, prime: bool):
         super().__init__(sort, [])
         self.var_type = var_type
         self.symbol = symbol
@@ -224,7 +224,7 @@ class ILVar(ILExpr):
 
     def __eq__(self, __value: object) -> bool:
         """Two ILVars are equal if they have the same symbol."""
-        if isinstance(__value, ILVar):
+        if isinstance(__value, MCILVar):
             return self.symbol == __value.symbol
         return False
 
@@ -241,12 +241,12 @@ class ILVar(ILExpr):
         return {"symbol": self.symbol, "sort": self.sort.to_json()}
 
 
-IL_EMPTY_VAR = ILVar(ILVarType.NONE, IL_NO_SORT, "", False)
+MCIL_EMPTY_VAR = MCILVar(MCILVarType.NONE, MCIL_NO_SORT, "", False)
 
 
-class ILApply(ILExpr):
+class MCILApply(MCILExpr):
 
-    def __init__(self, sort: ILSort, identifier: ILIdentifier, children: list[ILExpr]):
+    def __init__(self, sort: MCILSort, identifier: MCILIdentifier, children: list[MCILExpr]):
         super().__init__(sort, children)
         self.identifier = identifier
 
@@ -260,13 +260,13 @@ class ILApply(ILExpr):
         return {"identifier": identifier, "args": args}
 
 
-class ILCommand():
+class MCILCommand():
 
     def to_json(self) -> dict:
         return {}
 
 
-class ILDeclareSort(ILCommand):
+class MCILDeclareSort(MCILCommand):
 
     def __init__(self, symbol: str, arity: int):
         super().__init__()
@@ -280,9 +280,9 @@ class ILDeclareSort(ILCommand):
         return {"command": "declare-sort", "symbol": self.symbol, "arity": self.arity}
 
 
-class ILDefineSort(ILCommand):
+class MCILDefineSort(MCILCommand):
 
-    def __init__(self, symbol: str, parameters: list[str], definition: ILSort):
+    def __init__(self, symbol: str, parameters: list[str], definition: MCILSort):
         super().__init__()
         self.symbol = symbol
         self.parameters = parameters
@@ -301,7 +301,7 @@ class ILDefineSort(ILCommand):
         }
 
 
-class ILDeclareEnumSort(ILCommand):
+class MCILDeclareEnumSort(MCILCommand):
 
     def __init__(self, symbol: str, values: list[str]):
         super().__init__()
@@ -320,9 +320,9 @@ class ILDeclareEnumSort(ILCommand):
         }
 
 
-class ILDeclareConst(ILCommand):
+class MCILDeclareConst(MCILCommand):
 
-    def __init__(self, symbol: str, sort: ILSort):
+    def __init__(self, symbol: str, sort: MCILSort):
         super().__init__()
         self.symbol = symbol
         self.sort = sort
@@ -338,13 +338,13 @@ class ILDeclareConst(ILCommand):
         }
 
 
-class ILDeclareFun(ILCommand):
+class MCILDeclareFun(MCILCommand):
 
     def __init__(
             self, 
             symbol: str, 
-            inputs: list[ILSort], 
-            output: ILSort):
+            inputs: list[MCILSort], 
+            output: MCILSort):
         super().__init__()
         self.symbol = symbol
         self.inputs = inputs
@@ -363,14 +363,14 @@ class ILDeclareFun(ILCommand):
         }
 
 
-class ILDefineFun(ILCommand):
+class MCILDefineFun(MCILCommand):
 
     def __init__(
             self, 
             symbol: str, 
-            input: list[ILVar], 
-            output: ILSort,  
-            body: ILExpr):
+            input: list[MCILVar], 
+            output: MCILSort,  
+            body: MCILExpr):
         super().__init__()
         self.symbol = symbol
         self.input = input
@@ -391,7 +391,7 @@ class ILDefineFun(ILCommand):
         }
 
 
-class ILSetLogic(ILCommand):
+class MCILSetLogic(MCILCommand):
     
     def __init__(self, logic: str):
         super().__init__()
@@ -404,17 +404,17 @@ class ILSetLogic(ILCommand):
         }
 
 
-class ILDefineSystem(ILCommand):
+class MCILDefineSystem(MCILCommand):
     
     def __init__(
         self, 
         symbol: str,
-        input: list[ILVar], 
-        output: list[ILVar], 
-        local: list[ILVar], 
-        init: ILExpr,
-        trans: ILExpr, 
-        inv: ILExpr,
+        input: list[MCILVar], 
+        output: list[MCILVar], 
+        local: list[MCILVar], 
+        init: MCILExpr,
+        trans: MCILExpr, 
+        inv: MCILExpr,
         subsystems: dict[str, tuple[str, list[str]]]
     ):
         self.symbol = symbol
@@ -430,7 +430,18 @@ class ILDefineSystem(ILCommand):
         self.symbol_map = { var.symbol : var for var in input + output + local }
 
         # this gets populated by sort checker
-        self.subsystems: dict[str, ILDefineSystem] = {}
+        self.subsystems: dict[str, MCILDefineSystem] = {}
+
+    def is_equational(self) -> bool:
+        # TODO
+        is_eq = True
+
+        def expr_is_equational(expr: MCILExpr):
+            pass
+
+        postorder_iterative(self.trans, expr_is_equational)
+
+        return is_eq
 
     def __str__(self) -> str:
         input_str = " ".join([f"({i.symbol} {i.sort})" for i in self.input])
@@ -472,18 +483,18 @@ class ILDefineSystem(ILCommand):
         }
 
 
-class ILCheckSystem(ILCommand):
+class MCILCheckSystem(MCILCommand):
     
     def __init__(
         self, 
         sys_symbol: str,
-        input: list[ILVar], 
-        output: list[ILVar], 
-        local: list[ILVar], 
-        assumption: dict[str, ILExpr],
-        fairness: dict[str, ILExpr], 
-        reachable: dict[str, ILExpr], 
-        current: dict[str, ILExpr], 
+        input: list[MCILVar], 
+        output: list[MCILVar], 
+        local: list[MCILVar], 
+        assumption: dict[str, MCILExpr],
+        fairness: dict[str, MCILExpr], 
+        reachable: dict[str, MCILExpr], 
+        current: dict[str, MCILExpr], 
         query: dict[str, list[str]], 
     ):
         self.sys_symbol = sys_symbol
@@ -536,13 +547,13 @@ class ILCheckSystem(ILCommand):
         }
 
 
-class ILProgram():
+class MCILProgram():
 
-    def __init__(self, commands: list[ILCommand]):
-        self.commands: list[ILCommand] = commands
+    def __init__(self, commands: list[MCILCommand]):
+        self.commands: list[MCILCommand] = commands
 
-    def get_check_system_cmds(self) -> list[ILCheckSystem]:
-        return [cmd for cmd in self.commands if isinstance(cmd, ILCheckSystem)]
+    def get_check_system_cmds(self) -> list[MCILCheckSystem]:
+        return [cmd for cmd in self.commands if isinstance(cmd, MCILCheckSystem)]
 
     def __str__(self) -> str:
         return "\n".join(str(cmd) for cmd in self.commands)
@@ -551,12 +562,12 @@ class ILProgram():
         return [cmd.to_json() for cmd in self.commands]
 
 
-class ILExit(ILCommand):
+class MCILExit(MCILCommand):
     pass
 
 # A rank is a function signature. For example:
 #   rank(and) = ([Bool, Bool], Bool)
-Rank = tuple[list[ILSort], ILSort]
+Rank = tuple[list[MCILSort], MCILSort]
 
 # An identifier class describes a class of identifiers that have the same symbol and number of indices.
 # For instance, ("BitVec", 1) describes the class of bit vector sorts and ("extract", 2) describes the 
@@ -568,64 +579,64 @@ IdentifierClass = tuple[str, int]
 RankTable = dict[IdentifierClass, Callable[[Any], Rank]]
 
 CORE_RANK_TABLE: RankTable = {
-    ("True", 0):     lambda _: ([], IL_BOOL_SORT),
-    ("False", 0):    lambda _: ([], IL_BOOL_SORT),
-    ("not", 0):      lambda _: ([IL_BOOL_SORT], IL_BOOL_SORT),
-    ("=>", 0):       lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),
-    ("and", 0):      lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),
-    ("or", 0):       lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),
-    ("xor", 0):      lambda _: ([IL_BOOL_SORT, IL_BOOL_SORT], IL_BOOL_SORT),
-    ("=", 0):        lambda A: ([A,A], IL_BOOL_SORT),
-    ("distinct", 0): lambda A: ([A,A], IL_BOOL_SORT),
-    ("ite", 0):      lambda A: ([IL_BOOL_SORT, A, A], A),
+    ("True", 0):     lambda _: ([], MCIL_BOOL_SORT),
+    ("False", 0):    lambda _: ([], MCIL_BOOL_SORT),
+    ("not", 0):      lambda _: ([MCIL_BOOL_SORT], MCIL_BOOL_SORT),
+    ("=>", 0):       lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
+    ("and", 0):      lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
+    ("or", 0):       lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
+    ("xor", 0):      lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
+    ("=", 0):        lambda A: ([A,A], MCIL_BOOL_SORT),
+    ("distinct", 0): lambda A: ([A,A], MCIL_BOOL_SORT),
+    ("ite", 0):      lambda A: ([MCIL_BOOL_SORT, A, A], A),
 }
 
 BITVEC_RANK_TABLE: RankTable = {
-    ("concat", 0):       lambda A: ([IL_BITVEC_SORT(A[0]), IL_BITVEC_SORT(A[1])], IL_BITVEC_SORT(A[0]+A[1])),
-    ("extract", 2):      lambda A: ([IL_BITVEC_SORT(A[0])], IL_BITVEC_SORT(A[1])),
-    ("zero_extend", 1):  lambda A: ([IL_BITVEC_SORT(A[0])], IL_BITVEC_SORT(A[0] + A[1])),
-    ("sign_extend", 1):  lambda A: ([IL_BITVEC_SORT(A[0])], IL_BITVEC_SORT(A[0] + A[1])),
-    ("rotate_left", 1):  lambda A: ([IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("rotate_right", 1): lambda A: ([IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvshl", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvlshr", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvashr", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvnot", 0):  lambda A: ([IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvneg", 0):  lambda A: ([IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvand", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvnand", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvor", 0):   lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvnor", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvxor", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvxnor", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvadd", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)), 
-    ("bvsub", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvmul", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvudiv", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvsdiv", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvurem", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvsrem", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvsmod", 0): lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BITVEC_SORT(A)),
-    ("bvult", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("bvule", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("bvugt", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("bvuge", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("bvslt", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("bvsle", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("bvsgt", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("bvsge", 0):  lambda A: ([IL_BITVEC_SORT(A), IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("reduce_and", 0): lambda A: ([IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("reduce_or", 0):  lambda A: ([IL_BITVEC_SORT(A)], IL_BOOL_SORT),
-    ("reduce_xor", 0): lambda A: ([IL_BITVEC_SORT(A)], IL_BOOL_SORT)
+    ("concat", 0):       lambda A: ([MCIL_BITVEC_SORT(A[0]), MCIL_BITVEC_SORT(A[1])], MCIL_BITVEC_SORT(A[0]+A[1])),
+    ("extract", 2):      lambda A: ([MCIL_BITVEC_SORT(A[0])], MCIL_BITVEC_SORT(A[1])),
+    ("zero_extend", 1):  lambda A: ([MCIL_BITVEC_SORT(A[0])], MCIL_BITVEC_SORT(A[0] + A[1])),
+    ("sign_extend", 1):  lambda A: ([MCIL_BITVEC_SORT(A[0])], MCIL_BITVEC_SORT(A[0] + A[1])),
+    ("rotate_left", 1):  lambda A: ([MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("rotate_right", 1): lambda A: ([MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvshl", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvlshr", 0): lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvashr", 0): lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvnot", 0):  lambda A: ([MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvneg", 0):  lambda A: ([MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvand", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvnand", 0): lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvor", 0):   lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvnor", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvxor", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvxnor", 0): lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvadd", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)), 
+    ("bvsub", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvmul", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvudiv", 0): lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvsdiv", 0): lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvurem", 0): lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvsrem", 0): lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvsmod", 0): lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BITVEC_SORT(A)),
+    ("bvult", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("bvule", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("bvugt", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("bvuge", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("bvslt", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("bvsle", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("bvsgt", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("bvsge", 0):  lambda A: ([MCIL_BITVEC_SORT(A), MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("reduce_and", 0): lambda A: ([MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("reduce_or", 0):  lambda A: ([MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT),
+    ("reduce_xor", 0): lambda A: ([MCIL_BITVEC_SORT(A)], MCIL_BOOL_SORT)
 }
 
 ARRAY_RANK_TABLE: RankTable = {
-    ("select", 0): lambda A: ([IL_ARRAY_SORT(A[0], A[1]), A[0]], A[1]),
-    ("store", 0):  lambda A: ([IL_ARRAY_SORT(A[0], A[1]), A[0], A[1]], IL_ARRAY_SORT(A[0], A[1]))
+    ("select", 0): lambda A: ([MCIL_ARRAY_SORT(A[0], A[1]), A[0]], A[1]),
+    ("store", 0):  lambda A: ([MCIL_ARRAY_SORT(A[0], A[1]), A[0], A[1]], MCIL_ARRAY_SORT(A[0], A[1]))
 }
 
 
-def sort_check_apply_rank(node: ILApply, rank: Rank) -> bool:
+def sort_check_apply_rank(node: MCILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
 
     if rank_args != [c.sort for c in node.children]:
@@ -635,7 +646,7 @@ def sort_check_apply_rank(node: ILApply, rank: Rank) -> bool:
     return True
 
 
-def sort_check_apply_core(node: ILApply) -> bool:
+def sort_check_apply_core(node: MCILApply) -> bool:
     # "true", "false", "not", "=>", "and", "or", "xor", "=", "distinct", "ite"
     identifier = node.identifier
     identifier_class = identifier.get_class()
@@ -667,7 +678,7 @@ def sort_check_apply_core(node: ILApply) -> bool:
     return sort_check_apply_rank(node, rank)
 
 
-def sort_check_apply_bitvec(node: ILApply) -> bool:
+def sort_check_apply_bitvec(node: MCILApply) -> bool:
     """Returns true if 'node' corresponds to a valid rank in SMT-LIB2 FixedSizeBitVectors Theory. Assumes that node's identifier is in BITVEC_RANK_TABLE."""
     identifier = node.identifier
     identifier_class = identifier.get_class()
@@ -757,7 +768,7 @@ def sort_check_apply_bitvec(node: ILApply) -> bool:
     return sort_check_apply_rank(node, rank)
 
 
-def sort_check_apply_arrays(node: ILApply) -> bool:
+def sort_check_apply_arrays(node: MCILApply) -> bool:
     """Returns true if 'node' corresponds to a valid function signature in SMT-LIB2 ArraysEx Theory. Assume that node's identifier is in ARRAY_RANK_TABLE."""
     identifier = node.identifier
     identifier_class = identifier.get_class()
@@ -782,7 +793,7 @@ def sort_check_apply_arrays(node: ILApply) -> bool:
     return sort_check_apply_rank(node, rank)
 
 
-def sort_check_apply_qf_bv(node: ILApply) -> bool:
+def sort_check_apply_qf_bv(node: MCILApply) -> bool:
     identifier_class = (node.identifier.symbol, node.identifier.num_indices())
 
     if identifier_class in CORE_RANK_TABLE:
@@ -793,7 +804,7 @@ def sort_check_apply_qf_bv(node: ILApply) -> bool:
     return False
 
 
-def sort_check_apply_qf_abv(node: ILApply) -> bool:
+def sort_check_apply_qf_abv(node: MCILApply) -> bool:
     identifier_class = (node.identifier.symbol, node.identifier.num_indices())
 
     if identifier_class in CORE_RANK_TABLE:
@@ -806,7 +817,7 @@ def sort_check_apply_qf_abv(node: ILApply) -> bool:
     return False
 
 
-class ILLogic():
+class MCILLogic():
     """An ILLogic has a name, a set of sort symbols, a set of function symbols, and a sort_check function"""
 
     def __init__(
@@ -814,7 +825,7 @@ class ILLogic():
         symbol: str, 
         sort_symbols: set[IdentifierClass],
         function_symbols: set[IdentifierClass],
-        sort_check: Callable[[ILApply], bool]
+        sort_check: Callable[[MCILApply], bool]
     ):
         self.symbol = symbol
         self.sort_symbols = sort_symbols
@@ -824,41 +835,41 @@ class ILLogic():
         self.symbols = sort_symbols | function_symbols
 
 
-QF_BV = ILLogic("QF_BV", 
+QF_BV = MCILLogic("QF_BV", 
                 {("BitVec", 1)}, 
                 CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys(), 
                 sort_check_apply_qf_bv)
 
-QF_ABV = ILLogic("QF_ABV", 
+QF_ABV = MCILLogic("QF_ABV", 
                 {("BitVec", 1), ("Array", 0)}, 
                 CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys() | ARRAY_RANK_TABLE.keys(), 
                 sort_check_apply_qf_abv)
 
 
-class ILSystemContext():
+class MCILSystemContext():
 
     def __init__(self):
-        self._system_stack: list[tuple[str, ILDefineSystem]] = []
+        self._system_stack: list[tuple[str, MCILDefineSystem]] = []
 
-    def push(self, sys: tuple[str, ILDefineSystem]):
+    def push(self, sys: tuple[str, MCILDefineSystem]):
         self._system_stack.append(sys)
 
-    def pop(self) -> tuple[str, ILDefineSystem]:
+    def pop(self) -> tuple[str, MCILDefineSystem]:
         return self._system_stack.pop()
 
-    def copy(self) -> ILSystemContext:
+    def copy(self) -> MCILSystemContext:
         new_system_stack = self._system_stack.copy()
-        new = ILSystemContext()
+        new = MCILSystemContext()
         for s in new_system_stack:
             new.push(s)
         return new
 
-    def get_top_level(self) -> Optional[tuple[str, ILDefineSystem]]:
+    def get_top_level(self) -> Optional[tuple[str, MCILDefineSystem]]:
         if len(self._system_stack) == 0:
             return None
         return self._system_stack[0]
 
-    def get_subsystems(self) -> list[tuple[str, ILDefineSystem]]:
+    def get_subsystems(self) -> list[tuple[str, MCILDefineSystem]]:
         if len(self._system_stack) < 2:
             return []
         return self._system_stack[1:]
@@ -871,7 +882,7 @@ class ILSystemContext():
         return [top_level_symbol] + [name for name,sys in self.get_subsystems()]
 
     def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, ILSystemContext):
+        if not isinstance(__o, MCILSystemContext):
             return False
         
         if len(__o._system_stack) != len(self._system_stack):
@@ -889,21 +900,21 @@ class ILSystemContext():
         return sum([hash(name)+hash(sys.symbol) for name,sys in self._system_stack])
 
 
-class ILContext():
+class MCILContext():
 
     def __init__(self):
-        self.declared_sorts: dict[ILIdentifier, int] = {}
+        self.declared_sorts: dict[MCILIdentifier, int] = {}
         self.declared_enum_sorts: dict[str, list[str]] = {}
-        self.defined_sorts: set[ILSort] = set()
+        self.defined_sorts: set[MCILSort] = set()
         self.declared_functions: dict[str, Rank] = {}
-        self.defined_functions: dict[str, tuple[Rank, ILExpr]] = {}
-        self.defined_systems: dict[str, ILDefineSystem] = {}
+        self.defined_functions: dict[str, tuple[Rank, MCILExpr]] = {}
+        self.defined_systems: dict[str, MCILDefineSystem] = {}
         self.logic = QF_ABV # for now, assume QF_BV logic
-        self.input_var_sorts: dict[ILVar, ILSort] = {}
-        self.output_var_sorts: dict[ILVar, ILSort] = {}
-        self.local_var_sorts: dict[ILVar, ILSort] = {}
-        self.system_context = ILSystemContext() # used during system flattening
-        self.cur_command: Optional[ILCommand] = None
+        self.input_var_sorts: dict[MCILVar, MCILSort] = {}
+        self.output_var_sorts: dict[MCILVar, MCILSort] = {}
+        self.local_var_sorts: dict[MCILVar, MCILSort] = {}
+        self.system_context = MCILSystemContext() # used during system flattening
+        self.cur_command: Optional[MCILCommand] = None
 
     def get_symbols(self) -> set[str]:
         # TODO: this is computed EVERY time, optimize this
@@ -928,9 +939,9 @@ class ILContext():
         return symbols
 
 
-def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]):
+def postorder_iterative(expr: MCILExpr, func: Callable[[MCILExpr], Any]):
     """Perform an iterative postorder traversal of 'expr', calling 'func' on each node."""
-    stack: list[tuple[bool, ILExpr]] = []
+    stack: list[tuple[bool, MCILExpr]] = []
     visited: set[int] = set()
 
     stack.append((False, expr))
@@ -950,18 +961,18 @@ def postorder_iterative(expr: ILExpr, func: Callable[[ILExpr], Any]):
             stack.append((False, child))
 
 
-def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
-    context: ILContext = ILContext()
+def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
+    context: MCILContext = MCILContext()
     status: bool = True
 
-    def sort_check_expr(node: ILExpr, no_prime: bool) -> bool:
+    def sort_check_expr(node: MCILExpr, no_prime: bool) -> bool:
         """Return true if node is well-sorted where 'no_prime' is true if primed variables are disabled and 'prime_input' is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions). """
         nonlocal context
 
-        if isinstance(node, ILConstant):
+        if isinstance(node, MCILConstant):
             return True
-        elif isinstance(node, ILVar) and node in context.input_var_sorts:
-            node.var_type = ILVarType.INPUT
+        elif isinstance(node, MCILVar) and node in context.input_var_sorts:
+            node.var_type = MCILVarType.INPUT
             node.sort = context.input_var_sorts[node]
 
             if node.prime and no_prime:
@@ -969,8 +980,8 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 return False
 
             return True
-        elif isinstance(node, ILVar) and node in context.output_var_sorts:
-            node.var_type = ILVarType.OUTPUT
+        elif isinstance(node, MCILVar) and node in context.output_var_sorts:
+            node.var_type = MCILVarType.OUTPUT
             node.sort = context.output_var_sorts[node]
 
             if node.prime and no_prime:
@@ -978,8 +989,8 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 return False
 
             return True
-        elif isinstance(node, ILVar) and node in context.local_var_sorts:
-            node.var_type = ILVarType.LOCAL
+        elif isinstance(node, MCILVar) and node in context.local_var_sorts:
+            node.var_type = MCILVarType.LOCAL
             node.sort = context.local_var_sorts[node]
 
             if node.prime and no_prime:
@@ -987,10 +998,10 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                 return False
 
             return True
-        elif isinstance(node, ILVar):
+        elif isinstance(node, MCILVar):
             sys.stderr.write(f"Error: symbol `{node.symbol}` not declared.\n\t{context.cur_command}\n")
             return False
-        elif isinstance(node, ILApply):
+        elif isinstance(node, MCILApply):
             if node.identifier.get_class() in context.logic.function_symbols:
                 for arg in node.children:
                     sort_check_expr(arg, no_prime)
@@ -1017,41 +1028,41 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
     for cmd in program.commands:
         context.cur_command = cmd
 
-        if isinstance(cmd, ILDeclareSort):
+        if isinstance(cmd, MCILDeclareSort):
             # TODO: move this warning to il2btor.py
             sys.stderr.write(f"Warning: declare-sort command unsupported, ignoring.\n")
-        elif isinstance(cmd, ILDefineSort):
+        elif isinstance(cmd, MCILDefineSort):
             if cmd.symbol in context.get_symbols():
                 sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             # TODO
-        elif isinstance(cmd, ILDeclareEnumSort):
+        elif isinstance(cmd, MCILDeclareEnumSort):
             if cmd.symbol in context.get_symbols():
                 sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             context.declared_enum_sorts[cmd.symbol] = cmd.values
-        elif isinstance(cmd, ILDeclareConst):
+        elif isinstance(cmd, MCILDeclareConst):
             if cmd.symbol in context.get_symbols():
                 sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             context.declared_functions[cmd.symbol] = Rank(([], cmd.sort))
-        elif isinstance(cmd, ILDeclareFun):
+        elif isinstance(cmd, MCILDeclareFun):
             if cmd.symbol in context.get_symbols():
                 sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             context.declared_functions[cmd.symbol] = Rank((cmd.inputs, cmd.output))
-        elif isinstance(cmd, ILDefineFun):
+        elif isinstance(cmd, MCILDefineFun):
             if cmd.symbol in context.get_symbols():
                 sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             input_sorts = [s.sort for s in cmd.input]
             context.defined_functions[cmd.symbol] = (Rank((input_sorts, cmd.output)), cmd.body)
-        elif isinstance(cmd, ILDefineSystem):
+        elif isinstance(cmd, MCILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
             # TODO: check for valid sort symbols
             context.input_var_sorts = {var:var.sort for var in cmd.input}
@@ -1072,22 +1083,22 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                     return (False, context)
 
                 # check that each symbol in signature is in the context
-                signature: list[ILVar] = []
-                variables: dict[str, ILVar] = {var.symbol:var for var in cmd.input + cmd.output + cmd.local}
+                signature: list[MCILVar] = []
+                variables: dict[str, MCILVar] = {var.symbol:var for var in cmd.input + cmd.output + cmd.local}
                 for symbol in signature_symbols:
                     if symbol not in variables:
                         sys.stderr.write(f"Error: variable '{symbol}' not declared.\n\t{cmd}\n")
                         status = False
-                        signature.append(IL_EMPTY_VAR)
+                        signature.append(MCIL_EMPTY_VAR)
                         continue
 
                     signature.append(variables[symbol])
                     if variables[symbol] in cmd.input:
-                        variables[symbol].var_type = ILVarType.INPUT
+                        variables[symbol].var_type = MCILVarType.INPUT
                     elif variables[symbol] in cmd.output:
-                        variables[symbol].var_type = ILVarType.OUTPUT
+                        variables[symbol].var_type = MCILVarType.OUTPUT
                     elif variables[symbol] in cmd.local:
-                        variables[symbol].var_type = ILVarType.LOCAL
+                        variables[symbol].var_type = MCILVarType.LOCAL
 
                 target_system = context.defined_systems[sys_symbol]
                 target_signature = target_system.input + target_system.output
@@ -1110,7 +1121,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             context.input_var_sorts = {}
             context.output_var_sorts = {}
             context.local_var_sorts = {}
-        elif isinstance(cmd, ILCheckSystem):
+        elif isinstance(cmd, MCILCheckSystem):
             if not cmd.sys_symbol in context.defined_systems:
                 sys.stderr.write(f"Error: system '{cmd.sys_symbol}' undefined.\n\t{cmd}\n")
                 status = False
@@ -1132,7 +1143,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                     sys.stderr.write(f"Error: sorts do not match in check-system (expected {i1.sort}, got {i2.sort})\n")
                     status = False
                 else:
-                    i2.var_type = ILVarType.INPUT
+                    i2.var_type = MCILVarType.INPUT
                 # cmd.rename_map[v1] = v2
 
             if len(system.output) != len(cmd.output):
@@ -1145,7 +1156,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                     sys.stderr.write(f"Error: sorts do not match in check-system (expected {o1.sort}, got {o2.sort})\n")
                     status = False
                 else:
-                    o2.var_type = ILVarType.OUTPUT
+                    o2.var_type = MCILVarType.OUTPUT
                 # cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
@@ -1158,7 +1169,7 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
                     sys.stderr.write(f"Error: sorts do not match in check-system (expected {l1.sort}, got {l2.sort})\n")
                     status = False
                 else:
-                    l2.var_type = ILVarType.LOCAL
+                    l2.var_type = MCILVarType.LOCAL
                 # cmd.rename_map[v1] = v2
 
             for expr in cmd.assumption.values():
@@ -1180,4 +1191,3 @@ def sort_check(program: ILProgram) -> tuple[bool, ILContext]:
             raise NotImplementedError
 
     return (status, context)
-

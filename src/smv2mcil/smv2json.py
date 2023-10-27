@@ -3,14 +3,9 @@ import argparse
 
 from pathlib import Path
 
-if __name__ == "__main__" and __package__ is None:
-    from nuxmv_pyparser import parse
-    from translate import translate_parse_tree  # type: ignore
-    from to_json import ast_to_json_to_file
-else:
-    from .nuxmv_pyparser import parse
-    from .translate import translate_parse_tree  # type: ignore
-    from .to_json import ast_to_json_to_file
+from nuxmv_pyparser import parse
+from translate import translate_parse_tree  # type: ignore
+from to_json import ast_to_json_to_file
 
 
 def main(input_path: Path, output_path: Path) -> int:

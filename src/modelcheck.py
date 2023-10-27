@@ -6,16 +6,14 @@ import shutil
 
 from pathlib import Path
 
-from sympy import capture
-
 FILE_DIR = Path(__file__).parent
 WORK_DIR = FILE_DIR / "__workdir__"
 
-DEFAULT_MC = FILE_DIR / ".." / "boolector" / "build" / "bin" / "btormc" 
-DEFAULT_SIM = FILE_DIR / ".." / "btor2tools" / "build" / "bin" / "btorsim"
+BTORMC_PATH = FILE_DIR / ".." / "boolector" / "build" / "bin" / "btormc" 
+BTORSIM_PATH = FILE_DIR / ".." / "btor2tools" / "build" / "bin" / "btorsim"
 
-IL2BTOR = FILE_DIR / "il2btor" / "il2btor.py"
-BTORWIT2ILWIT = FILE_DIR / "il2btor" / "btorwit2ilwit.py"
+IL2BTOR_PATH = FILE_DIR / "mcil2btor" / "mcil2btor.py"
+BTORWIT2ILWIT_PATH = FILE_DIR / "mcil2btor" / "btorwit2mcilwit.py"
 
 
 def cleandir(dir: Path, quiet: bool):
@@ -50,7 +48,11 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
 
     pickled_btor_path = WORK_DIR / src_path.with_suffix(".pickle").name
 
-    proc = subprocess.run(["python3", IL2BTOR, src_path, "--output", WORK_DIR, "--pickled-btor", pickled_btor_path])
+    proc = subprocess.run([
+        "python3", IL2BTOR_PATH, src_path, 
+        "--output", WORK_DIR, 
+        "--pickled-btor", pickled_btor_path
+    ])
 
     if proc.returncode:
         sys.stderr.write(f"Error: il2btor failure\n")
@@ -59,7 +61,9 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
     for btor_path in [l for l in WORK_DIR.iterdir() if l.suffix == ".btor"]:
         label = btor_path.suffixes[-2][1:]
 
-        proc = subprocess.run([mc_path, btor_path, "--trace-gen-full"], capture_output=True)
+        proc = subprocess.run([
+            mc_path, btor_path, "--trace-gen-full"
+        ], capture_output=True)
 
         if proc.returncode:
             sys.stderr.write(proc.stderr.decode("utf-8"))
@@ -73,23 +77,9 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
         with open(btor_witness_path, "wb") as f:
             f.write(btor_witness_bytes)
 
-        # obtain full trace
-        # proc = subprocess.run([
-        #     btorsim_path, btor_path, btor_witness_path, "--states"
-        # ], capture_output=True)
-
-        # if proc.returncode:
-        #     sys.stderr.write(proc.stderr.decode("utf-8"))
-        #     sys.stderr.write(f"Error: btorsim failure for query '{label}'\n")
-        #     return proc.returncode
-
-        # btor_witness_bytes = proc.stdout
-
-        # btor_witness_path = btor_path.with_suffix(f".cex") 
-        # with open(btor_witness_path, "wb") as f:
-        #     f.write(btor_witness_bytes)
-
-        proc = subprocess.run(["python3", BTORWIT2ILWIT, btor_witness_path, pickled_btor_path], capture_output=True)
+        proc = subprocess.run([
+            "python3", BTORWIT2ILWIT_PATH, btor_witness_path, pickled_btor_path
+        ], capture_output=True)
 
         if proc.returncode:
             sys.stderr.write(proc.stderr.decode("utf-8"))
@@ -104,9 +94,9 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("source", help="IL program to model check")
-    parser.add_argument("--modelchecker", default=str(DEFAULT_MC),
+    parser.add_argument("--modelchecker", default=str(BTORMC_PATH),
                             help="path to model checker executable (e.g., btormc)")
-    parser.add_argument("--btorsim", default=str(DEFAULT_SIM),
+    parser.add_argument("--btorsim", default=str(BTORSIM_PATH),
                             help="path to btorsim executable")
     args = parser.parse_args()
 

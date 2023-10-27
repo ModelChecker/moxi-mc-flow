@@ -25,7 +25,7 @@
 )
 
 (define-system Before :input ((b Bool)) :output ((bb Bool)) 
- :init (= bb False) 
+ :init (= bb false) 
  :trans (= bb' b)
 )
 
