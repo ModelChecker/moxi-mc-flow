@@ -485,7 +485,7 @@ class BtorWitnessParser(Parser):
 
     def error(self, token):
         self.status = False
-        sys.stderr.write(f"Error:{p.lineno}: Unexpected token ({token})")
+        sys.stderr.write(f"Error: Unexpected token ({token})\n")
 
     @_("header frame frame_list RW_DOT NEWLINE")
     def witness(self, p):

@@ -77,6 +77,18 @@ def main(
     for witness in witness_paths:
         with open(witness, "r") as f:
             witness_content = f.read()
+
+        # check for empty witness
+        # this means the query was unsat
+        if witness_content == "":
+            query_responses.append(MCILQueryResponse(
+                witness.suffixes[-2][1:],
+                    MCILQueryResult.UNSAT,
+                    None,
+                    None,
+                    None
+            ))
+            continue
         
         btor_witness = parse_witness(witness_content)
         if not btor_witness:

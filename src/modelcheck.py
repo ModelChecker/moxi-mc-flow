@@ -72,7 +72,6 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
                 sys.stderr.write(f"Error: model checker failure for query '{label}'\n")
                 return proc.returncode
 
-            # TODO: what if unsat?
             btor_witness_bytes = proc.stdout
 
             btor_witness_path = btor_witness_dir_path / btor_path.with_suffix(f".cex").name
