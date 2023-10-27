@@ -58,8 +58,6 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
         sys.stderr.write(f"Error: il2btor failure\n")
         return proc.returncode
 
-    print([d for d in WORK_DIR.iterdir() if d.is_dir()])
-
     for check_system_path in [d for d in WORK_DIR.iterdir() if d.is_dir()]:
         btor_witness_dir_path = check_system_path / "wit"
         btor_witness_dir_path.mkdir()
@@ -69,7 +67,6 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
 
             proc = subprocess.run([mc_path, btor_path, "--trace-gen-full"], capture_output=True)
 
-            print("here")
             if proc.returncode:
                 sys.stderr.write(proc.stderr.decode("utf-8"))
                 sys.stderr.write(f"Error: model checker failure for query '{label}'\n")
