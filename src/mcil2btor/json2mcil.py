@@ -44,9 +44,9 @@ def from_json_expr(contents: dict, enums: dict[str, str]) ->  MCILExpr:
     if len(args) != 0:
         return MCILApply(MCIL_NO_SORT, identifier, args)
     
-    if identifier.symbol == "True":
+    if identifier.symbol == "true":
         return MCILConstant(MCIL_BOOL_SORT, True)
-    elif identifier.symbol == "False":
+    elif identifier.symbol == "false":
         return MCILConstant(MCIL_BOOL_SORT, False)
     elif re.match(r"0|[1-9]\d*", identifier.symbol):
         return MCILConstant(MCIL_INT_SORT, int(identifier.symbol))

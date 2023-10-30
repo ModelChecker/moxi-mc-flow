@@ -195,6 +195,9 @@ class MCILConstant(MCILExpr):
         self.value = value
 
     def __str__(self) -> str:
+        if is_bool_sort(self.sort):
+            return str(self.value).lower()
+            
         if is_bitvec_sort(self.sort):
             format_str = f"#b{'{'}0:0{self.sort.identifier.indices[0]}b{'}'}"
             return format_str.format(self.value)
@@ -591,8 +594,8 @@ IdentifierClass = tuple[str, int]
 RankTable = dict[IdentifierClass, Callable[[Any], Rank]]
 
 CORE_RANK_TABLE: RankTable = {
-    ("True", 0):     lambda _: ([], MCIL_BOOL_SORT),
-    ("False", 0):    lambda _: ([], MCIL_BOOL_SORT),
+    ("true", 0):     lambda _: ([], MCIL_BOOL_SORT),
+    ("false", 0):    lambda _: ([], MCIL_BOOL_SORT),
     ("not", 0):      lambda _: ([MCIL_BOOL_SORT], MCIL_BOOL_SORT),
     ("=>", 0):       lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
     ("and", 0):      lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
@@ -650,7 +653,8 @@ ARRAY_RANK_TABLE: RankTable = {
 
 def sort_check_apply_rank(node: MCILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
-
+    # print([str(a) for a in rank_args])
+    # print([str(c) for c in node.children])
     if rank_args != [c.sort for c in node.children]:
         return False
 

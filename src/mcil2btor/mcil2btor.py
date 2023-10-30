@@ -14,7 +14,7 @@ from parse import parse_mcil
 
 ilfunc_map: dict[str, BtorOperator] = {
     "=": BtorOperator.EQ,
-    "!=": BtorOperator.NEQ,
+    "distinct": BtorOperator.NEQ,
     "=>": BtorOperator.IMPLIES,
     "iff": BtorOperator.IFF,
     "not": BtorOperator.NOT,
@@ -455,7 +455,7 @@ def main(
         return 1
 
     to_qfbv(program)
-    
+
     output = translate(program)
 
     if output is None:

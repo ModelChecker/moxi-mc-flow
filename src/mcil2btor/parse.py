@@ -346,7 +346,6 @@ class MCILParser(Parser):
             self.status = False
 
         symbol: str = p[0].symbol
-
         if symbol == "true":
             return MCILConstant(MCIL_BOOL_SORT, True)
         elif symbol == "false":

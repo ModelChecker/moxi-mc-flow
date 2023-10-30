@@ -47,7 +47,7 @@ def expr_json(expr):
     match ecn:
         case "list":
             return {
-                "identifier": "True"
+                "identifier": "true"
             }
         case "And":
             return {
@@ -82,7 +82,7 @@ def expr_json(expr):
             }
         case "NotEqual":
             return {
-                "identifier": "!=",
+                "identifier": "distinct",
                 "args": [
                     expr_json(expr.left),
                     expr_json(expr.right)
@@ -106,9 +106,9 @@ def expr_json(expr):
 
             ret = ""
             if e == "TRUE":
-                ret = "True"
+                ret = "true"
             elif e == "FALSE":
-                ret = "False"
+                ret = "false"
             else:
                 ret = e
             return {
@@ -124,7 +124,8 @@ def expr_json(expr):
                     "identifier": "ite",
                     "args": [
                         expr_json(expr.cond),
-                        expr_json(expr.t)
+                        expr_json(expr.t),
+                        {"identifier": "false"}
                     ]
                 }
             else:
