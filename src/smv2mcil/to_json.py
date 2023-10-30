@@ -1,12 +1,8 @@
 import argparse, rich
 import json
 
-if __package__ == "":
-    from translate import *
-else:
-    from .translate import *
-
-
+from translate import *    
+import nuxmv_pyparser as Parser
 
 # FORMAT:
 # 1) 0
@@ -84,6 +80,14 @@ def expr_json(expr):
                     expr_json(expr.right)
                 ]
             }
+        case "NotEqual":
+            return {
+                "identifier": "!=",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
 
         case "Xor":
             return {
@@ -139,7 +143,7 @@ def expr_json(expr):
             }
         case "Implies":
             return {
-                "identifier": "implies",
+                "identifier": "=>",
                 "args": [
                     expr_json(expr.left),
                     expr_json(expr.right)
@@ -211,6 +215,30 @@ def expr_json(expr):
         case "Lt":
             return {
                 "identifier": "<",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "Le":
+            return {
+                "identifier": "<=",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "Gt":
+            return {
+                "identifier": ">",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "Ge":
+            return {
+                "identifier": ">=",
                 "args": [
                     expr_json(expr.left),
                     expr_json(expr.right)
@@ -443,14 +471,14 @@ def main():
     ast = translate_parse_tree(parse_tree, print_ast=False)
 
     json_list = to_json(ast)
-    rich.print(json_list)
+    # rich.print(json_list)
 
     main_filename = args.filename.split("/")[-1]
     file_prefix = main_filename.split(".")[0]
     new_filename = file_prefix + ".json"
     print(new_filename)
     with open(new_filename, "w+") as json_file:
-        json.dump(json_list, json_file, ensure_ascii=False, indent=4)
+        json.dump(json_list, json_file, ensure_ascii=False)
 
 
 if __name__ == '__main__':

@@ -454,6 +454,8 @@ def main(
         sys.stderr.write("Failed parsing\n")
         return 1
 
+    to_qfbv(program)
+    
     output = translate(program)
 
     if output is None:

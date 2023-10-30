@@ -3,10 +3,7 @@ import argparse, rich
 
 from typing import Tuple
 
-if __package__ == "":
-    from model import *
-else:
-    from .model import *
+from model import *
 
 """
 This file prototypes a translation from nuXmv to the IL 
