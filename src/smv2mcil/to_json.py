@@ -40,7 +40,9 @@ def word_constant_json(wconstant):
         "identifier": ("#b" + bin_const)
     }
 
-def expr_json(expr):
+def expr_json(expr, dbg=False):
+    if dbg:
+        print("TRANSLATING EXPR:", expr)
     ecn = expr.__class__.__name__
     if ecn == "NoneType":
         raise ValueError("ecn can't be NoneType")
@@ -399,7 +401,14 @@ def to_json(ast):
                 if name.__class__.__name__ == 'Identifier':
                     name_str = name.name
 
-
+                queries_json = []
+                for query in queries:
+                    (query_name, query_formulas) = query
+                    query_json = {
+                        "symbol": query_name,
+                        "formualas": query_formulas
+                    }
+                    queries_json.append(query_json)
                 
                 j = {
                     "command": "check-system",
@@ -411,9 +420,7 @@ def to_json(ast):
                     "fairness": fairness,
                     "reachable": reachable,
                     "current": current,
-                    "queries": 
-                    list(map(lambda x : \
-                             list(map(lambda x : expr_json(x), x)), queries))
+                    "queries": queries_json
                 }
 
                 if assumption == None:
@@ -421,6 +428,18 @@ def to_json(ast):
                 
                 if reachable == None:
                     j['reachable'] = []
+                else:
+                    res = []
+                    for r in reachable:
+                        (reach_name, reach_query) = r
+
+                        reachable_json = {
+                            "symbol": reach_name,
+                            "formula": list(map(lambda x: expr_json(x), reach_query))
+                        }
+
+                        res.append(reachable_json)
+                    j['reachable'] = res
 
                 result.append(j)
 
@@ -452,7 +471,7 @@ def ast_to_json_to_file(ast, filename, print_json=False):
         rich.print(json_list)
 
     with open(filename, "w+") as json_file:
-        json.dump(json_list, json_file, ensure_ascii=False)
+        json.dump(json_list, json_file, ensure_ascii=False, indent=4)
 
 
 
@@ -479,7 +498,7 @@ def main():
     new_filename = file_prefix + ".json"
     print(new_filename)
     with open(new_filename, "w+") as json_file:
-        json.dump(json_list, json_file, ensure_ascii=False)
+        json.dump(json_list, json_file, ensure_ascii=False, indent=4)
 
 
 if __name__ == '__main__':

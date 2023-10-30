@@ -164,6 +164,9 @@ def translate_expression(expr, lhs=None):
     elif ecn == "Equal":
         return Equal(left=translate_expression(expr.left, lhs),
                      right=translate_expression(expr.right, lhs))
+    elif ecn == "NotEqual":
+        return Not(value=Equal(left=translate_expression(expr.left, lhs),
+                               right=translate_expression(expr.right, lhs)))
     elif ecn == "Implies":
         return Implies(left=translate_expression(expr.left, lhs),
                        right=translate_expression(expr.right, lhs))
@@ -196,6 +199,15 @@ def translate_expression(expr, lhs=None):
                             stop=expr.stop)
     elif ecn == "Lt":
         return Lt(left=translate_expression(expr.left, lhs),
+                  right=translate_expression(expr.right, lhs))
+    elif ecn == "Gt":
+        return Gt(left=translate_expression(expr.left, lhs),
+                  right=translate_expression(expr.right, lhs))
+    elif ecn == "Ge":
+        return Ge(left=translate_expression(expr.left, lhs),
+                  right=translate_expression(expr.right, lhs))
+    elif ecn == "Le":
+        return Le(left=translate_expression(expr.left, lhs),
                   right=translate_expression(expr.right, lhs))
     elif ecn == "Xor":
         return Xor(left=translate_expression(expr.left, lhs),
@@ -497,6 +509,7 @@ def translate(parse_tree):
     module_inv = []
     module_output = []
 
+    module_reachable = []
     module_justice = []
     module_compassion = []
     module_query = []
@@ -626,7 +639,12 @@ def translate(parse_tree):
             raise ValueError("CTL specifications are not supported!")
         elif ugskey == "INVARSPEC":
             check = True
-            module_query.append(translate_expression(parse_tree[key]))
+            reach_name = gensym("reach")
+            reach_exp = translate_expression(parse_tree[key])
+            module_reachable.append((reach_name, reach_exp))
+
+            query_name = gensym("query")
+            module_query.append((query_name, [reach_name]))
                     
 
     for i in module_local:
@@ -652,7 +670,7 @@ def translate(parse_tree):
                                    local=module_local,
                                    assumption=None,
                                    fairness=module_justice,
-                                   reachable=None,
+                                   reachable=module_reachable,
                                    queries=module_query)
     
         results.append(check_system)
