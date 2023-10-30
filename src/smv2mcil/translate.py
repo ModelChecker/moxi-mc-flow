@@ -229,7 +229,7 @@ def WordConstantType(wconstant):
 
 
 def typecheck_exp(exp, context=None):
-    print("TYPECHECKING", exp)
+    # print("TYPECHECKING", exp)
     if str(exp) == "TRUE" or str(exp) == "FALSE":
         return Boolean()
     else:
@@ -586,7 +586,7 @@ def translate(parse_tree):
         elif ugskey == "DEFINE":
             for k, v in parse_tree[key].items():
                 # v = translate_expression(v, lhs=k)
-                tcev = typecheck_exp(v, module_output)
+                tcev = typecheck_exp(v, module_output + module_input)
 
                 module_components[module_name][1].append((k, tcev))
 

@@ -3,11 +3,13 @@ This file runs all specified tests through the nuxmv-json pipeline
 """
 from subprocess import PIPE, Popen, TimeoutExpired
 import sys
+import os.path
+import glob
 
 test_file_paths = [
     # ALL OF THESE WORK
-    # "examples/smv/nusmv-examples/counter.smv",
-    # "examples/smv/nusmv-examples/short.smv",
+    "examples/smv/nusmv-examples/counter.smv",
+    "examples/smv/nusmv-examples/short.smv",
     # "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counter.smv",
     # "examples/smv/nuxmv-examples/lustre/QF_LIA/_6counter2.smv",
     # "examples/smv/nuxmv-examples/lustre/QF_LIA/_6countern.smv",
@@ -35,18 +37,29 @@ test_file_paths = [
     # "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e8_33_e7_220.smv",
     # "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3_e8_33.smv",
     # "examples/smv/nuxmv-examples/lustre/QF_LIA/car_3.smv",
-    # "examples/smv/nuxmv-examples/lustre/QF_LIA/car_4_e3_57_e4_1047.smv"
+    # "examples/smv/nuxmv-examples/lustre/QF_LIA/car_4_e3_57_e4_1047.smv",
+    "examples/smv/nuxmv-examples/beem/QF_BV/adding.1.prop1-back-serstep.btor.smv",
+    # "examples/smv/nuxmv-examples/beem/QF_BV/adding.1.prop1-func-interl.btor.smv",
+    # "examples/smv/nuxmv-examples/invgen/QF_BV/apache-escape-absolute.c.smv"
 
-    # DOESNT WORK
-    # "examples/smv/nuxmv-examples/beem/QF_BV/adding.1.prop1-back-serstep.btor.smv"
-    # "examples/smv/nuxmv-examples/beem/QF_BV/adding.1.prop1-func-interl.btor.smv"
-    "examples/smv/nuxmv-examples/invgen/QF_BV/apache-escape-absolute.c.smv"
-
+    # TIMEOUT
     # "examples/smv/nuxmv-examples/ltlsat-polimi/krca1p1.smv"
-
 ]
+# beem_benchmarks = glob.glob("examples/smv/nuxmv-examples/beem/QF_BV/*.smv")
+# test_file_paths += beem_benchmarks
+
+longest_basename_size = max([len(os.path.basename(tfp.split("/")[-1])) for tfp in test_file_paths])
+print(longest_basename_size)
+script_str = "python3 {} {}"
+test_format_str = "{:<" + str(longest_basename_size) + "} {:<25}"
+
+CRED    = '\33[31m'
+CGREEN  = '\33[32m'
+CEND    = '\033[0m'
+
 
 def main():
+    print(test_format_str.format("[test name]", "[status]"))
     trials, successes, failures, timeouts, skipping = [], [], [], [], []
 
     timeout = 10
@@ -56,29 +69,31 @@ def main():
     prefix = "(" + str(curr_file_no) + "/" + str(lfile_list) + ") " 
 
     for test_file_path in test_file_paths:
-        curr_file_no += 1
-        json_file_path_full = test_file_path.split(".")[0]
-        test_name = test_file_path.split("/")[-1]
-        test = test_name.split(".")[0]
-        json_file_path_stub = test + ".json"
-        json_file_path = '/'.join(__file__.split("/")[:-1]) + "/" + json_file_path_stub
+        (base, ext) = os.path.splitext(test_file_path)
+        pp_file_path = base + "-pp" + ext
+        json_file_path = base + ".json"
 
+        test_name = base.split("/")[-1]
 
-        # print(f"test_file_path = {test_file_path}, json_file_path = {json_file_path}")
+        preprocess_cmd = script_str.format("src/smv2mcil/preprocess.py", test_file_path)
+        test_cmd = script_str.format("src/smv2mcil/nuxmv_json.py", pp_file_path) + " " + json_file_path
+        
+        process = Popen(preprocess_cmd, shell=True, stdout=PIPE, stderr=PIPE)
+        process.communicate(timeout=timeout)
 
-        cmd = "python3 src/smv2il/nuxmv_json.py " + test_file_path + " " + json_file_path
-        # print("RUNNING COMMAND", cmd)
-        process = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE)
+        process = Popen(test_cmd, shell=True, stdout=PIPE, stderr=PIPE)
         try:
             stdout, stderr = process.communicate(timeout=timeout)
             if stdout.find(b'PASSED') == -1:
-                print(test, "- TEST FAILED!")
-                print("Here's the failing test's command: ", cmd)
+                ret = test_format_str.format(test_name, f"{CRED} TEST FAILED! {CEND}")
+                print(ret)
+                print("Here's the failing test's command: ", test_cmd)
                 break
             else:
-                print(test, "- TEST PASSED!")
+                ret = test_format_str.format(test_name, f"{CGREEN} TEST PASSED! {CEND}")
+                print(ret)
         except TimeoutExpired:
-            timeouts.append(test)
+            timeouts.append(test_name)
             process.kill()
 
 if __name__ == "__main__":

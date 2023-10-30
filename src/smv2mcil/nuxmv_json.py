@@ -29,20 +29,20 @@ def should_pass(instance, schema, name=None, resolver=None):
         print(name, "-", CGREEN, "PASSED", CGREEN, CEND)
     return
 
-path_to_schema = "/home/chris/git/ILToBtor2Python/json-schema/schema" # replace this!
+path_to_schema = "/Users/local/ILToBtor2Python/json-schema/schema" # replace this!
 
 resolver = RefResolver("file://%s/" % path_to_schema, {})
 
-il_file = open("/home/chris/git/ILToBtor2Python/json-schema/schema/il.json") # replace this!
+il_file = open("/Users/local/ILToBtor2Python/json-schema/schema/il.json") # replace this!
 il_schema = json.load(il_file)
 
 def translate(nuxmv: str, json_filename: str):
     nuxmv_file = open(nuxmv)
 
     nuxmv_ast = nuXmvsource_2_nuxmvAST.parse(nuxmv_file)
-    il_ast = nuXmvAST_2_ILAST.translate_parse_tree(nuxmv_ast, print_ast=True)
+    il_ast = nuXmvAST_2_ILAST.translate_parse_tree(nuxmv_ast, print_ast=False)
 
-    ILAST_2_ILJSON.ast_to_json_to_file(il_ast, json_filename, print_json=True)
+    ILAST_2_ILJSON.ast_to_json_to_file(il_ast, json_filename, print_json=False)
     
     il_json_object = json.load(open(json_filename))
     should_pass(instance=il_json_object, schema=il_schema, name=json_filename, resolver=resolver)

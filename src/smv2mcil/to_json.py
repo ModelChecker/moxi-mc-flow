@@ -161,6 +161,13 @@ def expr_json(expr):
             return {
                 "identifier": expr
             }
+        case "Minus":
+            return {
+                "identifier": "-",
+                "args": [
+                    expr_json(expr.value)
+                ]
+            }
         case "Add":
             return {
                 "identifier": "+",
@@ -177,9 +184,41 @@ def expr_json(expr):
                     expr_json(expr.right)
                 ]
             }
+        case "Mult":
+            return {
+                "identifier": "*",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "Div":
+            return {
+                "identifier": "/",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "Mod":
+            return {
+                "identifier": "%",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
         case "Lt":
             return {
                 "identifier": "<",
+                "args": [
+                    expr_json(expr.left),
+                    expr_json(expr.right)
+                ]
+            }
+        case "LShift":
+            return {
+                "identifier": "<<",
                 "args": [
                     expr_json(expr.left),
                     expr_json(expr.right)
