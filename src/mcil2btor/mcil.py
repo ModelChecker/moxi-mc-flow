@@ -458,7 +458,7 @@ class MCILDefineSystem(MCILCommand):
     def __str__(self) -> str:
         input_str = " ".join([f"({i.symbol} {i.sort})" for i in self.input])
         output_str = " ".join([f"({o.symbol} {o.sort})" for o in self.output])
-        local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.input])
+        local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.local])
 
         # subsystem_str = ":subsys " # TODO
 
