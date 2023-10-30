@@ -406,7 +406,7 @@ def to_json(ast):
                     (query_name, query_formulas) = query
                     query_json = {
                         "symbol": query_name,
-                        "formualas": query_formulas
+                        "formulas": query_formulas
                     }
                     queries_json.append(query_json)
                 
@@ -432,10 +432,11 @@ def to_json(ast):
                     res = []
                     for r in reachable:
                         (reach_name, reach_query) = r
+                        print(f"REACH QUERY: {reach_query}")
 
                         reachable_json = {
                             "symbol": reach_name,
-                            "formula": list(map(lambda x: expr_json(x), reach_query))
+                            "formula": expr_json(reach_query[0])
                         }
 
                         res.append(reachable_json)
