@@ -465,7 +465,8 @@ def main(
     check_system_index = 0
     for check_system in output:
         check_system_path = output_path / str(check_system_index)
-        check_system_path.mkdir()
+        if not check_system_path.is_dir():
+            check_system_path.mkdir()
 
         for label, nodes in check_system.items():
             with open(check_system_path / f"{input_path.stem}.{label}.btor", "w") as f:

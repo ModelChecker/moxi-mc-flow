@@ -640,7 +640,7 @@ def translate(parse_tree):
         elif ugskey == "INVARSPEC":
             check = True
             reach_name = gensym("reach")
-            reach_exp = translate_expression(parse_tree[key])
+            reach_exp = [Not(r) for r in translate_expression(parse_tree[key])]
             module_reachable.append((reach_name, reach_exp))
 
             query_name = gensym("query")

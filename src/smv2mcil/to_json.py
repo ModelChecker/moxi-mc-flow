@@ -420,7 +420,7 @@ def to_json(ast):
                     "fairness": fairness,
                     "reachable": reachable,
                     "current": current,
-                    "queries": queries_json
+                    "query": queries_json
                 }
 
                 if assumption == None:

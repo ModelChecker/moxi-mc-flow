@@ -60,7 +60,7 @@ def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bo
             return proc.returncode
         elif target_lang == Lang.BTOR2:
             # SMV -> BTOR2
-            json_path = Path(f"{target_path.stem}.json")
+            json_path = target_path / f"{src_path.stem}.json"
             proc = subprocess.run(["python3", SMV2JSON, src_path, "--output", json_path])
             if proc.returncode:
                 return proc.returncode
