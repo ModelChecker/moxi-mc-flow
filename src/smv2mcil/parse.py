@@ -185,6 +185,10 @@ class NuXmvParser(Parser):
         ('right', UMINUS),
     )
     
+    @_("module_list")
+    def xmv_specification(self, p):
+        return XMVSpecification(modules=p[0])
+
 
     @_(
         "module_list module", 
@@ -580,6 +584,18 @@ class NuXmvParser(Parser):
             return p[0]
         else:
             return p.ltl_expr
+        
+def parse(filename: str) -> XMVSpecification:
+    file = open(filename)
+
+    lexer = NuXmvLexer()
+    parser = NuXmvParser()
+
+    file_string = file.read()
+
+    result = parser.parse(lexer.tokenize(file_string))
+
+    return result
 
 def main():
     argparser = argparse.ArgumentParser(

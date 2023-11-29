@@ -1,6 +1,6 @@
+from io import TextIOWrapper
 import sys
 import os
-import re
 
 file_path = sys.argv[1]
 
@@ -30,8 +30,8 @@ section_kws = ["VAR",
                "COMPUTE",
                "PSLSPEC"]
 
-def module_names(file):
-    names = []
+def module_names(file: TextIOWrapper) -> list[str]:
+    names: list[str] = []
     for line in file:
         spl = line.split(" ")
         if spl[0] == "MODULE":
@@ -40,7 +40,7 @@ def module_names(file):
 
     return names
 
-def handle_variables(file_path, module_names):
+def handle_variables(file_path: str, module_names: list[str]):
     with open(file_path, 'r') as file:
         with open(file_path, 'r') as file2:
             var_decl = False
@@ -57,7 +57,7 @@ def handle_variables(file_path, module_names):
                 
                 if var_decl:
                     spl = line.rstrip().split(": ")
-                    var_name = spl[0]
+                    var_name = spl[0].rstrip()
                     vspl = var_name.split(".")
                     if vspl[0] in module_names:
                         pass
@@ -79,6 +79,10 @@ def handle_variables(file_path, module_names):
 
 
 try:
+    if file_path.find("-pp.smv") != -1:
+        print("[preprocess.py] already preprocessed!")
+        sys.exit(0)
+
     with open(file_path, 'r') as file:
         names = module_names(file)
         new_file_contents = handle_variables(file_path, names)
