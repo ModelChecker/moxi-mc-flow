@@ -293,7 +293,7 @@ class XMVModuleElement():
 class XMVVarDeclaration(XMVModuleElement):
     def __init__(
             self, 
-            var_list: list[tuple[str, XMVType]],
+            var_list: list[tuple[XMVIdentifier, XMVType]],
             modifier: str
     ):
         self.var_list = var_list
@@ -310,7 +310,7 @@ class XMVVarDeclaration(XMVModuleElement):
     def __repr__(self) -> str:
         def var_str(var: str, type: XMVType) -> str:
             return f"{var} : {type}"
-        var_list_str = "\n".join(var_str(var[0], var[1]) for var in self.var_list)
+        var_list_str = "\n".join(var_str(var[0].ident, var[1]) for var in self.var_list)
         return f"{self.modifier}\n" + var_list_str
     
 class XMVFunction():
@@ -335,7 +335,7 @@ class XMVFunctionDeclaration(XMVModuleElement):
     
 
 class XMVDefine():
-    def __init__(self, name: str, expr: XMVExpr):
+    def __init__(self, name: XMVIdentifier, expr: XMVExpr):
         self.name = name
         self.expr = expr
 

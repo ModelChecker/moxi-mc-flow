@@ -1087,7 +1087,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
             status = status and sort_check_expr(cmd.init, True)
             status = status and sort_check_expr(cmd.trans, False)
-            status = status and sort_check_expr(cmd.inv, True)
+            status = status and sort_check_expr(cmd.inv, False)
 
             for name,subsystem in cmd.subsystem_signatures.items():
                 # TODO: check for cycles in system dependency graph

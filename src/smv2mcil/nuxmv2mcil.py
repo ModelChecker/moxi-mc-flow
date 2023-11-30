@@ -210,7 +210,7 @@ def gather_input(xmv_module: XMVModule) -> list[IL.MCILVar]:
                             mcil_var = IL.MCILVar(
                                 var_type=IL.MCILVarType.INPUT,
                                 sort=translate_type(xmv_var_type),
-                                symbol=var_name,
+                                symbol=var_name.ident,
                                 prime=False
                             )
 
@@ -233,7 +233,7 @@ def gather_local(xmv_module: XMVModule) -> list[IL.MCILVar]:
                     mcil_var = IL.MCILVar(
                         var_type=IL.MCILVarType.LOCAL,
                         sort=translate_type(xmv_var_type),
-                        symbol=var_name,
+                        symbol=var_name.ident,
                         prime=False
                     )
 
@@ -247,7 +247,7 @@ def gather_local(xmv_module: XMVModule) -> list[IL.MCILVar]:
                     var = IL.MCILVar(
                         var_type=IL.MCILVarType.LOCAL,
                         sort=synthesize_sort(rhs_expr),
-                        symbol=name,
+                        symbol=name.ident,
                         prime=False
                     )
 
@@ -276,7 +276,7 @@ def gather_inv(xmv_module: XMVModule) -> IL.MCILExpr:
                     lhs_var = IL.MCILVar(
                         var_type=IL.MCILVarType.OUTPUT,
                         sort=synthesize_sort(rhs_expr),
-                        symbol=name,
+                        symbol=name.ident,
                         prime=False
                     )
 
@@ -387,6 +387,9 @@ def main():
     print(f"[main] parsed specification in {args.filename}")
 
     result: IL.MCILProgram = translate(parse_tree)
+
+    # with open("tmp.mcil", "w") as f:
+    #     f.write(str(result))
 
     # print(f"[main] result: {result}")
 
