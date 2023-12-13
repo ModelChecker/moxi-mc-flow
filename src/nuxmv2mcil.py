@@ -14,7 +14,7 @@ def translate_type(xmv_type: XMVType) -> MCILSort:
             raise ValueError("nuXmv `real` type not supported in the IL (yet?)")
         case XMVClock():
             raise ValueError("nuXmv `clock` type not supported in the IL (yet?)")
-        case XMVWord(w):
+        case XMVWord(width=w):
             return MCIL_BITVEC_SORT(w)
         case XMVEnumeration(summands=s):
             return MCIL_ENUM_SORT(s[0])
@@ -50,7 +50,7 @@ def translate_expr(xmv_expr: XMVExpr) -> MCILExpr:
                 sort=MCIL_BITVEC_SORT(xmv_expr.width), 
                 value=int(xmv_expr.value)
             )            
-        case XMVFuncall(function_name=fname, function_args=fargs):
+        case XMVFunCall(function_name=fname, function_args=fargs):
             match fname:
                 case "signed":
                     return translate_expr(fargs[0])
@@ -165,38 +165,37 @@ def conjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
             children=[head, conjoin_list(tail)]
         )
 
-def synthesize_sort(xmv_expr: XMVExpr) -> MCILSort:
-    match xmv_expr:
-        case XMVIntegerConstant():
-            return MCIL_INT_SORT
-        case XMVBooleanConstant():
-            return MCIL_BOOL_SORT
-        case XMVWordConstant():
-            return MCIL_BITVEC_SORT(xmv_expr.width)
-        case XMVRangeConstant():
-            raise ValueError("not dealing with ranges yet")
-        case XMVBinop(op="+") | XMVBinop(op="-") | XMVBinop(op="*") | XMVBinop(op="/"):
-            return MCIL_BITVEC_SORT(32)
-        case XMVBinop(op="&") | XMVBinop(op="|") | XMVBinop(op="xor") | XMVBinop(op="xnor"):
-            return MCIL_BOOL_SORT
-        case XMVUnop(op="!"):
-            return MCIL_BOOL_SORT
-        case XMVUnop(op="-"):
-            return MCIL_INT_SORT
-        case XMVBinop(op="=") | XMVBinop(op="!="):
-            return MCIL_BOOL_SORT
-        case XMVBinop(op="<") | XMVBinop(op=">") | XMVBinop(op="<=") | XMVBinop(op=">="):
-            return MCIL_BITVEC_SORT(1)
-        case _:
-            raise ValueError(f"[synthesize_sort] Uncovered case: {xmv_expr}")
+# def synthesize_sort(xmv_expr: XMVExpr) -> MCILSort:
+#     match xmv_expr:
+#         case XMVIntegerConstant():
+#             return MCIL_INT_SORT
+#         case XMVBooleanConstant():
+#             return MCIL_BOOL_SORT
+#         case XMVWordConstant():
+#             return MCIL_BITVEC_SORT(xmv_expr.width)
+#         case XMVRangeConstant():
+#             raise ValueError("not dealing with ranges yet")
+#         case XMVBinop(op="+") | XMVBinop(op="-") | XMVBinop(op="*") | XMVBinop(op="/"):
+#             return MCIL_BITVEC_SORT(32)
+#         case XMVBinop(op="&") | XMVBinop(op="|") | XMVBinop(op="xor") | XMVBinop(op="xnor"):
+#             return MCIL_BOOL_SORT
+#         case XMVUnop(op="!"):
+#             return MCIL_BOOL_SORT
+#         case XMVUnop(op="-"):
+#             return MCIL_INT_SORT
+#         case XMVBinop(op="=") | XMVBinop(op="!="):
+#             return MCIL_BOOL_SORT
+#         case XMVBinop(op="<") | XMVBinop(op=">") | XMVBinop(op="<=") | XMVBinop(op=">="):
+#             return MCIL_BITVEC_SORT(1)
+#         case _:
+#             raise ValueError(f"[synthesize_sort] Uncovered case: {xmv_expr}")
 
-def gather_input(xmv_module: XMVModule) -> list[MCILVar]:
+def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
     result: list[MCILVar] = []
     for module_element in xmv_module.elements:
         match module_element:
             case XMVVarDeclaration(modifier="IVAR"):
                 for (var_name, xmv_var_type) in module_element.var_list:
-
                     match xmv_var_type:
                         case XMVModuleType():
                             pass
@@ -215,10 +214,10 @@ def gather_input(xmv_module: XMVModule) -> list[MCILVar]:
     
     return result
 
-def gather_output(xmv_module: XMVModule) -> list[MCILVar]:
+def gather_output(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
     return []
 
-def gather_local(xmv_module: XMVModule) -> list[MCILVar]:
+def gather_local(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
     result: list[MCILVar] = []
     for module_element in xmv_module.elements:
         match module_element:
@@ -232,20 +231,23 @@ def gather_local(xmv_module: XMVModule) -> list[MCILVar]:
                     )
 
                     result.append(mcil_var)
-            case XMVDefineDeclaration():
-                define_list = module_element.define_list
-                for define in define_list:
-                    name = define.name
-                    rhs_expr = define.expr
+            # Definitions are actually macros...need to just expand them all
+            # case XMVDefineDeclaration():
+            #     define_list = module_element.define_list
+            #     for define in define_list:
+            #         name = define.name
+            #         rhs_expr = define.expr
 
-                    var = MCILVar(
-                        var_type=MCILVarType.LOCAL,
-                        sort=synthesize_sort(rhs_expr),
-                        symbol=name.ident,
-                        prime=False
-                    )
+            #         context.vars[name.ident] = rhs_expr.type
 
-                    result.append(var)
+            #         var = MCILVar(
+            #             var_type=MCILVarType.LOCAL,
+            #             sort=translate_type(rhs_expr.type),
+            #             symbol=name.ident,
+            #             prime=False
+            #         )
+
+            #         result.append(var)
             case _:
                pass
     
@@ -259,31 +261,12 @@ def gather_trans(xmv_module: XMVModule) -> MCILExpr:
 
 def gather_inv(xmv_module: XMVModule) -> MCILExpr:
     inv_list: list[MCILExpr] = []
+
     for module_element in xmv_module.elements:
         match module_element:
-            case XMVDefineDeclaration():
-                define_list = module_element.define_list
-                define_il_expr_list: list[MCILExpr] = []
-                for define in define_list:
-                    name = define.name
-                    rhs_expr = define.expr
-                    lhs_var = MCILVar(
-                        var_type=MCILVarType.OUTPUT,
-                        sort=synthesize_sort(rhs_expr),
-                        symbol=name.ident,
-                        prime=False
-                    )
-
-                    rhs_mcil_expr = translate_expr(xmv_expr=rhs_expr)
-                    mcil_expr = MCILApply(
-                        sort=MCIL_BOOL_SORT,
-                        identifier=MCILIdentifier(symbol="=", indices=[]),
-                        children=[lhs_var, rhs_mcil_expr]
-                    )
-
-                    define_il_expr_list.append(mcil_expr)
-                define_il_expr = conjoin_list(define_il_expr_list)
-                inv_list.append(define_il_expr)
+            case XMVInvarDeclaration():
+                invar = module_element.formula
+                inv_list.append(translate_expr(invar))
             case _:
                 pass
 
@@ -304,12 +287,17 @@ def gather_queries(xmv_module: XMVModule) -> dict[str, list[str]]:
 def translate_module(xmv_module: XMVModule) -> list[MCILCommand]:
     print(f"[translate_module] translating module {xmv_module.name}")
     il_commands: list[MCILCommand] = []
+    xmv_context = XMVContext()
 
-    input = gather_input(xmv_module)
+    (type_correct, xmv_context) = type_check(xmv_module)
+    if not type_correct:
+        raise ValueError("Not type correct")
 
-    output = gather_output(xmv_module)
+    input = gather_input(xmv_module, xmv_context)
 
-    local = gather_local(xmv_module)
+    output = gather_output(xmv_module, xmv_context)
+
+    local = gather_local(xmv_module, xmv_context)
 
     init = gather_init(xmv_module)
 

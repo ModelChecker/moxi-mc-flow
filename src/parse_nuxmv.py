@@ -162,6 +162,10 @@ class NuXmvLexer(Lexer):
     IDENT["case"] = XMV_CASE
     IDENT["esac"] = XMV_ESAC
 
+    # Extra action for newlines
+    def ignore_newline(self, t):
+        self.lineno += t.value.count("\n")
+
 
 class NuXmvParser(Parser):
     tokens = NuXmvLexer.tokens
@@ -352,15 +356,19 @@ class NuXmvParser(Parser):
         if len(p) == 3: # binop
             return XMVBinop(op=p[1], lhs=p[0], rhs=p[2]) 
         if len(p) == 4: # function call
-            return XMVFuncall(function_name=p[0], function_args=p.cs_expr_list)
+            return XMVFunCall(name=p[0], args=p.cs_expr_list)
         
     @_("NEXT LPAREN expr RPAREN")
     def expr(self, p):
-        return XMVFuncall(function_name="next", function_args=[p[2]])
+        return XMVFunCall(name="next", args=[p[2]])
     
     @_("XMV_SIGNED LPAREN expr RPAREN")
     def expr(self, p):
-        return XMVFuncall(function_name="signed", function_args=[p[2]])
+        return XMVFunCall(name="signed", args=[p[2]])
+    
+    @_("XMV_UNSIGNED LPAREN expr RPAREN")
+    def expr(self, p):
+        return XMVFunCall(name="unsigned", args=[p[2]])
 
 
     @_("expr LBRACK INTEGER RBRACK")
@@ -486,7 +494,7 @@ class NuXmvParser(Parser):
                 return XMVArray(low=p[2], high=p[5], type=p[7])
             case _:
                 if str.isnumeric(p[0]):
-                    return XMVRange(low=p[0], high=p[3])
+                    return XMVEnumeration(summands=set(range(int(p[0]), int(p[3]))))
                 else:
                     return XMVModuleType(module_name=p[0], parameters=p[2])
     
@@ -500,12 +508,13 @@ class NuXmvParser(Parser):
         else:
             return p[0] + [p[2]]
         
-    @_(
-            "IDENT",
-            "INTEGER"
-    )
+    @_("IDENT")
     def enumeration_type_value(self, p):
         return p[0]
+        
+    @_("INTEGER")
+    def enumeration_type_value(self, p):
+        return int(p[0])
     
     @_(
             "boolean_constant",
@@ -563,7 +572,7 @@ class NuXmvParser(Parser):
     
     @_("NEXT LPAREN expr RPAREN")
     def ltl_expr(self, p):
-        return XMVFuncall(function_name="next", function_args=p.expr)
+        return XMVFunCall(name="next", args=p.expr)
 
     
 
