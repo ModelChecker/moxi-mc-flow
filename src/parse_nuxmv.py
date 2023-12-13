@@ -1,12 +1,9 @@
 #type: ignore
 import sys
-import glob
 import argparse
 
 from sly import Lexer, Parser
 from nuxmv import *
-
-import rich
 
 class NuXmvLexer(Lexer):
     tokens = { 

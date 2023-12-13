@@ -1,7 +1,6 @@
 import argparse
 from copy import copy
 import json
-import os
 from pathlib import Path
 import pickle
 import sys
@@ -10,7 +9,7 @@ from typing import cast
 from mcil import *
 from json2mcil import from_json
 from btor import *
-from parse import parse_mcil
+from parse_mcil import parse_mcil
 
 ilfunc_map: dict[str, BtorOperator] = {
     "=": BtorOperator.EQ,

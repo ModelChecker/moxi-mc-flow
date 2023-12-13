@@ -653,9 +653,15 @@ ARRAY_RANK_TABLE: RankTable = {
 
 def sort_check_apply_rank(node: MCILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
-    # print([str(a) for a in rank_args])
-    # print([str(c) for c in node.children])
+    # print([type(a) for a in rank_args])
+    # print([type(c) for c in node.children])
     if rank_args != [c.sort for c in node.children]:
+        print([str(a) for a in rank_args])
+        print([str(c.sort) for c in node.children])
+        print(rank_args != [c.sort for c in node.children])
+
+        # print([f"{r.identifier.symbol} : {r.identifier.indices[0]}" for r in rank_args])
+        # print([f"{c.sort.identifier.symbol} : {c.sort.identifier.indices[0]}" for c in node.children])
         return False
 
     node.sort = rank_return
@@ -672,6 +678,7 @@ def sort_check_apply_core(node: MCILApply) -> bool:
     elif identifier.check("=", 0) or identifier.check("distinct", 0):
         # (par (A) (= A A Bool))
         # (par (A) (distinct A A Bool))
+
         if len(node.children) < 1:
             return False
 

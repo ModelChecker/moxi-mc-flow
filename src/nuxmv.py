@@ -1,6 +1,77 @@
 # TODO: IMPLEMENT THIS
 import re
 
+
+# type specifiers -------------------------
+
+class XMVType():
+    pass
+
+class XMVNoType(XMVType):
+    pass
+
+
+class XMVBoolean(XMVType):
+    def __repr__(self) -> str:
+        return "boolean"
+    
+class XMVInteger(XMVType):
+    def __repr__(self) -> str:
+        return "integer"
+    
+class XMVReal(XMVType):
+    def __repr__(self) -> str:
+        return "real"
+    
+class XMVClock(XMVType):
+    def __repr__(self) -> str:
+        return "clock"
+
+class XMVWord(XMVType):
+    def __init__(self, width: int, signed: bool):
+        self.width = width
+        self.signed = signed
+
+    def __repr__(self) -> str:
+        if self.signed:
+            return f"signed word[{self.width}]"
+        else:
+            return f"unsigned word[{self.width}]"
+
+class XMVEnumeration(XMVType):
+    def __init__(self, summands: list[str]):
+        self.summands = summands
+
+    def __repr__(self) -> str:
+        return f"enum({self.summands})"
+
+class XMVRange(XMVType):
+    def __init__(self, low: int, high: int):
+        self.low = low
+        self.high = high
+
+    def __repr__(self) -> str:
+        return f"{self.low} .. {self.high}"
+    
+class XMVArray(XMVType):
+    def __init__(self, low: int, high: int, type: XMVType):
+        self.low = low
+        self.high = high
+        self.type = type
+
+    def __repr__(self) -> str:
+        return f"array {self.low} .. {self.high} of {self.type}"
+    
+class XMVModuleType(XMVType):
+    def __init__(self, module_name: str, parameters: list[str]):
+        self.module_name = module_name
+        self.parameters = parameters
+
+    def __repr__(self) -> str:
+        return f"{self.module_name}({self.parameters})"
+    
+# type specifiers -------------------------
+
 class XMVLTLExpr():
     pass
 
@@ -38,8 +109,14 @@ class XMVLTLBinop(XMVLTLExpr):
     def __repr__(self) -> str:
         return f"{self.lhs} {self.op} {self.rhs}"
 
-class XMVExpr(XMVLTLExpr):
-    pass
+
+
+
+class XMVExpr():
+    
+    def __init__(self) -> None:
+        self.type = XMVNoType()
+            
 
 class XMVComplexIdentifier(XMVExpr):
     pass
@@ -218,72 +295,6 @@ class XMVModuleAccess(XMVComplexIdentifier):
 #     def __repr__(self) -> str:
 #         return f"{self.array}[{self.index}]"
 
-# type specifiers -------------------------
-
-class XMVType():
-    pass
-
-class XMVBoolean(XMVType):
-    def __repr__(self) -> str:
-        return "boolean"
-    
-class XMVInteger(XMVType):
-    def __repr__(self) -> str:
-        return "integer"
-    
-class XMVReal(XMVType):
-    def __repr__(self) -> str:
-        return "real"
-    
-class XMVClock(XMVType):
-    def __repr__(self) -> str:
-        return "clock"
-
-class XMVWord(XMVType):
-    def __init__(self, width: int, signed: bool):
-        self.width = width
-        self.signed = signed
-
-    def __repr__(self) -> str:
-        if self.signed:
-            return f"signed word[{self.width}]"
-        else:
-            return f"unsigned word[{self.width}]"
-
-class XMVEnumeration(XMVType):
-    def __init__(self, summands: list[str]):
-        self.summands = summands
-
-    def __repr__(self) -> str:
-        return f"enum({self.summands})"
-
-class XMVRange(XMVType):
-    def __init__(self, low: int, high: int):
-        self.low = low
-        self.high = high
-
-    def __repr__(self) -> str:
-        return f"{self.low} .. {self.high}"
-    
-class XMVArray(XMVType):
-    def __init__(self, low: int, high: int, type: XMVType):
-        self.low = low
-        self.high = high
-        self.type = type
-
-    def __repr__(self) -> str:
-        return f"array {self.low} .. {self.high} of {self.type}"
-    
-class XMVModuleType(XMVType):
-    def __init__(self, module_name: str, parameters: list[str]):
-        self.module_name = module_name
-        self.parameters = parameters
-
-    def __repr__(self) -> str:
-        return f"{self.module_name}({self.parameters})"
-    
-# type specifiers -------------------------
-
 # module elements -------------------------
 
 # Module elements
@@ -451,3 +462,12 @@ class XMVSpecification():
     def __repr__(self) -> str:
         return "\n".join(str(mod) for mod in self.modules)
     
+
+def type_check(spec: XMVSpecification) -> bool:
+
+    def type_check_expr(expr: XMVExpr) -> bool:
+        return True
+
+    return True
+
+

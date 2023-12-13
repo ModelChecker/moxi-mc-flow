@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 
 from mcil import sort_check
-from parse import parse_mcil
+from parse_mcil import parse_mcil
 
 def main(input_path: Path, output_path: Path, do_sort_check: bool, do_pretty: bool) -> int:
     if not input_path.is_file():

@@ -6,7 +6,7 @@ from pathlib import Path
 from btor_witness import *
 from mcil_witness import *
 from btor import *
-from parse import parse_witness
+from parse_mcil import parse_witness
 
 
 def collect_var_symbols(btor_program: list[BtorNode]) -> dict[int, str]:
