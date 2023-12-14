@@ -6,6 +6,7 @@ import sys
 from enum import Enum
 from typing import Any, Callable, Optional
 
+from .util import eprint
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts
 INT_WIDTH = 64
@@ -443,17 +444,6 @@ class MCILDefineSystem(MCILCommand):
 
     def get_exprs(self) -> list[MCILExpr]:
         return [self.init, self.trans, self.inv]
-
-    def is_equational(self) -> bool:
-        # TODO
-        is_eq = True
-
-        def expr_is_equational(expr: MCILExpr):
-            pass
-
-        postorder_iterative(self.trans, expr_is_equational)
-
-        return is_eq
 
     def __str__(self) -> str:
         input_str = " ".join([f"({i.symbol} {i.sort})" for i in self.input])
@@ -961,7 +951,7 @@ class MCILContext():
         return symbols
 
 
-def postorder_iterative(expr: MCILExpr, func: Callable[[MCILExpr], Any]):
+def postorder(expr: MCILExpr):
     """Perform an iterative postorder traversal of 'expr', calling 'func' on each node."""
     stack: list[tuple[bool, MCILExpr]] = []
     visited: set[int] = set()
@@ -972,7 +962,7 @@ def postorder_iterative(expr: MCILExpr, func: Callable[[MCILExpr], Any]):
         (seen, cur) = stack.pop()
 
         if seen:
-            func(cur)
+            yield cur
             continue
         elif id(cur) in visited:
             continue
@@ -998,7 +988,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             node.sort = context.input_var_sorts[node]
 
             if node.prime and no_prime:
-                sys.stderr.write(f"Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
+                eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
                 return False
 
             return True
@@ -1007,7 +997,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             node.sort = context.output_var_sorts[node]
 
             if node.prime and no_prime:
-                sys.stderr.write(f"Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
+                eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
                 return False
 
             return True
@@ -1016,12 +1006,12 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             node.sort = context.local_var_sorts[node]
 
             if node.prime and no_prime:
-                sys.stderr.write(f"Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
+                eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
                 return False
 
             return True
         elif isinstance(node, MCILVar):
-            sys.stderr.write(f"Error: symbol `{node.symbol}` not declared.\n\t{context.cur_command}\n")
+            eprint(f"[{__name__}] Error: symbol `{node.symbol}` not declared.\n\t{context.cur_command}\n")
             return False
         elif isinstance(node, MCILApply):
             if node.identifier.get_class() in context.logic.function_symbols:
@@ -1029,21 +1019,21 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                     sort_check_expr(arg, no_prime)
 
                 if not context.logic.sort_check(node):
-                    sys.stderr.write(f"Error: function signature does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
+                    eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
                     return False
             elif node.identifier.symbol in context.defined_functions:
                 (rank, expr) = context.defined_functions[node.identifier.symbol]
 
                 if not sort_check_apply_rank(node, rank):
-                    sys.stderr.write(f"Error: function call does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
+                    eprint(f"[{__name__}] Error: function call does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
                     return False
             else:
-                sys.stderr.write(f"Error: symbol '{node.identifier.symbol}' not recognized ({node}).\n\t{context.cur_command}\n")
+                eprint(f"[{__name__}] Error: symbol '{node.identifier.symbol}' not recognized ({node}).\n\t{context.cur_command}\n")
                 return False
 
             return True
         else:
-            sys.stderr.write(f"Error: node type '{node.__class__}' not recognized ({node}).\n\t{context.cur_command}\n")
+            eprint(f"[{__name__}] Error: node type '{node.__class__}' not recognized ({node}).\n\t{context.cur_command}\n")
             return False
     # end sort_check_expr
 
@@ -1052,34 +1042,34 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
         if isinstance(cmd, MCILDeclareSort):
             # TODO: move this warning to il2btor.py
-            sys.stderr.write(f"Warning: declare-sort command unsupported, ignoring.\n")
+            eprint(f"[{__name__}] Warning: declare-sort command unsupported, ignoring.\n")
         elif isinstance(cmd, MCILDefineSort):
             if cmd.symbol in context.get_symbols():
-                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             # TODO
         elif isinstance(cmd, MCILDeclareEnumSort):
             if cmd.symbol in context.get_symbols():
-                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             context.declared_enum_sorts[cmd.symbol] = cmd.values
         elif isinstance(cmd, MCILDeclareConst):
             if cmd.symbol in context.get_symbols():
-                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             context.declared_functions[cmd.symbol] = Rank(([], cmd.sort))
         elif isinstance(cmd, MCILDeclareFun):
             if cmd.symbol in context.get_symbols():
-                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             context.declared_functions[cmd.symbol] = Rank((cmd.inputs, cmd.output_sort))
         elif isinstance(cmd, MCILDefineFun):
             if cmd.symbol in context.get_symbols():
-                sys.stderr.write(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
             input_sorts = [s.sort for s in cmd.inputs]
@@ -1100,7 +1090,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 (sys_symbol, signature_symbols) = subsystem
 
                 if sys_symbol not in context.defined_systems:
-                    sys.stderr.write(f"Error: system '{sys_symbol}' not defined in context.\n\t{cmd}\n")
+                    eprint(f"[{__name__}] Error: system '{sys_symbol}' not defined in context.\n\t{cmd}\n")
                     status = False
                     return (False, context)
 
@@ -1109,7 +1099,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 variables: dict[str, MCILVar] = {var.symbol:var for var in cmd.input + cmd.output + cmd.local}
                 for symbol in signature_symbols:
                     if symbol not in variables:
-                        sys.stderr.write(f"Error: variable '{symbol}' not declared.\n\t{cmd}\n")
+                        eprint(f"[{__name__}] Error: variable '{symbol}' not declared.\n\t{cmd}\n")
                         status = False
                         signature.append(MCIL_EMPTY_VAR)
                         continue
@@ -1126,13 +1116,13 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 target_signature = target_system.input + target_system.output
 
                 if len(signature) != len(target_signature):
-                    sys.stderr.write(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}\n")
+                    eprint(f"[{__name__}] Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}\n")
                     status = False
                     continue
 
                 for cmd_var,target_var in zip(signature, target_signature):
                     if cmd_var.sort != target_var.sort:
-                        sys.stderr.write(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}\n")
+                        eprint(f"[{__name__}] Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}\n")
                         status = False
                         continue
 
@@ -1145,7 +1135,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             context.local_var_sorts = {}
         elif isinstance(cmd, MCILCheckSystem):
             if not cmd.sys_symbol in context.defined_systems:
-                sys.stderr.write(f"Error: system '{cmd.sys_symbol}' undefined.\n\t{cmd}\n")
+                eprint(f"[{__name__}] Error: system '{cmd.sys_symbol}' undefined.\n\t{cmd}\n")
                 status = False
                 continue
 
@@ -1156,39 +1146,39 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             system = context.defined_systems[cmd.sys_symbol]
 
             if len(system.input) != len(cmd.input):
-                sys.stderr.write(f"Error: input variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}\n")
+                eprint(f"[{__name__}] Error: input variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}\n")
                 status = False
                 continue
 
             for i1,i2 in zip(system.input, cmd.input):
                 if i1.sort != i2.sort:
-                    sys.stderr.write(f"Error: sorts do not match in check-system (expected {i1.sort}, got {i2.sort})\n")
+                    eprint(f"[{__name__}] Error: sorts do not match in check-system (expected {i1.sort}, got {i2.sort})\n")
                     status = False
                 else:
                     i2.var_type = MCILVarType.INPUT
                 # cmd.rename_map[v1] = v2
 
             if len(system.output) != len(cmd.output):
-                sys.stderr.write(f"Error: output variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}\n")
+                eprint(f"[{__name__}] Error: output variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}\n")
                 status = False
                 continue
 
             for o1,o2 in zip(system.output, cmd.output):
                 if o1.sort != o2.sort:
-                    sys.stderr.write(f"Error: sorts do not match in check-system (expected {o1.sort}, got {o2.sort})\n")
+                    eprint(f"[{__name__}] Error: sorts do not match in check-system (expected {o1.sort}, got {o2.sort})\n")
                     status = False
                 else:
                     o2.var_type = MCILVarType.OUTPUT
                 # cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
-                sys.stderr.write(f"Error: local variables do not match target system ({system.symbol}).\n\tlen(define.local)={len(system.local)}\n\tlen(check.local)={len(cmd.local)}\n")
+                eprint(f"[{__name__}] Error: local variables do not match target system ({system.symbol}).\n\tlen(define.local)={len(system.local)}\n\tlen(check.local)={len(cmd.local)}\n")
                 status = False
                 continue
 
             for l1,l2 in zip(system.local, cmd.local):
                 if l1.sort != l2.sort:
-                    sys.stderr.write(f"Error: sorts do not match in check-system (expected {l1.sort}, got {l2.sort})\n")
+                    eprint(f"[{__name__}] Error: sorts do not match in check-system (expected {l1.sort}, got {l2.sort})\n")
                     status = False
                 else:
                     l2.var_type = MCILVarType.LOCAL
@@ -1266,7 +1256,7 @@ def to_qfbv(program: MCILProgram):
             for var in [v for v in command.local if v.sort.identifier.symbol in SORT_MAP]:
                 command.local[command.local.index(var)].sort = SORT_MAP[var.sort.identifier.symbol]
 
-
-        for expr in command.get_exprs():
-            postorder_iterative(expr, to_qfbv_expr)
+        for expr1 in command.get_exprs():
+            for expr2 in postorder(expr1):
+                to_qfbv_expr(expr2)
 

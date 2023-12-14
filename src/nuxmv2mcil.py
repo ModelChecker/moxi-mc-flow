@@ -1,14 +1,14 @@
 import argparse
 from pathlib import Path
 from typing import cast
-import subprocess
 
+from .util import eprint
 from .preprocess_nuxmv import preprocess
 from .parse_nuxmv import parse
 from .nuxmv import *
 from .mcil import *
 
-sys.setrecursionlimit(10000)
+FILE_NAME = Path(__file__).name
 
 def translate_type(xmv_type: XMVType) -> MCILSort:
     match xmv_type:
@@ -39,6 +39,7 @@ def coerce_int_to_bv(expr: MCILExpr) -> MCILExpr:
     return expr
 
 def case_to_ite(case_expr: XMVCaseExpr, context: XMVContext) -> MCILExpr:
+    """Recursively translate a case expression to a series of cascaded ite expressions."""
 
     def _case_to_ite(branches: list[tuple[XMVExpr, XMVExpr]], i: int) -> MCILExpr:
         (cond, branch) = branches[i]
@@ -220,9 +221,9 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
         case XMVCaseExpr(branches=branches):
             return case_to_ite(xmv_expr, context)
         case XMVModuleAccess():
-            raise ValueError(f"[translate_expr] module access")
+            raise ValueError(f"[{FILE_NAME}] module access")
         case _:
-            raise ValueError(f"[translate_expr] unhandled expression {xmv_expr}, {xmv_expr.__class__}")
+            raise ValueError(f"[{FILE_NAME}] unhandled expression {xmv_expr}, {xmv_expr.__class__}")
 
 def conjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
     if len(expr_list) == 1:
@@ -367,7 +368,8 @@ def gather_invarspecs(xmv_module: XMVModule, context: XMVContext) -> dict[str, M
     return invarspec_dict
 
 def translate_module(xmv_module: XMVModule) -> list[MCILCommand]:
-    print(f"[translate_module] translating module {xmv_module.name}")
+    print(f"[{FILE_NAME}] translating module {xmv_module.name}")
+
     il_commands: list[MCILCommand] = []
     xmv_context = XMVContext()
 
@@ -428,7 +430,7 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
         try:
             il_commands = translate_module(xmv_module=xmv_module)
         except ValueError as err:
-            print(err)
+            eprint(err)
             return None
             
         commands += il_commands
@@ -440,23 +442,23 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
 
     parse_tree = parse(content)
     if not parse_tree:
-        print(f"[main] failed parsing specification in {input_path}")
+        eprint(f"[{FILE_NAME}] failed parsing specification in {input_path}")
         return 1
-    print(f"[main] parsed specification in {input_path}")
+    print(f"[{FILE_NAME}] parsed specification in {input_path}")
 
     result = translate(parse_tree)
     if not result:
-        print(f"[main] failed translating specification in {input_path}")
+        eprint(f"[{FILE_NAME}] failed translating specification in {input_path}")
         return 1
 
     with open(str(output_path), "w") as f:
         f.write(str(result))
-        print(f"[main] wrote output to {output_path}")
+        print(f"[{FILE_NAME}] wrote output to {output_path}")
 
     if do_sort_check:
         (well_sorted, _) = sort_check(result)
         if not well_sorted:
-            print(f"[main] failed sort checking translated specification in {input_path}")
+            eprint(f"[{FILE_NAME}] failed sort checking translated specification in {input_path}")
             return 1
 
     return 0

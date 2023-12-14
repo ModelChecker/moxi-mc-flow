@@ -6,12 +6,13 @@ import pickle
 import sys
 from typing import cast
 
+from .util import eprint
 from .mcil import *
 from .json2mcil import from_json
 from .btor import *
 from .parse_mcil import parse_mcil
 
-sys.setrecursionlimit(10000)
+FILE_NAME = Path(__file__).name
 
 ilfunc_map: dict[str, BtorOperator] = {
     "=": BtorOperator.EQ,
@@ -126,8 +127,9 @@ def build_sort_map_expr(expr: MCILExpr, enums: dict[str, int], sort_map: SortMap
     def build_sort_map_util(cur: MCILExpr):
         if cur.sort not in sort_map:
             sort_map[cur.sort] = ilsort_to_btor2(cur.sort, enums, sort_map)
-    
-    postorder_iterative(expr, build_sort_map_util)
+
+    for subexpr in postorder(expr):
+        build_sort_map_util(subexpr)
     return sort_map
 
 
@@ -177,7 +179,8 @@ def build_var_map_expr(
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.cur"),
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.next"))
 
-    postorder_iterative(expr, build_var_map_util)
+    for subexpr in postorder(expr):
+        build_var_map_util(subexpr)
 
 
 def build_var_map_cmd(
@@ -415,8 +418,9 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
     (well_sorted, context) = sort_check(il_prog)
 
     if not well_sorted:
-        sys.stderr.write("Failed sort check\n")
+        eprint(f"[{FILE_NAME}] failed sort check\n")
         return None
+    print(f"[{FILE_NAME}] translating to MCIL")
     
     btor2_prog_list: dict[str, dict[str, list[BtorNode]]] = {}
     sort_map: SortMap = {}
@@ -431,6 +435,8 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
 
         btor2_prog_list[check_system.sys_symbol] = (ilchecksystem_to_btor2(check_system, context, sort_map, var_map))
 
+    print(f"[{FILE_NAME}] finished MCL translation")
+
     return btor2_prog_list
 
 
@@ -440,11 +446,11 @@ def main(
     pickle_path: Optional[Path]
 ) -> int:
     if not input_path.is_file():
-        sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
+        eprint(f"[{FILE_NAME}]  `{input_path}` is not a valid file.\n")
         return 1
 
     if output_path.is_file():
-        sys.stderr.write(f"Error: `{output_path}` is a file.\n")
+        eprint(f"[{FILE_NAME}]  `{output_path}` is a file.\n")
         return 1
 
     if not output_path.is_dir():
@@ -456,11 +462,11 @@ def main(
         elif input_path.suffix == ".mcil":
             program = parse_mcil(file.read())
         else:
-            sys.stderr.write(f"File format unsupported ({input_path.suffix})\n")
+            eprint(f"[{FILE_NAME}] file format unsupported ({input_path.suffix})\n")
             return 1
 
     if not program:
-        sys.stderr.write("Failed parsing\n")
+        eprint(f"[{FILE_NAME}] failed parsing\n")
         return 1
 
     to_qfbv(program)
@@ -468,7 +474,7 @@ def main(
     output = translate(program)
 
     if output is None:
-        sys.stderr.write("Failed translation\n")
+        eprint(f"[{FILE_NAME}] failed translation\n")
         return 1
 
     check_system_index = 0
