@@ -420,7 +420,7 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
     if not well_sorted:
         eprint(f"[{FILE_NAME}] failed sort check\n")
         return None
-    print(f"[{FILE_NAME}] translating to MCIL")
+    print(f"[{FILE_NAME}] translating to BTOR2")
     
     btor2_prog_list: dict[str, dict[str, list[BtorNode]]] = {}
     sort_map: SortMap = {}
@@ -435,7 +435,7 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
 
         btor2_prog_list[check_system.sys_symbol] = (ilchecksystem_to_btor2(check_system, context, sort_map, var_map))
 
-    print(f"[{FILE_NAME}] finished MCL translation")
+    print(f"[{FILE_NAME}] finished BTOR2 translation")
 
     return btor2_prog_list
 
@@ -495,16 +495,16 @@ def main(
     return 0
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="source program to translate, should have either .json or .mcil extension")
-    parser.add_argument("--output", help="path of directory to output BTOR2 files; defaults to input filename stem")
-    parser.add_argument("--pickled-btor", help="path to output pickled btor output; will not emit by default")
-    args = parser.parse_args()
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("input", help="source program to translate, should have either .json or .mcil extension")
+#     parser.add_argument("--output", help="path of directory to output BTOR2 files; defaults to input filename stem")
+#     parser.add_argument("--pickled-btor", help="path to output pickled btor output; will not emit by default")
+#     args = parser.parse_args()
 
-    input_path = Path(args.input)
-    output_path = Path(args.output) if args.output else Path(f"{input_path.stem}")
-    pickle_path = Path(args.pickled_btor) if args.pickled_btor else None
+#     input_path = Path(args.input)
+#     output_path = Path(args.output) if args.output else Path(f"{input_path.stem}")
+#     pickle_path = Path(args.pickled_btor) if args.pickled_btor else None
 
-    returncode = main(input_path, output_path, args.pickled_btor)
-    sys.exit(returncode)
+#     returncode = main(input_path, output_path, args.pickled_btor)
+#     sys.exit(returncode)

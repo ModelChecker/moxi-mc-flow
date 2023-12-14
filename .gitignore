@@ -135,6 +135,12 @@ __pycache__/
 .vscode/
 __workdir__/
 resultsdir/
+avr/
+pono/
+pono-hwmcc/
+avr-hwmcc/
+hwmcc20benchmarks/
+kind2/
 
 .DS_Store
 

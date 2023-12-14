@@ -1,5 +1,4 @@
 import argparse
-from cmath import atanh
 from pathlib import Path
 import subprocess
 import sys
@@ -26,11 +25,11 @@ def cleandir(dir: Path, quiet: bool):
     """Remove and create fresh dir, print a warning if quiet is False"""
     if dir.is_file():
         if not quiet:
-            print(f"WARNING: Overwriting '{dir}'")
+            print(f"[{FILE_NAME}] Overwriting '{dir}'")
         os.remove(dir)
     elif dir.is_dir():
         if not quiet:
-            print(f"WARNING: Overwriting '{dir}'")
+            print(f"[{FILE_NAME}] Overwriting '{dir}'")
         shutil.rmtree(dir)
 
     os.mkdir(dir)

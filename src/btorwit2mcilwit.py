@@ -118,16 +118,16 @@ def main(
 
     return 0
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("witness", help="source BTOR2 witness or directory of witnesses to translate")
-    parser.add_argument("program", help="pickled BTOR2 program")
-    parser.add_argument("--output", help="path output IL witness file; defaults to witness filename stem")
-    args = parser.parse_args()
+# if __name__ == "__main__":
+#     parser = argparse.ArgumentParser()
+#     parser.add_argument("witness", help="source BTOR2 witness or directory of witnesses to translate")
+#     parser.add_argument("program", help="pickled BTOR2 program")
+#     parser.add_argument("--output", help="path output IL witness file; defaults to witness filename stem")
+#     args = parser.parse_args()
 
-    witness_path = Path(args.witness)
-    program_path = Path(args.program)
-    output_path = Path(args.output) if args.output else Path(f"{witness_path.stem}")
+#     witness_path = Path(args.witness)
+#     program_path = Path(args.program)
+#     output_path = Path(args.output) if args.output else Path(f"{witness_path.stem}")
 
-    returncode = main(witness_path, program_path, output_path)
-    sys.exit(returncode)
+#     returncode = main(witness_path, program_path, output_path)
+#     sys.exit(returncode)

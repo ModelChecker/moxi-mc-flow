@@ -1,91 +1,80 @@
 import argparse
-from enum import Enum
 from pathlib import Path
-import subprocess
 import sys
+import os
+import shutil
 
-# from smv2il.smv2json import main as smv2json
-# from il2btor.json2il import main as json2il
-# from il2btor.il2json import main as il2json
-# from il2btor.il2btor import main as il2btor
+from src.util import eprint
+from src.nuxmv2mcil import main as nuxmv2mcil
+from src.mcil2btor import main as mcil2btor
+from src.mcil2json import main as mcil2json
+from src.json2mcil import main as json2mcil
 
-CUR_DIR = Path(__file__).parent
-SMV2MCIL_DIR = CUR_DIR / "smv2mcil"
-MCIL2BTOR_DIR = CUR_DIR / "mcil2btor"
+FILE_NAME = Path(__file__).name
+FILE_DIR = Path(__file__).parent
+SMV2MCIL_DIR = FILE_DIR / "smv2mcil"
+MCIL2BTOR_DIR = FILE_DIR / "mcil2btor"
 
 SMV2JSON = SMV2MCIL_DIR / "smv2json.py"
 JSON2MCIL = MCIL2BTOR_DIR / "json2mcil.py"
 MCIL2JSON = MCIL2BTOR_DIR / "mcil2json.py"
 MCIL2BTOR = MCIL2BTOR_DIR / "mcil2btor.py"
 
-class Lang(Enum):
-    NONE = 0
-    SMV = 1
-    IL = 2
-    IL_JSON = 3
-    BTOR2 = 4
+
+def cleandir(dir: Path, quiet: bool):
+    """Remove and create fresh dir, print a warning if quiet is False"""
+    if dir.is_file():
+        if not quiet:
+            print(f"[{FILE_NAME}] Overwriting '{dir}'")
+        os.remove(dir)
+    elif dir.is_dir():
+        if not quiet:
+            print(f"[{FILE_NAME}] Overwriting '{dir}'")
+        shutil.rmtree(dir)
+
+    os.mkdir(dir)
 
 
-def main(src_path: Path, target_lang: Lang, target_path: Path, do_sort_check: bool) -> int:
+def main(src_path: Path, target_lang: str, target_path: Path) -> int:
     if not src_path.is_file():
-        sys.stderr.write(f"Error: source is not a file ({src_path})\n")
+        eprint(f"[{FILE_NAME}] source is not a file ({src_path})\n")
         return 1
 
-    src_lang = ""
-    if src_path.suffix == ".smv":
-        src_lang = Lang.SMV
-    elif src_path.suffix == ".mcil":
-        src_lang = Lang.IL
-    elif src_path.suffix == ".json":
-        # assuming JSON files are IL representations
-        src_lang = Lang.IL_JSON
-    else:
-        sys.stderr.write(f"Error: file type unsupported ({src_path.suffix})\n")
-        return 1
-
-    if src_lang == target_lang:
-        return 0
-    elif src_lang == Lang.SMV:
-        if target_lang == Lang.IL_JSON:
-            # SMV -> json
-            proc = subprocess.run(["python3", SMV2JSON, src_path, "--output", target_path])
-            return proc.returncode
-        elif target_lang == Lang.IL:
-            # SMV -> IL
-            json_path = Path(f"{target_path.stem}.json")
-            proc = subprocess.run(["python3", SMV2JSON, src_path, "--output", json_path])
-            if proc.returncode:
-                return proc.returncode
-            proc = subprocess.run(["python3", JSON2MCIL, json_path, "--output", target_path])
-            return proc.returncode
-        elif target_lang == Lang.BTOR2:
-            # SMV -> BTOR2
-            json_path = target_path / f"{src_path.stem}.json"
-            proc = subprocess.run(["python3", SMV2JSON, src_path, "--output", json_path])
-            if proc.returncode:
-                return proc.returncode
-            proc = subprocess.run(["python3", MCIL2BTOR, json_path, "--output", target_path])
-            return proc.returncode
-    elif src_lang == Lang.IL:
-        if target_lang == Lang.IL_JSON:
-            # IL -> json
-            proc = subprocess.run(["python3", MCIL2JSON, src_path, "--output", target_path])
-            return proc.returncode
-        elif target_lang == Lang.BTOR2:
-            # IL -> BTOR2
-            proc = subprocess.run(["python3", MCIL2BTOR, src_path, "--output", target_path])
-            return proc.returncode
-    elif src_lang == Lang.IL_JSON:
-        if target_lang == Lang.IL:
-            # json -> IL
-            proc = subprocess.run(["python3", JSON2MCIL, src_path, "--output", target_path])
-            return proc.returncode
-        elif target_lang == Lang.BTOR2:
-            # json -> BTOR2
-            proc = subprocess.run(["python3", MCIL2BTOR, src_path, "--output", target_path])
-            return proc.returncode
-
-    return 0
+    match (src_path.suffix, target_lang):
+        case (".smv", "mcil"):
+            return nuxmv2mcil(src_path, target_path, True)
+        case (".smv", "mcil-json"):
+            mcil_path = src_path.with_suffix(".mcil")
+            retcode = nuxmv2mcil(src_path, mcil_path, True)
+            if retcode:
+                return retcode
+            retcode = mcil2json(mcil_path, target_path, False, False)
+            mcil_path.unlink()
+            return retcode
+        case (".smv", "btor2"):
+            mcil_path = src_path.with_suffix(".mcil")
+            retcode = nuxmv2mcil(src_path, mcil_path, True)
+            if retcode:
+                return retcode
+            retcode = mcil2btor(mcil_path, target_path, None)
+            mcil_path.unlink()
+            return retcode
+        case (".mcil", "mcil-json"):
+            return mcil2json(src_path, target_path, False, False)
+        case(".mcil", "btor2"):
+            return mcil2btor(src_path, target_path, None)
+        case (".json", "mcil"):
+            return json2mcil(src_path, target_path, False, False)
+        case (".json", "btor2"):
+            mcil_path = src_path.with_suffix(".mcil")
+            retcode = json2mcil(src_path, target_path, False, False)
+            if retcode:
+                return retcode
+            retcode = mcil2btor(src_path, target_path, None)
+            mcil_path.unlink()
+            return retcode
+        case _:
+            return 0
 
 
 if __name__ == "__main__":
@@ -94,27 +83,24 @@ if __name__ == "__main__":
     parser.add_argument("targetlang", choices=["mcil", "mcil-json", "btor2"],
                         help="target language")
     parser.add_argument("--targetloc", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
-    parser.add_argument("--sortcheck", action="store_true",
-                        help="enable sort checking if translating to il")
     args = parser.parse_args()
 
     src_path = Path(args.source)
 
-    if args.targetlang == "mcil":
-        target_lang = Lang.IL
-        target_path = Path(args.targetloc) if args.targetloc else Path(f"{src_path.stem}.mcil")
-    elif args.targetlang == "mcil-json":
-        target_lang = Lang.IL_JSON
-        target_path = Path(args.targetloc) if args.targetloc else Path(f"{src_path.stem}.json")
-    elif args.targetlang == "btor2":
-        target_lang = Lang.BTOR2
-        if not args.targetloc:
-            sys.stderr.write("Error: option 'targetloc' required for 'btor2' target\n")
-            sys.exit(1)
-        target_path = Path(args.targetloc)
+    if args.targetloc:
+        target_path = Path(args.targetloc) 
     else:
-        target_lang = Lang.NONE
-        target_path = Path("")
+        match args.targetlang:
+            case "mcil":
+                target_path = src_path.with_suffix(".mcil")
+            case "mcil-json":
+                target_path = src_path.with_suffix(".json")
+            case "btor2":
+                target_path = src_path.with_suffix("")
+                cleandir(target_path, False)
+            case _:
+                eprint(f"[{FILE_NAME}] invalid target language")
+                sys.exit(1)
 
-    returncode = main(src_path, target_lang, target_path, args.sortcheck)
+    returncode = main(src_path, args.targetlang, target_path)
     sys.exit(returncode)

@@ -463,17 +463,17 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
 
     return 0
 
-if __name__ == '__main__':
-    argparser = argparse.ArgumentParser(
-                           prog='nuXmv/NuSMV to IL translation',
-                           description='Parses a nuXmv/NuSMV (.smv) file and translates the resulting AST into IL'
-   )
-    argparser.add_argument("input", help="source nuXmv program to translate")
-    argparser.add_argument("--output", help="path of output file")
-    argparser.add_argument("--sort-check", action="store_true", help="enable sort checking")
+# if __name__ == '__main__':
+#     argparser = argparse.ArgumentParser(
+#                            prog='nuXmv/NuSMV to IL translation',
+#                            description='Parses a nuXmv/NuSMV (.smv) file and translates the resulting AST into IL'
+#    )
+#     argparser.add_argument("input", help="source nuXmv program to translate")
+#     argparser.add_argument("--output", help="path of output file")
+#     argparser.add_argument("--sort-check", action="store_true", help="enable sort checking")
 
-    args = argparser.parse_args()
-    input_path = Path(args.input)
-    output_path = Path(args.output) if args.output else Path(input_path).with_suffix('.mcil')
+#     args = argparser.parse_args()
+#     input_path = Path(args.input)
+#     output_path = Path(args.output) if args.output else Path(input_path).with_suffix('.mcil')
 
-    main(input_path, output_path, args.sort_check)
+#     main(input_path, output_path, args.sort_check)

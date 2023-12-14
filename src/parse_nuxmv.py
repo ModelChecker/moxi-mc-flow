@@ -623,5 +623,5 @@ def main():
     result = parser.parse(lexer.tokenize(file_string))
 
 
-if __name__ == '__main__':
-    main()
+# if __name__ == '__main__':
+#     main()
