@@ -380,7 +380,7 @@ class NuXmvParser(Parser):
 
     @_("expr LBRACK INTEGER COLON INTEGER RBRACK")
     def expr(self, p):
-        return XMVWordBitSelection(word=p.expr, low=int(p[2]), high=int(p[4]))
+        return XMVWordBitSelection(word=p.expr, low=int(p[4]), high=int(p[2]))
 
     @_("expr CONCAT expr")
     def expr(self, p):
@@ -451,9 +451,9 @@ class NuXmvParser(Parser):
     def var_decl(self, p):
         return (p[0], p[2])
 
-    # @_("complex_identifier DOT IDENT")
-    # def complex_identifier(self, p):
-    #     return XMVModuleAccess(p[0], p[2])
+    @_("complex_identifier DOT IDENT")
+    def complex_identifier(self, p):
+        return XMVModuleAccess(p[0], p[2])
 
 
     @_("IDENT")
@@ -594,15 +594,11 @@ class NuXmvParser(Parser):
         else:
             return p.ltl_expr
         
-def parse(filename: str) -> XMVSpecification:
-    file = open(filename)
-
+def parse(input: str) -> XMVSpecification:
     lexer = NuXmvLexer()
     parser = NuXmvParser()
 
-    file_string = file.read()
-
-    result = parser.parse(lexer.tokenize(file_string))
+    result = parser.parse(lexer.tokenize(input))
 
     return result
 

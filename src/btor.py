@@ -219,16 +219,35 @@ BtorArgs = tuple[Optional[BtorExpr], Optional[BtorExpr], Optional[BtorExpr]]
 
 class BtorApply(BtorExpr):
 
-    def __init__(self, sort: BtorSort, op: BtorOperator, indics: list[int], args: BtorArgs):
+    def __init__(
+        self, 
+        sort: BtorSort, 
+        op: BtorOperator, 
+        indices: tuple[Optional[int], Optional[int]], 
+        args: BtorArgs
+    ):
         super().__init__(args)
+        self.indices = indices
         self.sort = sort
         self.operator = op
 
     def __repr__(self) -> str:
-        return f"({id(self)} {self.nid} {self.operator.name.lower()} {' '.join([repr(c) for c in self.children if c])})"
+        s =  f"({id(self)} "
+        s += f"{self.nid} "
+        s += f"{self.operator.name.lower()} "
+        s += f"{' '.join([repr(c) for c in self.children if c] + [str(i) for i in self.indices if i is not None])})"
+        return s
 
     def __str__(self) -> str:
-        return f"{self.nid} {self.operator.name.lower()} {self.sort.nid} {' '.join([str(c.nid) for c in self.children if c])}{self.comment}"
+        s =  f"{self.nid} "
+        s += f"{self.operator.name.lower()} "
+        s += f"{self.sort.nid} "
+        s += f"{' '.join([str(c.nid) for c in self.children if c] + [str(i) for i in self.indices if i is not None])}"
+        s += f"{self.comment}"
+        return s
+
+    # def __str__(self) -> str:
+    #     return f"{self.nid} {self.operator.name.lower()} {self.sort.nid} {' '.join([str(c.nid) for c in self.children if c])}{self.comment}"
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, BtorApply):

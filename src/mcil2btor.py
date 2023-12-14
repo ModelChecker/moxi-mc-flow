@@ -256,15 +256,8 @@ def ilexpr_to_btor2(
         if len(expr.children) > 3:
             raise NotImplementedError
 
-        # handle indexed operators:
-        # concat
-        # extract
-        # zero_extend
-        # sign_extend
-        # rotate_right
-        # rotate_left
-        
-        # args = indices + children
+        tmp_indices = copy(expr.identifier.indices) + ([None] * (2 - len(expr.identifier.indices)))
+        (idx1, idx2) = tuple(tmp_indices)
 
         tmp_children = copy(expr.children) + ([None] * (3 - len(expr.children)))
         (arg1, arg2, arg3) = tuple(tmp_children)
@@ -273,7 +266,12 @@ def ilexpr_to_btor2(
                       ilexpr_to_btor2(arg2, context, is_init_expr, sort_map, var_map) if arg2 else None,
                       ilexpr_to_btor2(arg3, context, is_init_expr, sort_map, var_map) if arg3 else None)
 
-        return BtorApply(sort_map[expr.sort], ilfunc_map[expr.identifier.symbol], btor2_args)
+        return BtorApply(
+            sort_map[expr.sort], 
+            ilfunc_map[expr.identifier.symbol], 
+            (idx1, idx2),
+            btor2_args
+        )
 
     raise NotImplementedError
 

@@ -656,8 +656,6 @@ ARRAY_RANK_TABLE: RankTable = {
 def sort_check_apply_rank(node: MCILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
     if rank_args != [c.sort for c in node.children]:
-        # print([f"{r.identifier.symbol} : {r.identifier.indices[0]}" for r in rank_args])
-        # print([f"{c.sort.identifier.symbol} : {c.sort.identifier.indices[0]}" for c in node.children])
         return False
 
     node.sort = rank_return
@@ -674,7 +672,6 @@ def sort_check_apply_core(node: MCILApply) -> bool:
     elif identifier.check("=", 0) or identifier.check("distinct", 0):
         # (par (A) (= A A Bool))
         # (par (A) (distinct A A Bool))
-
         if len(node.children) < 1:
             return False
 
@@ -710,14 +707,14 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
             return False
 
         operand1 = node.children[0]
-        operand2 = node.children[2]
+        operand2 = node.children[1]
         if not operand1.sort.identifier.is_indexed():
             return False
         elif not operand2.sort.identifier.is_indexed():
             return False
 
         i = operand1.sort.identifier.indices[0]
-        j = operand1.sort.identifier.indices[1]
+        j = operand2.sort.identifier.indices[0]
         rank = BITVEC_RANK_TABLE[identifier_class]((i, j))
 
         return sort_check_apply_rank(node, rank)
@@ -736,10 +733,13 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         m = operand.sort.identifier.indices[0]
         (i,j) = identifier.indices
 
-        if j < i or m <= i:
+        if j > i or i >= m:
             return False
 
         n = i - j + 1
+        if n < 1:
+            return False
+
         rank = BITVEC_RANK_TABLE[identifier_class]((m, n))
 
         return sort_check_apply_rank(node, rank)

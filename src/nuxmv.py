@@ -524,6 +524,7 @@ class XMVContext():
         self.invar: list[XMVExpr] = []
         self.trans: list[XMVExpr] = []
         self.invarspecs: list[XMVExpr] = []
+        self.seen_defs: list[str] = []
 
 
 def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
@@ -614,6 +615,8 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                                 raise ValueError(f"Type checking error for {op} ({lhs.type}, {rhs.type})")
                     case "=" | "!=" | ">" | "<" | ">=" | "<=":
                         match (lhs.type, rhs.type):
+                            case (XMVBoolean(), XMVBoolean()):
+                                expr.type = XMVBoolean()
                             case (XMVInteger(), XMVInteger()):
                                 expr.type = XMVBoolean()
                             case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
@@ -624,7 +627,7 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                                 pass
                             case _:
                                 raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
-                    case "+" | "-" | "*" | "/" | "%":
+                    case "+" | "-" | "*" | "/" | "mod":
                         match (lhs.type, rhs.type):
                             case (XMVInteger(), XMVInteger()):
                                 expr.type = XMVInteger()
@@ -649,7 +652,7 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                             case _:
                                 raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
                     case _:
-                        raise ValueError(f"Unsupported op {op}, {expr}")
+                        raise ValueError(f"Unsupported op `{op}`, `{expr}`")
             case XMVIndexSubscript():
                 pass
             case XMVWordBitSelection(word=word, low=low, high=high):
@@ -689,7 +692,7 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                 for (xmv_id, xmv_type) in var_list:
                     context.vars[xmv_id.ident] = xmv_type
                     if modifier == "FROZENVAR":
-                        context.frozen_vars.add(xmv_id)
+                        context.frozen_vars.add(xmv_id.ident)
             case _:
                 pass
 
@@ -705,7 +708,9 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
     for element in module.elements:
         match element:
             case XMVAssignDeclaration(assign_list=assign_list):
-                raise ValueError(f"Unsupported element ASSIGN")
+                for assign in assign_list:
+                    type_check_expr(assign.rhs, context)
+                # raise ValueError(f"Unsupported element ASSIGN")
             case XMVTransDeclaration(formula=formula):
                 type_check_expr(formula, context)
                 context.trans.append(formula)

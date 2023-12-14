@@ -63,7 +63,7 @@ def handle_variables(file_path: str, module_names: list[str]):
                     if vspl[0] in module_names:
                         pass
                     else:
-                        cleaned_var_name = var_name.replace('.', '_').replace(':', '')
+                        cleaned_var_name = var_name.replace('.', '_').replace(':', '').replace("\"","")
                         if cleaned_var_name == var_name:
                             continue
                         else:
@@ -78,6 +78,12 @@ def handle_variables(file_path: str, module_names: list[str]):
             return ret_fc
 
 
+def preprocess(input: Path) -> str:
+    with open(str(input), 'r') as file:
+        names = module_names(file)
+        return handle_variables(str(input), names)
+
+
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
                             prog='preprocess script for nuXmv files',
@@ -90,11 +96,7 @@ if __name__ == "__main__":
     input_path = Path(args.input)
     output_path = Path(args.output)
 
-    with open(str(input_path), 'r') as file:
-        names = module_names(file)
-        new_file_contents = handle_variables(str(input_path), names)
-        # print(new_file_contents)
-        file.close()
+    new_file_contents = preprocess(input_path)
 
     with open(str(output_path), 'w') as file:
         file.write(new_file_contents)

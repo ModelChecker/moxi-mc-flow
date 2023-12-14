@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import cast
 import subprocess
 
+from preprocess_nuxmv import preprocess
 from parse_nuxmv import parse
 from nuxmv import *
 from mcil import *
@@ -25,7 +26,7 @@ def translate_type(xmv_type: XMVType) -> MCILSort:
         case XMVArray(type=t):
             return MCIL_ARRAY_SORT(MCIL_INT_SORT, translate_type(t))
         case _:
-            raise ValueError(f"Unidentified type: {xmv_type}")
+            raise ValueError(f"Unsupported type: {xmv_type}")
         
 def coerce_int_to_bv(expr: MCILExpr) -> MCILExpr:
     if isinstance(expr, MCILConstant) and is_int_sort(expr.sort):
@@ -35,11 +36,46 @@ def coerce_int_to_bv(expr: MCILExpr) -> MCILExpr:
         )
     return expr
 
+def case_to_ite(case_expr: XMVCaseExpr, context: XMVContext) -> MCILExpr:
+
+    def _case_to_ite(branches: list[tuple[XMVExpr, XMVExpr]], i: int) -> MCILExpr:
+        (cond, branch) = branches[i]
+
+        if i >= len(branches)-1:
+            return MCILApply(
+                translate_type(branch.type),
+                MCILIdentifier("ite", []),
+                [
+                    translate_expr(cond, context),
+                    translate_expr(branch, context),
+                    translate_expr(branch, context)
+                ]
+            ) 
+
+        return MCILApply(
+            translate_type(branch.type),
+            MCILIdentifier("ite", []),
+            [
+                translate_expr(cond, context),
+                translate_expr(branch, context),
+                _case_to_ite(branches, i+1)
+            ]
+        )
+
+    return _case_to_ite(case_expr.branches, 0)
+
+
 def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
     match xmv_expr:
         case XMVIdentifier(ident=ident):
             if ident in context.defs:
-                return translate_expr(context.defs[ident], context)
+                if ident in context.seen_defs:
+                    raise ValueError(f"Circular definition, detected at `{xmv_expr}`")
+
+                context.seen_defs.append(ident)
+                ret = translate_expr(context.defs[ident], context)
+                context.seen_defs.pop()
+                return ret
 
             return MCILVar(
                 var_type=MCILVarType.LOCAL,
@@ -78,7 +114,7 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
                     return MCILApply(
                         sort=MCIL_NO_SORT,
                         identifier=MCILIdentifier(symbol=fname, indices=[]),
-                        children=[translate_expr(e) for e in fargs]
+                        children=[translate_expr(e, context) for e in fargs]
                     )
         case XMVBinOp(op=op, lhs=lhs, rhs=rhs):
             match op:
@@ -115,7 +151,15 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
                     il_op = "bvsdiv" if expr_type.signed else "bvudiv"
                     il_lhs = coerce_int_to_bv(translate_expr(lhs, context))
                     il_rhs = coerce_int_to_bv(translate_expr(rhs, context))
-                case "=":
+                case ">>":
+                    il_op = "bvashr"
+                    il_lhs = translate_expr(lhs, context)
+                    il_rhs = translate_expr(rhs, context)
+                case ">>":
+                    il_op = "bvshl"
+                    il_lhs = translate_expr(lhs, context)
+                    il_rhs = translate_expr(rhs, context)
+                case "=" | "<->":
                     il_op = "="
                     try:
                         il_lhs_sort = translate_type(lhs.type)
@@ -163,9 +207,13 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
         case XMVWordBitSelection(word=word, low=low, high=high):
             return MCILApply(
                 sort=translate_type(xmv_expr.type),
-                identifier=MCILIdentifier(symbol="extract", indices=[low, high]),
+                identifier=MCILIdentifier(symbol="extract", indices=[high, low]),
                 children=[translate_expr(word, context)]
             )
+        case XMVCaseExpr(branches=branches):
+            return case_to_ite(xmv_expr, context)
+        case XMVModuleAccess():
+            raise ValueError(f"[translate_expr] module access")
         case _:
             raise ValueError(f"[translate_expr] unhandled expression {xmv_expr}, {xmv_expr.__class__}")
 
@@ -347,22 +395,17 @@ def main():
     argparser.add_argument('filename')
 
     args = argparser.parse_args()
-    spec_path = Path(args.filename)
-    pp_spec_path = spec_path.with_suffix(".smv.pp")
+    input_path = Path(args.filename)
+    pp_spec_path = input_path.with_suffix(".pp.smv")
+    
+    content = preprocess(input_path)
 
-    proc = subprocess.run([
-        "python3", 
-        str(Path(__file__).parent / "preprocess_nuxmv.py"),
-        str(spec_path),
-        str(pp_spec_path)
-    ], capture_output=True)
-
-    parse_tree: XMVSpecification = parse(str(pp_spec_path))
-    print(f"[main] parsed specification in {pp_spec_path}")
+    parse_tree: XMVSpecification = parse(content)
+    print(f"[main] parsed specification in {input_path}")
 
     result: MCILProgram = translate(parse_tree)
 
-    with open(f"{Path(spec_path).with_suffix('.mcil').name}", "w") as f:
+    with open(f"{Path(input_path).with_suffix('.mcil').name}", "w") as f:
         f.write(str(result))
 
     # print(f"[main] result: {result}")
