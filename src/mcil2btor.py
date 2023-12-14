@@ -6,10 +6,12 @@ import pickle
 import sys
 from typing import cast
 
-from mcil import *
-from json2mcil import from_json
-from btor import *
-from parse_mcil import parse_mcil
+from .mcil import *
+from .json2mcil import from_json
+from .btor import *
+from .parse_mcil import parse_mcil
+
+sys.setrecursionlimit(10000)
 
 ilfunc_map: dict[str, BtorOperator] = {
     "=": BtorOperator.EQ,
@@ -397,7 +399,7 @@ def ilchecksystem_to_btor2(
     
 
 
-def translate(il_prog: MCILProgram) -> Optional[list[dict[str, list[BtorNode]]]]:
+def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNode]]]]:
     """Translate `il_prog` to an equivalent set of Btor programs, labeled by query symbol.
     
     The strategy for translation is to sort check the input then construct a Btor program for each query (and targeted system) by:
@@ -416,7 +418,7 @@ def translate(il_prog: MCILProgram) -> Optional[list[dict[str, list[BtorNode]]]]
         sys.stderr.write("Failed sort check\n")
         return None
     
-    btor2_prog_list: list[dict[str, list[BtorNode]]] = []
+    btor2_prog_list: dict[str, dict[str, list[BtorNode]]] = {}
     sort_map: SortMap = {}
     var_map: VarMap = {}
     enums: dict[str, int] = { sym:len(vals).bit_length() for sym,vals in context.declared_enum_sorts.items() }
@@ -427,7 +429,7 @@ def translate(il_prog: MCILProgram) -> Optional[list[dict[str, list[BtorNode]]]]
         build_sort_map_cmd(target_system, enums, sort_map)
         build_var_map_cmd(check_system, context, {}, sort_map, var_map)
 
-        btor2_prog_list.append(ilchecksystem_to_btor2(check_system, context, sort_map, var_map))
+        btor2_prog_list[check_system.sys_symbol] = (ilchecksystem_to_btor2(check_system, context, sort_map, var_map))
 
     return btor2_prog_list
 
@@ -470,8 +472,8 @@ def main(
         return 1
 
     check_system_index = 0
-    for check_system in output:
-        check_system_path = output_path / str(check_system_index)
+    for (sys_symbol, check_system) in output.items():
+        check_system_path = output_path / f"check-system-{sys_symbol}-{check_system_index}"
         if not check_system_path.is_dir():
             check_system_path.mkdir()
 

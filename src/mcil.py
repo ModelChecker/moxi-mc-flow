@@ -6,8 +6,6 @@ import sys
 from enum import Enum
 from typing import Any, Callable, Optional
 
-from matplotlib import cm
-
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts
 INT_WIDTH = 64
@@ -582,6 +580,11 @@ class MCILProgram():
 class MCILExit(MCILCommand):
     pass
 
+
+MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x)
+MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y])
+
+
 # A rank is a function signature. For example:
 #   rank(and) = ([Bool, Bool], Bool)
 Rank = tuple[list[MCILSort], MCILSort]
@@ -1026,13 +1029,13 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                     sort_check_expr(arg, no_prime)
 
                 if not context.logic.sort_check(node):
-                    sys.stderr.write(f"Error: function signature does not match definition ({node}).\n\t{context.cur_command}\n")
+                    sys.stderr.write(f"Error: function signature does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
                     return False
             elif node.identifier.symbol in context.defined_functions:
                 (rank, expr) = context.defined_functions[node.identifier.symbol]
 
                 if not sort_check_apply_rank(node, rank):
-                    sys.stderr.write(f"Error: function call does not match definition ({node}).\n\t{context.cur_command}\n")
+                    sys.stderr.write(f"Error: function call does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
                     return False
             else:
                 sys.stderr.write(f"Error: symbol '{node.identifier.symbol}' not recognized ({node}).\n\t{context.cur_command}\n")

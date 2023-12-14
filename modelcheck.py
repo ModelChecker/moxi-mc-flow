@@ -1,19 +1,19 @@
 import argparse
-import os
-import sys
+from pathlib import Path
 import subprocess
+import sys
+import os
 import shutil
 
-from pathlib import Path
+from src.nuxmv2mcil import main as nuxmv2mcil
+from src.mcil2btor import main as mcil2btor
+from src.btorwit2mcilwit import main as btorwit2mcilwit
 
 FILE_DIR = Path(__file__).parent
 WORK_DIR = FILE_DIR / "__workdir__"
 
-DEFAULT_MC = FILE_DIR / ".." / "boolector" / "build" / "bin" / "btormc" 
-DEFAULT_SIM = FILE_DIR / ".." / "btor2tools" / "build" / "bin" / "btorsim"
-
-IL2BTOR = FILE_DIR / "mcil2btor" / "mcil2btor.py"
-BTORWIT2ILWIT = FILE_DIR / "mcil2btor" / "btorwit2mcilwit.py"
+DEFAULT_BTORMC = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
+DEFAULT_AVR = FILE_DIR / "avr"
 
 
 def cleandir(dir: Path, quiet: bool):
@@ -30,7 +30,45 @@ def cleandir(dir: Path, quiet: bool):
     os.mkdir(dir)
 
 
-def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
+def any2btor(src_path: Path, target_path: Path, pickle_path: Path) -> int:
+    if not src_path.is_file():
+        sys.stderr.write(f"Error: source is not a file ({src_path})\n")
+        return 1
+
+    retcode = 0
+    if src_path.suffix == ".smv":
+        mcil_path = WORK_DIR / src_path.with_suffix(".mcil").name
+        retcode += nuxmv2mcil(src_path, mcil_path, False)
+        retcode += mcil2btor(mcil_path, target_path, pickle_path)
+    elif src_path.suffix == ".mcil" or src_path.suffix == ".json":
+        retcode += mcil2btor(src_path, target_path, pickle_path)
+    else:
+        sys.stderr.write(f"Error: file type unsupported ({src_path.suffix})\n")
+        return 1
+
+    return retcode
+
+
+def run_btormc(btormc_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int:
+    label = btor_path.suffixes[-2][1:]
+
+    proc = subprocess.run([btormc_path, btor_path, "--trace-gen-full"], capture_output=True)
+
+    if proc.returncode:
+        sys.stderr.write(proc.stderr.decode("utf-8"))
+        sys.stderr.write(f"Error: model checker failure for query '{label}'\n")
+        return proc.returncode
+
+    btor_witness_bytes = proc.stdout
+
+    btor_witness_path = btor_witness_dir_path / btor_path.with_suffix(f".cex").name
+    with open(btor_witness_path, "wb") as f:
+        f.write(btor_witness_bytes)
+
+    return 0
+
+
+def model_check(src_path: Path, btorsim_path: Path) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
     # does not output valid witness output (header is missing), so we don't use it.
     # NOTE: for a model checker like avr, this might be necessary for full traces
@@ -39,24 +77,22 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
         sys.stderr.write(f"Error: given source is not a file ({src_path})\n")
         return 1
 
-    if not mc_path.is_file():
-        sys.stderr.write(f"Error: given model checker is not a file ({mc_path})\n")
-        return 1
+    # if not mc_path.is_file():
+    #     sys.stderr.write(f"Error: given model checker is not a file ({mc_path})\n")
+    #     return 1
 
     # if not btorsim_path.is_file():
     #     sys.stderr.write(f"Error: given btorsim is not a file ({btorsim_path})\n")
     #     return 1
 
-    if not WORK_DIR.is_dir():
-        os.mkdir(WORK_DIR)
+    cleandir(WORK_DIR, False)
 
+    btor2_path = WORK_DIR
     pickled_btor_path = WORK_DIR / src_path.with_suffix(".pickle").name
+    retcode = any2btor(src_path, btor2_path, pickled_btor_path)
 
-    proc = subprocess.run(["python3", IL2BTOR, src_path, "--output", WORK_DIR, "--pickled-btor", pickled_btor_path])
-
-    if proc.returncode:
-        sys.stderr.write(f"Error: il2btor failure\n")
-        return proc.returncode
+    if retcode:
+        return retcode
 
     for check_system_path in [d for d in WORK_DIR.iterdir() if d.is_dir()]:
         btor_witness_dir_path = check_system_path / "wit"
@@ -65,16 +101,37 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
         for btor_path in [l for l in check_system_path.iterdir() if l.suffix == ".btor"]:
             label = btor_path.suffixes[-2][1:]
 
-            proc = subprocess.run([mc_path, btor_path, "--trace-gen-full"], capture_output=True)
+            # ------------------------------------
+            # btormc
+            # ------------------------------------
+            proc = subprocess.run([DEFAULT_BTORMC, btor_path, "--trace-gen-full"], capture_output=True)
 
             if proc.returncode:
                 sys.stderr.write(proc.stderr.decode("utf-8"))
-                sys.stderr.write(f"Error: model checker failure for query '{label}'\n")
+                sys.stderr.write(f"Error: btormc failure for query '{label}'\n")
                 return proc.returncode
 
             btor_witness_bytes = proc.stdout
 
-            btor_witness_path = btor_witness_dir_path / btor_path.with_suffix(f".cex").name
+            btor_witness_path = btor_witness_dir_path / btor_path.with_suffix(f".btormc.cex").name
+            with open(btor_witness_path, "wb") as f:
+                f.write(btor_witness_bytes)
+
+            # ------------------------------------
+            # avr
+            # ------------------------------------
+            os.chdir(DEFAULT_AVR)
+            proc = subprocess.run(["python3", "avr_pr.py", btor_path], capture_output=True)
+            os.chdir("..")
+
+            if proc.returncode:
+                sys.stderr.write(proc.stderr.decode("utf-8"))
+                sys.stderr.write(f"Error: avr failure for query '{label}'\n")
+                return proc.returncode
+
+            btor_witness_bytes = proc.stdout
+
+            btor_witness_path = btor_witness_dir_path / btor_path.with_suffix(f".avr.cex").name
             with open(btor_witness_path, "wb") as f:
                 f.write(btor_witness_bytes)
 
@@ -94,33 +151,26 @@ def main(src_path: Path, mc_path: Path, btorsim_path: Path) -> int:
             # with open(btor_witness_path, "wb") as f:
             #     f.write(btor_witness_bytes)
 
-        proc = subprocess.run(["python3", BTORWIT2ILWIT, btor_witness_dir_path, pickled_btor_path], capture_output=True)
+        mcil_witness_path = WORK_DIR / src_path.with_suffix(".cex").name
 
-        if proc.returncode:
-            sys.stderr.write(proc.stderr.decode("utf-8"))
-            sys.stderr.write(f"Error: btorwit2ilwit error\n")
-            return proc.returncode
+        retcode = btorwit2mcilwit(btor_witness_dir_path, pickled_btor_path, mcil_witness_path)
 
-        print(proc.stdout.decode("utf-8"))
+        if retcode:
+            return retcode
 
     return 0
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("source", help="IL program to model check")
-    parser.add_argument("--modelchecker", default=str(DEFAULT_MC),
-                            help="path to model checker executable (e.g., btormc)")
-    parser.add_argument("--btorsim", default=str(DEFAULT_SIM),
-                            help="path to btorsim executable")
+    parser.add_argument("source", help="source program to model check via translation to btor2")
+    # parser.add_argument("--targetloc", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
+    parser.add_argument("--sortcheck", action="store_true",
+                        help="enable sort checking of emitted MCIL")
     args = parser.parse_args()
 
-    cleandir(WORK_DIR, False)
-
     src_path = Path(args.source)
-    mc_path = Path(args.modelchecker)
-    btorsim_path = Path(args.btorsim)
 
-    returncode = main(src_path, mc_path, btorsim_path)
-    sys.exit(returncode)
+    retcode = model_check(src_path, Path(""))
 
+    sys.exit(retcode)

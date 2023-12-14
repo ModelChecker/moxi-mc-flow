@@ -1,9 +1,10 @@
 #type: ignore
 import sys
 import argparse
+from typing import Optional
 
-from sly import Lexer, Parser
-from nuxmv import *
+from .sly import Lexer, Parser
+from .nuxmv import *
 
 class NuXmvLexer(Lexer):
     tokens = { 
@@ -594,13 +595,13 @@ class NuXmvParser(Parser):
         else:
             return p.ltl_expr
         
-def parse(input: str) -> XMVSpecification:
+def parse(input: str) -> Optional[XMVSpecification]:
     lexer = NuXmvLexer()
     parser = NuXmvParser()
 
     result = parser.parse(lexer.tokenize(input))
 
-    return result
+    return result if parser.status else None
 
 def main():
     argparser = argparse.ArgumentParser(
@@ -620,9 +621,6 @@ def main():
     #         print(f"type:{tok.type}, value:{tok.value}")
 
     result = parser.parse(lexer.tokenize(file_string))
-
-    # print(result)
-    return
 
 
 if __name__ == '__main__':

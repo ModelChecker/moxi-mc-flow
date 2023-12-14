@@ -1,9 +1,9 @@
 #type: ignore
 import sys
 
-from sly import Lexer, Parser
-from mcil import *
-from btor_witness import *
+from .sly import Lexer, Parser
+from .mcil import *
+from .btor_witness import *
 
 class MCILLexer(Lexer):
 

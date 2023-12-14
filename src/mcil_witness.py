@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional, Any
 
-from bitvec import BitVec
+from .bitvec import BitVec
 
 
 class MCILQueryResult(Enum):

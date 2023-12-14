@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 from pathlib import Path
 from jsonschema import validate, exceptions, RefResolver
 
-from mcil import *
+from .mcil import *
 
 def from_json_identifier(contents: dict | str) -> MCILIdentifier:
     if isinstance(contents, dict):

@@ -1,6 +1,6 @@
 from typing import Optional, cast
-from bitvec import BitVec
 
+from .bitvec import BitVec
 
 class BtorAssignment():
 

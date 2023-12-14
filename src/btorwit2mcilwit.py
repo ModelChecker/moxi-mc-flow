@@ -3,10 +3,10 @@ import pickle
 import sys
 from pathlib import Path
 
-from btor_witness import *
-from mcil_witness import *
-from btor import *
-from parse_mcil import parse_witness
+from .btor_witness import *
+from .mcil_witness import *
+from .btor import *
+from .parse_mcil import parse_witness
 
 
 def collect_var_symbols(btor_program: list[BtorNode]) -> dict[int, str]:
@@ -112,7 +112,9 @@ def main(
             )
 
     check_sys_response = MCILCheckSystemResponse(query_responses)
-    print(check_sys_response)
+
+    with open(str(output_path), "w") as f:
+        f.write(str(check_sys_response))
 
     return 0
 
