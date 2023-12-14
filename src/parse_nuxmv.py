@@ -67,6 +67,7 @@ class NuXmvLexer(Lexer):
     # punctuation
     COLONEQ = r"\:\="
     COMMA = r"\,"
+    CONCAT = r"\:\:"
     COLON = r"\:"
     SEMICOLON = r"\;"
     DOT = r"\."
@@ -276,7 +277,7 @@ class NuXmvParser(Parser):
             case "INVARSPEC":
                 return XMVInvarspecDeclaration(formula=p[1])
             case "LTLSPEC":
-                return XMVLtlspecDeclaration(formula=p[1])
+                return XMVLTLSpecDeclaration(formula=p[1])
     @_(
             "assign_list assign SEMICOLON",
             "assign SEMICOLON"
@@ -352,9 +353,11 @@ class NuXmvParser(Parser):
         if len(p) == 1: # TODO: constants/whatever
             return p[0]
         if len(p) == 2: # unop
-            return XMVUnop(op=p[0], arg=p[1])
+            return XMVUnOp(op=p[0], arg=p[1])
+        if p[0] == "(":
+            return p[1]
         if len(p) == 3: # binop
-            return XMVBinop(op=p[1], lhs=p[0], rhs=p[2]) 
+            return XMVBinOp(op=p[1], lhs=p[0], rhs=p[2]) 
         if len(p) == 4: # function call
             return XMVFunCall(name=p[0], args=p.cs_expr_list)
         
@@ -381,7 +384,7 @@ class NuXmvParser(Parser):
 
     @_("expr CONCAT expr")
     def expr(self, p):
-        return XMVBinop(op="concat", lhs=p[0], rhs=p[2])
+        return XMVBinOp(op="concat", lhs=p[0], rhs=p[2])
     
     @_("LBRACE cs_expr_list RBRACE")
     def expr(self, p):
@@ -479,11 +482,11 @@ class NuXmvParser(Parser):
             case "integer":
                 return XMVInteger()
             case "word":
-                return XMVWord(width=p[2], signed=False)
+                return XMVWord(width=int(p[2]), signed=False)
             case "unsigned":
-                return XMVWord(width=p[3], signed=False)
+                return XMVWord(width=int(p[3]), signed=False)
             case "signed":
-                return XMVWord(width=p[3], signed=True)
+                return XMVWord(width=int(p[3]), signed=True)
             case "real":
                 return XMVReal()
             case "clock":

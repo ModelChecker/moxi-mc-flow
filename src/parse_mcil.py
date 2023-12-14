@@ -26,7 +26,7 @@ class MCILLexer(Lexer):
     HEXADECIMAL = r"#x[A-F0-9]+"
     BINARY      = r"#b[01]+"
 
-    SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@$%^&*_+=<>.?/-]*'?"
+    SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@#$%^&*_+=<>.?/-]*'?"
     KEYWORD  = r":" + SYMBOL
 
     # LBRACK = r"\["
@@ -80,7 +80,7 @@ class MCILLexer(Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}")
+        sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}\n")
         self.index += 1
 
 
@@ -94,7 +94,7 @@ class MCILParser(Parser):
 
     def error(self, token):
         self.status = False
-        sys.stderr.write(f"Error:{p.lineno}: Unexpected token ({token})")
+        sys.stderr.write(f"Error:{token.lineno}: Unexpected token ({token})\n")
 
     @_("command_list command")
     def command_list(self, p):

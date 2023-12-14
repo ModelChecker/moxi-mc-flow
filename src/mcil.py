@@ -6,6 +6,8 @@ import sys
 from enum import Enum
 from typing import Any, Callable, Optional
 
+from matplotlib import cm
+
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts
 INT_WIDTH = 64
@@ -525,7 +527,7 @@ class MCILCheckSystem(MCILCommand):
     def __str__(self) -> str:
         input_str = " ".join([f"({i.symbol} {i.sort})" for i in self.input])
         output_str = " ".join([f"({o.symbol} {o.sort})" for o in self.output])
-        local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.input])
+        local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.local])
 
         assumption_str = " ".join([f":assumption ({symbol} {expr})" for symbol,expr in self.assumption.items()])
         fairness_str = " ".join([f":fairness ({symbol} {expr})" for symbol,expr in self.fairness.items()])
@@ -653,13 +655,7 @@ ARRAY_RANK_TABLE: RankTable = {
 
 def sort_check_apply_rank(node: MCILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
-    # print([type(a) for a in rank_args])
-    # print([type(c) for c in node.children])
     if rank_args != [c.sort for c in node.children]:
-        print([str(a) for a in rank_args])
-        print([str(c.sort) for c in node.children])
-        print(rank_args != [c.sort for c in node.children])
-
         # print([f"{r.identifier.symbol} : {r.identifier.indices[0]}" for r in rank_args])
         # print([f"{c.sort.identifier.symbol} : {c.sort.identifier.indices[0]}" for c in node.children])
         return False
@@ -1183,7 +1179,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 # cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
-                sys.stderr.write(f"Error: local variables do not match target system ({system.symbol}).\n\t{[str(i.sort) for i in system.input]}\n\t{[str(i.sort) for i in cmd.input]}\n")
+                sys.stderr.write(f"Error: local variables do not match target system ({system.symbol}).\n\tlen(define.local)={len(system.local)}\n\tlen(check.local)={len(cmd.local)}\n")
                 status = False
                 continue
 

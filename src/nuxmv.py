@@ -144,13 +144,16 @@ class XMVExpr():
             
 
 class XMVComplexIdentifier(XMVExpr):
-    pass
+    def __init__(self) -> None:
+        super().__init__()
 
 class XMVConstant(XMVExpr):
-    pass
+    def __init__(self) -> None:
+        super().__init__()
 
 class XMVIntegerConstant(XMVConstant):
     def __init__(self, integer: int):
+        super().__init__()
         self.integer = integer
         self.type = XMVInteger()
 
@@ -159,6 +162,7 @@ class XMVIntegerConstant(XMVConstant):
     
 class XMVBooleanConstant(XMVConstant):
     def __init__(self, boolean: bool):
+        super().__init__()
         self.boolean = boolean
         self.type = XMVBoolean()
 
@@ -167,6 +171,8 @@ class XMVBooleanConstant(XMVConstant):
     
 class XMVWordConstant(XMVConstant):
     def __init__(self, wconstant: str):
+        super().__init__()
+
         if wconstant.find("s") != -1:
             self.signed = True
         else:
@@ -189,7 +195,7 @@ class XMVWordConstant(XMVConstant):
 
         numbers_pre_underscore = re.findall(r'\d+', pre_underscore)
         if numbers_pre_underscore != []:
-            self.width = numbers_pre_underscore[0]
+            self.width = int(numbers_pre_underscore[0])
 
         post_underscore: str = spl[1]
 
@@ -220,6 +226,7 @@ class XMVWordConstant(XMVConstant):
 
 class XMVRangeConstant(XMVConstant):
     def __init__(self, low: int, high: int):
+        super().__init__()
         self.low = low
         self.high = high
         self.type = XMVEnumeration(set(range(low,high+1)))
@@ -229,14 +236,16 @@ class XMVRangeConstant(XMVConstant):
 
 class XMVFunCall(XMVExpr):
     def __init__(self, name: str, args: list[XMVExpr]):
+        super().__init__()
         self.name = name
         self.args = args
 
     def __repr__(self) -> str:
         return f"{self.name}({self.args})"
 
-class XMVBinop(XMVExpr):
+class XMVBinOp(XMVExpr):
     def __init__(self, op: str, lhs: XMVExpr, rhs: XMVExpr):
+        super().__init__()
         self.op = op
         self.lhs = lhs
         self.rhs = rhs
@@ -244,8 +253,9 @@ class XMVBinop(XMVExpr):
     def __repr__(self) -> str:
         return f"{self.lhs} {self.op} {self.rhs}"
 
-class XMVUnop(XMVExpr):
+class XMVUnOp(XMVExpr):
     def __init__(self, op: str, arg: XMVExpr):
+        super().__init__()
         self.op = op
         self.arg = arg
 
@@ -254,6 +264,7 @@ class XMVUnop(XMVExpr):
     
 class XMVIndexSubscript(XMVExpr):
     def __init__(self, array: XMVExpr, index: int):
+        super().__init__()
         self.array = array
         self.index = index
 
@@ -262,18 +273,20 @@ class XMVIndexSubscript(XMVExpr):
 
 class XMVWordBitSelection(XMVExpr):
     def __init__(self, word: XMVExpr, low: int, high: int):
+        super().__init__()
         self.word = word
         self.low = low
         self.high = high
 
         # slices are always unsigned, see p19 of nuxmv user manual
-        self.type = XMVWord(high-low, False) 
+        self.type = XMVWord(high-low+1, False) 
 
     def __repr__(self) -> str:
         return f"{self.word}[{self.low} : {self.high}]"
 
 class XMVSetBodyExpression(XMVExpr):
     def __init__(self, members: list[XMVExpr]):
+        super().__init__()
         self.members = members
 
     def __repr__(self) -> str:
@@ -281,6 +294,7 @@ class XMVSetBodyExpression(XMVExpr):
 
 class XMVTernary(XMVExpr):
     def __init__(self, cond: XMVExpr, then_expr: XMVExpr, else_expr: XMVExpr):
+        super().__init__()
         self.cond = cond
         self.then_expr = then_expr
         self.else_expr = else_expr
@@ -291,6 +305,7 @@ class XMVTernary(XMVExpr):
 
 class XMVCaseExpr(XMVExpr):
     def __init__(self, branches: list[tuple[XMVExpr, XMVExpr]]):
+        super().__init__()
         self.branches = branches
 
     def __repr__(self) -> str:
@@ -299,19 +314,15 @@ class XMVCaseExpr(XMVExpr):
 
 class XMVIdentifier(XMVComplexIdentifier):
     def __init__(self, ident: str):
+        super().__init__()
         self.ident = ident
-
-    def __hash__(self) -> int:
-        return hash(self.ident)
-
-    def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, XMVIdentifier) and __o.ident == self.ident
 
     def __repr__(self) -> str:
         return f"{self.ident}"
     
 class XMVSymbolicConstant(XMVConstant):
     def __init__(self, symbol: XMVIdentifier):
+        super().__init__()
         self.symbol = symbol
         self.type = XMVEnumeration({symbol.ident})
 
@@ -321,6 +332,7 @@ class XMVSymbolicConstant(XMVConstant):
 
 class XMVModuleAccess(XMVComplexIdentifier):
     def __init__(self, module: XMVComplexIdentifier, element: XMVIdentifier):
+        super().__init__()
         self.module = module
         self.element = element
 
@@ -466,7 +478,7 @@ class XMVInvarspecDeclaration(XMVModuleElement):
     def __repr__(self) -> str:
         return f"INVARSPEC {self.formula}"
     
-class XMVLtlspecDeclaration(XMVModuleElement):
+class XMVLTLSpecDeclaration(XMVModuleElement):
     def __init__(self, formula: XMVLTLExpr):
         self.formula = formula
 
@@ -505,9 +517,13 @@ class XMVSpecification():
 class XMVContext():
 
     def __init__(self) -> None:
-        self.vars: dict[XMVIdentifier, XMVType] = {}
-        self.frozen_vars: set[XMVIdentifier] = set()
-        self.defs: dict[XMVIdentifier, XMVExpr] = {}
+        self.vars: dict[str, XMVType] = {}
+        self.frozen_vars: set[str] = set()
+        self.defs: dict[str, XMVExpr] = {}
+        self.init: list[XMVExpr] = []
+        self.invar: list[XMVExpr] = []
+        self.trans: list[XMVExpr] = []
+        self.invarspecs: list[XMVExpr] = []
 
 
 def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
@@ -520,7 +536,7 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
         #    next(next(a)) is not allowed
         pass
 
-    def type_check_expr(expr: XMVExpr) -> bool:
+    def type_check_expr(expr: XMVExpr, context: XMVContext) -> bool:
         # see starting on p16 of nuxmv user manual
         match expr:
             case XMVIntegerConstant(integer=i):
@@ -535,18 +551,36 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                 pass
             case XMVFunCall(name="next", args=args):
                 if len(args) != 1:
-                    raise ValueError(f"Next expr only allowed on operand {expr}")
+                    raise ValueError(f"`next` expr only allowed on operand {expr}")
 
                 arg = args[0]
-                propagate_next(arg)
+                type_check_expr(arg, context)
 
-                
+                expr.type = arg.type
             case XMVFunCall(name="signed", args=args):
-                raise ValueError(f"Unsupported expression {expr}, {type(expr)}")
+                if len(args) != 1:
+                    raise ValueError(f"`signed` expr only allowed on operand {expr}")
+
+                arg: XMVExpr = args[0]
+                type_check_expr(arg, context)
+
+                if not isinstance(arg.type, XMVWord):
+                    raise ValueError(f"Invalid argument for 'signed' {arg}, {expr}")
+
+                expr.type = XMVWord(width=arg.type.width, signed=True)
             case XMVFunCall(name="unsigned", args=args):
-                raise ValueError(f"Unsupported expression {expr}, {type(expr)}")
-            case XMVUnop(op=op, arg=arg):
-                type_check_expr(arg)
+                if len(args) != 1:
+                    raise ValueError(f"`unsigned` expr only allowed on operand {expr}")
+
+                arg: XMVExpr = args[0]
+                type_check_expr(arg, context)
+
+                if not isinstance(arg.type, XMVWord):
+                    raise ValueError(f"Invalid argument for 'signed' {arg}, {expr}")
+
+                expr.type = XMVWord(width=arg.type.width, signed=False)
+            case XMVUnOp(op=op, arg=arg):
+                type_check_expr(arg, context)
 
                 if isinstance(arg.type, (XMVReal, XMVClock)):
                     raise ValueError(f"Unsupported type for {arg}, {arg.type}")
@@ -554,13 +588,13 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                 match (op, arg.type):
                     case ("!", XMVBoolean()) | ("!", XMVWord()):
                         expr.type = arg.type
-                    case ("-", _):
+                    case ("-", XMVBoolean()) | ("-", XMVWord()) | ("-", XMVInteger()):
                         expr.type = arg.type
                     case _:
                         raise ValueError(f"Type checking error for {op}")
-            case XMVBinop(op=op, lhs=lhs, rhs=rhs):
-                type_check_expr(lhs)
-                type_check_expr(rhs)
+            case XMVBinOp(op=op, lhs=lhs, rhs=rhs):
+                type_check_expr(lhs, context)
+                type_check_expr(rhs, context)
 
                 if isinstance(lhs.type, (XMVReal, XMVClock)):
                     raise ValueError(f"Unsupported type for {lhs}, {lhs.type}")
@@ -573,7 +607,7 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                             case (XMVBoolean(), XMVBoolean()):
                                 expr.type = XMVBoolean()
                             case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
-                                if not w1 == w2 and s1 == s2:
+                                if w1 != w2 or s1 != s2:
                                     raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
                                 expr.type = XMVWord(w1,s1)
                             case _:
@@ -583,9 +617,9 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                             case (XMVInteger(), XMVInteger()):
                                 expr.type = XMVBoolean()
                             case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
-                                if not w1 == w2 and s1 == s2:
+                                if w1 != w2 or s1 != s2:
                                     raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
-                                expr.type = XMVWord(w1,s1)
+                                expr.type = XMVBoolean()
                             case (XMVEnumeration(), XMVEnumeration()):
                                 pass
                             case _:
@@ -595,7 +629,7 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                             case (XMVInteger(), XMVInteger()):
                                 expr.type = XMVInteger()
                             case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
-                                if not w1 == w2 and s1 == s2:
+                                if w1 != w2 or s1 != s2:
                                     raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
                                 expr.type = XMVWord(w1,s1)
                             case _:
@@ -608,23 +642,37 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                                 expr.type = XMVWord(width=w1, signed=s)
                             case _:
                                 raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
+                    case "concat":
+                        match (lhs.type, rhs.type):
+                            case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
+                                expr.type = XMVWord(width=w1+w2, signed=False)
+                            case _:
+                                raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
                     case _:
                         raise ValueError(f"Unsupported op {op}, {expr}")
             case XMVIndexSubscript():
                 pass
-            case XMVWordBitSelection():
+            case XMVWordBitSelection(word=word, low=low, high=high):
                 pass
             case XMVSetBodyExpression():
                 pass
             case XMVTernary():
                 pass
-            case XMVCaseExpr():
-                pass
-            case XMVIdentifier(ident=i):
-                if expr in context.vars:
-                    expr.type = context.vars[expr]
-                elif expr in context.defs:
-                    expr.type = context.defs[expr].type
+            case XMVCaseExpr(branches=branches):
+                for (cond, branch) in branches:
+                    type_check_expr(cond, context)
+                    if (not isinstance(cond.type, XMVBoolean) and 
+                        not (isinstance(cond.type, XMVWord) and cond.type.width == 1)):
+                        raise ValueError(f"Case condition must be Boolean {expr}, {cond}")
+                    
+                    type_check_expr(branch, context)
+                    # TODO: check that branches all have same type
+                    expr.type = branch.type
+            case XMVIdentifier(ident=ident):
+                if ident in context.vars:
+                    expr.type = context.vars[ident]
+                elif ident in context.defs:
+                    expr.type = context.defs[ident].type
                 else:
                     raise ValueError(f"Variable {expr} not declared")
             case XMVModuleAccess():
@@ -639,7 +687,7 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
         match element:
             case XMVVarDeclaration(var_list=var_list, modifier=modifier):
                 for (xmv_id, xmv_type) in var_list:
-                    context.vars[xmv_id] = xmv_type
+                    context.vars[xmv_id.ident] = xmv_type
                     if modifier == "FROZENVAR":
                         context.frozen_vars.add(xmv_id)
             case _:
@@ -649,8 +697,29 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
         match element:
             case XMVDefineDeclaration(define_list=define_list):
                 for define in define_list:
-                    type_check_expr(define.expr)
-                    context.defs[define.name] = define.expr
+                    type_check_expr(define.expr, context)
+                    context.defs[define.name.ident] = define.expr
+            case _:
+                pass
+
+    for element in module.elements:
+        match element:
+            case XMVAssignDeclaration(assign_list=assign_list):
+                raise ValueError(f"Unsupported element ASSIGN")
+            case XMVTransDeclaration(formula=formula):
+                type_check_expr(formula, context)
+                context.trans.append(formula)
+            case XMVInitDeclaration(formula=formula):
+                type_check_expr(formula, context)
+                context.init.append(formula)
+            case XMVInvarDeclaration(formula=formula):
+                type_check_expr(formula, context)
+                context.invar.append(formula)
+            case XMVInvarspecDeclaration(formula=formula):
+                type_check_expr(formula, context)
+                context.invarspecs.append(formula)
+            case XMVLTLSpecDeclaration(formula=formula):
+                raise ValueError(f"Unsupported element LTLSPEC")
             case _:
                 pass
 

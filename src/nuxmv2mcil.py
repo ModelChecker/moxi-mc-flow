@@ -1,5 +1,8 @@
 import argparse
 from pathlib import Path
+from typing import cast
+import subprocess
+
 from parse_nuxmv import parse
 from nuxmv import *
 from mcil import *
@@ -17,52 +20,55 @@ def translate_type(xmv_type: XMVType) -> MCILSort:
         case XMVWord(width=w):
             return MCIL_BITVEC_SORT(w)
         case XMVEnumeration(summands=s):
+            raise ValueError("enums unsupported")
             return MCIL_ENUM_SORT(s[0])
-        case XMVRange():
-            raise ValueError("not in mcil.py AST?")
         case XMVArray(type=t):
             return MCIL_ARRAY_SORT(MCIL_INT_SORT, translate_type(t))
         case _:
             raise ValueError(f"Unidentified type: {xmv_type}")
         
 def coerce_int_to_bv(expr: MCILExpr) -> MCILExpr:
-    match expr:
-        case MCILConstant(sort=MCIL_INT_SORT, value=v):
-            return MCILConstant(sort=MCIL_BITVEC_SORT(len(bin(v)[2:])), value=v)
-        case _:
-            return expr
+    if isinstance(expr, MCILConstant) and is_int_sort(expr.sort):
+        return MCILConstant(
+            MCIL_BITVEC_SORT(len(bin(expr.value)[2:])), 
+            expr.value
+        )
+    return expr
 
-def translate_expr(xmv_expr: XMVExpr) -> MCILExpr:
+def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
     match xmv_expr:
-        case XMVIdentifier(ident=i):
+        case XMVIdentifier(ident=ident):
+            if ident in context.defs:
+                return translate_expr(context.defs[ident], context)
+
             return MCILVar(
                 var_type=MCILVarType.LOCAL,
                 sort=MCIL_BOOL_SORT, # TODO
-                symbol=i,
+                symbol=ident,
                 prime=False
             )
         case XMVIntegerConstant(integer=i):
             return MCILConstant(sort=MCIL_INT_SORT, value=i)
         case XMVBooleanConstant(boolean=b):
             return MCILConstant(sort=MCIL_BOOL_SORT, value=b)
-        case XMVWordConstant():
+        case XMVWordConstant(width=width, value=value):
             return MCILConstant(
-                sort=MCIL_BITVEC_SORT(xmv_expr.width), 
-                value=int(xmv_expr.value)
+                sort=MCIL_BITVEC_SORT(width), 
+                value=int(value)
             )            
-        case XMVFunCall(function_name=fname, function_args=fargs):
+        case XMVFunCall(name=fname, args=fargs):
             match fname:
                 case "signed":
-                    return translate_expr(fargs[0])
+                    return translate_expr(fargs[0], context)
                 case "unsigned":
-                    return translate_expr(fargs[0])
+                    return translate_expr(fargs[0], context)
                 case "next":
                     match fargs[0]:
-                        case XMVIdentifier(ident=i):
+                        case XMVIdentifier(ident=ident):
                             return MCILVar(
                                 var_type=MCILVarType.LOCAL,
-                                sort=MCIL_BOOL_SORT, # TODO
-                                symbol=fargs[0].ident,
+                                sort=translate_type(context.vars[ident]),
+                                symbol=ident,
                                 prime=True
                             )
                         case _:
@@ -74,69 +80,75 @@ def translate_expr(xmv_expr: XMVExpr) -> MCILExpr:
                         identifier=MCILIdentifier(symbol=fname, indices=[]),
                         children=[translate_expr(e) for e in fargs]
                     )
-        case XMVBinop(op=op, lhs=lhs, rhs=rhs):
+        case XMVBinOp(op=op, lhs=lhs, rhs=rhs):
             match op:
                 case '&':
                     il_op = "and"
-                    il_lhs = translate_expr(lhs)
-                    il_rhs = translate_expr(rhs)
+                    il_lhs = translate_expr(lhs, context)
+                    il_rhs = translate_expr(rhs, context)
                 case '|':
                     il_op = "or"
-                    il_lhs = translate_expr(lhs)
-                    il_rhs = translate_expr(rhs)
+                    il_lhs = translate_expr(lhs, context)
+                    il_rhs = translate_expr(rhs, context)
                 case '!':
                     il_op = "not"
-                    il_lhs = translate_expr(lhs)
-                    il_rhs = translate_expr(rhs)
+                    il_lhs = translate_expr(lhs, context)
+                    il_rhs = translate_expr(rhs, context)
                 case "->":
                     il_op = "=>"
-                    il_lhs = translate_expr(lhs)
-                    il_rhs = translate_expr(rhs)
+                    il_lhs = translate_expr(lhs, context)
+                    il_rhs = translate_expr(rhs, context)
                 case "!=":
                     il_op = "distinct"
-                    il_lhs = translate_expr(lhs)
-                    il_rhs = translate_expr(rhs)
+                    il_lhs = translate_expr(lhs, context)
+                    il_rhs = translate_expr(rhs, context)
                 case "<":
                     il_op = "bvult"
-                    il_lhs = coerce_int_to_bv(translate_expr(lhs))
-                    il_rhs = coerce_int_to_bv(translate_expr(rhs))
+                    il_lhs = coerce_int_to_bv(translate_expr(lhs, context))
+                    il_rhs = coerce_int_to_bv(translate_expr(rhs, context))
                 case "+":
                     il_op = "bvadd"
-                    il_lhs = coerce_int_to_bv(translate_expr(lhs))
-                    il_rhs = coerce_int_to_bv(translate_expr(rhs))
+                    il_lhs = coerce_int_to_bv(translate_expr(lhs, context))
+                    il_rhs = coerce_int_to_bv(translate_expr(rhs, context))
+                case "/":
+                    expr_type = cast(XMVWord, xmv_expr.type)
+                    il_op = "bvsdiv" if expr_type.signed else "bvudiv"
+                    il_lhs = coerce_int_to_bv(translate_expr(lhs, context))
+                    il_rhs = coerce_int_to_bv(translate_expr(rhs, context))
                 case "=":
                     il_op = "="
                     try:
-                        il_lhs_sort = synthesize_sort(lhs)
+                        il_lhs_sort = translate_type(lhs.type)
                         if is_int_sort(il_lhs_sort):
-                            il_lhs = coerce_int_to_bv(translate_expr(lhs))
-                            il_rhs = translate_expr(rhs)
+                            il_lhs = coerce_int_to_bv(translate_expr(lhs, context))
+                            il_rhs = translate_expr(rhs, context)
                         else:
-                            il_lhs = translate_expr(lhs)
-                            il_rhs = translate_expr(rhs)
+                            il_lhs = translate_expr(lhs, context)
+                            il_rhs = translate_expr(rhs, context)
                     except ValueError:
                         try:
-                            il_rhs_sort = synthesize_sort(rhs)
+                            il_rhs_sort = translate_type(rhs.type)
                             if is_int_sort(il_rhs_sort):
-                                il_rhs = coerce_int_to_bv(translate_expr(rhs))
-                                il_lhs = translate_expr(lhs)
+                                il_rhs = coerce_int_to_bv(translate_expr(rhs, context))
+                                il_lhs = translate_expr(lhs, context)
                             else:
-                                il_lhs = translate_expr(lhs)
-                                il_rhs = translate_expr(rhs)
+                                il_lhs = translate_expr(lhs, context)
+                                il_rhs = translate_expr(rhs, context)
                         except ValueError:
-                            il_lhs = translate_expr(lhs)
-                            il_rhs = translate_expr(rhs)
+                            il_lhs = translate_expr(lhs, context)
+                            il_rhs = translate_expr(rhs, context)
                 case _:
                     il_op = op
-                    il_lhs = translate_expr(lhs)
-                    il_rhs = translate_expr(rhs)
+                    il_lhs = translate_expr(lhs, context)
+                    il_rhs = translate_expr(rhs, context)
+
 
             return MCILApply(
-                sort=synthesize_sort(xmv_expr=xmv_expr),
+                sort=translate_type(xmv_expr.type),
                 identifier=MCILIdentifier(symbol=il_op, indices=[]),
                 children=[il_lhs, il_rhs]
             )
-        case XMVUnop(op=op, arg=arg):
+        case XMVUnOp(op=op, arg=arg):
             match op:
                 case "!":
                     il_op = "not"
@@ -144,14 +156,18 @@ def translate_expr(xmv_expr: XMVExpr) -> MCILExpr:
                     il_op = op
 
             return MCILApply(
-                sort=synthesize_sort(xmv_expr=xmv_expr),
+                sort=translate_type(xmv_expr.type),
                 identifier=MCILIdentifier(symbol=il_op, indices=[]),
-                children=[translate_expr(arg)]
+                children=[translate_expr(arg, context)]
+            )
+        case XMVWordBitSelection(word=word, low=low, high=high):
+            return MCILApply(
+                sort=translate_type(xmv_expr.type),
+                identifier=MCILIdentifier(symbol="extract", indices=[low, high]),
+                children=[translate_expr(word, context)]
             )
         case _:
             raise ValueError(f"[translate_expr] unhandled expression {xmv_expr}, {xmv_expr.__class__}")
-
-    raise ValueError(f"[translate_expr] {xmv_expr}")
 
 def conjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
     if len(expr_list) == 1:
@@ -165,30 +181,17 @@ def conjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
             children=[head, conjoin_list(tail)]
         )
 
-# def synthesize_sort(xmv_expr: XMVExpr) -> MCILSort:
-#     match xmv_expr:
-#         case XMVIntegerConstant():
-#             return MCIL_INT_SORT
-#         case XMVBooleanConstant():
-#             return MCIL_BOOL_SORT
-#         case XMVWordConstant():
-#             return MCIL_BITVEC_SORT(xmv_expr.width)
-#         case XMVRangeConstant():
-#             raise ValueError("not dealing with ranges yet")
-#         case XMVBinop(op="+") | XMVBinop(op="-") | XMVBinop(op="*") | XMVBinop(op="/"):
-#             return MCIL_BITVEC_SORT(32)
-#         case XMVBinop(op="&") | XMVBinop(op="|") | XMVBinop(op="xor") | XMVBinop(op="xnor"):
-#             return MCIL_BOOL_SORT
-#         case XMVUnop(op="!"):
-#             return MCIL_BOOL_SORT
-#         case XMVUnop(op="-"):
-#             return MCIL_INT_SORT
-#         case XMVBinop(op="=") | XMVBinop(op="!="):
-#             return MCIL_BOOL_SORT
-#         case XMVBinop(op="<") | XMVBinop(op=">") | XMVBinop(op="<=") | XMVBinop(op=">="):
-#             return MCIL_BITVEC_SORT(1)
-#         case _:
-#             raise ValueError(f"[synthesize_sort] Uncovered case: {xmv_expr}")
+def disjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
+    if len(expr_list) == 1:
+        return expr_list[0]
+    else:
+        head, *tail = expr_list
+        and_ident: MCILIdentifier = MCILIdentifier(symbol="or", indices=[])
+        return MCILApply(
+            sort=MCIL_BOOL_SORT,
+            identifier=and_ident,
+            children=[head, disjoin_list(tail)]
+        )
 
 def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
     result: list[MCILVar] = []
@@ -231,44 +234,23 @@ def gather_local(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
                     )
 
                     result.append(mcil_var)
-            # Definitions are actually macros...need to just expand them all
-            # case XMVDefineDeclaration():
-            #     define_list = module_element.define_list
-            #     for define in define_list:
-            #         name = define.name
-            #         rhs_expr = define.expr
-
-            #         context.vars[name.ident] = rhs_expr.type
-
-            #         var = MCILVar(
-            #             var_type=MCILVarType.LOCAL,
-            #             sort=translate_type(rhs_expr.type),
-            #             symbol=name.ident,
-            #             prime=False
-            #         )
-
-            #         result.append(var)
             case _:
                pass
     
     return result
 
-def gather_init(xmv_module: XMVModule) -> MCILExpr:
-    return MCILConstant(sort=MCIL_BOOL_SORT, value=True)
+def gather_init(xmv_module: XMVModule, context: XMVContext) -> MCILExpr:
+    init_list = [translate_expr(e.formula, context) for e in xmv_module.elements if isinstance(e, XMVInitDeclaration)]
 
-def gather_trans(xmv_module: XMVModule) -> MCILExpr:
-    return MCILConstant(sort=MCIL_BOOL_SORT, value=True)
+    return conjoin_list(init_list) if len(init_list) > 0 else MCILConstant(MCIL_BOOL_SORT, True)
 
-def gather_inv(xmv_module: XMVModule) -> MCILExpr:
-    inv_list: list[MCILExpr] = []
+def gather_trans(xmv_module: XMVModule, context: XMVContext) -> MCILExpr:
+    trans_list = [translate_expr(e.formula, context) for e in xmv_module.elements if isinstance(e, XMVTransDeclaration)]
 
-    for module_element in xmv_module.elements:
-        match module_element:
-            case XMVInvarDeclaration():
-                invar = module_element.formula
-                inv_list.append(translate_expr(invar))
-            case _:
-                pass
+    return disjoin_list(trans_list) if len(trans_list) > 0 else MCILConstant(MCIL_BOOL_SORT, True)
+
+def gather_inv(xmv_module: XMVModule, context: XMVContext) -> MCILExpr:
+    inv_list = [translate_expr(e.formula, context) for e in xmv_module.elements if isinstance(e, XMVInvarDeclaration)]
 
     return conjoin_list(inv_list) if len(inv_list) > 0 else MCILConstant(MCIL_BOOL_SORT, True)
 
@@ -281,8 +263,17 @@ def gather_enums(xmv_module: XMVModule) -> list[MCILCommand]:
 def gather_consts(xmv_module: XMVModule) -> list[MCILCommand]:
     return []
 
-def gather_queries(xmv_module: XMVModule) -> dict[str, list[str]]:
-    return {}
+def gather_invarspecs(xmv_module: XMVModule, context: XMVContext) -> dict[str, MCILExpr]:
+    invarspec_dict = {
+        f"rch_{repr(e.formula).replace(' ','_')}": 
+                cast(MCILExpr, MCILApply(
+                    MCIL_BOOL_SORT, 
+                    MCILIdentifier("not", []), 
+                    [translate_expr(e.formula, context)]
+                ))
+        for e in xmv_module.elements if isinstance(e, XMVInvarspecDeclaration)}
+
+    return invarspec_dict
 
 def translate_module(xmv_module: XMVModule) -> list[MCILCommand]:
     print(f"[translate_module] translating module {xmv_module.name}")
@@ -294,21 +285,16 @@ def translate_module(xmv_module: XMVModule) -> list[MCILCommand]:
         raise ValueError("Not type correct")
 
     input = gather_input(xmv_module, xmv_context)
-
     output = gather_output(xmv_module, xmv_context)
-
     local = gather_local(xmv_module, xmv_context)
 
-    init = gather_init(xmv_module)
-
-    trans = gather_trans(xmv_module)
-
-    inv = gather_inv(xmv_module)
+    init = gather_init(xmv_module, xmv_context)
+    trans = gather_trans(xmv_module, xmv_context)
+    inv = gather_inv(xmv_module, xmv_context)
 
     subsystems = gather_subsystems(xmv_module)
 
-    define_system: MCILDefineSystem = \
-        MCILDefineSystem(
+    define_system= MCILDefineSystem(
             symbol=xmv_module.name,
             input=input,
             output=output,
@@ -319,23 +305,21 @@ def translate_module(xmv_module: XMVModule) -> list[MCILCommand]:
             subsystems=subsystems
         )
     
-    query: dict[str, list[str]] = gather_queries(xmv_module)
+    reachable: dict[str, MCILExpr] = gather_invarspecs(xmv_module, xmv_context)
 
-
-    if len(query) == 0:
+    if len(reachable) == 0:
         check_system = []
     else:
-        check_system: list[MCILCommand] = \
-            [MCILCheckSystem(
+        check_system: list[MCILCommand] = [MCILCheckSystem(
                 sys_symbol=xmv_module.name,
                 input=input,
                 output=output,
                 local=local,
                 assumption={},
                 fairness={},
-                reachable={},
+                reachable=reachable,
                 current={},
-                query=query,
+                query={f"qry_{r}":[r] for r in reachable.keys()},
             )]
 
     # commands
@@ -360,17 +344,25 @@ def main():
                            prog='nuXmv/NuSMV to IL translation',
                            description='Parses a nuXmv/NuSMV (.smv) file and translates the resulting AST into IL'
    )
-    
     argparser.add_argument('filename')
 
     args = argparser.parse_args()
+    spec_path = Path(args.filename)
+    pp_spec_path = spec_path.with_suffix(".smv.pp")
 
-    parse_tree: XMVSpecification = parse(args.filename)
-    print(f"[main] parsed specification in {args.filename}")
+    proc = subprocess.run([
+        "python3", 
+        str(Path(__file__).parent / "preprocess_nuxmv.py"),
+        str(spec_path),
+        str(pp_spec_path)
+    ], capture_output=True)
+
+    parse_tree: XMVSpecification = parse(str(pp_spec_path))
+    print(f"[main] parsed specification in {pp_spec_path}")
 
     result: MCILProgram = translate(parse_tree)
 
-    with open(f"{Path(args.filename).with_suffix('.mcil').name}", "w") as f:
+    with open(f"{Path(spec_path).with_suffix('.mcil').name}", "w") as f:
         f.write(str(result))
 
     # print(f"[main] result: {result}")

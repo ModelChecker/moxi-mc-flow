@@ -256,6 +256,16 @@ def ilexpr_to_btor2(
         if len(expr.children) > 3:
             raise NotImplementedError
 
+        # handle indexed operators:
+        # concat
+        # extract
+        # zero_extend
+        # sign_extend
+        # rotate_right
+        # rotate_left
+        
+        # args = indices + children
+
         tmp_children = copy(expr.children) + ([None] * (3 - len(expr.children)))
         (arg1, arg2, arg3) = tuple(tmp_children)
 

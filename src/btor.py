@@ -157,9 +157,6 @@ class BtorExpr(BtorNode):
         super().__init__()
         self.children = c
 
-# BTOR2 operators have only 1, 2, or 3 arguments
-BtorArgs = tuple[Optional[BtorExpr], Optional[BtorExpr], Optional[BtorExpr]]
-
 class BtorVar(BtorExpr):
 
     def __init__(self, sort: BtorSort, symbol: str = ""):
@@ -217,9 +214,12 @@ class BtorConst(BtorExpr):
         return hash((self.sort, self.value))
 
 
+# BTOR2 operators have only 1, 2, or 3 arguments
+BtorArgs = tuple[Optional[BtorExpr], Optional[BtorExpr], Optional[BtorExpr]]
+
 class BtorApply(BtorExpr):
 
-    def __init__(self, sort: BtorSort, op: BtorOperator, args: BtorArgs):
+    def __init__(self, sort: BtorSort, op: BtorOperator, indics: list[int], args: BtorArgs):
         super().__init__(args)
         self.sort = sort
         self.operator = op

@@ -1,8 +1,9 @@
 from io import TextIOWrapper
 import sys
 import os
+import argparse
+from pathlib import Path
 
-file_path = sys.argv[1]
 
 var_kws = ["IVAR", "VAR", "FROZENVAR"]
 
@@ -77,24 +78,25 @@ def handle_variables(file_path: str, module_names: list[str]):
             return ret_fc
 
 
+if __name__ == "__main__":
+    argparser = argparse.ArgumentParser(
+                            prog='preprocess script for nuXmv files',
+    )
+    argparser.add_argument("input")
+    argparser.add_argument("output")
 
-try:
-    if file_path.find("-pp.smv") != -1:
-        print("[preprocess.py] already preprocessed!")
-        sys.exit(0)
+    args = argparser.parse_args()
 
-    with open(file_path, 'r') as file:
+    input_path = Path(args.input)
+    output_path = Path(args.output)
+
+    with open(str(input_path), 'r') as file:
         names = module_names(file)
-        new_file_contents = handle_variables(file_path, names)
+        new_file_contents = handle_variables(str(input_path), names)
         # print(new_file_contents)
         file.close()
 
-    # print("NEW FILE CONTENTS:", new_file_contents)
-    outfile_path = os.path.splitext(file_path)[0] + "-pp.smv"
-    outfile = open(outfile_path, 'w+')
-    outfile.write(new_file_contents)
-    print(f"[preprocess.py] Wrote output to `{outfile_path}`")
-    outfile.close()
+    with open(str(output_path), 'w') as file:
+        file.write(new_file_contents)
 
-except FileNotFoundError:
-    print(f"File {file_path} not found!")
+    print(f"[preprocess.py] Wrote output to `{output_path}`")
