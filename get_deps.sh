@@ -1,5 +1,5 @@
 # AVR
-git@github.com:aman-goel/avr.git
+git clone git@github.com:aman-goel/avr.git
 pushd avr/
 git checkout hwmcc20
 popd
