@@ -11,35 +11,36 @@ import logging
 
 from logger import toplevel_logger, Color, Formatter, ColorFormatter
 
-
-TEST_DIR = Path(__file__).parent.absolute()
-SUITES_DIR = TEST_DIR / "suites"
-FILES_DIR = TEST_DIR / "inputs"
+TEST_DIR = Path(__file__).parent
 WORK_DIR = TEST_DIR / "__workdir__"
+SMV_DIR = TEST_DIR / "smv"
 
-
-SMV2IL = {
-    "name": "smv2il",
-    "source": "smv",
-    "target": "mcil",
-    "dir": "smv" 
-}
-
-SMV2BTOR = {
-    "name": "smv2btor",
-    "source": "smv",
-    "target": "btor2",
-    "dir": "smv" 
-}
-
-IL2BTOR = {
-    "name": "mcil2btor",
-    "source": "mcil",
-    "target": "btor2",
-    "dir": "mcil"
-}
-
-SUITES = [ SMV2IL, SMV2BTOR, IL2BTOR ]
+SUITES = [ 
+    {
+        "name": "nuxmv2mcil",
+        "source": "smv",
+        "target": "mcil",
+        "dir": "smv" 
+    },
+    {
+        "name": "nuxmv2mcil-invgen",
+        "source": "smv",
+        "target": "mcil",
+        "dir": "smv/nuxmv/invgen" 
+    },
+    {
+        "name": "nuxmv2btor",
+        "source": "smv",
+        "target": "btor2",
+        "dir": "smv" 
+    },
+    {
+        "name": "mcil2btor",
+        "source": "mcil",
+        "target": "btor2",
+        "dir": "mcil"
+    }
+]
 SUITE_NAMES = [ suite["name"] for suite in SUITES ]
 SUITE_NAME_MAP = { suite["name"]: suite for suite in SUITES }
 
@@ -84,9 +85,8 @@ class TestCase():
         self.suite_results_dir: Path = top_results_dir / suite_name
         self.test_results_dir: Path = self.suite_results_dir / test_name
 
-        # TODO: configure test file here
-
         self.clean()
+        print(f"configuring logger for {self.test_name}")
         self.configure_logger()
 
     def clean(self):
@@ -103,7 +103,7 @@ class TestCase():
         stream_handler.setFormatter(ColorFormatter())
         self.logger.addHandler(stream_handler)
 
-        file_handler = logging.FileHandler(f"{self.test_results_dir}/{self.test_name}.log")
+        file_handler = logging.FileHandler(self.test_results_dir / f"{self.test_name}.log")
         file_handler.setLevel(logging.DEBUG)
         file_handler.setFormatter(Formatter())
         self.logger.addHandler(file_handler)
@@ -117,8 +117,12 @@ class TestCase():
 
     def run(self, program: Path, options: list[str], copyback: bool):
         os.chdir(WORK_DIR)
+        self.logger.info("duck")
 
-        proc = subprocess.run(["python", str(program), str(self.test_path), "--targetloc", "out"] + options, capture_output=True)
+        proc = subprocess.run(
+            ["python3", str(program), str(self.test_path),
+            "--output", str(self.test_results_dir)] + options, capture_output=True
+        )
 
         if proc.stdout != b"":
             with open(self.test_results_dir / "stdout", "wb") as f:
@@ -131,8 +135,6 @@ class TestCase():
         if proc.returncode != 0:
             self.test_fail(f"{program} returned with code {proc.returncode}")
             return
-
-        # do more testing
 
         if self.status:
             self.test_pass()
@@ -162,7 +164,9 @@ class TestSuite():
         self.options: list[str] = []
         self.top_results_dir: Path = top_results_dir
         self.suite_results_dir: Path = top_results_dir / name
-        
+        self.pass_path = self.top_results_dir / "pass.txt"
+        self.fail_path = self.top_results_dir / "fail.txt"
+
         self.clean()
         self.configure_logger()
         self.configure_tests()
@@ -209,9 +213,14 @@ class TestSuite():
         if not test_file_dir.is_dir():
             self.suite_fail_msg(f"File directory `{test_file_dir}` not a directory")
 
-        for test_filename in glob(f"{test_file_dir}/*"):
+        for test_filename in [f for f in test_file_dir.glob("**/*") if f.is_file()]:
             test_path = test_file_dir / test_filename
-            self.tests.append(TestCase(self.suite_name, test_path.stem, test_path, self.top_results_dir))
+            self.tests.append(TestCase(
+                self.suite_name, 
+                test_path.stem, 
+                test_path, 
+                self.top_results_dir
+            ))
 
     def run(self, program: Path, copyback: bool):
         if not program.is_file():
@@ -221,9 +230,17 @@ class TestSuite():
         if not self.status:
             return
 
-        for test in self.tests:
-            test.run(program, self.options, copyback)
-            self.status = test.status and self.status
+        with open(self.pass_path, "w") as pass_file:
+            with open(self.fail_path, "w") as fail_file:
+                for test in self.tests:
+                    test.run(program, self.options, copyback)
+                    
+                    if test.status:
+                        pass_file.write(test.test_name + "\n")
+                    else:
+                        fail_file.write(test.test_name + "\n")
+
+                    self.status = test.status and self.status
 
         if not self.status:
             self.suite_fail()
@@ -238,6 +255,7 @@ def main(program: Path,
     """Runs `program` on each suite in `suite_names` and stores results in `results_dir`."""
     suites: list[TestSuite] = []
     for suite_name in suite_names:
+        print(suite_name)
         suites.append(TestSuite(suite_name, SUITE_NAME_MAP[suite_name], results_dir.absolute()))
 
     for suite in suites:
@@ -248,12 +266,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("suites", nargs="+", choices=SUITE_NAMES,
                         help="names of test suites to run")
-    parser.add_argument("--resultsdir", default=f"{TEST_DIR.absolute()}/resultsdir",
+    parser.add_argument("--resultsdir", default=str(TEST_DIR / "resultsdir"),
                         help="directory to output test logs and copyback data")
+    parser.add_argument("--translate", default=str(TEST_DIR / ".." / "translate.py"),
+                        help="path to translate.py")
     parser.add_argument("--copyback", action="store_true",
                         help="copy all source, compiled, and log files from each testcase")
     args = parser.parse_args()
 
-    program = TEST_DIR / "../src/translate.py"
-
-    main(program, Path(args.resultsdir), args.suites, args.copyback)
+    main(Path(args.translate), Path(args.resultsdir), args.suites, args.copyback)
