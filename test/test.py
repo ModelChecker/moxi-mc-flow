@@ -9,6 +9,21 @@ FILE_DIR = Path(__file__).parent
 translate_path = FILE_DIR/ ".." / "translate.py"
 modelcheck_path = FILE_DIR / ".." / "modelcheck.py"
 
+
+def cleandir(dir: Path, quiet: bool):
+    """Remove and create fresh dir, print a warning if quiet is False"""
+    if dir.is_file():
+        if not quiet:
+            print(f"Overwriting '{dir}'")
+        dir.rmdir()
+    elif dir.is_dir():
+        if not quiet:
+            print(f"Overwriting '{dir}'")
+        shutil.rmtree(dir)
+
+    dir.mkdir()
+
+
 def test_nuxmv2mcil(src: str, dst: str) -> str:
     global translate_path
 
@@ -20,10 +35,8 @@ def test_nuxmv2mcil(src: str, dst: str) -> str:
 
     pass_dir = dst_path.parent / "pass"
     fail_dir = dst_path.parent / "fail"
-    if not pass_dir.exists():
-        pass_dir.mkdir()
-    if not fail_dir.exists():
-        fail_dir.mkdir()
+    cleandir(pass_dir, True)
+    cleandir(fail_dir, True)
 
     mcil_path = pass_dir / dst_path.with_suffix(".mcil").name
     stderr_path = fail_dir /  dst_path.with_suffix(".stderr").name
@@ -54,10 +67,8 @@ def test_mcil2btor(src: str, dst: str) -> str:
 
     pass_dir = dst_path.parent / "pass"
     fail_dir = dst_path.parent / "fail"
-    if not pass_dir.exists():
-        pass_dir.mkdir()
-    if not fail_dir.exists():
-        fail_dir.mkdir()
+    cleandir(pass_dir, True)
+    cleandir(fail_dir, True)
 
     btor_path = pass_dir / dst_path.with_suffix(".btor").name
     stderr_path = fail_dir /  dst_path.with_suffix(".stderr").name
@@ -85,16 +96,14 @@ def test_modelcheck(src: str, dst: str) -> str:
 
     pass_dir = dst_path.parent / "pass"
     fail_dir = dst_path.parent / "fail"
-    if not pass_dir.exists():
-        pass_dir.mkdir()
-    if not fail_dir.exists():
-        fail_dir.mkdir()
+    cleandir(pass_dir, True)
+    cleandir(fail_dir, True)
 
-    stderr_path = fail_dir /  dst_path.with_suffix(".stderr").name
+    cex_path = pass_dir / dst_path.with_suffix(".cex").name
+    stderr_path = fail_dir / dst_path.with_suffix(".stderr").name
 
     proc = subprocess.run([
-        "python3", str(modelcheck_path), str(src_path), "--btormc",
-        "--avr", "--pono"
+        "python3", str(modelcheck_path), str(src_path), "--btormc", "--output", cex_path
     ], capture_output=True)
 
     if proc.returncode:
@@ -114,24 +123,20 @@ def main(
     mcil2btor: bool,
     modelcheck: bool
 ) -> None:
-    if resultsdir.exists():
-        shutil.rmtree(resultsdir)
+    cleandir(resultsdir, False)
 
     if nuxmv2mcil:
         nuxmv2mcil_dir = resultsdir / "nuxmv2mcil"
-        nuxmv2mcil_dir.mkdir()
         shutil.copytree(
             smvdir, nuxmv2mcil_dir, copy_function=test_nuxmv2mcil
         )
     if mcil2btor:
         mcil2btor_dir = resultsdir / "mcil2btor"
-        mcil2btor_dir.mkdir()
         shutil.copytree(
             smvdir, mcil2btor_dir, copy_function=test_nuxmv2mcil
         )
     if modelcheck:
         modelcheck_dir = resultsdir / "modelcheck"
-        modelcheck_dir.mkdir()
         shutil.copytree(
             smvdir, modelcheck_dir, copy_function=test_modelcheck
         )

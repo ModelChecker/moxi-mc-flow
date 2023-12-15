@@ -39,7 +39,7 @@ def coerce_int_to_bv(expr: MCILExpr) -> MCILExpr:
     return expr
 
 def case_to_ite(case_expr: XMVCaseExpr, context: XMVContext) -> MCILExpr:
-    """Recursively translate a case expression to a series of cascaded ite expressions."""
+    """Recursively translate a case expression to a series of cascaded ite expressions. FIXME: I think this might not be correct, might get stuck in infinite loop on some examples"""
 
     def _case_to_ite(branches: list[tuple[XMVExpr, XMVExpr]], i: int) -> MCILExpr:
         (cond, branch) = branches[i]
@@ -72,12 +72,13 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
     match xmv_expr:
         case XMVIdentifier(ident=ident):
             if ident in context.defs:
-                return MCILVar(
-                    var_type=MCILVarType.OUTPUT,
-                    sort=translate_type(context.defs[ident].type),
-                    symbol=ident,
-                    prime=False
-                )
+                if ident in context.seen_defs:
+                    raise ValueError(f"Circular definition, detected at `{xmv_expr}`")
+
+                context.seen_defs.append(ident)
+                ret = translate_expr(context.defs[ident], context)
+                context.seen_defs.pop()
+                return ret
             elif ident in context.vars:
                 return MCILVar(
                     var_type=MCILVarType.INPUT,
@@ -288,16 +289,6 @@ def gather_output(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
                     )
 
                     result.append(mcil_var)
-            case XMVDefineDeclaration(define_list=define_list):
-                for define in define_list:
-                    mcil_var = MCILVar(
-                        var_type=MCILVarType.OUTPUT,
-                        sort=translate_type(define.expr.type),
-                        symbol=define.name.ident,
-                        prime=False
-                    )
-
-                    result.append(mcil_var)
             case _:
                pass
     
@@ -335,12 +326,18 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext) -> MCILExpr:
                             prime=True
                         )
                     ))
-            case XMVDefineDeclaration(define_list=define_list):
-                for define in define_list:
-                    inv_list.append(MCIL_EQ_EXPR(
-                        translate_expr(define.name, context), 
-                        translate_expr(define.expr, context)
-                    ))
+            # TODO: nuXmv calls out anything in the DEFINE section as
+            # just a macro...we treat it the same way
+            # This does have some implications for how we handle module 
+            # accesses -- for something like `module.def`, we replace with
+            # the equivalent expression using the input/outputs for the
+            # `module` subsystem declaration
+            # case XMVDefineDeclaration(define_list=define_list):
+            #     for define in define_list:
+            #         inv_list.append(MCIL_EQ_EXPR(
+            #             translate_expr(define.name, context), 
+            #             translate_expr(define.expr, context)
+            #         ))
             case _:
                pass
 

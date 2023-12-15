@@ -10,6 +10,8 @@ from src.mcil2btor import main as mcil2btor
 from src.mcil2json import main as mcil2json
 from src.json2mcil import main as json2mcil
 
+sys.setrecursionlimit(10000)
+
 FILE_NAME = Path(__file__).name
 FILE_DIR = Path(__file__).parent
 SMV2MCIL_DIR = FILE_DIR / "smv2mcil"
@@ -35,42 +37,42 @@ def cleandir(dir: Path, quiet: bool):
     os.mkdir(dir)
 
 
-def main(src_path: Path, target_lang: str, target_path: Path) -> int:
-    if not src_path.is_file():
-        eprint(f"[{FILE_NAME}] source is not a file ({src_path})\n")
+def main(input_path: Path, target_lang: str, output_path: Path) -> int:
+    if not input_path.is_file():
+        eprint(f"[{FILE_NAME}] source is not a file ({input_path})\n")
         return 1
 
-    match (src_path.suffix, target_lang):
+    match (input_path.suffix, target_lang):
         case (".smv", "mcil"):
-            return nuxmv2mcil(src_path, target_path, True)
+            return nuxmv2mcil(input_path, output_path, True)
         case (".smv", "mcil-json"):
-            mcil_path = src_path.with_suffix(".mcil")
-            retcode = nuxmv2mcil(src_path, mcil_path, True)
+            mcil_path = input_path.with_suffix(".mcil")
+            retcode = nuxmv2mcil(input_path, mcil_path, True)
             if retcode:
                 return retcode
-            retcode = mcil2json(mcil_path, target_path, False, False)
+            retcode = mcil2json(mcil_path, output_path, False, False)
             mcil_path.unlink()
             return retcode
         case (".smv", "btor2"):
-            mcil_path = src_path.with_suffix(".mcil")
-            retcode = nuxmv2mcil(src_path, mcil_path, True)
+            mcil_path = input_path.with_suffix(".mcil")
+            retcode = nuxmv2mcil(input_path, mcil_path, True)
             if retcode:
                 return retcode
-            retcode = mcil2btor(mcil_path, target_path, None)
+            retcode = mcil2btor(mcil_path, output_path, None)
             mcil_path.unlink()
             return retcode
         case (".mcil", "mcil-json"):
-            return mcil2json(src_path, target_path, False, False)
+            return mcil2json(input_path, output_path, False, False)
         case(".mcil", "btor2"):
-            return mcil2btor(src_path, target_path, None)
+            return mcil2btor(input_path, output_path, None)
         case (".json", "mcil"):
-            return json2mcil(src_path, target_path, False, False)
+            return json2mcil(input_path, output_path, False, False)
         case (".json", "btor2"):
-            mcil_path = src_path.with_suffix(".mcil")
-            retcode = json2mcil(src_path, target_path, False, False)
+            mcil_path = input_path.with_suffix(".mcil")
+            retcode = json2mcil(input_path, output_path, False, False)
             if retcode:
                 return retcode
-            retcode = mcil2btor(src_path, target_path, None)
+            retcode = mcil2btor(input_path, output_path, None)
             mcil_path.unlink()
             return retcode
         case _:
@@ -79,28 +81,28 @@ def main(src_path: Path, target_lang: str, target_path: Path) -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("source", help="source program to translate, language is inferred from file extension")
+    parser.add_argument("input", help="input program to translate, language is inferred from file extension")
     parser.add_argument("targetlang", choices=["mcil", "mcil-json", "btor2"],
                         help="target language")
-    parser.add_argument("--targetloc", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
+    parser.add_argument("--output", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
     args = parser.parse_args()
 
-    src_path = Path(args.source)
+    input_path = Path(args.input)
 
-    if args.targetloc:
-        target_path = Path(args.targetloc) 
+    if args.output:
+        output_path = Path(args.output) 
     else:
         match args.targetlang:
             case "mcil":
-                target_path = src_path.with_suffix(".mcil")
+                output_path = input_path.with_suffix(".mcil")
             case "mcil-json":
-                target_path = src_path.with_suffix(".json")
+                output_path = input_path.with_suffix(".json")
             case "btor2":
-                target_path = src_path.with_suffix("")
-                cleandir(target_path, False)
+                output_path = input_path.with_suffix("")
+                cleandir(output_path, False)
             case _:
                 eprint(f"[{FILE_NAME}] invalid target language")
                 sys.exit(1)
 
-    returncode = main(src_path, args.targetlang, target_path)
+    returncode = main(input_path, args.targetlang, output_path)
     sys.exit(returncode)

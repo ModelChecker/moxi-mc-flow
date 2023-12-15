@@ -1,3 +1,6 @@
+"""
+TODO: Do not differentiate between unsat and unknown -- how to do this?
+"""
 import argparse
 from pathlib import Path
 import subprocess
@@ -18,7 +21,7 @@ DEFAULT_BTORMC = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
 DEFAULT_AVR = FILE_DIR / "avr"
 DEFAULT_PONO = FILE_DIR / "pono"
 
-sys.setrecursionlimit(2000)
+sys.setrecursionlimit(10000)
 
 
 def cleandir(dir: Path, quiet: bool):
@@ -137,20 +140,27 @@ def run_pono(pono_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> i
     return 0
 
 
-def model_check(src_path: Path, use_btormc: bool, use_avr: bool, use_pono: bool) -> int:
+def model_check(
+    input_path: Path, 
+    output_path: Path, 
+    use_btormc: bool, 
+    use_avr: bool, 
+    use_pono: bool,
+    copyback: bool
+) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
     # does not output valid witness output (header is missing), so we don't use it.
     # NOTE: for a model checker like avr, this might be necessary for full traces
-    if not src_path.is_file():
-        eprint(f"[{FILE_NAME}] Error: source is not a file ({src_path})\n")
+    if not input_path.is_file():
+        eprint(f"[{FILE_NAME}] Error: source is not a file ({input_path})\n")
         return 1
 
     cleandir(WORK_DIR, False)
 
-    pickled_btor_path = WORK_DIR / src_path.with_suffix(".pickle").name
-    mcil_witness_path = WORK_DIR / src_path.with_suffix(".cex").name
+    pickled_btor_path = WORK_DIR / input_path.with_suffix(".pickle").name
+    mcil_witness_path = WORK_DIR / input_path.with_suffix(".cex").name
     
-    retcode = any2btor(src_path, WORK_DIR, pickled_btor_path)
+    retcode = any2btor(input_path, WORK_DIR, pickled_btor_path)
     if retcode:
         return retcode
 
@@ -179,7 +189,15 @@ def model_check(src_path: Path, use_btormc: bool, use_avr: bool, use_pono: bool)
                 run_pono(DEFAULT_PONO, btor_path, pono_witness_path)
 
         retcode = btorwit2mcilwit(btormc_witness_path, pickled_btor_path, mcil_witness_path)
-        print(f"[{FILE_NAME}] generated MCIL witness from `{btormc_witness_path}`")
+
+        if copyback:
+            shutil.copytree(WORK_DIR, output_path)
+            print(f"[{FILE_NAME}] wrote files to `{output_path}`")
+        else:
+            mcil_witness_path.replace(output_path)
+            print(f"[{FILE_NAME}] wrote MCIL witness to `{output_path}`")
+
+        cleandir(WORK_DIR, True)
 
         if retcode:
             return retcode
@@ -189,8 +207,12 @@ def model_check(src_path: Path, use_btormc: bool, use_avr: bool, use_pono: bool)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("source", 
-        help="source program to model check via translation to btor2")
+    parser.add_argument("input", 
+        help="input program to model check via translation to btor2")
+    parser.add_argument("--output",  
+        help="location of output check-system response")
+    parser.add_argument("--copyback",  action="store_true",
+        help="copy all intermediate translations and results to output location")
     parser.add_argument("--btormc", action="store_true", 
         help="enable btormc")
     parser.add_argument("--avr", action="store_true", 
@@ -199,8 +221,12 @@ if __name__ == "__main__":
         help="enable pono")
     args = parser.parse_args()
 
-    src_path = Path(args.source)
+    input_path = Path(args.input)
 
-    retcode = model_check(src_path, args.btormc, args.avr, args.pono)
+    output_path = input_path.with_suffix(".btor.cex")
+    if args.output:
+        output_path = Path(args.output)
+
+    retcode = model_check(input_path, output_path, args.btormc, args.avr, args.pono, args.copyback)
 
     sys.exit(retcode)
