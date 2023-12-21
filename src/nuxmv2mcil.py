@@ -1,4 +1,3 @@
-import argparse
 from pathlib import Path
 from typing import cast
 
@@ -164,7 +163,7 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
                     il_op = "bvashr"
                     il_lhs = translate_expr(lhs, context)
                     il_rhs = translate_expr(rhs, context)
-                case ">>":
+                case "<<":
                     il_op = "bvshl"
                     il_lhs = translate_expr(lhs, context)
                     il_rhs = translate_expr(rhs, context)
@@ -205,6 +204,8 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
             match op:
                 case "!":
                     il_op = "not"
+                case "-":
+                    il_op = "bvneg"
                 case _:
                     il_op = op
 
@@ -219,7 +220,7 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
                 identifier=MCILIdentifier(symbol="extract", indices=[high, low]),
                 children=[translate_expr(word, context)]
             )
-        case XMVCaseExpr(branches=branches):
+        case XMVCaseExpr():
             return case_to_ite(xmv_expr, context)
         case XMVModuleAccess():
             raise ValueError(f"[{FILE_NAME}] module access")
