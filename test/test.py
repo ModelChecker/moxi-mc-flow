@@ -35,16 +35,24 @@ def test_nuxmv2mcil(src: str, dst: str) -> str:
 
     pass_dir = dst_path.parent / "pass"
     fail_dir = dst_path.parent / "fail"
-    cleandir(pass_dir, True)
-    cleandir(fail_dir, True)
+    if not pass_dir.exists():
+        pass_dir.mkdir()
+    if not fail_dir.exists():
+        fail_dir.mkdir()
 
     mcil_path = pass_dir / dst_path.with_suffix(".mcil").name
     stderr_path = fail_dir /  dst_path.with_suffix(".stderr").name
 
-    proc = subprocess.run([
-        "python3", str(translate_path), str(src_path), "mcil",
-        "--output", str(mcil_path)
-    ], capture_output=True)
+    try:
+        proc = subprocess.run([
+            "python3", str(translate_path), str(src_path), "mcil",
+            "--output", str(mcil_path)
+        ], capture_output=True, timeout=10)
+    except subprocess.TimeoutExpired:
+        print(f"[FAIL] {src_path}")
+        with open(str(stderr_path), "w") as f:
+            f.write("timeout after 10s")
+        return dst
 
     if proc.returncode:
         print(f"[FAIL] {src_path}")
@@ -133,7 +141,7 @@ def main(
     if mcil2btor:
         mcil2btor_dir = resultsdir / "mcil2btor"
         shutil.copytree(
-            smvdir, mcil2btor_dir, copy_function=test_nuxmv2mcil
+            smvdir, mcil2btor_dir, copy_function=test_mcil2btor
         )
     if modelcheck:
         modelcheck_dir = resultsdir / "modelcheck"
