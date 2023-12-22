@@ -2,11 +2,11 @@
 Representation of IL
 """
 from __future__ import annotations
-import sys
+
 from enum import Enum
 from typing import Any, Callable, Optional
 
-from .util import eprint
+from .util import eprint # type: ignore
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts
 INT_WIDTH = 64
@@ -33,7 +33,7 @@ class MCILAttribute(Enum):
 
     def get_value_type(self) -> type:
         if self.value == ":input" or self.value == ":output" or self.value == ":local" or self.value == ":subsys" or self.value == ":assumption" or self.value == ":fairness" or self.value == ":reachable" or self.value == ":current" or self.value == ":query":
-            return dict 
+            return dict # type: ignore
         elif self.value == ":init" or self.value == ":trans" or self.value == ":inv":
             return MCILExpr
 
@@ -95,8 +95,9 @@ class MCILIdentifier():
             s += f"{index} "
         return s[:-1]+")"
 
-    def to_json(self) -> dict:
-        return {"symbol": self.symbol, "indices": self.indices}
+    
+    def to_json(self) -> dict: # type: ignore
+        return {"symbol": self.symbol, "indices": self.indices} # type: ignore
 
 
 class MCILSort():
@@ -144,10 +145,10 @@ class MCILSort():
         parameters_str = " ".join([str(p) for p in self.parameters])
         return f"({self.identifier} {parameters_str})"
 
-    def to_json(self) -> dict:
-        identifier = self.identifier.to_json()
-        parameters = [s.to_json() for s in self.parameters]
-        return {"identifier": identifier, "parameters": parameters}
+    def to_json(self) -> dict: # type: ignore
+        identifier = self.identifier.to_json() # type: ignore
+        parameters = [s.to_json() for s in self.parameters] # type: ignore
+        return {"identifier": identifier, "parameters": parameters} # type: ignore
 
 
 # Built-in sorts
@@ -185,8 +186,8 @@ class MCILExpr():
     def __hash__(self) -> int:
         return id(self)
 
-    def to_json(self) -> dict:
-        return {}
+    def to_json(self) -> dict: # type: ignore
+        return {} # type: ignore
 
 
 class MCILConstant(MCILExpr):
@@ -205,8 +206,8 @@ class MCILConstant(MCILExpr):
 
         return str(self.value)
 
-    def to_json(self) -> dict:
-        return {"identifier": str(self)}
+    def to_json(self) -> dict: # type: ignore
+        return {"identifier": str(self)} # type: ignore
 
 
 class MCILVarType(Enum):
@@ -238,11 +239,11 @@ class MCILVar(MCILExpr):
     def __str__(self) -> str:
         return f"{self.symbol}" + ("'" if self.prime else "")
 
-    def to_json(self) -> dict:
-        return {"identifier": self.symbol + ("'" if self.prime else "")}
+    def to_json(self) -> dict: # type: ignore
+        return {"identifier": self.symbol + ("'" if self.prime else "")} # type: ignore
 
-    def to_json_sorted_var(self) -> dict:
-        return {"symbol": self.symbol, "sort": self.sort.to_json()}
+    def to_json_sorted_var(self) -> dict: # type: ignore
+        return {"symbol": self.symbol, "sort": self.sort.to_json()} # type: ignore
 
 
 MCIL_EMPTY_VAR = MCILVar(MCILVarType.NONE, MCIL_NO_SORT, "", False)
@@ -258,10 +259,10 @@ class MCILApply(MCILExpr):
         children_str = " ".join([str(c) for c in self.children])
         return f"({self.identifier} {children_str})"
 
-    def to_json(self) -> dict:
-        identifier = self.identifier.to_json()
-        args = [c.to_json() for c in self.children]
-        return {"identifier": identifier, "args": args}
+    def to_json(self) -> dict: # type: ignore
+        identifier = self.identifier.to_json() # type: ignore
+        args = [c.to_json() for c in self.children] # type: ignore
+        return {"identifier": identifier, "args": args} # type: ignore
 
 
 class MCILCommand():
@@ -269,8 +270,8 @@ class MCILCommand():
     def get_exprs(self) -> list[MCILExpr]:
         return []
 
-    def to_json(self) -> dict:
-        return {}
+    def to_json(self) -> dict: # type: ignore
+        return {} # type: ignore
 
 
 class MCILDeclareSort(MCILCommand):
@@ -283,8 +284,8 @@ class MCILDeclareSort(MCILCommand):
     def __str__(self) -> str:
         return f"(declare-sort {self.symbol} {self.arity})"
 
-    def to_json(self) -> dict:
-        return {"command": "declare-sort", "symbol": self.symbol, "arity": self.arity}
+    def to_json(self) -> dict: # type: ignore
+        return {"command": "declare-sort", "symbol": self.symbol, "arity": self.arity} # type: ignore
 
 
 class MCILDefineSort(MCILCommand):
@@ -299,12 +300,12 @@ class MCILDefineSort(MCILCommand):
         parameters_str = " ".join(self.parameters)
         return f"(define-sort {self.symbol} ({parameters_str}) {self.definition})"
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict: # type: ignore
         return {
-            "command": "define-sort", 
-            "symbol": self.symbol, 
-            "parameters": self.parameters,
-            "definition": self.definition.to_json()    
+            "command": "define-sort",  # type: ignore
+            "symbol": self.symbol,  # type: ignore
+            "parameters": self.parameters, # type: ignore
+            "definition": self.definition.to_json() # type: ignore
         }
 
 
@@ -319,11 +320,11 @@ class MCILDeclareEnumSort(MCILCommand):
         values_str = " ".join(self.values)
         return f"(declare-enum-sort {self.symbol} ({values_str}))"
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict: # type: ignore
         return {
-            "command": "declare-enum-sort",
-            "symbol": self.symbol,
-            "values": self.values
+            "command": "declare-enum-sort", # type: ignore
+            "symbol": self.symbol, # type: ignore
+            "values": self.values # type: ignore
         }
 
 
@@ -337,11 +338,11 @@ class MCILDeclareConst(MCILCommand):
     def __str__(self) -> str:
         return f"(declare-const {self.symbol} {self.sort})"
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict: # type: ignore
         return {
-            "command": "declare-const",
-            "symbol": self.symbol,
-            "values": self.sort.to_json()
+            "command": "declare-const", # type: ignore
+            "symbol": self.symbol, # type: ignore
+            "values": self.sort.to_json() # type: ignore
         }
 
 
@@ -361,12 +362,12 @@ class MCILDeclareFun(MCILCommand):
         input_str = " ".join([str(i) for i in self.inputs])
         return f"(declare-fun {self.symbol} ({input_str}) {self.output_sort})"
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict: # type: ignore
         return {
-            "command": "declare-fun",
-            "symbol": self.symbol,
-            "inputs": [i.to_json() for i in self.inputs],
-            "output": self.output_sort.to_json()
+            "command": "declare-fun", # type: ignore
+            "symbol": self.symbol, # type: ignore
+            "inputs": [i.to_json() for i in self.inputs], # type: ignore
+            "output": self.output_sort.to_json() # type: ignore
         }
 
 
@@ -391,13 +392,13 @@ class MCILDefineFun(MCILCommand):
         input_str = " ".join([f"({i.symbol} {i.sort})" for i in self.inputs])
         return f"(define-fun {self.symbol} ({input_str}) {self.output_sort} {self.body})"
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict: # type: ignore
         return {
-            "command": "define-fun",
-            "symbol": self.symbol,
-            "inputs": [i.to_json_sorted_var() for i in self.inputs],
-            "output": self.output_sort.to_json(),
-            "body": self.body.to_json()
+            "command": "define-fun", # type: ignore
+            "symbol": self.symbol, # type: ignore
+            "inputs": [i.to_json_sorted_var() for i in self.inputs], # type: ignore
+            "output": self.output_sort.to_json(), # type: ignore
+            "body": self.body.to_json() # type: ignore
         }
 
 
@@ -407,10 +408,10 @@ class MCILSetLogic(MCILCommand):
         super().__init__()
         self.logic = logic
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict: # type: ignore
         return {
-            "command": "set-logic",
-            "symbol": self.logic
+            "command": "set-logic", # type: ignore
+            "symbol": self.logic # type: ignore
         }
 
 
@@ -463,16 +464,16 @@ class MCILDefineSystem(MCILCommand):
 
         return s + ")"
 
-    def to_json(self) -> dict:
+    def to_json(self) -> dict: # type: ignore
         return {
-            "command": "define-system",
-            "symbol": self.symbol,
-            "input": [i.to_json_sorted_var() for i in self.input],
-            "output": [o.to_json_sorted_var() for o in self.output],
-            "local": [l.to_json_sorted_var() for l in self.local],
-            "init": self.init.to_json(),
-            "trans": self.trans.to_json(),
-            "inv": self.inv.to_json(),
+            "command": "define-system", # type: ignore
+            "symbol": self.symbol, # type: ignore
+            "input": [i.to_json_sorted_var() for i in self.input], # type: ignore
+            "output": [o.to_json_sorted_var() for o in self.output], # type: ignore
+            "local": [l.to_json_sorted_var() for l in self.local], # type: ignore
+            "init": self.init.to_json(), # type: ignore
+            "trans": self.trans.to_json(), # type: ignore
+            "inv": self.inv.to_json(), # type: ignore
             "subsys": [
                 {
                     "symbol": s, 
@@ -536,17 +537,17 @@ class MCILCheckSystem(MCILCommand):
 
         return s + ")"
 
-    def to_json(self) -> dict:
-        return {
+    def to_json(self) -> dict: # type: ignore
+        return { # type: ignore
             "command": "check-system",
             "symbol": self.sys_symbol,
-            "input": [i.to_json_sorted_var() for i in self.input],
-            "output": [o.to_json_sorted_var() for o in self.output],
-            "local": [l.to_json_sorted_var() for l in self.local],
-            "assumption": [{"symbol": s, "formula": a.to_json()} for s,a in self.assumption.items()],
-            "fairness": [{"symbol": s, "formula": f.to_json()} for s,f in self.fairness.items()],
-            "reachable": [{"symbol": s, "formula": r.to_json()} for s,r in self.reachable.items()],
-            "current": [{"symbol": s, "formula": c.to_json()} for s,c in self.current.items()],
+            "input": [i.to_json_sorted_var() for i in self.input], # type: ignore
+            "output": [o.to_json_sorted_var() for o in self.output], # type: ignore
+            "local": [l.to_json_sorted_var() for l in self.local],# type: ignore
+            "assumption": [{"symbol": s, "formula": a.to_json()} for s,a in self.assumption.items()], # type: ignore
+            "fairness": [{"symbol": s, "formula": f.to_json()} for s,f in self.fairness.items()], # type: ignore
+            "reachable": [{"symbol": s, "formula": r.to_json()} for s,r in self.reachable.items()], # type: ignore
+            "current": [{"symbol": s, "formula": c.to_json()} for s,c in self.current.items()], # type: ignore
             "query": [{"symbol": s, "formulas": q} for s,q in self.query.items()],
             "queries": []
         }
@@ -563,16 +564,16 @@ class MCILProgram():
     def __str__(self) -> str:
         return "\n".join(str(cmd) for cmd in self.commands)
 
-    def to_json(self) -> list:
-        return [cmd.to_json() for cmd in self.commands]
+    def to_json(self) -> list: # type: ignore
+        return [cmd.to_json() for cmd in self.commands] # type: ignore
 
 
 class MCILExit(MCILCommand):
     pass
 
 
-MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x)
-MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y])
+MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x) # type: ignore
+MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y]) # type: ignore
 
 
 # A rank is a function signature. For example:
@@ -890,8 +891,8 @@ class MCILSystemContext():
         top_level = self.get_top_level()
         if not top_level:
             return []
-        top_level_symbol, top_level_system = top_level
-        return [top_level_symbol] + [name for name,sys in self.get_subsystems()]
+        top_level_symbol, top_level_system = top_level # type: ignore
+        return [top_level_symbol] + [name for name, sys in self.get_subsystems()] # type: ignore
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, MCILSystemContext):
@@ -931,7 +932,7 @@ class MCILContext():
     def get_symbols(self) -> set[str]:
         # TODO: this is computed EVERY time, optimize this
         # need to implement setters/update functions for each data structure
-        symbols = set()
+        symbols: set[str] = set()
 
         symbols.update([id.symbol for id in self.declared_sorts])
         symbols.update([id for id in self.declared_enum_sorts])
@@ -1022,7 +1023,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                     eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
                     return False
             elif node.identifier.symbol in context.defined_functions:
-                (rank, expr) = context.defined_functions[node.identifier.symbol]
+                (rank, _) = context.defined_functions[node.identifier.symbol]
 
                 if not sort_check_apply_rank(node, rank):
                     eprint(f"[{__name__}] Error: function call does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
