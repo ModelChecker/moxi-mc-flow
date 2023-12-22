@@ -67,6 +67,9 @@ ilfunc_map: dict[str, BtorOperator] = {
 # A SortMap maps MCILSorts to BTOR2 sorts
 SortMap = dict[MCILSort, BtorSort]
 
+# An ExprMap maps MCILExprs to BtorExprs
+ExprMap = dict[MCILExpr, BtorExpr]
+
 InputVar = tuple[BtorVar, BtorVar] # :input variables
 StateVar = tuple[BtorVar, BtorVar, BtorVar] # :local, :output variables
 
@@ -240,12 +243,13 @@ def ilexpr_to_btor2(
     context: MCILContext,
     is_init_expr: bool,
     sort_map: SortMap,
-    var_map: VarMap
-) -> BtorExpr:
-    expr_map: dict[MCILExpr, BtorExpr] = {}
-
+    var_map: VarMap,
+    expr_map: ExprMap
+):
     def _ilexpr_to_btor2(expr: MCILExpr):
         nonlocal context, is_init_expr, sort_map, var_map, expr_map
+        if expr in expr_map:
+            pass
 
         if isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 3:
             # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
@@ -287,7 +291,6 @@ def ilexpr_to_btor2(
 
     for subexpr in postorder_mcil(node):
         _ilexpr_to_btor2(subexpr)
-    return expr_map[node]
 
 
 def flatten_btor2_expr(expr: BtorExpr) -> list[BtorExpr]:
@@ -302,15 +305,16 @@ def ilsystem_to_btor2(
     system: MCILDefineSystem, 
     context: MCILContext,
     sort_map: SortMap,
-    var_map: VarMap):
+    var_map: VarMap,
+    expr_map: ExprMap):
     for symbol,subsystem in system.subsystems.items():
         context.system_context.push((symbol, subsystem))
-        ilsystem_to_btor2(btor2_model, subsystem, context, sort_map, var_map)
+        ilsystem_to_btor2(btor2_model, subsystem, context, sort_map, var_map, expr_map)
         context.system_context.pop()
 
-    btor2_init = ilexpr_to_btor2(system.init, context, True, sort_map, var_map)
-    btor2_model += flatten_btor2_expr(btor2_init)
-    btor2_model.append(BtorConstraint(btor2_init))
+    ilexpr_to_btor2(system.init, context, True, sort_map, var_map, expr_map)
+    btor2_model += flatten_btor2_expr(expr_map[system.init])
+    btor2_model.append(BtorConstraint(expr_map[system.init]))
     btor2_model[-1].set_comment(f"init {system.symbol}")
 
     # type-checking hack: check for len instead of InputVar/StateVar
@@ -318,9 +322,9 @@ def ilsystem_to_btor2(
         (init, cur, _) = btor2_var
         btor2_model.append(BtorInit(cast(BtorStateVar, cur), init))
 
-    btor2_trans = ilexpr_to_btor2(system.trans, context, False, sort_map, var_map)
-    btor2_model += flatten_btor2_expr(btor2_trans)
-    btor2_model.append(BtorConstraint(btor2_trans))
+    ilexpr_to_btor2(system.trans, context, False, sort_map, var_map, expr_map)
+    btor2_model += flatten_btor2_expr(expr_map[system.trans])
+    btor2_model.append(BtorConstraint(expr_map[system.trans]))
     btor2_model[-1].set_comment(f"trans {system.symbol}")
 
     for btor2_var in var_map.values():
@@ -331,9 +335,9 @@ def ilsystem_to_btor2(
             (cur, next) = btor2_var
             btor2_model.append(BtorNext(cast(BtorStateVar, cur), next))
 
-    btor2_inv = ilexpr_to_btor2(system.inv, context, False, sort_map, var_map)
-    btor2_model += flatten_btor2_expr(btor2_inv)
-    btor2_model.append(BtorConstraint(btor2_inv))
+    ilexpr_to_btor2(system.inv, context, False, sort_map, var_map, expr_map)
+    btor2_model += flatten_btor2_expr(expr_map[system.inv])
+    btor2_model.append(BtorConstraint(expr_map[system.inv]))
     btor2_model[-1].set_comment(f"inv {system.symbol}")
 
 
@@ -341,7 +345,8 @@ def ilchecksystem_to_btor2(
     check: MCILCheckSystem, 
     context: MCILContext,
     sort_map: SortMap,
-    var_map: VarMap
+    var_map: VarMap,
+    expr_map: ExprMap
 ) -> dict[str, list[BtorNode]]:
     """A check_system command can have many queries: each query will have the same target system but may correspond to different models of that system. First, we construct that reference BTOR2 model, then for each query we generate a new BTOR2 program with the reference model as a prefix and query as a suffix."""
     btor2_prog_list: dict[str, list[BtorNode]] = {}
@@ -363,7 +368,7 @@ def ilchecksystem_to_btor2(
             btor2_model.append(next)
 
     context.system_context.push((check.sys_symbol, context.defined_systems[check.sys_symbol]))
-    ilsystem_to_btor2(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map)
+    ilsystem_to_btor2(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map, expr_map)
     context.system_context.pop()
 
     for sym, query in check.query.items():
@@ -371,24 +376,24 @@ def ilchecksystem_to_btor2(
         btor2_prog = copy(btor2_model)
 
         for assume in [a[1] for a in check.assumption.items() if a[0] in query]:
-            btor2_assume = ilexpr_to_btor2(assume, context, False, sort_map, var_map)
-            btor2_prog += flatten_btor2_expr(btor2_assume)
-            btor2_prog.append(BtorConstraint(btor2_assume))
+            ilexpr_to_btor2(assume, context, False, sort_map, var_map, expr_map)
+            btor2_prog += flatten_btor2_expr(expr_map[assume])
+            btor2_prog.append(BtorConstraint(expr_map[assume]))
 
         for reach in [r[1] for r in check.reachable.items() if r[0] in query]:
-            btor2_reach = ilexpr_to_btor2(reach, context, False, sort_map, var_map)
-            btor2_prog += flatten_btor2_expr(btor2_reach)
-            btor2_prog.append(BtorBad(btor2_reach))
+            ilexpr_to_btor2(reach, context, False, sort_map, var_map, expr_map)
+            btor2_prog += flatten_btor2_expr(expr_map[reach])
+            btor2_prog.append(BtorBad(expr_map[reach]))
         
         for fair in [f[1] for f in check.fairness.items() if f[0] in query]:
-            btor2_fair = ilexpr_to_btor2(fair, context, False, sort_map, var_map)
-            btor2_prog += flatten_btor2_expr(btor2_fair)
-            btor2_prog.append(BtorFair(btor2_fair))
+            ilexpr_to_btor2(fair, context, False, sort_map, var_map, expr_map)
+            btor2_prog += flatten_btor2_expr(expr_map[fair])
+            btor2_prog.append(BtorFair(expr_map[fair]))
     
         for current in [c[1] for c in check.current.items() if c[0] in query]:
-            btor2_current = ilexpr_to_btor2(current, context, True, sort_map, var_map)
-            btor2_prog += flatten_btor2_expr(btor2_current)
-            btor2_prog.append(BtorConstraint(btor2_current))
+            ilexpr_to_btor2(current, context, True, sort_map, var_map, expr_map)
+            btor2_prog += flatten_btor2_expr(expr_map[current])
+            btor2_prog.append(BtorConstraint(expr_map[current]))
 
         btor2_nids: dict[BtorNode, int] = {}
         cur_nid = 1
@@ -435,6 +440,7 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
     btor2_prog_list: dict[str, dict[str, list[BtorNode]]] = {}
     sort_map: SortMap = {}
     var_map: VarMap = {}
+    expr_map: ExprMap = {}
     enums: dict[str, int] = { sym:len(vals).bit_length() for sym,vals in context.declared_enum_sorts.items() }
 
     for check_system in il_prog.get_check_system_cmds():
@@ -444,7 +450,7 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
         build_sort_map_cmd(check_system, enums, sort_map)
         build_var_map_cmd(check_system, context, {}, sort_map, var_map)
 
-        btor2_prog_list[check_system.sys_symbol] = (ilchecksystem_to_btor2(check_system, context, sort_map, var_map))
+        btor2_prog_list[check_system.sys_symbol] = (ilchecksystem_to_btor2(check_system, context, sort_map, var_map, expr_map))
 
     print(f"[{FILE_NAME}] finished BTOR2 translation")
 

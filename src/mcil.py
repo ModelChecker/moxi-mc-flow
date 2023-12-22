@@ -922,7 +922,7 @@ class MCILContext():
         self.declared_functions: dict[str, Rank] = {}
         self.defined_functions: dict[str, tuple[Rank, MCILExpr]] = {}
         self.defined_systems: dict[str, MCILDefineSystem] = {}
-        self.logic = QF_ABV # for now, assume QF_BV logic
+        self.logic = QF_ABV # for now, assume QF_ABV logic
         self.input_var_sorts: dict[MCILVar, MCILSort] = {}
         self.output_var_sorts: dict[MCILVar, MCILSort] = {}
         self.local_var_sorts: dict[MCILVar, MCILSort] = {}
