@@ -952,7 +952,7 @@ class MCILContext():
         return symbols
 
 
-def postorder(expr: MCILExpr):
+def postorder_mcil(expr: MCILExpr):
     """Perform an iterative postorder traversal of 'expr', calling 'func' on each node."""
     stack: list[tuple[bool, MCILExpr]] = []
     visited: set[int] = set()
@@ -979,63 +979,60 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
     status: bool = True
 
     def sort_check_expr(node: MCILExpr, no_prime: bool) -> bool:
-        """Return true if node is well-sorted where 'no_prime' is true if primed variables are disabled and 'prime_input' is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions). """
+        """Return true if node is well-sorted where 'no_prime' is true if primed variables are disabled and 'prime_input' is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions)."""
         nonlocal context
+        status = True
 
-        if isinstance(node, MCILConstant):
-            return True
-        elif isinstance(node, MCILVar) and node in context.input_var_sorts:
-            node.var_type = MCILVarType.INPUT
-            node.sort = context.input_var_sorts[node]
+        def _sort_check_expr(expr: MCILExpr):
+            nonlocal status, context, no_prime
 
-            if node.prime and no_prime:
-                eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
-                return False
+            if isinstance(expr, MCILConstant):
+                pass
+            elif isinstance(expr, MCILVar) and expr in context.input_var_sorts:
+                expr.var_type = MCILVarType.INPUT
+                expr.sort = context.input_var_sorts[expr]
 
-            return True
-        elif isinstance(node, MCILVar) and node in context.output_var_sorts:
-            node.var_type = MCILVarType.OUTPUT
-            node.sort = context.output_var_sorts[node]
+                if expr.prime and no_prime:
+                    eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
+                    status = False
+            elif isinstance(expr, MCILVar) and expr in context.output_var_sorts:
+                expr.var_type = MCILVarType.OUTPUT
+                expr.sort = context.output_var_sorts[expr]
 
-            if node.prime and no_prime:
-                eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
-                return False
+                if expr.prime and no_prime:
+                    eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
+                    status = False
+            elif isinstance(expr, MCILVar) and expr in context.local_var_sorts:
+                expr.var_type = MCILVarType.LOCAL
+                expr.sort = context.local_var_sorts[expr]
 
-            return True
-        elif isinstance(node, MCILVar) and node in context.local_var_sorts:
-            node.var_type = MCILVarType.LOCAL
-            node.sort = context.local_var_sorts[node]
+                if expr.prime and no_prime:
+                    eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
+                    status = False
+            elif isinstance(expr, MCILVar):
+                eprint(f"[{__name__}] Error: symbol `{expr.symbol}` not declared.\n\t{context.cur_command}\n")
+                status = False
+            elif isinstance(expr, MCILApply):
+                if expr.identifier.get_class() in context.logic.function_symbols:
+                    if not context.logic.sort_check(expr):
+                        eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}\n")
+                        status = False
+                elif expr.identifier.symbol in context.defined_functions:
+                    (rank, _) = context.defined_functions[expr.identifier.symbol]
 
-            if node.prime and no_prime:
-                eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({node.symbol}).\n\t{context.cur_command}\n")
-                return False
-
-            return True
-        elif isinstance(node, MCILVar):
-            eprint(f"[{__name__}] Error: symbol `{node.symbol}` not declared.\n\t{context.cur_command}\n")
-            return False
-        elif isinstance(node, MCILApply):
-            if node.identifier.get_class() in context.logic.function_symbols:
-                for arg in node.children:
-                    sort_check_expr(arg, no_prime)
-
-                if not context.logic.sort_check(node):
-                    eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
-                    return False
-            elif node.identifier.symbol in context.defined_functions:
-                (rank, _) = context.defined_functions[node.identifier.symbol]
-
-                if not sort_check_apply_rank(node, rank):
-                    eprint(f"[{__name__}] Error: function call does not match definition.\n\t{node}\n\t{node.identifier} {[str(a.sort) for a in node.children]}\n")
-                    return False
+                    if not sort_check_apply_rank(expr, rank):
+                        eprint(f"[{__name__}] Error: function call does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}\n")
+                        status = False
+                else:
+                    eprint(f"[{__name__}] Error: symbol '{expr.identifier.symbol}' not recognized ({expr}).\n\t{context.cur_command}\n")
+                    status = False
             else:
-                eprint(f"[{__name__}] Error: symbol '{node.identifier.symbol}' not recognized ({node}).\n\t{context.cur_command}\n")
-                return False
+                eprint(f"[{__name__}] Error: expr type '{expr.__class__}' not recognized ({expr}).\n\t{context.cur_command}\n")
+                status = False
 
-            return True
-        else:
-            eprint(f"[{__name__}] Error: node type '{node.__class__}' not recognized ({node}).\n\t{context.cur_command}\n")
-            return False
+        for expr in postorder_mcil(node):
+            _sort_check_expr(expr)
+        return status
     # end sort_check_expr
 
     for cmd in program.commands:
@@ -1258,6 +1255,6 @@ def to_qfbv(program: MCILProgram):
                 command.local[command.local.index(var)].sort = SORT_MAP[var.sort.identifier.symbol]
 
         for expr1 in command.get_exprs():
-            for expr2 in postorder(expr1):
+            for expr2 in postorder_mcil(expr1):
                 to_qfbv_expr(expr2)
 

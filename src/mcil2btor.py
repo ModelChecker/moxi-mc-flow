@@ -124,12 +124,12 @@ def ilsort_to_btor2(sort: MCILSort, enums: dict[str, int], sort_map: SortMap) ->
 
 def build_sort_map_expr(expr: MCILExpr, enums: dict[str, int], sort_map: SortMap) -> SortMap:
     """Iteratively recurse the expr IL and map each unique MCILSort of each node to a new BtorSort."""
-    def build_sort_map_util(cur: MCILExpr):
+    def _build_sort_map_expr(cur: MCILExpr):
         if cur.sort not in sort_map:
             sort_map[cur.sort] = ilsort_to_btor2(cur.sort, enums, sort_map)
 
-    for subexpr in postorder(expr):
-        build_sort_map_util(subexpr)
+    for subexpr in postorder_mcil(expr):
+        _build_sort_map_expr(subexpr)
     return sort_map
 
 
@@ -164,7 +164,7 @@ def build_var_map_expr(
     var_map: VarMap):
     """Iteratively recurse the expr IL and map each input MCILVar to a single BtorInput and each local/output var to a
     triple of BtorStates corresponding to that var's init, cur, and next values."""
-    def build_var_map_util(expr: MCILExpr):
+    def _build_var_map_expr(expr: MCILExpr):
         if isinstance(expr, MCILVar) and (expr, context.system_context) not in var_map:
             var, system_context = rename_lookup(expr, context.system_context, rename_map)
 
@@ -179,8 +179,8 @@ def build_var_map_expr(
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.cur"),
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.next"))
 
-    for subexpr in postorder(expr):
-        build_var_map_util(subexpr)
+    for subexpr in postorder_mcil(expr):
+        _build_var_map_expr(subexpr)
 
 
 def build_var_map_cmd(
@@ -283,7 +283,8 @@ def ilexpr_to_btor2(
 
 def flatten_btor2_expr(expr: BtorExpr) -> list[BtorExpr]:
     out: list[BtorExpr] = []
-    postorder_iterative_btor2(expr, lambda cur: out.append(cur))
+    for subexpr in postorder_btor(expr):
+        out.append(subexpr)
     return out
 
 

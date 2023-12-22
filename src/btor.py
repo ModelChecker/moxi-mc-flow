@@ -368,7 +368,7 @@ operator_table: dict[BtorOperator, tuple[list[type], type]] = {
 }
 
 
-def postorder_iterative_btor2(expr: BtorExpr, func: Callable[[BtorExpr], Any]):
+def postorder_btor(expr: BtorExpr):
     """Perform an iterative postorder traversal of node, calling func on each node."""
     stack: list[tuple[bool, BtorExpr]] = []
     visited: set[int] = set()
@@ -379,7 +379,7 @@ def postorder_iterative_btor2(expr: BtorExpr, func: Callable[[BtorExpr], Any]):
         (seen, cur) = stack.pop()
 
         if seen:
-            func(cur)
+            yield cur
             continue
         elif cur in visited:
             continue
