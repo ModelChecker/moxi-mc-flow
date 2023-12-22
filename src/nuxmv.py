@@ -1,4 +1,5 @@
 # TODO: IMPLEMENT THIS
+from typing import cast
 import re
 
 
@@ -271,7 +272,7 @@ class XMVUnOp(XMVExpr):
         return f"{self.op}{self.arg}"
     
 class XMVIndexSubscript(XMVExpr):
-    def __init__(self, array: XMVExpr, index: int):
+    def __init__(self, array: XMVExpr, index: XMVExpr):
         super().__init__()
         self.array = array
         self.index = index
@@ -554,6 +555,55 @@ def type_check_enums(xmv_module: XMVModule, xmv_context: XMVContext) -> tuple[bo
     return (True, xmv_context)
 
 
+def postorder_nuxmv(expr: XMVExpr):
+    """Perform an iterative postorder traversal of 'expr'."""
+    stack: list[tuple[bool, XMVExpr]] = []
+    visited: set[int] = set()
+
+    stack.append((False, expr))
+
+    while len(stack) > 0:
+        (seen, cur) = stack.pop()
+
+        if seen:
+            yield cur
+            continue
+        elif id(cur) in visited:
+            continue
+
+        visited.add(id(cur))
+        stack.append((True, cur))
+        
+        match cur:
+            case XMVFunCall(args=args):
+                [stack.append((False, arg)) for arg in args]
+            case XMVUnOp(arg=arg):
+                stack.append((False, arg))
+            case XMVBinOp(lhs=lhs, rhs=rhs):
+                stack.append((False, lhs))
+                stack.append((False, rhs))
+            case XMVIndexSubscript(array=array, index=index):
+                stack.append((False, array))
+                stack.append((False, index))
+            case XMVWordBitSelection(word=word, low=low, high=high):
+                stack.append((False, word))
+                stack.append((False, low))
+                stack.append((False, high))
+            case XMVSetBodyExpression(members=members):
+                [stack.append((False, m)) for m in members]
+            case XMVTernary(cond=cond, then_expr=then_expr, else_expr=else_expr):
+                stack.append((False, cond))
+                stack.append((False, then_expr))
+                stack.append((False, else_expr))
+            case XMVCaseExpr(branches=branches):
+                for (cond, then_expr) in branches:
+                    stack.append((False, cond))
+                    stack.append((False, then_expr))
+            case _:
+                pass
+
+
+
 def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext]:
 
     # def propagate_next(expr: XMVExpr):
@@ -563,170 +613,165 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
     #     #    next(next(a)) is not allowed
     #     pass
 
-    def type_check_expr(expr: XMVExpr, context: XMVContext) -> bool:
+    def type_check_expr(expr: XMVExpr, context: XMVContext) -> None:
         # see starting on p16 of nuxmv user manual
-        match expr:
-            case XMVIntegerConstant():
-                pass
-            case XMVBooleanConstant():
-                pass
-            case XMVSymbolicConstant():
-                pass
-            case XMVWordConstant():
-                pass
-            case XMVRangeConstant():
-                pass
-            case XMVFunCall(name="next", args=args):
-                if len(args) != 1:
-                    raise ValueError(f"`next` expr only allowed on operand {expr}")
 
-                arg = args[0]
-                type_check_expr(arg, context)
+        def _type_check_expr(expr: XMVExpr):
+            nonlocal context
 
-                expr.type = arg.type
-            case XMVFunCall(name="signed", args=args):
-                if len(args) != 1:
-                    raise ValueError(f"`signed` expr only allowed on operand {expr}")
+            match expr:
+                case XMVIntegerConstant():
+                    pass
+                case XMVBooleanConstant():
+                    pass
+                case XMVSymbolicConstant():
+                    pass
+                case XMVWordConstant():
+                    pass
+                case XMVRangeConstant():
+                    pass
+                case XMVFunCall(name="next", args=args):
+                    if len(args) != 1:
+                        raise ValueError(f"`next` expr only allowed on operand {expr}")
 
-                arg: XMVExpr = args[0]
-                type_check_expr(arg, context)
+                    expr.type = args[0].type
+                case XMVFunCall(name="signed", args=args):
+                    if len(args) != 1:
+                        raise ValueError(f"`signed` expr only allowed on operand {expr}")
 
-                if not isinstance(arg.type, XMVWord):
-                    raise ValueError(f"Invalid argument for 'signed' {arg}, {expr}")
+                    arg: XMVExpr = args[0]
 
-                expr.type = XMVWord(width=arg.type.width, signed=True)
-            case XMVFunCall(name="unsigned", args=args):
-                if len(args) != 1:
-                    raise ValueError(f"`unsigned` expr only allowed on operand {expr}")
+                    if not isinstance(arg.type, XMVWord):
+                        raise ValueError(f"Invalid argument for 'signed' {arg}, {expr}")
 
-                arg: XMVExpr = args[0]
-                type_check_expr(arg, context)
+                    expr.type = XMVWord(width=arg.type.width, signed=True)
+                case XMVFunCall(name="unsigned", args=args):
+                    if len(args) != 1:
+                        raise ValueError(f"`unsigned` expr only allowed on operand {expr}")
 
-                if not isinstance(arg.type, XMVWord):
-                    raise ValueError(f"Invalid argument for 'signed' {arg}, {expr}")
+                    arg: XMVExpr = args[0]
 
-                expr.type = XMVWord(width=arg.type.width, signed=False)
-            case XMVUnOp(op=op, arg=arg):
-                type_check_expr(arg, context)
+                    if not isinstance(arg.type, XMVWord):
+                        raise ValueError(f"Invalid argument for 'signed' {arg}, {expr}")
 
-                if isinstance(arg.type, (XMVReal, XMVClock)):
-                    raise ValueError(f"Unsupported type for {arg}, {arg.type}")
+                    expr.type = XMVWord(width=arg.type.width, signed=False)
+                case XMVUnOp(op=op, arg=arg):
+                    if isinstance(arg.type, (XMVReal, XMVClock)):
+                        raise ValueError(f"Unsupported type for {arg}, {arg.type}")
 
-                match (op, arg.type):
-                    case ("!", XMVBoolean()) | ("!", XMVWord()):
-                        expr.type = arg.type
-                    case ("-", XMVBoolean()) | ("-", XMVWord()) | ("-", XMVInteger()):
-                        expr.type = arg.type
-                    case _:
-                        raise ValueError(f"Type checking error for {op}")
-            case XMVBinOp(op=op, lhs=lhs, rhs=rhs):
-                type_check_expr(lhs, context)
-                type_check_expr(rhs, context)
+                    match (op, arg.type):
+                        case ("!", XMVBoolean()) | ("!", XMVWord()):
+                            expr.type = arg.type
+                        case ("-", XMVBoolean()) | ("-", XMVWord()) | ("-", XMVInteger()):
+                            expr.type = arg.type
+                        case _:
+                            raise ValueError(f"Type checking error for {op}")
+                case XMVBinOp(op=op, lhs=lhs, rhs=rhs):
+                    if isinstance(lhs.type, (XMVReal, XMVClock)):
+                        raise ValueError(f"Unsupported type for {lhs}, {lhs.type}")
+                    elif isinstance(rhs.type, (XMVReal, XMVClock)):
+                        raise ValueError(f"Unsupported type for {rhs}, {rhs.type}")
+                        
+                    match op:
+                        case "&" | "|" | "xor" | "xnor" | "->" | "<->":
+                            match (lhs.type, rhs.type):
+                                case (XMVBoolean(), XMVBoolean()):
+                                    expr.type = XMVBoolean()
+                                case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
+                                    if w1 != w2 or s1 != s2:
+                                        raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
+                                    expr.type = XMVWord(w1,s1)
+                                case _:
+                                    raise ValueError(f"Type checking error for {op} ({lhs.type}, {rhs.type})")
+                        case "=" | "!=" | ">" | "<" | ">=" | "<=":
+                            match (lhs.type, rhs.type):
+                                case (XMVBoolean(), XMVBoolean()):
+                                    expr.type = XMVBoolean()
+                                case (XMVInteger(), XMVInteger()):
+                                    expr.type = XMVBoolean()
+                                case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
+                                    if w1 != w2 or s1 != s2:
+                                        raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
+                                    expr.type = XMVBoolean()
+                                case (XMVArray(low=low1, high=high1, type=type1), 
+                                    XMVArray(low=low2, high=high2, type=type2)):
+                                    if low1 != low2 and high1 != high2 and type1 != type2:
+                                        raise ValueError("Different array types")
+                                    expr.type = XMVBoolean()
+                                case (XMVWordArray(word_length=wl1, type=type1),
+                                    XMVWordArray(word_length=wl2, type=type2)):
+                                    if wl1 != wl2 and type1 != type2:
+                                        raise ValueError("Different word array types")
+                                    expr.type = XMVBoolean()
+                                case (XMVEnumeration(), XMVEnumeration()):
+                                    expr.type = XMVBoolean()
+                                case _:
+                                    raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
+                        case "+" | "-" | "*" | "/" | "mod":
+                            match (lhs.type, rhs.type):
+                                case (XMVInteger(), XMVInteger()):
+                                    expr.type = XMVInteger()
+                                case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
+                                    if w1 != w2 or s1 != s2:
+                                        raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
+                                    expr.type = XMVWord(w1,s1)
+                                case _:
+                                    raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
+                        case "<<" | ">>":
+                            match (lhs.type, rhs.type):
+                                case (XMVWord(width=w, signed=s), XMVInteger()):
+                                    expr.type = XMVWord(width=w, signed=s)
+                                case (XMVWord(width=w1, signed=s), XMVWord(width=w2, signed=False)):
+                                    expr.type = XMVWord(width=w1, signed=s)
+                                case _:
+                                    raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
+                        case "concat":
+                            match (lhs.type, rhs.type):
+                                case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
+                                    expr.type = XMVWord(width=w1+w2, signed=False)
+                                case _:
+                                    raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
+                        case _:
+                            raise ValueError(f"Unsupported op `{op}`, `{expr}`")
+                case XMVIndexSubscript():
+                    pass
+                case XMVWordBitSelection(word=word, low=low, high=high):
+                    if not isinstance(word.type, XMVWord):
+                        raise ValueError(f"Bit select only valid on words, found '{word.type}' ({expr})")
+                case XMVSetBodyExpression():
+                    pass
+                case XMVTernary():
+                    pass
+                case XMVCaseExpr(branches=branches):
+                    for (cond, branch) in branches:
+                        if (not isinstance(cond.type, XMVBoolean) and 
+                            not (isinstance(cond.type, XMVWord) and cond.type.width == 1)):
+                            raise ValueError(f"Case condition must be Boolean {expr}, {cond}")
+                        
+                        # TODO: check that branches all have same type
+                        expr.type = branch.type
+                case XMVIdentifier(ident=ident):
+                    if ident in context.vars:
+                        expr.type = context.vars[ident]
+                    elif ident in context.defs:
+                        expr.type = context.defs[ident].type
+                    else:
+                        flag = False
+                        for sums in context.enums:
+                            if ident in sums:
+                                expr.type = XMVEnumeration(summands=set(sums))
+                                flag = True
 
-                if isinstance(lhs.type, (XMVReal, XMVClock)):
-                    raise ValueError(f"Unsupported type for {lhs}, {lhs.type}")
-                elif isinstance(rhs.type, (XMVReal, XMVClock)):
-                    raise ValueError(f"Unsupported type for {rhs}, {rhs.type}")
-                    
-                match op:
-                    case "&" | "|" | "xor" | "xnor" | "->" | "<->":
-                        match (lhs.type, rhs.type):
-                            case (XMVBoolean(), XMVBoolean()):
-                                expr.type = XMVBoolean()
-                            case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
-                                if w1 != w2 or s1 != s2:
-                                    raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
-                                expr.type = XMVWord(w1,s1)
-                            case _:
-                                raise ValueError(f"Type checking error for {op} ({lhs.type}, {rhs.type})")
-                    case "=" | "!=" | ">" | "<" | ">=" | "<=":
-                        match (lhs.type, rhs.type):
-                            case (XMVBoolean(), XMVBoolean()):
-                                expr.type = XMVBoolean()
-                            case (XMVInteger(), XMVInteger()):
-                                expr.type = XMVBoolean()
-                            case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
-                                if w1 != w2 or s1 != s2:
-                                    raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
-                                expr.type = XMVBoolean()
-                            case (XMVArray(low=low1, high=high1, type=type1), 
-                                  XMVArray(low=low2, high=high2, type=type2)):
-                                if low1 != low2 and high1 != high2 and type1 != type2:
-                                    raise ValueError("Different array types")
-                                expr.type = XMVBoolean()
-                            case (XMVWordArray(word_length=wl1, type=type1),
-                                  XMVWordArray(word_length=wl2, type=type2)):
-                                if wl1 != wl2 and type1 != type2:
-                                    raise ValueError("Different word array types")
-                                expr.type = XMVBoolean()
-                            case (XMVEnumeration(), XMVEnumeration()):
-                                expr.type = XMVBoolean()
-                            case _:
-                                raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
-                    case "+" | "-" | "*" | "/" | "mod":
-                        match (lhs.type, rhs.type):
-                            case (XMVInteger(), XMVInteger()):
-                                expr.type = XMVInteger()
-                            case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
-                                if w1 != w2 or s1 != s2:
-                                    raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
-                                expr.type = XMVWord(w1,s1)
-                            case _:
-                                raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
-                    case "<<" | ">>":
-                        match (lhs.type, rhs.type):
-                            case (XMVWord(width=w, signed=s), XMVInteger()):
-                                expr.type = XMVWord(width=w, signed=s)
-                            case (XMVWord(width=w1, signed=s), XMVWord(width=w2, signed=False)):
-                                expr.type = XMVWord(width=w1, signed=s)
-                            case _:
-                                raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
-                    case "concat":
-                        match (lhs.type, rhs.type):
-                            case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
-                                expr.type = XMVWord(width=w1+w2, signed=False)
-                            case _:
-                                raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
-                    case _:
-                        raise ValueError(f"Unsupported op `{op}`, `{expr}`")
-            case XMVIndexSubscript():
-                pass
-            case XMVWordBitSelection():
-                pass
-            case XMVSetBodyExpression():
-                pass
-            case XMVTernary():
-                pass
-            case XMVCaseExpr(branches=branches):
-                for (cond, branch) in branches:
-                    type_check_expr(cond, context)
-                    if (not isinstance(cond.type, XMVBoolean) and 
-                        not (isinstance(cond.type, XMVWord) and cond.type.width == 1)):
-                        raise ValueError(f"Case condition must be Boolean {expr}, {cond}")
-                    
-                    type_check_expr(branch, context)
-                    # TODO: check that branches all have same type
-                    expr.type = branch.type
-            case XMVIdentifier(ident=ident):
-                if ident in context.vars:
-                    expr.type = context.vars[ident]
-                elif ident in context.defs:
-                    expr.type = context.defs[ident].type
-                else:
-                    flag = False
-                    for sums in context.enums:
-                        if ident in sums:
-                            expr.type = XMVEnumeration(summands=set(sums))
-                            flag = True
+                        if not flag:        
+                            raise ValueError(f"Variable {expr} not declared")
+                case XMVModuleAccess():
+                    pass
+                case _:
+                    pass
 
-                    if not flag:        
-                        raise ValueError(f"Variable {expr} not declared")
-            case XMVModuleAccess():
-                pass
-            case _:
-                pass
+        for subexpr in postorder_nuxmv(expr):
+            _type_check_expr(subexpr)
 
-        return True
 
     # forward references are allowed....ugh
     for element in module.elements:

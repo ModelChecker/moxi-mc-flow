@@ -375,13 +375,13 @@ class NuXmvParser(Parser):
         return XMVFunCall(name="unsigned", args=[p[2]])
 
 
-    @_("expr LBRACK INTEGER RBRACK")
+    @_("expr LBRACK expr RBRACK")
     def expr(self, p):
-        return XMVIndexSubscript(array=p.expr, index=int(p[2]))
+        return XMVIndexSubscript(array=p[0], index=p[2])
 
     @_("expr LBRACK INTEGER COLON INTEGER RBRACK")
     def expr(self, p):
-        return XMVWordBitSelection(word=p.expr, low=int(p[4]), high=int(p[2]))
+        return XMVWordBitSelection(word=p[0], low=int(p[2]), high=int(p[4]))
 
     @_("expr CONCAT expr")
     def expr(self, p):
