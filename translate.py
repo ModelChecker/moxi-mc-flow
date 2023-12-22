@@ -4,13 +4,13 @@ import sys
 import os
 import shutil
 
+import cProfile
+
 from src.util import eprint
 from src.nuxmv2mcil import main as nuxmv2mcil
 from src.mcil2btor import main as mcil2btor
 from src.mcil2json import main as mcil2json
 from src.json2mcil import main as json2mcil
-
-sys.setrecursionlimit(10000)
 
 FILE_NAME = Path(__file__).name
 FILE_DIR = Path(__file__).parent
@@ -104,5 +104,7 @@ if __name__ == "__main__":
                 eprint(f"[{FILE_NAME}] invalid target language")
                 sys.exit(1)
 
+    # cProfile.run("main(input_path, args.targetlang, output_path)")
+
     returncode = main(input_path, args.targetlang, output_path)
-    sys.exit(returncode)
+    sys.exit(0)

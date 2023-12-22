@@ -21,8 +21,6 @@ DEFAULT_BTORMC = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
 DEFAULT_AVR = FILE_DIR / "avr"
 DEFAULT_PONO = FILE_DIR / "pono"
 
-sys.setrecursionlimit(10000)
-
 
 def cleandir(dir: Path, quiet: bool):
     """Remove and create fresh dir, print a warning if quiet is False"""

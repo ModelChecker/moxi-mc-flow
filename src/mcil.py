@@ -199,8 +199,7 @@ class MCILConstant(MCILExpr):
     def __str__(self) -> str:
         if is_bool_sort(self.sort):
             return str(self.value).lower()
-            
-        if is_bitvec_sort(self.sort):
+        elif is_bitvec_sort(self.sort):
             format_str = f"#b{'{'}0:0{self.sort.identifier.indices[0]}b{'}'}"
             return format_str.format(self.value)
 
@@ -256,8 +255,31 @@ class MCILApply(MCILExpr):
         self.identifier = identifier
 
     def __str__(self) -> str:
-        children_str = " ".join([str(c) for c in self.children])
-        return f"({self.identifier} {children_str})"
+        stack: list[tuple[bool, MCILExpr]] = []
+        s = ""
+
+        stack.append((False, self))
+
+        while len(stack) > 0:
+            (handled, cur) = stack.pop()
+
+            if handled:
+                # print(f"done with {cur}")
+                s += ")" if isinstance(cur, MCILApply) else ""
+                continue
+
+            if isinstance(cur, MCILApply):
+                # print(f"handling {cur}")
+                s += f" ({cur.identifier}"
+            else:
+                # print(f"handling {cur}")
+                s += f" {str(cur)}"
+
+            stack.append((True, cur))
+            for child in reversed(cur.children):
+                stack.append((False, child))
+
+        return s
 
     def to_json(self) -> dict: # type: ignore
         identifier = self.identifier.to_json() # type: ignore

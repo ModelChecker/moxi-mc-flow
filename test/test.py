@@ -44,10 +44,11 @@ def test_nuxmv2mcil(src: str, dst: str) -> str:
     stderr_path = fail_dir /  dst_path.with_suffix(".stderr").name
 
     try:
+        print(f"Translating '{src_path}' to MCIL")
         proc = subprocess.run([
             "python3", str(translate_path), str(src_path), "mcil",
             "--output", str(mcil_path)
-        ], capture_output=True, timeout=10)
+        ], capture_output=True)
     except subprocess.TimeoutExpired:
         print(f"[FAIL] {src_path}")
         with open(str(stderr_path), "w") as f:

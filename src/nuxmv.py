@@ -1,7 +1,7 @@
 # TODO: IMPLEMENT THIS
-from typing import cast
 import re
 
+from .mcil import MCILExpr
 
 # type specifiers -------------------------
 
@@ -150,6 +150,9 @@ class XMVExpr():
     
     def __init__(self) -> None:
         self.type: XMVType = XMVNoType()
+
+    def __hash__(self) -> int:
+        return hash(repr(self))
             
 
 class XMVComplexIdentifier(XMVExpr):
@@ -328,6 +331,12 @@ class XMVIdentifier(XMVComplexIdentifier):
 
     def __repr__(self) -> str:
         return f"{self.ident}"
+
+    def __eq__(self, __o: object) -> bool:
+        return isinstance(__o, XMVIdentifier) and __o.ident == self.ident
+
+    def __hash__(self) -> int:
+        return hash(self.ident)
     
 class XMVSymbolicConstant(XMVConstant):
     def __init__(self, symbol: XMVIdentifier):
@@ -538,6 +547,7 @@ class XMVContext():
         self.enums: list[list[str|int]] = [] 
         # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
         self.reverse_enums: dict[str, str] = {}
+        self.expr_map: dict[XMVExpr, MCILExpr] = {}
 
 def type_check_enums(xmv_module: XMVModule, xmv_context: XMVContext) -> tuple[bool, XMVContext]:
     for m in xmv_module.elements:
@@ -555,7 +565,7 @@ def type_check_enums(xmv_module: XMVModule, xmv_context: XMVContext) -> tuple[bo
     return (True, xmv_context)
 
 
-def postorder_nuxmv(expr: XMVExpr):
+def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
     """Perform an iterative postorder traversal of 'expr'."""
     stack: list[tuple[bool, XMVExpr]] = []
     visited: set[int] = set()
@@ -575,6 +585,9 @@ def postorder_nuxmv(expr: XMVExpr):
         stack.append((True, cur))
         
         match cur:
+            case XMVIdentifier(ident=ident):
+                if ident in context.defs:
+                    stack.append((False, context.defs[ident]))
             case XMVFunCall(args=args):
                 [stack.append((False, arg)) for arg in args]
             case XMVUnOp(arg=arg):
@@ -587,8 +600,6 @@ def postorder_nuxmv(expr: XMVExpr):
                 stack.append((False, index))
             case XMVWordBitSelection(word=word, low=low, high=high):
                 stack.append((False, word))
-                stack.append((False, low))
-                stack.append((False, high))
             case XMVSetBodyExpression(members=members):
                 [stack.append((False, m)) for m in members]
             case XMVTernary(cond=cond, then_expr=then_expr, else_expr=else_expr):
@@ -769,7 +780,7 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                 case _:
                     pass
 
-        for subexpr in postorder_nuxmv(expr):
+        for subexpr in postorder_nuxmv(expr, context):
             _type_check_expr(subexpr)
 
 
