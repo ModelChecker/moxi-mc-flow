@@ -431,6 +431,7 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
         target_system = context.defined_systems[check_system.sys_symbol]
 
         build_sort_map_cmd(target_system, enums, sort_map)
+        build_sort_map_cmd(check_system, enums, sort_map)
         build_var_map_cmd(check_system, context, {}, sort_map, var_map)
 
         btor2_prog_list[check_system.sys_symbol] = (ilchecksystem_to_btor2(check_system, context, sort_map, var_map))
