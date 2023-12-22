@@ -64,19 +64,21 @@ def test_nuxmv2mcil(src: str, dst: str) -> str:
     return dst
 
 
-def test_mcil2btor(src: str, dst: str) -> str:
+def test_nuxmv2btor(src: str, dst: str) -> str:
     global translate_path
 
     src_path = Path(src)
     dst_path = Path(dst)
 
-    if src_path.suffix != ".btor" and src_path.suffix != ".btor2":
+    if src_path.suffix != ".smv":
         return dst
 
     pass_dir = dst_path.parent / "pass"
     fail_dir = dst_path.parent / "fail"
-    cleandir(pass_dir, True)
-    cleandir(fail_dir, True)
+    if not pass_dir.exists():
+        pass_dir.mkdir()
+    if not fail_dir.exists():
+        fail_dir.mkdir()
 
     btor_path = pass_dir / dst_path.with_suffix(".btor").name
     stderr_path = fail_dir /  dst_path.with_suffix(".stderr").name
@@ -128,7 +130,7 @@ def main(
     smvdir: Path, 
     resultsdir: Path,
     nuxmv2mcil: bool,
-    mcil2btor: bool,
+    nuxmv2btor: bool,
     modelcheck: bool
 ) -> None:
     cleandir(resultsdir, False)
@@ -138,10 +140,10 @@ def main(
         shutil.copytree(
             smvdir, nuxmv2mcil_dir, copy_function=test_nuxmv2mcil
         )
-    if mcil2btor:
-        mcil2btor_dir = resultsdir / "mcil2btor"
+    if nuxmv2btor:
+        nuxmv2btor_dir = resultsdir / "nuxmv2btor"
         shutil.copytree(
-            smvdir, mcil2btor_dir, copy_function=test_mcil2btor
+            smvdir, nuxmv2btor_dir, copy_function=test_nuxmv2btor
         )
     if modelcheck:
         modelcheck_dir = resultsdir / "modelcheck"
@@ -157,8 +159,8 @@ if __name__ == "__main__":
                         help="directory to output test logs and copyback data")
     parser.add_argument("--nuxmv2mcil", action="store_true",
                         help="enable nuxmv2mcil test")
-    parser.add_argument("--mcil2btor", action="store_true",
-                        help="enable mcil2btor test")
+    parser.add_argument("--nuxmv2btor", action="store_true",
+                        help="enable nuxmv2btor test")
     parser.add_argument("--modelcheck", action="store_true",
                         help="enable modelcheck test")
     args = parser.parse_args()
@@ -166,5 +168,5 @@ if __name__ == "__main__":
     if args.translate:
         translate_path = Path(args.translate)
 
-    main(Path(args.smvdir), Path(args.resultsdir), args.nuxmv2mcil, args.mcil2btor, args.modelcheck)
+    main(Path(args.smvdir), Path(args.resultsdir), args.nuxmv2mcil, args.nuxmv2btor, args.modelcheck)
 

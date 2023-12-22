@@ -236,49 +236,58 @@ def build_var_map_cmd(
 
 
 def ilexpr_to_btor2(
-    expr: MCILExpr, 
+    node: MCILExpr, 
     context: MCILContext,
     is_init_expr: bool,
     sort_map: SortMap,
     var_map: VarMap
 ) -> BtorExpr:
-    if isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 3:
-        # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
-        #   var_map[var] = (init, cur, next)
-        idx = int(not is_init_expr) + (expr.prime)
-        return cast(tuple[BtorVar,BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
-    elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 2:
-        # We use "int(expr.prime)" to compute the index in var_map tuple:
-        #   var_map[var] = (cur, next)
-        idx = int(expr.prime)
-        return cast(tuple[BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
-    elif isinstance(expr, MCILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
-        value = context.declared_enum_sorts[expr.sort.identifier.symbol].index(expr.value)
-        return BtorConst(sort_map[expr.sort], value)
-    elif isinstance(expr, MCILConstant):
-        return BtorConst(sort_map[expr.sort], expr.value)
-    elif isinstance(expr, MCILApply):
-        if len(expr.children) > 3:
+    expr_map: dict[MCILExpr, BtorExpr] = {}
+
+    def _ilexpr_to_btor2(expr: MCILExpr):
+        nonlocal context, is_init_expr, sort_map, var_map, expr_map
+
+        if isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 3:
+            # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
+            #   var_map[var] = (init, cur, next)
+            idx = int(not is_init_expr) + (expr.prime)
+            expr_map[expr] = cast(tuple[BtorVar,BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
+        elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 2:
+            # We use "int(expr.prime)" to compute the index in var_map tuple:
+            #   var_map[var] = (cur, next)
+            idx = int(expr.prime)
+            expr_map[expr] = cast(tuple[BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
+        elif isinstance(expr, MCILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
+            value = context.declared_enum_sorts[expr.sort.identifier.symbol].index(expr.value)
+            expr_map[expr] = BtorConst(sort_map[expr.sort], value)
+        elif isinstance(expr, MCILConstant):
+            expr_map[expr] = BtorConst(sort_map[expr.sort], expr.value)
+        elif isinstance(expr, MCILApply):
+            if len(expr.children) > 3:
+                raise NotImplementedError
+
+            tmp_indices = copy(expr.identifier.indices) + ([None] * (2 - len(expr.identifier.indices)))
+            (idx1, idx2) = tuple(tmp_indices)
+
+            tmp_children = copy(expr.children) + ([None] * (3 - len(expr.children)))
+            (arg1, arg2, arg3) = tuple(tmp_children)
+
+            btor2_args = (expr_map[arg1] if arg1 else None,
+                          expr_map[arg2] if arg2 else None,
+                          expr_map[arg3] if arg3 else None)
+
+            expr_map[expr] = BtorApply(
+                sort_map[expr.sort], 
+                ilfunc_map[expr.identifier.symbol], 
+                (idx1, idx2),
+                btor2_args
+            )
+        else:
             raise NotImplementedError
 
-        tmp_indices = copy(expr.identifier.indices) + ([None] * (2 - len(expr.identifier.indices)))
-        (idx1, idx2) = tuple(tmp_indices)
-
-        tmp_children = copy(expr.children) + ([None] * (3 - len(expr.children)))
-        (arg1, arg2, arg3) = tuple(tmp_children)
-
-        btor2_args = (ilexpr_to_btor2(arg1, context, is_init_expr, sort_map, var_map) if arg1 else None,
-                      ilexpr_to_btor2(arg2, context, is_init_expr, sort_map, var_map) if arg2 else None,
-                      ilexpr_to_btor2(arg3, context, is_init_expr, sort_map, var_map) if arg3 else None)
-
-        return BtorApply(
-            sort_map[expr.sort], 
-            ilfunc_map[expr.identifier.symbol], 
-            (idx1, idx2),
-            btor2_args
-        )
-
-    raise NotImplementedError
+    for subexpr in postorder_mcil(node):
+        _ilexpr_to_btor2(subexpr)
+    return expr_map[node]
 
 
 def flatten_btor2_expr(expr: BtorExpr) -> list[BtorExpr]:
