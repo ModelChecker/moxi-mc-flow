@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Tuple, cast
 
-from .util import eprint
+from .util import eprint # type: ignore
 from .preprocess_nuxmv import preprocess
 from .parse_nuxmv import parse
 from .nuxmv import *
@@ -71,19 +71,19 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
     match xmv_expr:
         case XMVIdentifier(ident=ident):
             if ident in context.defs:
-                    if ident in context.seen_defs:
-                        print(context.seen_defs)
-                        raise ValueError(f"Circular definition, detected at `{xmv_expr}`")
+                if ident in context.seen_defs:
+                    print(context.seen_defs)
+                    raise ValueError(f"Circular definition, detected at `{xmv_expr}`")
 
-                    context.seen_defs.append(ident)
-                    if ident in translated: # cache translated expressions
-                        context.seen_defs.pop()
-                        return translated[ident]
-                    else:
-                        ret = translate_expr(context.defs[ident], context)
-                        translated[ident] = ret
-                        context.seen_defs.pop()
-                        return ret
+                context.seen_defs.append(ident)
+                if ident in translated: # cache translated expressions
+                    context.seen_defs.pop()
+                    return translated[ident]
+                else:
+                    ret = translate_expr(context.defs[ident], context)
+                    translated[ident] = ret
+                    context.seen_defs.pop()
+                    return ret
             elif ident in context.vars:
                 return MCILVar(
                     var_type=MCILVarType.INPUT,
@@ -138,10 +138,6 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
                     il_rhs = translate_expr(rhs, context)
                 case 'xor':
                     il_op = "xor" if isinstance(lhs.type, XMVBoolean) else "bvxor"
-                    il_lhs = translate_expr(lhs, context)
-                    il_rhs = translate_expr(rhs, context)
-                case '!':
-                    il_op = "not" if isinstance(lhs.type, XMVBoolean) else "bvnot"
                     il_lhs = translate_expr(lhs, context)
                     il_rhs = translate_expr(rhs, context)
                 case "->":
@@ -217,7 +213,7 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> MCILExpr:
         case XMVUnOp(op=op, arg=arg):
             match op:
                 case "!":
-                    il_op = "not"
+                    il_op = "not" if isinstance(arg.type, XMVBoolean) else "bvnot"
                 case "-":
                     il_op = "bvneg"
                 case _:
@@ -412,17 +408,12 @@ def gather_invarspecs(xmv_module: XMVModule, context: XMVContext) -> dict[str, M
 def translate_module(xmv_module: XMVModule) -> list[MCILCommand]:
     print(f"[{FILE_NAME}] translating module {xmv_module.name}")
 
-    il_commands: list[MCILCommand] = []
-    xmv_context = XMVContext()
-
-    (_, enum_context) = type_check_enums(xmv_module, xmv_context)
-
+    (_, enum_context) = type_check_enums(xmv_module, XMVContext())
     (type_correct, enum_context) = type_check(xmv_module, enum_context)
     if not type_correct:
         raise ValueError("Not type correct")
     
     enums, updated_enum_context = gather_enums(xmv_module, enum_context)
-
     xmv_context = updated_enum_context
 
     input = gather_input(xmv_module, xmv_context)
