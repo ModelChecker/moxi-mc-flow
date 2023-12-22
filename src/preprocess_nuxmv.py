@@ -63,7 +63,7 @@ def handle_variables(file_path: str, module_names: list[str]):
                     if vspl[0] in module_names:
                         pass
                     else:
-                        cleaned_var_name = var_name.replace('.', '_').replace(':', '').replace("\"","")
+                        cleaned_var_name = var_name.replace('.', '_').replace(':', '').replace("\"","").replace('$', '')
                         if cleaned_var_name == var_name:
                             continue
                         else:

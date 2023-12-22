@@ -86,7 +86,15 @@ class XMVArray(XMVType):
 
     def __repr__(self) -> str:
         return f"array {self.low} .. {self.high} of {self.type}"
-    
+
+class XMVWordArray(XMVType):
+    def __init__(self, word_length: int, type: XMVType):
+        self.word_length = word_length
+        self.type = type
+
+    def __repr__(self) -> str:
+        return f"array word[{self.word_length}] of {self.type}"    
+
 class XMVModuleType(XMVType):
     def __init__(self, module_name: str, parameters: list[str]):
         self.module_name = module_name
@@ -525,28 +533,46 @@ class XMVContext():
         self.trans: list[XMVExpr] = []
         self.invarspecs: list[XMVExpr] = []
         self.seen_defs: list[str] = []
+        # enum1: {s1, s2, s3}; enum2: {t1, t2} --> [[s1, s2, s3], [t1, t2]] (assume they're unique) 
+        self.enums: list[list[str|int]] = [] 
+        # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
+        self.reverse_enums: dict[str, str] = {}
+
+def type_check_enums(xmv_module: XMVModule, xmv_context: XMVContext) -> tuple[bool, XMVContext]:
+    for m in xmv_module.elements:
+        match m:
+            case XMVVarDeclaration():
+                for (_, xmv_var_type) in m.var_list:
+                    match xmv_var_type:
+                        case XMVEnumeration(summands=summands):
+                            lsummands: list[str|int] = list(summands)
+                            xmv_context.enums.append(lsummands)
+                        case _:
+                            pass
+            case _:
+                pass
+    return (True, xmv_context)
 
 
-def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
-    context = XMVContext()
+def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext]:
 
-    def propagate_next(expr: XMVExpr):
-        # complex next expressions must propagate the next, for example:
-        #    next((1 + a) + b) becomes (1 + next(a)) + next(b)
-        # we also check for nested nexts here, for example:
-        #    next(next(a)) is not allowed
-        pass
+    # def propagate_next(expr: XMVExpr):
+    #     # complex next expressions must propagate the next, for example:
+    #     #    next((1 + a) + b) becomes (1 + next(a)) + next(b)
+    #     # we also check for nested nexts here, for example:
+    #     #    next(next(a)) is not allowed
+    #     pass
 
     def type_check_expr(expr: XMVExpr, context: XMVContext) -> bool:
         # see starting on p16 of nuxmv user manual
         match expr:
-            case XMVIntegerConstant(integer=i):
+            case XMVIntegerConstant():
                 pass
-            case XMVBooleanConstant(boolean=b):
+            case XMVBooleanConstant():
                 pass
-            case XMVSymbolicConstant(symbol=s):
+            case XMVSymbolicConstant():
                 pass
-            case XMVWordConstant(width=w, value=v):
+            case XMVWordConstant():
                 pass
             case XMVRangeConstant():
                 pass
@@ -623,8 +649,18 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                                 if w1 != w2 or s1 != s2:
                                     raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
                                 expr.type = XMVBoolean()
+                            case (XMVArray(low=low1, high=high1, type=type1), 
+                                  XMVArray(low=low2, high=high2, type=type2)):
+                                if low1 != low2 and high1 != high2 and type1 != type2:
+                                    raise ValueError("Different array types")
+                                expr.type = XMVBoolean()
+                            case (XMVWordArray(word_length=wl1, type=type1),
+                                  XMVWordArray(word_length=wl2, type=type2)):
+                                if wl1 != wl2 and type1 != type2:
+                                    raise ValueError("Different word array types")
+                                expr.type = XMVBoolean()
                             case (XMVEnumeration(), XMVEnumeration()):
-                                pass
+                                expr.type = XMVBoolean()
                             case _:
                                 raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
                     case "+" | "-" | "*" | "/" | "mod":
@@ -655,7 +691,7 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                         raise ValueError(f"Unsupported op `{op}`, `{expr}`")
             case XMVIndexSubscript():
                 pass
-            case XMVWordBitSelection(word=word, low=low, high=high):
+            case XMVWordBitSelection():
                 pass
             case XMVSetBodyExpression():
                 pass
@@ -677,7 +713,14 @@ def type_check(module: XMVModule) -> tuple[bool, XMVContext]:
                 elif ident in context.defs:
                     expr.type = context.defs[ident].type
                 else:
-                    raise ValueError(f"Variable {expr} not declared")
+                    flag = False
+                    for sums in context.enums:
+                        if ident in sums:
+                            expr.type = XMVEnumeration(summands=set(sums))
+                            flag = True
+
+                    if not flag:        
+                        raise ValueError(f"Variable {expr} not declared")
             case XMVModuleAccess():
                 pass
             case _:

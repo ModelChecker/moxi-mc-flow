@@ -144,7 +144,7 @@ class NuXmvLexer(Lexer):
     IDENT["signed"] = XMV_SIGNED
     IDENT["word"] = XMV_WORD
     IDENT["real"] = XMV_REAL
-    IDENT["clock"] = XMV_CLOCK
+    # IDENT["clock"] = XMV_CLOCK
     IDENT["array"] = XMV_ARRAY
     IDENT["of"] = OF
 
@@ -464,6 +464,15 @@ class NuXmvParser(Parser):
     # type specifier rules
 
     @_(
+        "constant_list COMMA constant", 
+        "constant"
+    )
+    def constant_list(self, p):
+        if len(p) == 1: # base case: `(param)`
+            return [p[0]]
+        return p[0] + [p[2]] # recursive case: `(param1, param2, ...)`
+
+    @_(
             "XMV_BOOLEAN", 
             "XMV_INTEGER", 
             "XMV_WORD LBRACK INTEGER RBRACK",
@@ -474,7 +483,9 @@ class NuXmvParser(Parser):
             "LBRACE enumeration_type_body RBRACE",
             "INTEGER DOT DOT INTEGER",
             "XMV_ARRAY OF INTEGER DOT DOT INTEGER OF type_specifier",
-            "IDENT LPAREN parameter_list RPAREN"
+            "XMV_ARRAY XMV_WORD LBRACK INTEGER RBRACK OF type_specifier",
+            "IDENT LPAREN parameter_list RPAREN",
+            "IDENT LPAREN constant_list RPAREN"
     )
     def type_specifier(self, p):
         match p[0]:
@@ -490,12 +501,15 @@ class NuXmvParser(Parser):
                 return XMVWord(width=int(p[3]), signed=True)
             case "real":
                 return XMVReal()
-            case "clock":
-                return XMVClock()
+            # case "clock":
+            #     return XMVClock()
             case "{":
                 return XMVEnumeration(summands=p[1])
             case "array":
-                return XMVArray(low=p[2], high=p[5], type=p[7])
+                if p[1] == "word":
+                    return XMVWordArray(word_length=p[3], type=p.type_specifier)
+                else:
+                    return XMVArray(low=p[2], high=p[5], type=p[7])
             case _:
                 if str.isnumeric(p[0]):
                     return XMVEnumeration(summands=set(range(int(p[0]), int(p[3]))))
