@@ -329,6 +329,21 @@ def gather_init(xmv_module: XMVModule, context: XMVContext) -> MCILExpr:
     for init_decl in [e for e in xmv_module.elements if isinstance(e, XMVInitDeclaration)]:
         translate_expr(init_decl.formula, context)
         init_list.append(context.expr_map[init_decl.formula])
+    
+    for module_element in xmv_module.elements:
+        match module_element:
+            case XMVAssignDeclaration(assign_list=al):
+                for assign_decl in al:
+                    if assign_decl.modifier == "init":
+                        translate_expr(assign_decl.lhs, context)
+                        translate_expr(assign_decl.rhs, context)
+
+                        init_expr = MCIL_EQ_EXPR(context.expr_map[assign_decl.lhs], 
+                                                 context.expr_map[assign_decl.rhs])
+                        
+                        init_list.append(init_expr)
+            case _:
+                pass
 
     return conjoin_list(init_list) if len(init_list) > 0 else MCIL_BOOL_EXPR(True)
 
@@ -338,6 +353,30 @@ def gather_trans(xmv_module: XMVModule, context: XMVContext) -> MCILExpr:
     for trans_decl in [e for e in xmv_module.elements if isinstance(e, XMVTransDeclaration)]:
         translate_expr(trans_decl.formula, context)
         trans_list.append(context.expr_map[trans_decl.formula])
+
+    for module_element in xmv_module.elements:
+        match module_element:
+            case XMVAssignDeclaration(assign_list=al):
+                for assign_decl in al:
+                    if assign_decl.modifier == "next":
+                        translate_expr(assign_decl.rhs, context)
+
+                        if isinstance(assign_decl.lhs, XMVIdentifier):
+                            lhs_expr = MCILVar(
+                                        var_type=MCILVarType.LOCAL,
+                                        sort=translate_type(assign_decl.rhs.type),
+                                        symbol=assign_decl.lhs.ident,
+                                        prime=True
+                                    )
+                        else:
+                            raise ValueError(f"Unsupported: next(complex_identifier)")
+
+                        trans_expr = MCIL_EQ_EXPR(lhs_expr, 
+                                                  context.expr_map[assign_decl.rhs])
+                        
+                        trans_list.append(trans_expr)
+            case _:
+                pass
 
     return conjoin_list(trans_list) if len(trans_list) > 0 else MCIL_BOOL_EXPR(True)
 

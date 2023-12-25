@@ -339,10 +339,15 @@ class XMVIdentifier(XMVComplexIdentifier):
         return hash(self.ident)
     
 class XMVSymbolicConstant(XMVConstant):
-    def __init__(self, symbol: XMVIdentifier):
+    def __init__(self, symbol: XMVComplexIdentifier):
         super().__init__()
         self.symbol = symbol
-        self.type = XMVEnumeration({symbol.ident})
+
+        if isinstance(symbol, XMVIdentifier):
+            self.type = XMVEnumeration({symbol.ident})
+        elif isinstance(symbol, XMVModuleAccess):
+            self.type = XMVNoType() # TODO: Module typechecking
+        # elif isinstance(symbol, XMVArrayAccess): # TODO: Handle array accesses
 
     def __repr__(self) -> str:
         return f"{self.symbol}"
@@ -598,7 +603,7 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
             case XMVIndexSubscript(array=array, index=index):
                 stack.append((False, array))
                 stack.append((False, index))
-            case XMVWordBitSelection(word=word, low=low, high=high):
+            case XMVWordBitSelection(word=word, low=_, high=_):
                 stack.append((False, word))
             case XMVSetBodyExpression(members=members):
                 [stack.append((False, m)) for m in members]
@@ -746,7 +751,7 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                             raise ValueError(f"Unsupported op `{op}`, `{expr}`")
                 case XMVIndexSubscript():
                     pass
-                case XMVWordBitSelection(word=word, low=low, high=high):
+                case XMVWordBitSelection(word=word, low=_, high=_):
                     if not isinstance(word.type, XMVWord):
                         raise ValueError(f"Bit select only valid on words, found '{word.type}' ({expr})")
                 case XMVSetBodyExpression():

@@ -476,12 +476,12 @@ class MCILDefineSystem(MCILCommand):
         # subsystem_str = ":subsys " # TODO
 
         s =  f"(define-system {self.symbol} "
-        s += f":input ({input_str}) "
-        s += f":output ({output_str}) "
-        s += f":local ({local_str}) "
-        s += f":init {self.init} "
-        s += f":trans {self.trans} "
-        s += f":inv {self.inv} "
+        s += f"\n   :input ({input_str}) "
+        s += f"\n   :output ({output_str}) "
+        s += f"\n   :local ({local_str}) "
+        s += f"\n   :init {self.init} "
+        s += f"\n   :trans {self.trans} "
+        s += f"\n   :inv {self.inv} "
         # s += f":subsys ({input_str}) "
 
         return s + ")"
@@ -548,14 +548,14 @@ class MCILCheckSystem(MCILCommand):
         query_str = " ".join([f"({symbol} ({' '.join(exprs)}))" for symbol,exprs in self.query.items()])
 
         s =  f"(check-system {self.sys_symbol} "
-        s += f":input ({input_str}) "
-        s += f":output ({output_str}) "
-        s += f":local ({local_str}) "
-        s += f"{assumption_str} "
-        s += f"{fairness_str} "
-        s += f"{reachable_str} "
-        s += f"{current_str} "
-        s += f":query {query_str} "
+        s += f"\n   :input ({input_str}) "
+        s += f"\n   :output ({output_str}) "
+        s += f"\n   :local ({local_str}) "
+        s += f"\n   {assumption_str} "
+        s += f"\n   {fairness_str} "
+        s += f"\n   {reachable_str} "
+        s += f"\n   {current_str} "
+        s += f"\n   :query {query_str} "
 
         return s + ")"
 
