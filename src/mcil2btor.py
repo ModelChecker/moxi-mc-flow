@@ -122,37 +122,45 @@ def ilsort_to_btor2(sort: MCILSort, enums: dict[str, int], sort_map: SortMap) ->
     elif sort.identifier.symbol in enums:
         return BtorBitVec(enums[sort.identifier.symbol])
     else:
-        raise NotImplementedError
+        raise NotImplementedError(f"MCIL sort '{sort}' ({type(sort)}) unrecognized")
 
 
-def build_sort_map_expr(expr: MCILExpr, enums: dict[str, int], sort_map: SortMap) -> SortMap:
+def build_sort_map_expr(
+    node: MCILExpr,
+    context: MCILContext,
+    enums: dict[str, int], 
+    sort_map: SortMap
+) -> SortMap:
     """Iteratively recurse the expr IL and map each unique MCILSort of each node to a new BtorSort."""
-    def _build_sort_map_expr(cur: MCILExpr):
-        if cur.sort not in sort_map:
-            sort_map[cur.sort] = ilsort_to_btor2(cur.sort, enums, sort_map)
+    for expr in postorder_mcil(node, context):
+        if expr.sort not in sort_map:
+            sort_map[expr.sort] = ilsort_to_btor2(expr.sort, enums, sort_map)
 
-    for subexpr in postorder_mcil(expr):
-        _build_sort_map_expr(subexpr)
     return sort_map
 
 
-def build_sort_map_cmd(cmd: MCILCommand, enums: dict[str, int], sort_map: SortMap) -> SortMap:
+def build_sort_map_cmd(
+    cmd: MCILCommand, 
+    context: MCILContext,
+    enums: dict[str, int], 
+    sort_map: SortMap
+) -> SortMap:
     if isinstance(cmd, MCILDefineSystem):
         for subsystem in cmd.subsystems.values():
-            build_sort_map_cmd(subsystem, enums, sort_map)
+            build_sort_map_cmd(subsystem,context, enums, sort_map)
 
-        build_sort_map_expr(cmd.init, enums, sort_map)
-        build_sort_map_expr(cmd.trans, enums, sort_map)
-        build_sort_map_expr(cmd.inv,enums,  sort_map)
+        build_sort_map_expr(cmd.init,context, enums, sort_map)
+        build_sort_map_expr(cmd.trans,context, enums, sort_map)
+        build_sort_map_expr(cmd.inv, context, enums, sort_map)
     elif isinstance(cmd, MCILCheckSystem):
         for assume in cmd.assumption.values():
-            build_sort_map_expr(assume, enums, sort_map)
+            build_sort_map_expr(assume,context, enums, sort_map)
         for fair in cmd.fairness.values():
-            build_sort_map_expr(fair, enums, sort_map)
+            build_sort_map_expr(fair,context, enums, sort_map)
         for reach in cmd.reachable.values():
-            build_sort_map_expr(reach, enums, sort_map)
+            build_sort_map_expr(reach,context, enums, sort_map)
         for current in cmd.current.values():
-            build_sort_map_expr(current, enums, sort_map)
+            build_sort_map_expr(current,context, enums, sort_map)
     else:
         raise NotImplementedError
 
@@ -160,14 +168,14 @@ def build_sort_map_cmd(cmd: MCILCommand, enums: dict[str, int], sort_map: SortMa
 
 
 def build_var_map_expr(
-    expr: MCILExpr,
+    node: MCILExpr,
     context: MCILContext,
     rename_map: RenameMap,
     sort_map: SortMap,
     var_map: VarMap):
     """Iteratively recurse the expr IL and map each input MCILVar to a single BtorInput and each local/output var to a
     triple of BtorStates corresponding to that var's init, cur, and next values."""
-    def _build_var_map_expr(expr: MCILExpr):
+    for expr in postorder_mcil(node, context):
         if isinstance(expr, MCILVar) and (expr, context.system_context) not in var_map:
             var, system_context = rename_lookup(expr, context.system_context, rename_map)
 
@@ -181,9 +189,8 @@ def build_var_map_expr(
                 var_map[(expr, context.system_context.copy())] = (BtorStateVar(sort_map[var.sort], f"{symbol}.init"),
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.cur"),
                                                  BtorStateVar(sort_map[var.sort], f"{symbol}.next"))
-
-    for subexpr in postorder_mcil(expr):
-        _build_var_map_expr(subexpr)
+            else: # var is a bound variable
+                pass
 
 
 def build_var_map_cmd(
@@ -201,12 +208,10 @@ def build_var_map_cmd(
                     if var.symbol == symbol:
                         signature_1.append(var)
 
-            # _,var_symbols = cmd.subsystem_signatures[subsys_symbol]
-            # signature_2 = [subsystem.symbol_map[symbol] for symbol in var_symbols]
-
             target_signature = subsystem.input + subsystem.output
 
-            update_rename_map(context.system_context, subsystem, subsys_symbol, signature_1, target_signature, rename_map)
+            update_rename_map(context.system_context, subsystem, subsys_symbol, 
+                signature_1, target_signature, rename_map)
             
             context.system_context.push((subsys_symbol, subsystem))
             build_var_map_cmd(subsystem, context, rename_map, sort_map, var_map)
@@ -229,7 +234,8 @@ def build_var_map_cmd(
         signature_2 = cmd.input + cmd.output + cmd.local
         target_signature = target_system.input + target_system.output + target_system.local
 
-        update_rename_map(context.system_context, target_system, target_system.symbol, signature_2, target_signature, rename_map)
+        update_rename_map(context.system_context, target_system, target_system.symbol, 
+            signature_2, target_signature, rename_map)
 
         context.system_context.push((cmd.sys_symbol, target_system))
         build_var_map_cmd(target_system, context, rename_map, sort_map, var_map)        
@@ -246,12 +252,13 @@ def ilexpr_to_btor2(
     var_map: VarMap,
     expr_map: ExprMap
 ):
-    def _ilexpr_to_btor2(expr: MCILExpr):
-        nonlocal context, is_init_expr, sort_map, var_map, expr_map
+    for expr in postorder_mcil(node, context):
         if expr in expr_map:
             pass
 
-        if isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 3:
+        if isinstance(expr, MCILVar) and expr.symbol in context.bound_vars:
+            expr_map[expr] = expr_map[context.bound_vars[expr.symbol]]
+        elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 3:
             # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
             #   var_map[var] = (init, cur, next)
             idx = int(not is_init_expr) + (expr.prime)
@@ -286,11 +293,11 @@ def ilexpr_to_btor2(
                 (idx1, idx2),
                 btor2_args
             )
+        elif isinstance(expr, MCILLetExpr):
+            expr_map[expr] = expr_map[expr.get_expr()]
         else:
-            raise NotImplementedError
+            raise NotImplementedError(f"{type(expr)}")
 
-    for subexpr in postorder_mcil(node):
-        _ilexpr_to_btor2(subexpr)
 
 
 def flatten_btor2_expr(expr: BtorExpr) -> list[BtorExpr]:
@@ -446,8 +453,8 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
     for check_system in il_prog.get_check_system_cmds():
         target_system = context.defined_systems[check_system.sys_symbol]
 
-        build_sort_map_cmd(target_system, enums, sort_map)
-        build_sort_map_cmd(check_system, enums, sort_map)
+        build_sort_map_cmd(target_system,context, enums, sort_map)
+        build_sort_map_cmd(check_system,context, enums, sort_map)
         build_var_map_cmd(check_system, context, {}, sort_map, var_map)
 
         btor2_prog_list[check_system.sys_symbol] = (ilchecksystem_to_btor2(check_system, context, sort_map, var_map, expr_map))

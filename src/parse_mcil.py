@@ -10,7 +10,7 @@ class MCILLexer(Lexer):
     tokens = { NUMERAL, BINARY, HEXADECIMAL,
                SYMBOL, KEYWORD,
                LPAREN, RPAREN,
-               RW_UNDERSCORE,
+               RW_UNDERSCORE, RW_LET,
                PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV, PK_SUBSYS,
                PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY,
                CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
@@ -43,9 +43,9 @@ class MCILLexer(Lexer):
     # SYMBOL["NUMERAL"]     = RW_NUMERAL
     # SYMBOL["STRING"]      = RW_STRING
     SYMBOL["_"]           = RW_UNDERSCORE
+    SYMBOL["let"]         = RW_LET
     # SYMBOL["!"]           = RW_BANG
     # SYMBOL["as"]          = RW_AS
-    # SYMBOL["let"]         = RW_LET
     # SYMBOL["exists"]      = RW_EXISTS
     # SYMBOL["forall"]      = RW_FORALL
     # SYMBOL["match"]       = RW_MATCH
@@ -339,6 +339,15 @@ class MCILParser(Parser):
     def symbol_list(self, p):
         return []
 
+    @_("bound_var_list LPAREN SYMBOL term RPAREN")
+    def bound_var_list(self, p):
+        p[0].append((p[2], p[3]))
+        return p[0]
+
+    @_("")
+    def bound_var_list(self, p):
+        return []
+
     @_("identifier")
     def term(self, p):
         if len(p[0].indices) > 0:
@@ -376,6 +385,10 @@ class MCILParser(Parser):
     def term(self, p):
         p[2].append(p[3])
         return MCILApply(MCIL_NO_SORT, p[1], p[2])
+
+    @_("LPAREN RW_LET LPAREN bound_var_list RPAREN term RPAREN")
+    def term(self, p):
+        return MCILLetExpr(MCIL_NO_SORT, p[3], p[5])
 
     @_("LPAREN term RPAREN")
     def term(self, p):

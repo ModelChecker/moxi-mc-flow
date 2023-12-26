@@ -4,9 +4,11 @@ Representation of IL
 from __future__ import annotations
 
 from enum import Enum
+from io import BufferedWriter, StringIO
+from pathlib import Path
 from typing import Any, Callable, Optional
 
-from .util import eprint # type: ignore
+from .util import eprint
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts
 INT_WIDTH = 64
@@ -250,13 +252,18 @@ MCIL_EMPTY_VAR = MCILVar(MCILVarType.NONE, MCIL_NO_SORT, "", False)
 
 class MCILApply(MCILExpr):
 
-    def __init__(self, sort: MCILSort, identifier: MCILIdentifier, children: list[MCILExpr]):
+    def __init__(
+        self, 
+        sort: MCILSort, 
+        identifier: MCILIdentifier, 
+        children: list[MCILExpr]
+    ):
         super().__init__(sort, children)
         self.identifier = identifier
 
     def __str__(self) -> str:
         stack: list[tuple[bool, MCILExpr]] = []
-        s = ""
+        s = StringIO()
 
         stack.append((False, self))
 
@@ -264,27 +271,67 @@ class MCILApply(MCILExpr):
             (handled, cur) = stack.pop()
 
             if handled:
-                # print(f"done with {cur}")
-                s += ")" if isinstance(cur, MCILApply) else ""
+                s.write(")" if isinstance(cur, MCILApply) else "")
                 continue
 
             if isinstance(cur, MCILApply):
-                # print(f"handling {cur}")
-                s += f" ({cur.identifier}"
+                s.write(f" ({cur.identifier}")
             else:
-                # print(f"handling {cur}")
-                s += f" {str(cur)}"
+                s.write(f" {str(cur)}")
 
             stack.append((True, cur))
             for child in reversed(cur.children):
                 stack.append((False, child))
 
-        return s
+        content = s.read()
+        s.close()
+        return content
 
     def to_json(self) -> dict: # type: ignore
         identifier = self.identifier.to_json() # type: ignore
         args = [c.to_json() for c in self.children] # type: ignore
         return {"identifier": identifier, "args": args} # type: ignore
+
+
+class MCILLetExpr(MCILExpr):
+    """MCILLetExpr tree structure looks like:
+    
+    MCILLetExpr
+    ____|___________________________
+    |        |        |            |
+    v        v        v            v  
+    MCILExpr MCILBind MCILExpr ... MCILExpr
+
+    where from the right we have each bound variable expression, then a dummy class to do variable binding during traversal, then the argument expression. We visit these in that order when performing the standard reverse postorder traversal.
+    """
+
+    def __init__(
+        self, 
+        sort: MCILSort, 
+        binders: list[tuple[str, MCILExpr]],
+        expr: MCILExpr
+    ):
+        super().__init__(sort, [expr] + [MCILBind(binders)] + [b[1] for b in binders])
+        self.vars = [b[0] for b in binders]
+
+    def get_expr(self) -> MCILExpr:
+        return self.children[0]
+
+    def get_binders(self) -> list[tuple[str, MCILExpr]]:
+        return [(v,e) for v,e in zip(self.vars, self.children[2:])]
+
+    def __str__(self) -> str:
+        binders_str = " ".join([f"({b[0]} {b[1]})" for b in self.get_binders()])
+        return f"(let ({binders_str}) {str(self.children[-1])})"
+
+
+class MCILBind(MCILExpr):
+    """Class used for binding variables in `let` expressions during traversal."""
+
+    def __init__(self, binders: list[tuple[str, MCILExpr]]):
+        super().__init__(MCIL_NO_SORT, [])
+        self.binders = binders
+
 
 
 class MCILCommand():
@@ -869,6 +916,7 @@ class MCILLogic():
 
         self.symbols = sort_symbols | function_symbols
 
+NO_LOGIC = MCILLogic("NONE", set(), set(), lambda x: False)
 
 QF_BV = MCILLogic("QF_BV", 
                 {("BitVec", 1)}, 
@@ -950,6 +998,7 @@ class MCILContext():
         self.local_var_sorts: dict[MCILVar, MCILSort] = {}
         self.system_context = MCILSystemContext() # used during system flattening
         self.cur_command: Optional[MCILCommand] = None
+        self.bound_vars: dict[str, MCILExpr] = {}
 
     def get_symbols(self) -> set[str]:
         # TODO: this is computed EVERY time, optimize this
@@ -974,40 +1023,38 @@ class MCILContext():
         return symbols
 
 
-def postorder_mcil(expr: MCILExpr):
-    """Perform an iterative postorder traversal of 'expr', calling 'func' on each node."""
+def postorder_mcil(expr: MCILExpr, context: MCILContext):
+    """Perform an iterative postorder traversal of `expr`, maintaining `context`."""
     stack: list[tuple[bool, MCILExpr]] = []
-    visited: set[int] = set()
-
     stack.append((False, expr))
 
     while len(stack) > 0:
         (seen, cur) = stack.pop()
 
-        if seen:
+        if seen and isinstance(cur, MCILLetExpr):
+            for (v,e) in cur.get_binders():
+                del context.bound_vars[v]
             yield cur
-            continue
-        elif id(cur) in visited:
-            continue
-
-        visited.add(id(cur))
-        stack.append((True, cur))
-        for child in cur.children:
-            stack.append((False, child))
+        elif seen and isinstance(cur, MCILBind):
+            for (v,e) in cur.binders:
+                context.bound_vars[v] = e
+        elif seen:
+            yield cur
+        else:
+            stack.append((True, cur))
+            for child in cur.children:
+                stack.append((False, child))
 
 
 def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
     context: MCILContext = MCILContext()
     status: bool = True
 
-    def sort_check_expr(node: MCILExpr, no_prime: bool) -> bool:
-        """Return true if node is well-sorted where 'no_prime' is true if primed variables are disabled and 'prime_input' is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions)."""
-        nonlocal context
+    def sort_check_expr(node: MCILExpr, context: MCILContext, no_prime: bool) -> bool:
+        """Return true if node is well-sorted where `no_prime` is true if primed variables are disabled and `prime_input` is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions)."""
         status = True
 
-        def _sort_check_expr(expr: MCILExpr):
-            nonlocal status, context, no_prime
-
+        for expr in postorder_mcil(node, context):
             if isinstance(expr, MCILConstant):
                 pass
             elif isinstance(expr, MCILVar) and expr in context.input_var_sorts:
@@ -1031,6 +1078,8 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 if expr.prime and no_prime:
                     eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
                     status = False
+            elif isinstance(expr, MCILVar) and expr.symbol in context.bound_vars:
+                expr.sort = context.bound_vars[expr.symbol].sort
             elif isinstance(expr, MCILVar):
                 eprint(f"[{__name__}] Error: symbol `{expr.symbol}` not declared.\n\t{context.cur_command}\n")
                 status = False
@@ -1048,12 +1097,13 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 else:
                     eprint(f"[{__name__}] Error: symbol '{expr.identifier.symbol}' not recognized ({expr}).\n\t{context.cur_command}\n")
                     status = False
+            elif isinstance(expr, MCILLetExpr):
+                # TODO: check for variable name clashes
+                expr.sort = expr.get_expr().sort
             else:
                 eprint(f"[{__name__}] Error: expr type '{expr.__class__}' not recognized ({expr}).\n\t{context.cur_command}\n")
                 status = False
 
-        for expr in postorder_mcil(node):
-            _sort_check_expr(expr)
         return status
     # end sort_check_expr
 
@@ -1101,9 +1151,9 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             context.output_var_sorts = {var:var.sort for var in cmd.output}
             context.local_var_sorts = {var:var.sort for var in cmd.local}
 
-            status = status and sort_check_expr(cmd.init, True)
-            status = status and sort_check_expr(cmd.trans, False)
-            status = status and sort_check_expr(cmd.inv, False)
+            status = status and sort_check_expr(cmd.init, context, True)
+            status = status and sort_check_expr(cmd.trans, context, False)
+            status = status and sort_check_expr(cmd.inv, context, False)
 
             for name,subsystem in cmd.subsystem_signatures.items():
                 # TODO: check for cycles in system dependency graph
@@ -1205,16 +1255,16 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 # cmd.rename_map[v1] = v2
 
             for expr in cmd.assumption.values():
-                status = status and sort_check_expr(expr, False)
+                status = status and sort_check_expr(expr, context, False)
 
             for expr in cmd.reachable.values():
-                status = status and sort_check_expr(expr, False)
+                status = status and sort_check_expr(expr, context, False)
 
             for expr in cmd.fairness.values():
-                status = status and sort_check_expr(expr, False)
+                status = status and sort_check_expr(expr, context, False)
 
             for expr in cmd.current.values():
-                status = status and sort_check_expr(expr, False)
+                status = status and sort_check_expr(expr, context, False)
 
             context.input_var_sorts = {}
             context.output_var_sorts = {}
@@ -1276,7 +1326,8 @@ def to_qfbv(program: MCILProgram):
             for var in [v for v in command.local if v.sort.identifier.symbol in SORT_MAP]:
                 command.local[command.local.index(var)].sort = SORT_MAP[var.sort.identifier.symbol]
 
+        context = MCILContext()
         for expr1 in command.get_exprs():
-            for expr2 in postorder_mcil(expr1):
+            for expr2 in postorder_mcil(expr1, context):
                 to_qfbv_expr(expr2)
 

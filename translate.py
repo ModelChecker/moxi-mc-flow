@@ -107,4 +107,4 @@ if __name__ == "__main__":
     # cProfile.run("main(input_path, args.targetlang, output_path)")
 
     returncode = main(input_path, args.targetlang, output_path)
-    sys.exit(0)
+    sys.exit(returncode)
