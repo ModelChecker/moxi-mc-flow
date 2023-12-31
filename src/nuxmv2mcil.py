@@ -75,21 +75,21 @@ def build_define_expr(
 
     def dependent_defines(ident: str, context: XMVContext):
         stack: list[tuple[bool, XMVExpr]] = []
-        visited: set[int] = set()
+        visited: set[XMVExpr] = set()
 
         stack.append((False, context.defs[ident]))
 
         while len(stack) > 0:
             (seen, cur) = stack.pop()
 
-            if seen:
+            if cur in visited:
+                continue
+            elif seen:
                 if isinstance(cur, XMVIdentifier) and cur.ident in context.defs:
                     yield cur
-                continue
-            elif id(cur) in visited:
+                visited.add(cur)
                 continue
 
-            visited.add(id(cur))
             stack.append((True, cur))
 
             match cur:
@@ -135,7 +135,6 @@ def build_define_expr(
 
     for d in reversed(deps):
         translate_expr(context.defs[d.ident], context, emap, in_let_expr=True)
-        print(f"Binding {d} ")
         ret = MCILLetExpr(
             MCIL_NO_SORT, 
             [(d.ident, emap[context.defs[d.ident]])], 
@@ -154,7 +153,6 @@ def translate_expr(
 
     for expr in postorder_nuxmv(xmv_expr, context):
         if expr in expr_map:
-            print(f"Reusing {expr} ")
             continue
 
         match expr:
@@ -163,7 +161,6 @@ def translate_expr(
                 if ident in context.defs and not in_let_expr:
                     expr_map[expr] = build_define_expr(expr, context)
                 elif ident in context.defs:
-                    print(f"Referencing {expr} ")
                     expr_map[expr] = DEFINE_LET_VAR(expr.ident)
 
                     # context.expr_map[let][expr] = MCILVar(
