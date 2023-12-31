@@ -4,9 +4,7 @@ https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 from __future__ import annotations
 from collections import deque
 from enum import Enum
-from typing import Any, Callable, Optional
-
-from sympy import N
+from typing import Any, Optional
 
 EMPTY_ARGS = (None, None, None)
 
@@ -160,6 +158,13 @@ class BtorExpr(BtorNode):
         super().__init__()
         self.children = c
 
+    def __eq__(self, __o: object) -> bool:
+        return eq_btor(self, __o)
+
+    def __hash__(self) -> int:
+        return hash_btor(self)
+
+
 class BtorVar(BtorExpr):
 
     def __init__(self, sort: BtorSort, symbol: str = ""):
@@ -167,14 +172,6 @@ class BtorVar(BtorExpr):
         self.sort: BtorSort = sort
         self.symbol = symbol
         self.var_index: int = 0  # used to refer to vars in witness
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, BtorVar):
-            return False
-        return self.symbol == __o.symbol
-
-    def __hash__(self) -> int:
-        return hash((self.sort, self.symbol))
 
 
 class BtorInputVar(BtorVar):
@@ -207,14 +204,6 @@ class BtorConst(BtorExpr):
 
     def __str__(self) -> str:
         return f"{self.nid} constd {self.sort.nid} {int(self.value)}{self.comment}"
-    
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, BtorConst):
-            return False
-        return self.sort == __o.sort and self.value == __o.value
-
-    def __hash__(self) -> int:
-        return hash((self.sort, self.value))
 
 
 # BTOR2 operators have only 1, 2, or 3 arguments
@@ -249,36 +238,56 @@ class BtorApply(BtorExpr):
         s += f"{self.comment}"
         return s
 
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, BtorApply):
-            return False
 
-        try:
-            for e1,e2 in zip(preorder_btor(self), preorder_btor(__o), strict=True):
-                if type(e1) != type(e2):
+def eq_btor(e1: BtorExpr, e2: object) -> bool:
+    if not isinstance(e2, BtorExpr):
+        return False
+
+    try:
+        for c1,c2 in zip(preorder_btor(e1), preorder_btor(e2), strict=True):
+            if isinstance(c1, BtorVar) and isinstance(c2, BtorVar):
+                if c1.symbol != c2.symbol:
                     return False
-                elif isinstance(e1, BtorApply) and isinstance(e2, BtorApply):
-                    if e1.operator != e2.operator:
-                        return False
-                    if e1.sort != e2.sort:
-                        return False
-                elif e1 != e2:
+            elif isinstance(c1, BtorConst) and isinstance(c2, BtorConst):
+                if c1.sort != c2.sort:
+                    return False 
+                elif c1.value != c2.value:
                     return False
-        except ValueError:
-            return False
-        
-        return True
-
-    def __hash__(self) -> int:
-        h = 0
-
-        for expr in postorder_btor(self):
-            if isinstance(expr, BtorApply):
-                h = hash((h, expr.operator, expr.sort))
+            elif isinstance(c1, BtorApply) and isinstance(c2, BtorApply):
+                if c1.operator != c2.operator:
+                    return False
+                elif c1.sort != c2.sort:
+                    return False
             else:
-                h = hash((h, expr))
-            
+                return False
+        return True
+    except ValueError:
+        return False
+
+
+def hash_btor(expr: BtorExpr) -> int:
+    if isinstance(expr, BtorVar):
+        return hash((expr.sort, expr.symbol))
+    elif isinstance(expr, BtorConst):
+        return hash((expr.sort, expr.value))
+    elif isinstance(expr, BtorApply):
+        h,cnt = 0,0
+
+        for subexpr in preorder_btor(expr):
+            if isinstance(expr, BtorVar):
+                h = hash((h, expr.sort, expr.symbol))
+            elif isinstance(expr, BtorConst):
+                h = hash((h, expr.sort, expr.value))
+            if isinstance(subexpr, BtorApply):
+                h = hash((h, subexpr.sort, subexpr.operator))
+
+            if cnt > 10:
+                return h
+            cnt += 1
+        
         return h
+
+    raise NotImplementedError(f"Hash not implemented for {type(expr)}")
 
 
 class BtorConstraint(BtorNode):
