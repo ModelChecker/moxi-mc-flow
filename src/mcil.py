@@ -529,7 +529,7 @@ class MCILDefineSystem(MCILCommand):
         output_str = " ".join([f"({o.symbol} {o.sort})" for o in self.output])
         local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.local])
 
-        subsystem_str = "" # TODO
+        subsystem_str = ""
         for symbol,signature in self.subsystem_signatures.items():
             (sys_symbol, args) = signature
             subsystem_str += f"\n   :subsys ({symbol} ({sys_symbol} {' '.join(args)}))"
