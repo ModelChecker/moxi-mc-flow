@@ -2,8 +2,11 @@
 https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 """
 from __future__ import annotations
+from collections import deque
 from enum import Enum
 from typing import Any, Callable, Optional
+
+from sympy import N
 
 EMPTY_ARGS = (None, None, None)
 
@@ -225,7 +228,7 @@ class BtorApply(BtorExpr):
         op: BtorOperator, 
         indices: tuple[Optional[int], Optional[int]], 
         args: BtorArgs
-    ):
+    ) -> None:
         super().__init__(args)
         self.indices = indices
         self.sort = sort
@@ -246,30 +249,36 @@ class BtorApply(BtorExpr):
         s += f"{self.comment}"
         return s
 
-    # def __str__(self) -> str:
-    #     return f"{self.nid} {self.operator.name.lower()} {self.sort.nid} {' '.join([str(c.nid) for c in self.children if c])}{self.comment}"
-
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, BtorApply):
             return False
 
-        if not self.operator == __o.operator:
+        try:
+            for e1,e2 in zip(preorder_btor(self), preorder_btor(__o), strict=True):
+                if type(e1) != type(e2):
+                    return False
+                elif isinstance(e1, BtorApply) and isinstance(e2, BtorApply):
+                    if e1.operator != e2.operator:
+                        return False
+                    if e1.sort != e2.sort:
+                        return False
+                elif e1 != e2:
+                    return False
+        except ValueError:
             return False
-        
-        if not self.sort == __o.sort:
-            return False
-
-        if not len(self.children) == len(__o.children):
-            return False
-
-        for i in range(0, len(self.children)-1):
-            if self.children[i] != __o.children[i]:
-                return False
         
         return True
 
     def __hash__(self) -> int:
-        return hash((self.operator, self.sort, self.children))
+        h = 0
+
+        for expr in postorder_btor(self):
+            if isinstance(expr, BtorApply):
+                h = hash((h, expr.operator, expr.sort))
+            else:
+                h = hash((h, expr))
+            
+        return h
 
 
 class BtorConstraint(BtorNode):
@@ -369,7 +378,7 @@ operator_table: dict[BtorOperator, tuple[list[type], type]] = {
 
 
 def postorder_btor(expr: BtorExpr):
-    """Perform an iterative postorder traversal of node, calling func on each node."""
+    """Perform an iterative postorder traversal of `expr`."""
     stack: list[tuple[bool, BtorExpr]] = []
     visited: set[int] = set()
 
@@ -381,7 +390,7 @@ def postorder_btor(expr: BtorExpr):
         if seen:
             yield cur
             continue
-        elif cur in visited:
+        elif id(cur) in visited:
             continue
 
         visited.add(id(cur))
@@ -389,3 +398,20 @@ def postorder_btor(expr: BtorExpr):
 
         for child in [c for c in cur.children if c]:
             stack.append((False, child))
+
+
+def preorder_btor(expr: BtorExpr):
+    """Perform an iterative preorder traversal of `expr`."""
+    queue: deque[BtorExpr] = deque()
+    visited: set[int] = set()
+
+    queue.append(expr)
+
+    while len(queue) > 0:
+        cur = queue.popleft()
+        yield cur
+
+        visited.add(id(cur))
+
+        for child in [c for c in cur.children if c and id(c) not in visited]:
+            queue.append(child)

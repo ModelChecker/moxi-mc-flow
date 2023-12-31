@@ -1,5 +1,8 @@
+from distutils.command.build import build
 from pathlib import Path
 from typing import Tuple, cast
+
+from sympy import false
 
 from .util import eprint # type: ignore
 from .preprocess_nuxmv import preprocess
@@ -65,18 +68,91 @@ def case_to_ite(case_expr: XMVCaseExpr, context: XMVContext) -> MCILExpr:
 
     return _case_to_ite(case_expr.branches, 0)
 
-def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> None:
+DEFINE_LET_VAR = lambda e: MCILVar(MCILVarType.NONE, MCIL_NO_SORT, e, False)
 
-    def _translate_expr(expr: XMVExpr):
-        nonlocal context
+def build_define_expr(
+    expr: XMVIdentifier,
+    context: XMVContext, 
+) -> MCILExpr:
 
+    def dependent_defines(ident: str, context: XMVContext):
+        queue: deque[XMVExpr] = deque()
+        queue.append(context.defs[ident])
+
+        while len(queue) > 0:
+            cur = queue.pop()
+
+            if isinstance(cur, XMVIdentifier) and cur.ident in context.defs:
+                yield cur
+
+            match cur:
+                case XMVIdentifier(ident=ident):
+                    if ident in context.defs:
+                        queue.append(context.defs[ident])
+                case XMVFunCall(args=args):
+                    [queue.append(arg) for arg in args]
+                case XMVUnOp(arg=arg):
+                    queue.append(arg)
+                case XMVBinOp(lhs=lhs, rhs=rhs):
+                    queue.append(lhs)
+                    queue.append(rhs)
+                case XMVIndexSubscript(array=array, index=index):
+                    queue.append(array)
+                    queue.append(index)
+                case XMVWordBitSelection(word=word, low=_, high=_):
+                    queue.append(word)
+                case XMVSetBodyExpression(members=members):
+                    [queue.append(m) for m in members]
+                case XMVTernary(cond=cond, then_expr=then_expr, else_expr=else_expr):
+                    queue.append(cond)
+                    queue.append(then_expr)
+                    queue.append(else_expr)
+                case XMVCaseExpr(branches=branches):
+                    for (cond, then_expr) in branches:
+                        queue.append(cond)
+                        queue.append(then_expr)
+                case _:
+                    pass
+
+    translate_expr(context.defs[expr.ident], context, False)
+    ret = MCILLetExpr(
+        MCIL_NO_SORT, 
+        [(expr.ident, context.expr_map[context.defs[expr.ident]])], 
+        DEFINE_LET_VAR(expr.ident)
+    )
+
+    for d in dependent_defines(expr.ident, context):
+        translate_expr(context.defs[d.ident], context, False)
+        ret = MCILLetExpr(
+            MCIL_NO_SORT, 
+            [(d.ident, context.expr_map[context.defs[d.ident]])], 
+            ret
+        )
+
+    return ret
+
+
+def translate_expr(xmv_expr: XMVExpr, context: XMVContext, opt=True) -> None:
+
+    for expr in postorder_nuxmv(xmv_expr, context):
         if expr in context.expr_map:
-            return
+            continue
 
         match expr:
             case XMVIdentifier(ident=ident):
-                if ident in context.defs:
-                    context.expr_map[expr] = context.expr_map[context.defs[ident]]
+                # context.expr_map[expr] = context.expr_map[context.defs[ident]]
+                if ident in context.defs and opt:
+                    context.expr_map[expr] = build_define_expr(expr, context)
+                elif ident in context.defs:
+                    context.expr_map[expr] = DEFINE_LET_VAR(expr.ident)
+
+                    # context.expr_map[expr] = MCILVar(
+                    #     var_type=MCILVarType.OUTPUT,
+                    #     sort=translate_type(context.defs[ident].type),
+                    #     symbol=ident,
+                    #     prime=False
+                    # )
+
                     # if ident in context.seen_defs:
                     #     raise ValueError(f"Circular definition, detected at `{expr}`")
 
@@ -90,7 +166,7 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> None:
                     #     context.seen_defs.pop()
                     #     return ret
                 elif ident in context.vars:
-                    context.expr_map[expr] =  MCILVar(
+                    context.expr_map[expr] = MCILVar(
                         var_type=MCILVarType.INPUT,
                         sort=translate_type(context.vars[ident]),
                         symbol=ident,
@@ -242,32 +318,36 @@ def translate_expr(xmv_expr: XMVExpr, context: XMVContext) -> None:
             case _:
                 raise ValueError(f"[{FILE_NAME}] unhandled expression {expr}, {expr.__class__}")
         
-    for subexpr in postorder_nuxmv(xmv_expr, context):
-        _translate_expr(subexpr)
 
 def conjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
     if len(expr_list) == 1:
         return expr_list[0]
-    else:
-        head, *tail = expr_list
-        and_ident: MCILIdentifier = MCILIdentifier(symbol="and", indices=[])
-        return MCILApply(
-            sort=MCIL_BOOL_SORT,
-            identifier=and_ident,
-            children=[head, conjoin_list(tail)]
-        )
+    elif len(expr_list) == 2:
+        return MCIL_AND_EXPR(*expr_list)
+
+    # start with first two elements of list, then iteratively add
+    # the following elements of list to the return value (ret)
+    ret = MCIL_AND_EXPR(*expr_list[:2])
+    for cur in expr_list[2:]:
+        ret = MCIL_AND_EXPR(cur, ret)
+
+    return ret
+
 
 def disjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
     if len(expr_list) == 1:
         return expr_list[0]
-    else:
-        head, *tail = expr_list
-        and_ident: MCILIdentifier = MCILIdentifier(symbol="or", indices=[])
-        return MCILApply(
-            sort=MCIL_BOOL_SORT,
-            identifier=and_ident,
-            children=[head, disjoin_list(tail)]
-        )
+    elif len(expr_list) == 2:
+        return MCIL_OR_EXPR(*expr_list)
+
+    # start with first two elements of list, then iteratively add
+    # the following elements of list to the return value (ret)
+    ret = MCIL_OR_EXPR(*expr_list[:2])
+    for cur in expr_list[2:]:
+        ret = MCIL_OR_EXPR(cur, ret)
+
+    return ret
+
 
 def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
     result: list[MCILVar] = []
@@ -318,6 +398,15 @@ def gather_output(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
                     )
 
                     result.append(mcil_var)
+            # case XMVDefineDeclaration(define_list=define_list):
+            #     for define in define_list:
+            #         mcil_var = MCILVar(
+            #             var_type=MCILVarType.OUTPUT,
+            #             sort=translate_type(define.expr.type),
+            #             symbol=define.name.ident,
+            #             prime=False
+            #         )
+            #         result.append(mcil_var)
             case _:
                pass
     
@@ -414,9 +503,11 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext) -> MCILExpr:
             # `module` subsystem declaration
             # case XMVDefineDeclaration(define_list=define_list):
             #     for define in define_list:
+            #         translate_expr(define.name, context)
+            #         translate_expr(define.expr, context)
             #         inv_list.append(MCIL_EQ_EXPR(
-            #             translate_expr(define.name, context), 
-            #             translate_expr(define.expr, context)
+            #             context.expr_map[define.name], 
+            #             context.expr_map[define.expr]
             #         ))
             case _:
                pass

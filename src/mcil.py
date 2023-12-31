@@ -3,9 +3,8 @@ Representation of IL
 """
 from __future__ import annotations
 
+from collections import deque
 from enum import Enum
-from io import BufferedWriter, StringIO
-from pathlib import Path
 from typing import Any, Callable, Optional
 
 from .util import eprint
@@ -263,7 +262,7 @@ class MCILApply(MCILExpr):
 
     def __str__(self) -> str:
         stack: list[tuple[bool, MCILExpr]] = []
-        s = StringIO()
+        s = ""
 
         stack.append((False, self))
 
@@ -271,21 +270,19 @@ class MCILApply(MCILExpr):
             (handled, cur) = stack.pop()
 
             if handled:
-                s.write(")" if isinstance(cur, MCILApply) else "")
+                s += (")" if isinstance(cur, MCILApply) else "")
                 continue
 
             if isinstance(cur, MCILApply):
-                s.write(f" ({cur.identifier}")
+                s += (f" ({cur.identifier}")
             else:
-                s.write(f" {str(cur)}")
+                s += (f" {str(cur)}")
 
             stack.append((True, cur))
             for child in reversed(cur.children):
                 stack.append((False, child))
 
-        content = s.read()
-        s.close()
-        return content
+        return s
 
     def to_json(self) -> dict: # type: ignore
         identifier = self.identifier.to_json() # type: ignore
@@ -321,8 +318,9 @@ class MCILLetExpr(MCILExpr):
         return [(v,e) for v,e in zip(self.vars, self.children[2:])]
 
     def __str__(self) -> str:
+        return mcilexpr2str(self)
         binders_str = " ".join([f"({b[0]} {b[1]})" for b in self.get_binders()])
-        return f"(let ({binders_str}) {str(self.children[-1])})"
+        return f"(let ({binders_str}) {str(self.children[0])})"
 
 
 class MCILBind(MCILExpr):
@@ -332,6 +330,34 @@ class MCILBind(MCILExpr):
         super().__init__(MCIL_NO_SORT, [])
         self.binders = binders
 
+
+def mcilexpr2str(expr: MCILExpr) -> str:
+    queue: deque[tuple[bool, MCILExpr]] = deque()
+    s = ""
+
+    queue.append((False, expr))
+
+    while len(queue) > 0:
+        (handled, cur) = queue.pop()
+
+        if handled:
+            s += ")" if isinstance(cur, (MCILApply, MCILLetExpr)) else ""
+            continue
+
+        if isinstance(cur, MCILApply):
+            s += f" ({cur.identifier}"
+        elif isinstance(cur, MCILLetExpr):
+            s += f" (let ("
+        elif isinstance(cur, MCILBind):
+            s += ")"
+        else:
+            s += f" {str(cur)}"
+
+        queue.append((True, cur))
+        for child in cur.children:
+            queue.append((False, child))
+
+    return s
 
 
 class MCILCommand():
@@ -641,8 +667,10 @@ class MCILExit(MCILCommand):
     pass
 
 
-MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x) # type: ignore
-MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y]) # type: ignore
+MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x)
+MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y])
+MCIL_AND_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("and", []), [x,y])
+MCIL_OR_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("or", []), [x,y])
 
 
 # A rank is a function signature. For example:
@@ -1033,10 +1061,12 @@ def postorder_mcil(expr: MCILExpr, context: MCILContext):
 
         if seen and isinstance(cur, MCILLetExpr):
             for (v,e) in cur.get_binders():
+                # print(f"removing {v} : {e}")
                 del context.bound_vars[v]
             yield cur
         elif seen and isinstance(cur, MCILBind):
             for (v,e) in cur.binders:
+                # print(f"adding {v} : {e}")
                 context.bound_vars[v] = e
         elif seen:
             yield cur

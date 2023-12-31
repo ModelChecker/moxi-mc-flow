@@ -1,4 +1,5 @@
 # TODO: IMPLEMENT THIS
+from collections import deque
 import re
 
 from .mcil import MCILExpr
@@ -590,9 +591,9 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
         stack.append((True, cur))
         
         match cur:
-            case XMVIdentifier(ident=ident):
-                if ident in context.defs:
-                    stack.append((False, context.defs[ident]))
+            # case XMVIdentifier(ident=ident):
+            #     if ident in context.defs:
+            #         stack.append((False, context.defs[ident]))
             case XMVFunCall(args=args):
                 [stack.append((False, arg)) for arg in args]
             case XMVUnOp(arg=arg):
@@ -618,6 +619,45 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
             case _:
                 pass
 
+
+def preorder_nuxmv(expr: XMVExpr, context: XMVContext):
+    """Perform an iterative preorder traversal of 'expr'."""
+    queue: deque[XMVExpr] = deque()
+
+    queue.append(expr)
+
+    while len(queue) > 0:
+        cur = queue.pop()
+        yield cur
+
+        match cur:
+            case XMVIdentifier(ident=ident):
+                if ident in context.defs:
+                    queue.append(context.defs[ident])
+            case XMVFunCall(args=args):
+                [queue.append(arg) for arg in args]
+            case XMVUnOp(arg=arg):
+                queue.append(arg)
+            case XMVBinOp(lhs=lhs, rhs=rhs):
+                queue.append(lhs)
+                queue.append(rhs)
+            case XMVIndexSubscript(array=array, index=index):
+                queue.append(array)
+                queue.append(index)
+            case XMVWordBitSelection(word=word, low=_, high=_):
+                queue.append(word)
+            case XMVSetBodyExpression(members=members):
+                [queue.append(m) for m in members]
+            case XMVTernary(cond=cond, then_expr=then_expr, else_expr=else_expr):
+                queue.append(cond)
+                queue.append(then_expr)
+                queue.append(else_expr)
+            case XMVCaseExpr(branches=branches):
+                for (cond, then_expr) in branches:
+                    queue.append(cond)
+                    queue.append(then_expr)
+            case _:
+                pass
 
 
 def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext]:
