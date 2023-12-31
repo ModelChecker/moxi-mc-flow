@@ -187,6 +187,9 @@ class MCILExpr():
     def __hash__(self) -> int:
         return id(self)
 
+    def __str__(self) -> str:
+        return mcil2str(self)
+
     def to_json(self) -> dict: # type: ignore
         return {} # type: ignore
 
@@ -196,15 +199,6 @@ class MCILConstant(MCILExpr):
     def __init__(self, sort: MCILSort, value: Any):
         super().__init__(sort, [])
         self.value = value
-
-    def __str__(self) -> str:
-        if is_bool_sort(self.sort):
-            return str(self.value).lower()
-        elif is_bitvec_sort(self.sort):
-            format_str = f"#b{'{'}0:0{self.sort.identifier.indices[0]}b{'}'}"
-            return format_str.format(self.value)
-
-        return str(self.value)
 
     def to_json(self) -> dict: # type: ignore
         return {"identifier": str(self)} # type: ignore
@@ -236,9 +230,6 @@ class MCILVar(MCILExpr):
     def __hash__(self) -> int:
         return hash(self.symbol)
 
-    def __str__(self) -> str:
-        return f"{self.symbol}" + ("'" if self.prime else "")
-
     def to_json(self) -> dict: # type: ignore
         return {"identifier": self.symbol + ("'" if self.prime else "")} # type: ignore
 
@@ -259,30 +250,6 @@ class MCILApply(MCILExpr):
     ):
         super().__init__(sort, children)
         self.identifier = identifier
-
-    def __str__(self) -> str:
-        stack: list[tuple[bool, MCILExpr]] = []
-        s = ""
-
-        stack.append((False, self))
-
-        while len(stack) > 0:
-            (handled, cur) = stack.pop()
-
-            if handled:
-                s += (")" if isinstance(cur, MCILApply) else "")
-                continue
-
-            if isinstance(cur, MCILApply):
-                s += (f" ({cur.identifier}")
-            else:
-                s += (f" {str(cur)}")
-
-            stack.append((True, cur))
-            for child in reversed(cur.children):
-                stack.append((False, child))
-
-        return s
 
     def to_json(self) -> dict: # type: ignore
         identifier = self.identifier.to_json() # type: ignore
@@ -317,11 +284,6 @@ class MCILLetExpr(MCILExpr):
     def get_binders(self) -> list[tuple[str, MCILExpr]]:
         return [(v,e) for v,e in zip(self.vars, self.children[2:])]
 
-    def __str__(self) -> str:
-        return mcilexpr2str(self)
-        binders_str = " ".join([f"({b[0]} {b[1]})" for b in self.get_binders()])
-        return f"(let ({binders_str}) {str(self.children[0])})"
-
 
 class MCILBind(MCILExpr):
     """Class used for binding variables in `let` expressions during traversal."""
@@ -331,8 +293,8 @@ class MCILBind(MCILExpr):
         self.binders = binders
 
 
-def mcilexpr2str(expr: MCILExpr) -> str:
-    queue: deque[tuple[bool, MCILExpr]] = deque()
+def mcil2str(expr: MCILExpr) -> str:
+    queue: deque[tuple[bool, MCILExpr|tuple[str,MCILExpr]]] = deque()
     s = ""
 
     queue.append((False, expr))
@@ -341,21 +303,42 @@ def mcilexpr2str(expr: MCILExpr) -> str:
         (handled, cur) = queue.pop()
 
         if handled:
-            s += ")" if isinstance(cur, (MCILApply, MCILLetExpr)) else ""
+            s += ")" if isinstance(cur, (MCILApply, MCILLetExpr, tuple)) else ""
             continue
 
+        # first time seeing this node
         if isinstance(cur, MCILApply):
             s += f" ({cur.identifier}"
         elif isinstance(cur, MCILLetExpr):
             s += f" (let ("
         elif isinstance(cur, MCILBind):
             s += ")"
+        elif isinstance(cur, MCILConstant) and is_bitvec_sort(cur.sort):
+            format_str = f" #b{'{'}0:0{cur.sort.identifier.indices[0]}b{'}'}"
+            s += format_str.format(cur.value)
+        elif isinstance(cur, MCILConstant):
+            s += " " + str(cur.value).lower()
+        elif isinstance(cur, MCILVar):
+            s += f" {cur.symbol}" + ("'" if cur.prime else "")
+        elif isinstance(cur, tuple):
+            (v,e) = cur
+            s += f"({v}"
         else:
             s += f" {str(cur)}"
 
         queue.append((True, cur))
-        for child in cur.children:
-            queue.append((False, child))
+
+        # add children to stack
+        if isinstance(cur, MCILLetExpr):
+            queue.append((False, cur.get_expr()))
+            for v,e in reversed(cur.get_binders()):
+                queue.append((False, (v,e)))
+        elif isinstance(cur, tuple):
+            (_,e) = cur
+            queue.append((False, e))
+        else:
+            for child in reversed(cur.children):
+                queue.append((False, child))
 
     return s
 
@@ -1061,12 +1044,10 @@ def postorder_mcil(expr: MCILExpr, context: MCILContext):
 
         if seen and isinstance(cur, MCILLetExpr):
             for (v,e) in cur.get_binders():
-                # print(f"removing {v} : {e}")
                 del context.bound_vars[v]
             yield cur
         elif seen and isinstance(cur, MCILBind):
             for (v,e) in cur.binders:
-                # print(f"adding {v} : {e}")
                 context.bound_vars[v] = e
         elif seen:
             yield cur
