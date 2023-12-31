@@ -2,8 +2,6 @@
 from collections import deque
 import re
 
-from .mcil import MCILExpr
-
 # type specifiers -------------------------
 
 class XMVType():
@@ -553,7 +551,6 @@ class XMVContext():
         self.enums: list[list[str|int]] = [] 
         # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
         self.reverse_enums: dict[str, str] = {}
-        self.expr_map: dict[XMVExpr, MCILExpr] = {}
 
 def type_check_enums(xmv_module: XMVModule, xmv_context: XMVContext) -> tuple[bool, XMVContext]:
     for m in xmv_module.elements:
@@ -627,7 +624,7 @@ def preorder_nuxmv(expr: XMVExpr, context: XMVContext):
     queue.append(expr)
 
     while len(queue) > 0:
-        cur = queue.pop()
+        cur = queue.popleft()
         yield cur
 
         match cur:
