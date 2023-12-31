@@ -322,7 +322,7 @@ def mcil2str(expr: MCILExpr) -> str:
             s += f" {cur.symbol}" + ("'" if cur.prime else "")
         elif isinstance(cur, tuple):
             (v,e) = cur
-            s += f"({v}"
+            s += f" ({v}"
         else:
             s += f" {str(cur)}"
 
@@ -331,6 +331,7 @@ def mcil2str(expr: MCILExpr) -> str:
         # add children to stack
         if isinstance(cur, MCILLetExpr):
             queue.append((False, cur.get_expr()))
+            queue.append((False, cur.children[1]))
             for v,e in reversed(cur.get_binders()):
                 queue.append((False, (v,e)))
         elif isinstance(cur, tuple):
