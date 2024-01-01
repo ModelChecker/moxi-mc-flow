@@ -1,9 +1,8 @@
-import argparse
 from copy import copy
 import json
 from pathlib import Path
 import pickle
-import sys
+import time
 from typing import cast
 
 from .util import eprint
@@ -375,7 +374,9 @@ def ilchecksystem_to_btor2(
             btor2_model.append(next)
 
     context.system_context.push((check.sys_symbol, context.defined_systems[check.sys_symbol]))
+
     ilsystem_to_btor2(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map, expr_map)
+
     context.system_context.pop()
 
     for sym, query in check.query.items():
@@ -402,21 +403,8 @@ def ilchecksystem_to_btor2(
             btor2_prog += flatten_btor2_expr(expr_map[current])
             btor2_prog.append(BtorConstraint(expr_map[current]))
 
-        btor2_nids: dict[BtorNode, int] = {}
-        cur_nid = 1
-        for node in btor2_prog:
-            if node in btor2_nids:
-                node.nid = btor2_nids[node]
-            else:
-                node.nid = cur_nid
-                btor2_nids[node] = cur_nid
-                cur_nid += 1
-
-        reduced_btor2_prog: list[BtorNode] = []
-        for node in btor2_prog:
-            if node in reduced_btor2_prog:
-                continue
-            reduced_btor2_prog.append(node)
+        print(f"[{FILE_NAME}] reducing BTOR2 program")
+        reduced_btor2_prog = assign_nids(btor2_prog)
 
         btor2_prog_list[sym] = reduced_btor2_prog
 
@@ -470,11 +458,11 @@ def main(
     pickle_path: Optional[Path]
 ) -> int:
     if not input_path.is_file():
-        eprint(f"[{FILE_NAME}]  `{input_path}` is not a valid file.\n")
+        eprint(f"[{FILE_NAME}]  '{input_path}' is not a valid file.\n")
         return 1
 
     if output_path.is_file():
-        eprint(f"[{FILE_NAME}]  `{output_path}` is a file.\n")
+        eprint(f"[{FILE_NAME}]  '{output_path}' is a file.\n")
         return 1
 
     if not output_path.is_dir():

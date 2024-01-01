@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections import deque
 from enum import Enum
 from typing import Any, Optional
+import time
 
 EMPTY_ARGS = (None, None, None)
 
@@ -281,7 +282,7 @@ def hash_btor(expr: BtorExpr) -> int:
             if isinstance(subexpr, BtorApply):
                 h = hash((h, subexpr.sort, subexpr.operator))
 
-            if cnt > 10:
+            if cnt > 30:
                 return h
             cnt += 1
         
@@ -418,9 +419,37 @@ def preorder_btor(expr: BtorExpr):
 
     while len(queue) > 0:
         cur = queue.popleft()
+
+        if id(cur) in visited:
+            continue
         yield cur
 
         visited.add(id(cur))
 
-        for child in [c for c in cur.children if c and id(c) not in visited]:
+        for child in [c for c in cur.children if c]:
             queue.append(child)
+
+
+def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
+    btor2_nids: dict[BtorNode, int] = {}
+    cur_nid = 1
+
+    # __reduce_btor_1_start = time.perf_counter()
+    # __num_reduced = 0
+
+    reduced_program: list[BtorNode] = []
+    for node in program:
+        if node not in btor2_nids:
+            node.nid = cur_nid
+            btor2_nids[node] = cur_nid
+            cur_nid += 1
+            reduced_program.append(node)
+        else:
+            node.nid = btor2_nids[node]
+            # __num_reduced += 1
+
+    # __reduce_btor_1_end = time.perf_counter()
+    # print(f"BTOR2 reduce: {__reduce_btor_1_end - __reduce_btor_1_start}s")
+    # print(f"Num reduced: {__num_reduced}")
+
+    return reduced_program
