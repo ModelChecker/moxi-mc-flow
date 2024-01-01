@@ -2,13 +2,16 @@ import argparse
 import subprocess
 from pathlib import Path
 import shutil
+import time
 
 FILE_NAME = Path(__file__).name
 FILE_DIR = Path(__file__).parent
 
-translate_path = FILE_DIR/ ".." / "translate.py"
+translate_path = FILE_DIR / ".." / "translate.py"
 modelcheck_path = FILE_DIR / ".." / "modelcheck.py"
+catbtor_path = FILE_DIR / ".." / "btor2tools" / "build" / "bin" / "catbtor"
 
+timeout = 120
 
 def cleandir(dir: Path, quiet: bool):
     """Remove and create fresh dir, print a warning if quiet is False"""
@@ -27,6 +30,8 @@ def cleandir(dir: Path, quiet: bool):
 def test_nuxmv2mcil(src: str, dst: str) -> str:
     global translate_path
 
+    print(f"[TESTING] {src}")
+
     src_path = Path(src)
     dst_path = Path(dst)
 
@@ -43,30 +48,35 @@ def test_nuxmv2mcil(src: str, dst: str) -> str:
     mcil_path = pass_dir / dst_path.with_suffix(".mcil").name
     stderr_path = fail_dir /  dst_path.with_suffix(".stderr").name
 
+    test_start = time.perf_counter()
+
     try:
-        print(f"Translating '{src_path}' to MCIL")
         proc = subprocess.run([
             "python3", str(translate_path), str(src_path), "mcil",
             "--output", str(mcil_path)
-        ], capture_output=True)
+        ], capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         print(f"[FAIL] {src_path}")
         with open(str(stderr_path), "w") as f:
-            f.write("timeout after 10s")
+            f.write(f"timeout after {timeout}s")
         return dst
+
+    test_end = time.perf_counter()
 
     if proc.returncode:
         print(f"[FAIL] {src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
     else:
-        print(f"[PASS] {src_path}")
+        print(f"[PASS] {src_path} ({test_end - test_start}s)")
 
     return dst
 
 
 def test_nuxmv2btor(src: str, dst: str) -> str:
     global translate_path
+
+    print(f"[TESTING] {src}")
 
     src_path = Path(src)
     dst_path = Path(dst)
@@ -84,9 +94,29 @@ def test_nuxmv2btor(src: str, dst: str) -> str:
     btor_path = pass_dir / dst_path.with_suffix(".btor").name
     stderr_path = fail_dir /  dst_path.with_suffix(".stderr").name
 
+    test_start = time.perf_counter()
+
+    try:
+        proc = subprocess.run([
+            "python3", str(translate_path), str(src_path), "btor2",
+            "--output", str(btor_path)
+        ], capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print(f"[FAIL] {src_path}")
+        with open(str(stderr_path), "w") as f:
+            f.write(f"timeout after {timeout}s")
+        return dst
+
+    test_end = time.perf_counter()
+
+    if proc.returncode:
+        print(f"[FAIL] {src_path}")
+        with open(str(stderr_path), "w") as f:
+            f.write(proc.stderr.decode("utf-8"))
+        return dst
+    
     proc = subprocess.run([
-        "python3", str(translate_path), str(src_path), "btor2",
-        "--output", str(btor_path)
+        str(catbtor_path), str(btor_path)
     ], capture_output=True)
 
     if proc.returncode:
@@ -94,13 +124,15 @@ def test_nuxmv2btor(src: str, dst: str) -> str:
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
     else:
-        print(f"[PASS] {src_path}")
+        print(f"[PASS] {src_path} ({test_end - test_start}s)")
 
     return dst
 
 
 def test_modelcheck(src: str, dst: str) -> str:
     global modelcheck_path
+
+    print(f"[TESTING] {src}")
 
     src_path = Path(src)
     dst_path = Path(dst)
@@ -113,16 +145,26 @@ def test_modelcheck(src: str, dst: str) -> str:
     cex_path = pass_dir / dst_path.with_suffix(".cex").name
     stderr_path = fail_dir / dst_path.with_suffix(".stderr").name
 
-    proc = subprocess.run([
-        "python3", str(modelcheck_path), str(src_path), "--btormc", "--output", cex_path
-    ], capture_output=True)
+    test_start = time.perf_counter()
+
+    try:
+        proc = subprocess.run([
+            "python3", str(modelcheck_path), str(src_path), "--btormc", "--output", cex_path
+        ], capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print(f"[FAIL] {src_path}")
+        with open(str(stderr_path), "w") as f:
+            f.write(f"timeout after {timeout}s")
+        return dst
+
+    test_end = time.perf_counter()
 
     if proc.returncode:
         print(f"[FAIL] {src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
     else:
-        print(f"[PASS] {src_path}")
+        print(f"[PASS] {src_path} ({test_end - test_start}s)")
 
     return dst
 
@@ -156,6 +198,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("smvdir", help="directory of input SMV files")
     parser.add_argument("--translate", help="path to translate.py")
+    parser.add_argument("--modelcheck-script", help="path to modelcheck.py")
+    parser.add_argument("--catbtor", help="path to catbtor")
     parser.add_argument("--resultsdir", default=str(FILE_DIR / "resultsdir"),
                         help="directory to output test logs and copyback data")
     parser.add_argument("--nuxmv2mcil", action="store_true",
@@ -164,10 +208,26 @@ if __name__ == "__main__":
                         help="enable nuxmv2btor test")
     parser.add_argument("--modelcheck", action="store_true",
                         help="enable modelcheck test")
+    parser.add_argument("--timeout", help="max seconds before timeout", 
+                        type=int, default=120)
     args = parser.parse_args()
 
     if args.translate:
         translate_path = Path(args.translate)
 
-    main(Path(args.smvdir), Path(args.resultsdir), args.nuxmv2mcil, args.nuxmv2btor, args.modelcheck)
+    if args.modelcheck_script:
+        modelcheck_path = Path(args.modelcheck_script)
+
+    if args.catbtor:
+        catbtor_path = Path(args.catbtor)
+
+    timeout = int(args.timeout)
+
+    main(
+        Path(args.smvdir), 
+        Path(args.resultsdir), 
+        args.nuxmv2mcil, 
+        args.nuxmv2btor, 
+        args.modelcheck,
+    )
 

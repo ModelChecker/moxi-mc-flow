@@ -1,7 +1,6 @@
 # TODO: IMPLEMENT THIS
+from collections import deque
 import re
-
-from .mcil import MCILExpr
 
 # type specifiers -------------------------
 
@@ -552,7 +551,6 @@ class XMVContext():
         self.enums: list[list[str|int]] = [] 
         # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
         self.reverse_enums: dict[str, str] = {}
-        self.expr_map: dict[XMVExpr, MCILExpr] = {}
 
 def type_check_enums(xmv_module: XMVModule, xmv_context: XMVContext) -> tuple[bool, XMVContext]:
     for m in xmv_module.elements:
@@ -590,9 +588,9 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
         stack.append((True, cur))
         
         match cur:
-            case XMVIdentifier(ident=ident):
-                if ident in context.defs:
-                    stack.append((False, context.defs[ident]))
+            # case XMVIdentifier(ident=ident):
+            #     if ident in context.defs:
+            #         stack.append((False, context.defs[ident]))
             case XMVFunCall(args=args):
                 [stack.append((False, arg)) for arg in args]
             case XMVUnOp(arg=arg):
@@ -617,7 +615,6 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
                     stack.append((False, then_expr))
             case _:
                 pass
-
 
 
 def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext]:
@@ -751,9 +748,18 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                             raise ValueError(f"Unsupported op `{op}`, `{expr}`")
                 case XMVIndexSubscript():
                     pass
-                case XMVWordBitSelection(word=word, low=_, high=_):
+                case XMVWordBitSelection(word=word, low=low, high=high):
                     if not isinstance(word.type, XMVWord):
                         raise ValueError(f"Bit select only valid on words, found '{word.type}' ({expr})")
+
+                    if low < 0:
+                        raise ValueError(f"Low value for bit select must be greater than 0 ({low})")
+
+                    if high >= word.type.width:
+                        raise ValueError(f"High value for bit select must be less than word width, {high} >= {word.type.width} ({expr})")
+
+                    if low > high:
+                        raise ValueError(f"High value for bit select must be greater than low value [{low}:{high}] ({expr})")
                 case XMVSetBodyExpression():
                     pass
                 case XMVTernary():

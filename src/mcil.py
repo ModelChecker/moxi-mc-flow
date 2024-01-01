@@ -3,9 +3,8 @@ Representation of IL
 """
 from __future__ import annotations
 
+from collections import deque
 from enum import Enum
-from io import BufferedWriter, StringIO
-from pathlib import Path
 from typing import Any, Callable, Optional
 
 from .util import eprint
@@ -188,6 +187,9 @@ class MCILExpr():
     def __hash__(self) -> int:
         return id(self)
 
+    def __str__(self) -> str:
+        return mcil2str(self)
+
     def to_json(self) -> dict: # type: ignore
         return {} # type: ignore
 
@@ -197,15 +199,6 @@ class MCILConstant(MCILExpr):
     def __init__(self, sort: MCILSort, value: Any):
         super().__init__(sort, [])
         self.value = value
-
-    def __str__(self) -> str:
-        if is_bool_sort(self.sort):
-            return str(self.value).lower()
-        elif is_bitvec_sort(self.sort):
-            format_str = f"#b{'{'}0:0{self.sort.identifier.indices[0]}b{'}'}"
-            return format_str.format(self.value)
-
-        return str(self.value)
 
     def to_json(self) -> dict: # type: ignore
         return {"identifier": str(self)} # type: ignore
@@ -237,9 +230,6 @@ class MCILVar(MCILExpr):
     def __hash__(self) -> int:
         return hash(self.symbol)
 
-    def __str__(self) -> str:
-        return f"{self.symbol}" + ("'" if self.prime else "")
-
     def to_json(self) -> dict: # type: ignore
         return {"identifier": self.symbol + ("'" if self.prime else "")} # type: ignore
 
@@ -260,32 +250,6 @@ class MCILApply(MCILExpr):
     ):
         super().__init__(sort, children)
         self.identifier = identifier
-
-    def __str__(self) -> str:
-        stack: list[tuple[bool, MCILExpr]] = []
-        s = StringIO()
-
-        stack.append((False, self))
-
-        while len(stack) > 0:
-            (handled, cur) = stack.pop()
-
-            if handled:
-                s.write(")" if isinstance(cur, MCILApply) else "")
-                continue
-
-            if isinstance(cur, MCILApply):
-                s.write(f" ({cur.identifier}")
-            else:
-                s.write(f" {str(cur)}")
-
-            stack.append((True, cur))
-            for child in reversed(cur.children):
-                stack.append((False, child))
-
-        content = s.read()
-        s.close()
-        return content
 
     def to_json(self) -> dict: # type: ignore
         identifier = self.identifier.to_json() # type: ignore
@@ -320,10 +284,6 @@ class MCILLetExpr(MCILExpr):
     def get_binders(self) -> list[tuple[str, MCILExpr]]:
         return [(v,e) for v,e in zip(self.vars, self.children[2:])]
 
-    def __str__(self) -> str:
-        binders_str = " ".join([f"({b[0]} {b[1]})" for b in self.get_binders()])
-        return f"(let ({binders_str}) {str(self.children[-1])})"
-
 
 class MCILBind(MCILExpr):
     """Class used for binding variables in `let` expressions during traversal."""
@@ -332,6 +292,56 @@ class MCILBind(MCILExpr):
         super().__init__(MCIL_NO_SORT, [])
         self.binders = binders
 
+
+def mcil2str(expr: MCILExpr) -> str:
+    queue: deque[tuple[bool, MCILExpr|tuple[str,MCILExpr]]] = deque()
+    s = ""
+
+    queue.append((False, expr))
+
+    while len(queue) > 0:
+        (handled, cur) = queue.pop()
+
+        if handled:
+            s += ")" if isinstance(cur, (MCILApply, MCILLetExpr, tuple)) else ""
+            continue
+
+        # first time seeing this node
+        if isinstance(cur, MCILApply):
+            s += f" ({cur.identifier}"
+        elif isinstance(cur, MCILLetExpr):
+            s += f" (let ("
+        elif isinstance(cur, MCILBind):
+            s += ")"
+        elif isinstance(cur, MCILConstant) and is_bitvec_sort(cur.sort):
+            format_str = f" #b{'{'}0:0{cur.sort.identifier.indices[0]}b{'}'}"
+            s += format_str.format(cur.value)
+        elif isinstance(cur, MCILConstant):
+            s += " " + str(cur.value).lower()
+        elif isinstance(cur, MCILVar):
+            s += f" {cur.symbol}" + ("'" if cur.prime else "")
+        elif isinstance(cur, tuple):
+            (v,e) = cur
+            s += f" ({v}"
+        else:
+            s += f" {str(cur)}"
+
+        queue.append((True, cur))
+
+        # add children to stack
+        if isinstance(cur, MCILLetExpr):
+            queue.append((False, cur.get_expr()))
+            queue.append((False, cur.children[1]))
+            for v,e in reversed(cur.get_binders()):
+                queue.append((False, (v,e)))
+        elif isinstance(cur, tuple):
+            (_,e) = cur
+            queue.append((False, e))
+        else:
+            for child in reversed(cur.children):
+                queue.append((False, child))
+
+    return s
 
 
 class MCILCommand():
@@ -520,7 +530,10 @@ class MCILDefineSystem(MCILCommand):
         output_str = " ".join([f"({o.symbol} {o.sort})" for o in self.output])
         local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.local])
 
-        # subsystem_str = ":subsys " # TODO
+        subsystem_str = ""
+        for symbol,signature in self.subsystem_signatures.items():
+            (sys_symbol, args) = signature
+            subsystem_str += f"\n   :subsys ({symbol} ({sys_symbol} {' '.join(args)}))"
 
         s =  f"(define-system {self.symbol} "
         s += f"\n   :input ({input_str}) "
@@ -529,7 +542,7 @@ class MCILDefineSystem(MCILCommand):
         s += f"\n   :init {self.init} "
         s += f"\n   :trans {self.trans} "
         s += f"\n   :inv {self.inv} "
-        # s += f":subsys ({input_str}) "
+        s += subsystem_str
 
         return s + ")"
 
@@ -641,8 +654,10 @@ class MCILExit(MCILCommand):
     pass
 
 
-MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x) # type: ignore
-MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y]) # type: ignore
+MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x)
+MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y])
+MCIL_AND_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("and", []), [x,y])
+MCIL_OR_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("or", []), [x,y])
 
 
 # A rank is a function signature. For example:
@@ -797,6 +812,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         (i,j) = identifier.indices
 
         if j > i or i >= m:
+            print(f"{i}, {j}, {m}")
             return False
 
         n = i - j + 1

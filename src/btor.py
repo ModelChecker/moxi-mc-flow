@@ -2,8 +2,10 @@
 https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 """
 from __future__ import annotations
+from collections import deque
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any, Optional
+import time
 
 EMPTY_ARGS = (None, None, None)
 
@@ -157,6 +159,13 @@ class BtorExpr(BtorNode):
         super().__init__()
         self.children = c
 
+    def __eq__(self, __o: object) -> bool:
+        return eq_btor(self, __o)
+
+    def __hash__(self) -> int:
+        return hash_btor(self)
+
+
 class BtorVar(BtorExpr):
 
     def __init__(self, sort: BtorSort, symbol: str = ""):
@@ -164,14 +173,6 @@ class BtorVar(BtorExpr):
         self.sort: BtorSort = sort
         self.symbol = symbol
         self.var_index: int = 0  # used to refer to vars in witness
-
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, BtorVar):
-            return False
-        return self.symbol == __o.symbol
-
-    def __hash__(self) -> int:
-        return hash((self.sort, self.symbol))
 
 
 class BtorInputVar(BtorVar):
@@ -204,14 +205,6 @@ class BtorConst(BtorExpr):
 
     def __str__(self) -> str:
         return f"{self.nid} constd {self.sort.nid} {int(self.value)}{self.comment}"
-    
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, BtorConst):
-            return False
-        return self.sort == __o.sort and self.value == __o.value
-
-    def __hash__(self) -> int:
-        return hash((self.sort, self.value))
 
 
 # BTOR2 operators have only 1, 2, or 3 arguments
@@ -225,7 +218,7 @@ class BtorApply(BtorExpr):
         op: BtorOperator, 
         indices: tuple[Optional[int], Optional[int]], 
         args: BtorArgs
-    ):
+    ) -> None:
         super().__init__(args)
         self.indices = indices
         self.sort = sort
@@ -246,30 +239,56 @@ class BtorApply(BtorExpr):
         s += f"{self.comment}"
         return s
 
-    # def __str__(self) -> str:
-    #     return f"{self.nid} {self.operator.name.lower()} {self.sort.nid} {' '.join([str(c.nid) for c in self.children if c])}{self.comment}"
 
-    def __eq__(self, __o: object) -> bool:
-        if not isinstance(__o, BtorApply):
-            return False
+def eq_btor(e1: BtorExpr, e2: object) -> bool:
+    if not isinstance(e2, BtorExpr):
+        return False
 
-        if not self.operator == __o.operator:
-            return False
-        
-        if not self.sort == __o.sort:
-            return False
-
-        if not len(self.children) == len(__o.children):
-            return False
-
-        for i in range(0, len(self.children)-1):
-            if self.children[i] != __o.children[i]:
+    try:
+        for c1,c2 in zip(preorder_btor(e1), preorder_btor(e2), strict=True):
+            if isinstance(c1, BtorVar) and isinstance(c2, BtorVar):
+                if c1.symbol != c2.symbol:
+                    return False
+            elif isinstance(c1, BtorConst) and isinstance(c2, BtorConst):
+                if c1.sort != c2.sort:
+                    return False 
+                elif c1.value != c2.value:
+                    return False
+            elif isinstance(c1, BtorApply) and isinstance(c2, BtorApply):
+                if c1.operator != c2.operator:
+                    return False
+                elif c1.sort != c2.sort:
+                    return False
+            else:
                 return False
-        
         return True
+    except ValueError:
+        return False
 
-    def __hash__(self) -> int:
-        return hash((self.operator, self.sort, self.children))
+
+def hash_btor(expr: BtorExpr) -> int:
+    if isinstance(expr, BtorVar):
+        return hash((expr.sort, expr.symbol))
+    elif isinstance(expr, BtorConst):
+        return hash((expr.sort, expr.value))
+    elif isinstance(expr, BtorApply):
+        h,cnt = 0,0
+
+        for subexpr in preorder_btor(expr):
+            if isinstance(expr, BtorVar):
+                h = hash((h, expr.sort, expr.symbol))
+            elif isinstance(expr, BtorConst):
+                h = hash((h, expr.sort, expr.value))
+            if isinstance(subexpr, BtorApply):
+                h = hash((h, subexpr.sort, subexpr.operator))
+
+            if cnt > 30:
+                return h
+            cnt += 1
+        
+        return h
+
+    raise NotImplementedError(f"Hash not implemented for {type(expr)}")
 
 
 class BtorConstraint(BtorNode):
@@ -369,7 +388,7 @@ operator_table: dict[BtorOperator, tuple[list[type], type]] = {
 
 
 def postorder_btor(expr: BtorExpr):
-    """Perform an iterative postorder traversal of node, calling func on each node."""
+    """Perform an iterative postorder traversal of `expr`."""
     stack: list[tuple[bool, BtorExpr]] = []
     visited: set[int] = set()
 
@@ -381,7 +400,7 @@ def postorder_btor(expr: BtorExpr):
         if seen:
             yield cur
             continue
-        elif cur in visited:
+        elif id(cur) in visited:
             continue
 
         visited.add(id(cur))
@@ -389,3 +408,48 @@ def postorder_btor(expr: BtorExpr):
 
         for child in [c for c in cur.children if c]:
             stack.append((False, child))
+
+
+def preorder_btor(expr: BtorExpr):
+    """Perform an iterative preorder traversal of `expr`."""
+    queue: deque[BtorExpr] = deque()
+    visited: set[int] = set()
+
+    queue.append(expr)
+
+    while len(queue) > 0:
+        cur = queue.popleft()
+
+        if id(cur) in visited:
+            continue
+        yield cur
+
+        visited.add(id(cur))
+
+        for child in [c for c in cur.children if c]:
+            queue.append(child)
+
+
+def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
+    btor2_nids: dict[BtorNode, int] = {}
+    cur_nid = 1
+
+    # __reduce_btor_1_start = time.perf_counter()
+    # __num_reduced = 0
+
+    reduced_program: list[BtorNode] = []
+    for node in program:
+        if node not in btor2_nids:
+            node.nid = cur_nid
+            btor2_nids[node] = cur_nid
+            cur_nid += 1
+            reduced_program.append(node)
+        else:
+            node.nid = btor2_nids[node]
+            # __num_reduced += 1
+
+    # __reduce_btor_1_end = time.perf_counter()
+    # print(f"BTOR2 reduce: {__reduce_btor_1_end - __reduce_btor_1_start}s")
+    # print(f"Num reduced: {__num_reduced}")
+
+    return reduced_program
