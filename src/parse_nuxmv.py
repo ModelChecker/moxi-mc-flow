@@ -381,7 +381,7 @@ class NuXmvParser(Parser):
 
     @_("expr LBRACK INTEGER COLON INTEGER RBRACK")
     def expr(self, p):
-        return XMVWordBitSelection(word=p[0], low=int(p[2]), high=int(p[4]))
+        return XMVWordBitSelection(word=p[0], high=int(p[2]), low=int(p[4]))
 
     @_("expr CONCAT expr")
     def expr(self, p):

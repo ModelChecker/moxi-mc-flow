@@ -617,46 +617,6 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
                 pass
 
 
-def preorder_nuxmv(expr: XMVExpr, context: XMVContext):
-    """Perform an iterative preorder traversal of 'expr'."""
-    queue: deque[XMVExpr] = deque()
-
-    queue.append(expr)
-
-    while len(queue) > 0:
-        cur = queue.popleft()
-        yield cur
-
-        match cur:
-            case XMVIdentifier(ident=ident):
-                if ident in context.defs:
-                    queue.append(context.defs[ident])
-            case XMVFunCall(args=args):
-                [queue.append(arg) for arg in args]
-            case XMVUnOp(arg=arg):
-                queue.append(arg)
-            case XMVBinOp(lhs=lhs, rhs=rhs):
-                queue.append(lhs)
-                queue.append(rhs)
-            case XMVIndexSubscript(array=array, index=index):
-                queue.append(array)
-                queue.append(index)
-            case XMVWordBitSelection(word=word, low=_, high=_):
-                queue.append(word)
-            case XMVSetBodyExpression(members=members):
-                [queue.append(m) for m in members]
-            case XMVTernary(cond=cond, then_expr=then_expr, else_expr=else_expr):
-                queue.append(cond)
-                queue.append(then_expr)
-                queue.append(else_expr)
-            case XMVCaseExpr(branches=branches):
-                for (cond, then_expr) in branches:
-                    queue.append(cond)
-                    queue.append(then_expr)
-            case _:
-                pass
-
-
 def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext]:
 
     # def propagate_next(expr: XMVExpr):
@@ -788,9 +748,18 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                             raise ValueError(f"Unsupported op `{op}`, `{expr}`")
                 case XMVIndexSubscript():
                     pass
-                case XMVWordBitSelection(word=word, low=_, high=_):
+                case XMVWordBitSelection(word=word, low=low, high=high):
                     if not isinstance(word.type, XMVWord):
                         raise ValueError(f"Bit select only valid on words, found '{word.type}' ({expr})")
+
+                    if low < 0:
+                        raise ValueError(f"Low value for bit select must be greater than 0 ({low})")
+
+                    if high >= word.type.width:
+                        raise ValueError(f"High value for bit select must be less than word width, {high} >= {word.type.width} ({expr})")
+
+                    if low > high:
+                        raise ValueError(f"High value for bit select must be greater than low value [{low}:{high}] ({expr})")
                 case XMVSetBodyExpression():
                     pass
                 case XMVTernary():

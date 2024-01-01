@@ -812,6 +812,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         (i,j) = identifier.indices
 
         if j > i or i >= m:
+            print(f"{i}, {j}, {m}")
             return False
 
         n = i - j + 1
