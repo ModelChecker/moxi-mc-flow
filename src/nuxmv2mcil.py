@@ -73,9 +73,10 @@ def build_define_expr(
     context: XMVContext, 
 ) -> MCILExpr:
 
-    def dependent_defines(ident: str, context: XMVContext):
+    def dependent_defines(ident: str, context: XMVContext) -> list[XMVIdentifier]:
         stack: list[tuple[bool, XMVExpr]] = []
         visited: set[XMVExpr] = set()
+        deps: list[XMVIdentifier] = []
 
         stack.append((False, context.defs[ident]))
 
@@ -86,7 +87,7 @@ def build_define_expr(
                 continue
             elif seen:
                 if isinstance(cur, XMVIdentifier) and cur.ident in context.defs:
-                    yield cur
+                    deps.append(cur)
                 visited.add(cur)
                 continue
 
@@ -120,6 +121,8 @@ def build_define_expr(
                         stack.append((False, then_expr))
                 case _:
                     pass
+        
+        return deps
 
     emap = {}
     translate_expr(context.defs[expr.ident], context, emap, in_let_expr=True)
@@ -129,11 +132,7 @@ def build_define_expr(
         DEFINE_LET_VAR(expr.ident)
     )
 
-    deps = []
-    for d in dependent_defines(expr.ident, context):
-        deps.append(d)
-
-    for d in reversed(deps):
+    for d in reversed(dependent_defines(expr.ident, context)):
         translate_expr(context.defs[d.ident], context, emap, in_let_expr=True)
         ret = MCILLetExpr(
             MCIL_NO_SORT, 
