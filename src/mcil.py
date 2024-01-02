@@ -116,6 +116,9 @@ class MCILSort():
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, MCILSort):
             return False
+
+        if is_any_sort(self) or is_any_sort(__value):
+            return True
         
         if is_bool_sort(self) and is_bool_sort(__value):
             return True
@@ -159,6 +162,7 @@ MCIL_INT_SORT: MCILSort = MCILSort(MCILIdentifier("Int", []), [])
 MCIL_BITVEC_SORT: Callable[[int], MCILSort] = lambda n: MCILSort(MCILIdentifier("BitVec", [n]), [])
 MCIL_ARRAY_SORT: Callable[[MCILSort, MCILSort], MCILSort] = lambda A,B: MCILSort(MCILIdentifier("Array", []), [A,B])
 MCIL_ENUM_SORT:  Callable[[str], MCILSort] = lambda s: MCILSort(MCILIdentifier(s, []), [])
+MCIL_ANY_SORT: MCILSort = MCILSort(MCILIdentifier("__Any__", []), [])
 
 
 def is_bool_sort(sort: MCILSort) -> bool:
@@ -177,6 +181,10 @@ def is_array_sort(sort: MCILSort) -> bool:
     """An Array sort has an identifier that is the symbol 'Array' and has two parameters"""
     return sort.identifier.is_symbol("Array") and sort.arity() == 2
     
+def is_any_sort(sort: MCILSort) -> bool:
+    """An Array sort has an identifier that is the symbol '__Any__'"""
+    return sort.identifier.is_symbol("__Any__")
+
 
 class MCILExpr():
 
@@ -688,6 +696,7 @@ CORE_RANK_TABLE: RankTable = {
     ("=", 0):        lambda A: ([A,A], MCIL_BOOL_SORT),
     ("distinct", 0): lambda A: ([A,A], MCIL_BOOL_SORT),
     ("ite", 0):      lambda A: ([MCIL_BOOL_SORT, A, A], A),
+    ("const", 0):    lambda A: ([MCIL_ANY_SORT], A),
 }
 
 BITVEC_RANK_TABLE: RankTable = {
@@ -764,14 +773,23 @@ def sort_check_apply_core(node: MCILApply) -> bool:
         return sort_check_apply_rank(node, rank)
     elif identifier.check("ite", 0):
         # (par (A) (ite Bool A A A))
-        if len(node.children) < 2:
+        if len(node.children) < 3:
             return False
 
         param = node.children[2].sort
         rank = CORE_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
-    # else function is non-parametric
+    elif identifier.check("const", 0):
+        if len(node.children) < 1:
+            return False
+
+        if not isinstance(node.children[0], MCILConstant):
+            return False
+
+        rank = CORE_RANK_TABLE[identifier_class](node.sort)
+
+        return sort_check_apply_rank(node, rank)
 
     rank = CORE_RANK_TABLE[identifier_class](None)
     return sort_check_apply_rank(node, rank)

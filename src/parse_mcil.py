@@ -10,7 +10,7 @@ class MCILLexer(Lexer):
     tokens = { NUMERAL, BINARY, HEXADECIMAL,
                SYMBOL, KEYWORD,
                LPAREN, RPAREN,
-               RW_UNDERSCORE, RW_LET,
+               RW_UNDERSCORE, RW_LET, RW_AS,
                PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV, PK_SUBSYS,
                PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY,
                CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
@@ -45,7 +45,7 @@ class MCILLexer(Lexer):
     SYMBOL["_"]           = RW_UNDERSCORE
     SYMBOL["let"]         = RW_LET
     # SYMBOL["!"]           = RW_BANG
-    # SYMBOL["as"]          = RW_AS
+    SYMBOL["as"]          = RW_AS
     # SYMBOL["exists"]      = RW_EXISTS
     # SYMBOL["forall"]      = RW_FORALL
     # SYMBOL["match"]       = RW_MATCH
@@ -390,6 +390,11 @@ class MCILParser(Parser):
     def term(self, p):
         return MCILLetExpr(MCIL_NO_SORT, p[3], p[5])
 
+    @_("LPAREN qualified_identifier term RPAREN")
+    def term(self, p):
+        ident, sort = p[1]
+        return MCILApply(sort, ident, [p[2]])
+
     @_("LPAREN term RPAREN")
     def term(self, p):
         return p[1]
@@ -411,6 +416,10 @@ class MCILParser(Parser):
     @_("")
     def sort_list(self, p):
         return []
+
+    @_("LPAREN RW_AS identifier sort RPAREN")
+    def qualified_identifier(self, p):
+        return (p[2], p[3])
 
     # Identifiers
     @_("SYMBOL")

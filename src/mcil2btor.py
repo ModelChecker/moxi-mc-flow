@@ -13,7 +13,7 @@ from .parse_mcil import parse_mcil
 
 FILE_NAME = Path(__file__).name
 
-ilfunc_map: dict[str, BtorOperator] = {
+mcil_fun_map: dict[str, BtorOperator] = {
     "=": BtorOperator.EQ,
     "distinct": BtorOperator.NEQ,
     "=>": BtorOperator.IMPLIES,
@@ -272,7 +272,7 @@ def build_expr_map(
             expr_map[expr] = BtorConst(sort_map[expr.sort], value)
         elif isinstance(expr, MCILConstant):
             expr_map[expr] = BtorConst(sort_map[expr.sort], expr.value)
-        elif isinstance(expr, MCILApply):
+        elif isinstance(expr, MCILApply) and expr.identifier.symbol in mcil_fun_map:
             if len(expr.children) > 3:
                 raise NotImplementedError
 
@@ -288,14 +288,16 @@ def build_expr_map(
 
             expr_map[expr] = BtorApply(
                 sort_map[expr.sort], 
-                ilfunc_map[expr.identifier.symbol], 
+                mcil_fun_map[expr.identifier.symbol], 
                 (idx1, idx2),
                 btor2_args
             )
+        # elif isinstance(expr, MCILApply) and expr.identifier.symbol == "const":
+        #     expr_map[expr] = expr_map[expr.children[0]]
         elif isinstance(expr, MCILLetExpr):
             expr_map[expr] = expr_map[expr.get_expr()]
         else:
-            raise NotImplementedError(f"{type(expr)}")
+            raise NotImplementedError(f"Unsupported expression ({expr})")
 
 
 def translate_define_system(
