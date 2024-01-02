@@ -655,10 +655,14 @@ class MCILExit(MCILCommand):
 
 
 MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x)
+MCIL_BITVEC_CONST = lambda x,y: MCILConstant(MCIL_BITVEC_SORT(x), y)
+
 MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y])
 MCIL_AND_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("and", []), [x,y])
 MCIL_OR_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("or", []), [x,y])
 
+MCIL_SELECT_EXPR = lambda x,y: MCILApply(MCIL_NO_SORT, MCILIdentifier("select", []), [x,y])
+MCIL_STORE_EXPR = lambda x,y,z: MCILApply(MCIL_NO_SORT, MCILIdentifier("store", []), [x,y,z])
 
 # A rank is a function signature. For example:
 #   rank(and) = ([Bool, Bool], Bool)
@@ -733,6 +737,7 @@ ARRAY_RANK_TABLE: RankTable = {
 
 def sort_check_apply_rank(node: MCILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
+    
     if rank_args != [c.sort for c in node.children]:
         return False
 
@@ -762,7 +767,7 @@ def sort_check_apply_core(node: MCILApply) -> bool:
         if len(node.children) < 2:
             return False
 
-        param = node.children[1].sort
+        param = node.children[2].sort
         rank = CORE_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
