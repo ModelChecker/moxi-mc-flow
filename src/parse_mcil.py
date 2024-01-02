@@ -118,9 +118,9 @@ class MCILParser(Parser):
     def command(self, p):
         return MCILDeclareConst(p[2], p[3])
     
-    @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sorted_var_list RPAREN sort LPAREN term RPAREN RPAREN")
+    @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sorted_var_list RPAREN sort term RPAREN")
     def command(self, p):
-        return MCILDefineFun(p[2], p[4], p[6], p[8])
+        return MCILDefineFun(p[2], p[4], p[6], p[7])
     
     @_("LPAREN CMD_DECLARE_ENUM_SORT SYMBOL LPAREN symbol_list RPAREN RPAREN")
     def command(self, p):

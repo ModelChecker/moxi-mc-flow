@@ -412,6 +412,13 @@ operator_table: dict[BtorOperator, tuple[list[type], type]] = {
 }
 
 
+def flatten_btor2_expr(expr: BtorExpr) -> list[BtorExpr]:
+    out: list[BtorExpr] = []
+    for subexpr in postorder_btor(expr):
+        out.append(subexpr)
+    return out
+
+
 def postorder_btor(expr: BtorExpr):
     """Perform an iterative postorder traversal of `expr`."""
     stack: list[tuple[bool, BtorExpr]] = []

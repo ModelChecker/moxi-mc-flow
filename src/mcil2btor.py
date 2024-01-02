@@ -108,7 +108,7 @@ def update_rename_map(
         rename_map[(target_var, target_context)] = (cmd_var, system_context.copy())
 
 
-def ilsort_to_btor2(sort: MCILSort, enums: dict[str, int], sort_map: SortMap) -> BtorSort:
+def mcilsort2btorsort(sort: MCILSort, context: MCILContext, sort_map: SortMap) -> BtorSort:
     if sort in sort_map:
         return sort_map[sort]
     elif is_bool_sort(sort):
@@ -116,10 +116,11 @@ def ilsort_to_btor2(sort: MCILSort, enums: dict[str, int], sort_map: SortMap) ->
     elif is_bitvec_sort(sort):
         return BtorBitVec(sort.identifier.indices[0])
     elif is_array_sort(sort):
-        return BtorArray(ilsort_to_btor2(sort.parameters[0], enums, sort_map), 
-                          ilsort_to_btor2(sort.parameters[1], enums, sort_map))
-    elif sort.identifier.symbol in enums:
-        return BtorBitVec(enums[sort.identifier.symbol])
+        return BtorArray(mcilsort2btorsort(sort.parameters[0], context, sort_map), 
+                          mcilsort2btorsort(sort.parameters[1], context, sort_map))
+    elif sort.identifier.symbol in context.declared_enum_sorts:
+        width = len(context.declared_enum_sorts[sort.identifier.symbol]).bit_length()
+        return BtorBitVec(width)
     else:
         raise NotImplementedError(f"MCIL sort '{sort}' ({type(sort)}) unrecognized")
 
@@ -127,13 +128,12 @@ def ilsort_to_btor2(sort: MCILSort, enums: dict[str, int], sort_map: SortMap) ->
 def build_sort_map_expr(
     node: MCILExpr,
     context: MCILContext,
-    enums: dict[str, int], 
     sort_map: SortMap
 ) -> SortMap:
     """Iteratively recurse the expr IL and map each unique MCILSort of each node to a new BtorSort."""
     for expr in postorder_mcil(node, context):
         if expr.sort not in sort_map:
-            sort_map[expr.sort] = ilsort_to_btor2(expr.sort, enums, sort_map)
+            sort_map[expr.sort] = mcilsort2btorsort(expr.sort, context, sort_map)
 
     return sort_map
 
@@ -141,25 +141,24 @@ def build_sort_map_expr(
 def build_sort_map_cmd(
     cmd: MCILCommand, 
     context: MCILContext,
-    enums: dict[str, int], 
     sort_map: SortMap
 ) -> SortMap:
     if isinstance(cmd, MCILDefineSystem):
         for subsystem in cmd.subsystems.values():
-            build_sort_map_cmd(subsystem,context, enums, sort_map)
+            build_sort_map_cmd(subsystem,context, sort_map)
 
-        build_sort_map_expr(cmd.init,context, enums, sort_map)
-        build_sort_map_expr(cmd.trans,context, enums, sort_map)
-        build_sort_map_expr(cmd.inv, context, enums, sort_map)
+        build_sort_map_expr(cmd.init,context, sort_map)
+        build_sort_map_expr(cmd.trans,context, sort_map)
+        build_sort_map_expr(cmd.inv, context, sort_map)
     elif isinstance(cmd, MCILCheckSystem):
         for assume in cmd.assumption.values():
-            build_sort_map_expr(assume,context, enums, sort_map)
+            build_sort_map_expr(assume,context, sort_map)
         for fair in cmd.fairness.values():
-            build_sort_map_expr(fair,context, enums, sort_map)
+            build_sort_map_expr(fair,context, sort_map)
         for reach in cmd.reachable.values():
-            build_sort_map_expr(reach,context, enums, sort_map)
+            build_sort_map_expr(reach,context, sort_map)
         for current in cmd.current.values():
-            build_sort_map_expr(current,context, enums, sort_map)
+            build_sort_map_expr(current,context, sort_map)
     else:
         raise NotImplementedError
 
@@ -197,7 +196,8 @@ def build_var_map_cmd(
     context: MCILContext,
     rename_map: RenameMap,
     sort_map: SortMap,
-    var_map: VarMap):
+    var_map: VarMap
+) -> None:
     """Update var_map to map all MCILVar instances to BtorVars"""
     if isinstance(cmd, MCILDefineSystem):
         for (subsys_symbol, subsystem) in cmd.subsystems.items():
@@ -243,20 +243,20 @@ def build_var_map_cmd(
         raise NotImplementedError
 
 
-def ilexpr_to_btor2(
+def build_expr_map(
     node: MCILExpr, 
     context: MCILContext,
     is_init_expr: bool,
     sort_map: SortMap,
     var_map: VarMap,
     expr_map: ExprMap
-):
+) -> None:
     for expr in postorder_mcil(node, context):
         if expr in expr_map:
             pass
 
-        if isinstance(expr, MCILVar) and expr.symbol in context.bound_vars:
-            expr_map[expr] = expr_map[context.bound_vars[expr.symbol]]
+        if isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
+            expr_map[expr] = expr_map[context.bound_let_vars[expr.symbol]]
         elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 3:
             # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
             #   var_map[var] = (init, cur, next)
@@ -298,27 +298,20 @@ def ilexpr_to_btor2(
             raise NotImplementedError(f"{type(expr)}")
 
 
-
-def flatten_btor2_expr(expr: BtorExpr) -> list[BtorExpr]:
-    out: list[BtorExpr] = []
-    for subexpr in postorder_btor(expr):
-        out.append(subexpr)
-    return out
-
-
-def ilsystem_to_btor2(
+def translate_define_system(
     btor2_model: list[BtorNode],
     system: MCILDefineSystem, 
     context: MCILContext,
     sort_map: SortMap,
     var_map: VarMap,
-    expr_map: ExprMap):
+    expr_map: ExprMap
+) -> None:
     for symbol,subsystem in system.subsystems.items():
         context.system_context.push((symbol, subsystem))
-        ilsystem_to_btor2(btor2_model, subsystem, context, sort_map, var_map, expr_map)
+        translate_define_system(btor2_model, subsystem, context, sort_map, var_map, expr_map)
         context.system_context.pop()
 
-    ilexpr_to_btor2(system.init, context, True, sort_map, var_map, expr_map)
+    build_expr_map(system.init, context, True, sort_map, var_map, expr_map)
     btor2_model += flatten_btor2_expr(expr_map[system.init])
     btor2_model.append(BtorConstraint(expr_map[system.init]))
     btor2_model[-1].set_comment(f"init {system.symbol}")
@@ -328,7 +321,7 @@ def ilsystem_to_btor2(
         (init, cur, _) = btor2_var
         btor2_model.append(BtorInit(cast(BtorStateVar, cur), init))
 
-    ilexpr_to_btor2(system.trans, context, False, sort_map, var_map, expr_map)
+    build_expr_map(system.trans, context, False, sort_map, var_map, expr_map)
     btor2_model += flatten_btor2_expr(expr_map[system.trans])
     btor2_model.append(BtorConstraint(expr_map[system.trans]))
     btor2_model[-1].set_comment(f"trans {system.symbol}")
@@ -341,13 +334,13 @@ def ilsystem_to_btor2(
             (cur, next) = btor2_var
             btor2_model.append(BtorNext(cast(BtorStateVar, cur), next))
 
-    ilexpr_to_btor2(system.inv, context, False, sort_map, var_map, expr_map)
+    build_expr_map(system.inv, context, False, sort_map, var_map, expr_map)
     btor2_model += flatten_btor2_expr(expr_map[system.inv])
     btor2_model.append(BtorConstraint(expr_map[system.inv]))
     btor2_model[-1].set_comment(f"inv {system.symbol}")
 
 
-def ilchecksystem_to_btor2(
+def translate_check_system(
     check: MCILCheckSystem, 
     context: MCILContext,
     sort_map: SortMap,
@@ -375,7 +368,7 @@ def ilchecksystem_to_btor2(
 
     context.system_context.push((check.sys_symbol, context.defined_systems[check.sys_symbol]))
 
-    ilsystem_to_btor2(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map, expr_map)
+    translate_define_system(btor2_model, context.defined_systems[check.sys_symbol], context, sort_map, var_map, expr_map)
 
     context.system_context.pop()
 
@@ -384,22 +377,22 @@ def ilchecksystem_to_btor2(
         btor2_prog = copy(btor2_model)
 
         for assume in [a[1] for a in check.assumption.items() if a[0] in query]:
-            ilexpr_to_btor2(assume, context, False, sort_map, var_map, expr_map)
+            build_expr_map(assume, context, False, sort_map, var_map, expr_map)
             btor2_prog += flatten_btor2_expr(expr_map[assume])
             btor2_prog.append(BtorConstraint(expr_map[assume]))
 
         for reach in [r[1] for r in check.reachable.items() if r[0] in query]:
-            ilexpr_to_btor2(reach, context, False, sort_map, var_map, expr_map)
+            build_expr_map(reach, context, False, sort_map, var_map, expr_map)
             btor2_prog += flatten_btor2_expr(expr_map[reach])
             btor2_prog.append(BtorBad(expr_map[reach]))
         
         for fair in [f[1] for f in check.fairness.items() if f[0] in query]:
-            ilexpr_to_btor2(fair, context, False, sort_map, var_map, expr_map)
+            build_expr_map(fair, context, False, sort_map, var_map, expr_map)
             btor2_prog += flatten_btor2_expr(expr_map[fair])
             btor2_prog.append(BtorFair(expr_map[fair]))
     
         for current in [c[1] for c in check.current.items() if c[0] in query]:
-            ilexpr_to_btor2(current, context, True, sort_map, var_map, expr_map)
+            build_expr_map(current, context, True, sort_map, var_map, expr_map)
             btor2_prog += flatten_btor2_expr(expr_map[current])
             btor2_prog.append(BtorConstraint(expr_map[current]))
 
@@ -441,11 +434,11 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
     for check_system in il_prog.get_check_system_cmds():
         target_system = context.defined_systems[check_system.sys_symbol]
 
-        build_sort_map_cmd(target_system,context, enums, sort_map)
-        build_sort_map_cmd(check_system,context, enums, sort_map)
+        build_sort_map_cmd(target_system,context, sort_map)
+        build_sort_map_cmd(check_system,context, sort_map)
         build_var_map_cmd(check_system, context, {}, sort_map, var_map)
 
-        btor2_prog_list[check_system.sys_symbol] = (ilchecksystem_to_btor2(check_system, context, sort_map, var_map, expr_map))
+        btor2_prog_list[check_system.sys_symbol] = (translate_check_system(check_system, context, sort_map, var_map, expr_map))
 
     print(f"[{FILE_NAME}] finished BTOR2 translation")
 
@@ -496,7 +489,10 @@ def main(
             check_system_path.mkdir()
 
         for label, nodes in check_system.items():
-            with open(check_system_path / f"{input_path.stem}.{label}.btor", "w") as f:
+            output_file_path = check_system_path / f"{input_path.stem}.{label}.btor"
+            print(f"[{FILE_NAME}] writing BTOR2 output to {output_file_path}")
+
+            with open(str(output_file_path), "w") as f:
                 f.write("\n".join([str(n) for n in nodes])) 
                 f.write("\n")
 
@@ -505,18 +501,3 @@ def main(
                     pickle.dump(nodes, f)
     
     return 0
-
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("input", help="source program to translate, should have either .json or .mcil extension")
-#     parser.add_argument("--output", help="path of directory to output BTOR2 files; defaults to input filename stem")
-#     parser.add_argument("--pickled-btor", help="path to output pickled btor output; will not emit by default")
-#     args = parser.parse_args()
-
-#     input_path = Path(args.input)
-#     output_path = Path(args.output) if args.output else Path(f"{input_path.stem}")
-#     pickle_path = Path(args.pickled_btor) if args.pickled_btor else None
-
-#     returncode = main(input_path, output_path, args.pickled_btor)
-#     sys.exit(returncode)

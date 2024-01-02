@@ -737,7 +737,7 @@ ARRAY_RANK_TABLE: RankTable = {
 
 def sort_check_apply_rank(node: MCILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
-    
+
     if rank_args != [c.sort for c in node.children]:
         return False
 
@@ -1017,9 +1017,10 @@ class MCILContext():
         self.input_var_sorts: dict[MCILVar, MCILSort] = {}
         self.output_var_sorts: dict[MCILVar, MCILSort] = {}
         self.local_var_sorts: dict[MCILVar, MCILSort] = {}
+        self.var_sorts: dict[MCILVar, MCILSort] = {}
         self.system_context = MCILSystemContext() # used during system flattening
         self.cur_command: Optional[MCILCommand] = None
-        self.bound_vars: dict[str, MCILExpr] = {}
+        self.bound_let_vars: dict[str, MCILExpr] = {}
 
     def get_symbols(self) -> set[str]:
         # TODO: this is computed EVERY time, optimize this
@@ -1054,11 +1055,11 @@ def postorder_mcil(expr: MCILExpr, context: MCILContext):
 
         if seen and isinstance(cur, MCILLetExpr):
             for (v,e) in cur.get_binders():
-                del context.bound_vars[v]
+                del context.bound_let_vars[v]
             yield cur
         elif seen and isinstance(cur, MCILBind):
             for (v,e) in cur.binders:
-                context.bound_vars[v] = e
+                context.bound_let_vars[v] = e
         elif seen:
             yield cur
         else:
@@ -1099,10 +1100,21 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 if expr.prime and no_prime:
                     eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
                     status = False
-            elif isinstance(expr, MCILVar) and expr.symbol in context.bound_vars:
-                expr.sort = context.bound_vars[expr.symbol].sort
+            elif isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
+                expr.sort = context.bound_let_vars[expr.symbol].sort
+            elif isinstance(expr, MCILVar) and expr in context.var_sorts:
+                expr.sort = context.var_sorts[expr]
+            elif isinstance(expr, MCILVar) and expr.symbol in context.defined_functions:
+                # constants defined using define-fun
+                ((inputs, output), _) = context.defined_functions[expr.symbol]
+
+                if len(inputs) != 0:
+                    eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.symbol}\n")
+                    status = False
+
+                expr.sort = output
             elif isinstance(expr, MCILVar):
-                eprint(f"[{__name__}] Error: symbol `{expr.symbol}` not declared.\n\t{context.cur_command}\n")
+                eprint(f"[{__name__}] Error: symbol '{expr.symbol}' not declared.\n\t{context.cur_command}\n")
                 status = False
             elif isinstance(expr, MCILApply):
                 if expr.identifier.get_class() in context.logic.function_symbols:
@@ -1163,6 +1175,13 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
                 status = False
 
+            context.var_sorts.update({ var:var.sort for var in cmd.inputs })
+
+            status = status and sort_check_expr(cmd.body, context, no_prime=True)
+
+            for var in cmd.inputs:
+                del context.var_sorts[var]
+
             input_sorts = [s.sort for s in cmd.inputs]
             context.defined_functions[cmd.symbol] = (Rank((input_sorts, cmd.output_sort)), cmd.body)
         elif isinstance(cmd, MCILDefineSystem):
@@ -1172,9 +1191,9 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             context.output_var_sorts = {var:var.sort for var in cmd.output}
             context.local_var_sorts = {var:var.sort for var in cmd.local}
 
-            status = status and sort_check_expr(cmd.init, context, True)
-            status = status and sort_check_expr(cmd.trans, context, False)
-            status = status and sort_check_expr(cmd.inv, context, False)
+            status = status and sort_check_expr(cmd.init, context, no_prime=True)
+            status = status and sort_check_expr(cmd.trans, context, no_prime=False)
+            status = status and sort_check_expr(cmd.inv, context, no_prime=False)
 
             for name,subsystem in cmd.subsystem_signatures.items():
                 # TODO: check for cycles in system dependency graph
@@ -1302,7 +1321,11 @@ def to_qfbv(program: MCILProgram):
         "Int": MCIL_BITVEC_SORT(64)
     }
 
-    OPERATOR_MAP = {
+    UNARY_OPERATOR_MAP = {
+        "-": MCILIdentifier("bvneg", []),
+    }
+
+    BINARY_OPERATOR_MAP = {
         "+": MCILIdentifier("bvadd", []),
         "-": MCILIdentifier("bvsub", []),
         "*": MCILIdentifier("bvmul", []),
@@ -1315,8 +1338,11 @@ def to_qfbv(program: MCILProgram):
     }
 
     def to_qfbv_expr(expr: MCILExpr):
-        if isinstance(expr, MCILApply) and expr.identifier.symbol in OPERATOR_MAP:
-            expr.identifier = OPERATOR_MAP[expr.identifier.symbol]
+        if isinstance(expr, MCILApply):
+            if len(expr.children) == 1 and expr.identifier.symbol in UNARY_OPERATOR_MAP:
+                expr.identifier = UNARY_OPERATOR_MAP[expr.identifier.symbol]
+            elif len(expr.children) == 2 and expr.identifier.symbol in BINARY_OPERATOR_MAP:
+                expr.identifier = BINARY_OPERATOR_MAP[expr.identifier.symbol]
             
         if expr.sort.identifier.symbol in SORT_MAP:
             expr.sort = SORT_MAP[expr.sort.identifier.symbol]
