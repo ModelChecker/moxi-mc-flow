@@ -507,9 +507,9 @@ class NuXmvParser(Parser):
                 return XMVEnumeration(summands=p[1])
             case "array":
                 if p[1] == "word":
-                    return XMVWordArray(word_length=p[3], type=p.type_specifier)
+                    return XMVWordArray(word_length=int(p[3]), type=p.type_specifier)
                 else:
-                    return XMVArray(low=p[2], high=p[5], type=p[7])
+                    return XMVArray(low=p[2], high=int(p[5]), type=int(p[7]))
             case _:
                 if str.isnumeric(p[0]):
                     return XMVEnumeration(summands=set(range(int(p[0]), int(p[3]))))
