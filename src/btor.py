@@ -159,12 +159,6 @@ class BtorExpr(BtorNode):
         super().__init__()
         self.children = c
 
-    def __eq__(self, __o: object) -> bool:
-        return eq_btor(self, __o)
-
-    def __hash__(self) -> int:
-        return hash_btor(self)
-
 
 class BtorVar(BtorExpr):
 
@@ -174,7 +168,6 @@ class BtorVar(BtorExpr):
         self.symbol = symbol
         self.var_index: int = 0  # used to refer to vars in witness
 
-
 class BtorInputVar(BtorVar):
 
     def __init__(self, sort: BtorSort, symbol: str = ""):
@@ -182,6 +175,14 @@ class BtorInputVar(BtorVar):
 
     def __str__(self) -> str:
         return f"{self.nid} input {self.sort.nid} {self.symbol}{self.comment}"
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, BtorInputVar):
+            return False
+        return self.sort == __o.sort and self.symbol == __o.symbol
+
+    def __hash__(self) -> int:
+        return hash((self.sort, self.symbol))
 
 
 class BtorStateVar(BtorVar):
@@ -195,6 +196,14 @@ class BtorStateVar(BtorVar):
     def __str__(self) -> str:
         return f"{self.nid} state {self.sort.nid} {self.symbol}{self.comment}"
 
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, BtorStateVar):
+            return False
+        return self.sort == __o.sort and self.symbol == __o.symbol
+
+    def __hash__(self) -> int:
+        return hash((self.sort, self.symbol))
+
 
 class BtorConst(BtorExpr):
 
@@ -205,6 +214,14 @@ class BtorConst(BtorExpr):
 
     def __str__(self) -> str:
         return f"{self.nid} constd {self.sort.nid} {int(self.value)}{self.comment}"
+
+    def __eq__(self, __o: object) -> bool:
+        if not isinstance(__o, BtorConst):
+            return False
+        return self.sort == __o.sort and self.value == __o.value
+
+    def __hash__(self) -> int:
+        return hash((self.sort, self.value))
 
 
 # BTOR2 operators have only 1, 2, or 3 arguments
@@ -239,8 +256,15 @@ class BtorApply(BtorExpr):
         s += f"{self.comment}"
         return s
 
+    def __eq__(self, __o: object) -> bool:
+        return id(self) == id(__o)
+
+    def __hash__(self) -> int:
+        return hash(id(self))
+
 
 def eq_btor(e1: BtorExpr, e2: object) -> bool:
+    """Returns `True` if `e1` and `e2` are syntactically equivalent."""
     if not isinstance(e2, BtorExpr):
         return False
 
@@ -267,6 +291,7 @@ def eq_btor(e1: BtorExpr, e2: object) -> bool:
 
 
 def hash_btor(expr: BtorExpr) -> int:
+    """Returns a hash for `expr`. For `BtorApply` objects, uses the 30 closest nodes in the tree to perform the hash."""
     if isinstance(expr, BtorVar):
         return hash((expr.sort, expr.symbol))
     elif isinstance(expr, BtorConst):
@@ -446,7 +471,7 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
             reduced_program.append(node)
         else:
             node.nid = btor2_nids[node]
-            # __num_reduced += 1
+    #         __num_reduced += 1
 
     # __reduce_btor_1_end = time.perf_counter()
     # print(f"BTOR2 reduce: {__reduce_btor_1_end - __reduce_btor_1_start}s")
