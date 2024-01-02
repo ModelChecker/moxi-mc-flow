@@ -315,7 +315,9 @@ def mcil2str(expr: MCILExpr) -> str:
             continue
 
         # first time seeing this node
-        if isinstance(cur, MCILApply):
+        if isinstance(cur, MCILApply) and cur.identifier.is_symbol("const"):
+            s += f" (as {cur.identifier} {cur.sort}"
+        elif isinstance(cur, MCILApply):
             s += f" ({cur.identifier}"
         elif isinstance(cur, MCILLetExpr):
             s += f" (let ("
@@ -664,6 +666,7 @@ class MCILExit(MCILCommand):
 
 MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x)
 MCIL_BITVEC_CONST = lambda x,y: MCILConstant(MCIL_BITVEC_SORT(x), y)
+MCIL_ARRAY_CONST = lambda x,y,z: MCILApply(MCIL_ARRAY_SORT(x,y), MCILIdentifier("const", []), [z])
 
 MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y])
 MCIL_AND_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("and", []), [x,y])

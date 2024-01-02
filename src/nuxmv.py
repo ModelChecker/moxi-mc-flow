@@ -84,6 +84,12 @@ class XMVArray(XMVType):
         self.high = high
         self.type = type
 
+    def __eq__(self, __o: object) -> bool:
+        return (isinstance(__o, XMVArray) and
+                 __o.low == self.low and 
+                 __o.high == self.high and 
+                 __o.type == self.type)
+
     def __repr__(self) -> str:
         return f"array {self.low} .. {self.high} of {self.type}"
 
@@ -91,6 +97,11 @@ class XMVWordArray(XMVType):
     def __init__(self, word_length: int, type: XMVType):
         self.word_length = word_length
         self.type = type
+
+    def __eq__(self, __o: object) -> bool:
+        return (isinstance(__o, XMVWordArray) and
+                 __o.word_length == self.word_length and
+                 __o.type == self.type)
 
     def __repr__(self) -> str:
         return f"array word[{self.word_length}] of {self.type}"    
@@ -645,12 +656,12 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                     pass
                 case XMVFunCall(name="next", args=args):
                     if len(args) != 1:
-                        raise ValueError(f"`next` expr only allowed on operand {expr}")
+                        raise ValueError(f"`next` expr only allowed one operand {expr}")
 
                     expr.type = args[0].type
                 case XMVFunCall(name="signed", args=args):
                     if len(args) != 1:
-                        raise ValueError(f"`signed` expr only allowed on operand {expr}")
+                        raise ValueError(f"`signed` expr only allowed one operand {expr}")
 
                     arg: XMVExpr = args[0]
 
@@ -660,7 +671,7 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                     expr.type = XMVWord(width=arg.type.width, signed=True)
                 case XMVFunCall(name="unsigned", args=args):
                     if len(args) != 1:
-                        raise ValueError(f"`unsigned` expr only allowed on operand {expr}")
+                        raise ValueError(f"`unsigned` expr only allowed one operand {expr}")
 
                     arg: XMVExpr = args[0]
 
@@ -668,6 +679,66 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                         raise ValueError(f"Invalid argument for 'signed' {arg}, {expr}")
 
                     expr.type = XMVWord(width=arg.type.width, signed=False)
+                case XMVFunCall(name="READ", args=args):
+                    if len(args) != 2:
+                        raise ValueError(f"'READ' expr must have 2 operands ({expr})")
+
+                    (arr, idx) = args
+
+                    match arr.type:
+                        case XMVArray(type=type_):
+                            if not isinstance(idx.type, XMVInteger):
+                                raise ValueError(f"'READ' expr index must be of integer type")
+                        case XMVWordArray(type=type_):
+                            if not isinstance(idx.type, XMVWord):
+                                raise ValueError(f"'READ' expr index must be of word type")
+                        case _:
+                            raise ValueError(f"'READ' expr must apply to array type, found {arr.type} ({expr})")
+
+                    expr.type = arr.type.type
+                case XMVFunCall(name="WRITE", args=args):
+                    if len(args) != 3:
+                        raise ValueError(f"'WRITE' expr must have 3 operands ({expr})")
+
+                    (arr, idx, val) = args
+
+                    match arr.type:
+                        case XMVArray(type=type_):
+                            if not isinstance(idx.type, XMVInteger):
+                                raise ValueError(f"'WRITE' expr index must be of integer type")
+                        case XMVWordArray(type=type_):
+                            if not isinstance(idx.type, XMVWord):
+                                raise ValueError(f"'WRITE' expr index must be of word type")
+                        case _:
+                            raise ValueError(f"'WRITE' expr must apply to array type, found {arr.type} ({expr})")
+
+                    if val.type != type_:
+                        raise ValueError(f"'WRITE' expr value must be same as array subtype, found {val.type}")
+
+                    expr.type = arr.type
+                case XMVFunCall(name="typeof", args=args):
+                    if len(args) != 1:
+                        raise ValueError(f"'typeof' operator only allowed one operand ({expr})")
+
+                    expr.type = args[0].type
+                case XMVFunCall(name="CONSTARRAY", args=args):
+                    if len(args) != 2:
+                        raise ValueError(f"")
+
+                    const_type, const_val = args
+
+                    if not isinstance(const_type, XMVFunCall) and const_type.name != "typeof":
+                        raise ValueError(f"'CONSTARRAY' first operand must be 'typeof', found {const_type}")
+
+                    if not isinstance(const_type.type, (XMVArray, XMVWordArray)):
+                        raise ValueError(f"'CONSTARRAY' first operand must be of array type, found {const_type.type}")
+
+                    if const_val.type != const_type.type.type:
+                        raise ValueError(f"'CONSTARRAY' operands must match types {const_type.type}, {const_val.type}")
+                        
+                    expr.type = const_type.type
+                case XMVFunCall(name=name, args=args):
+                    raise NotImplementedError(f"Unsupported function {name}")
                 case XMVUnOp(op=op, arg=arg):
                     if isinstance(arg.type, (XMVReal, XMVClock)):
                         raise ValueError(f"Unsupported type for {arg}, {arg.type}")
@@ -747,7 +818,7 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                         case _:
                             raise ValueError(f"Unsupported op `{op}`, `{expr}`")
                 case XMVIndexSubscript():
-                    pass
+                    raise NotImplementedError(f"Unsupported operator {type(expr)}")
                 case XMVWordBitSelection(word=word, low=low, high=high):
                     if not isinstance(word.type, XMVWord):
                         raise ValueError(f"Bit select only valid on words, found '{word.type}' ({expr})")
@@ -761,9 +832,9 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                     if low > high:
                         raise ValueError(f"High value for bit select must be greater than low value [{low}:{high}] ({expr})")
                 case XMVSetBodyExpression():
-                    pass
+                    raise NotImplementedError(f"Unsupported operator {type(expr)}")
                 case XMVTernary():
-                    pass
+                    raise NotImplementedError(f"Unsupported operator {type(expr)}")
                 case XMVCaseExpr(branches=branches):
                     for (cond, branch) in branches:
                         if (not isinstance(cond.type, XMVBoolean) and 
@@ -787,9 +858,9 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                         if not flag:        
                             raise ValueError(f"Variable {expr} not declared")
                 case XMVModuleAccess():
-                    pass
+                    raise NotImplementedError(f"Unsupported operator {type(expr)}")
                 case _:
-                    pass
+                    raise NotImplementedError(f"Unsupported operator {type(expr)}")
 
         for subexpr in postorder_nuxmv(expr, context):
             _type_check_expr(subexpr)

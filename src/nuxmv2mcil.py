@@ -1,4 +1,3 @@
-from multiprocessing.sharedctypes import Value
 from pathlib import Path
 from typing import Tuple, cast
 
@@ -9,6 +8,12 @@ from .nuxmv import *
 from .mcil import *
 
 FILE_NAME = Path(__file__).name
+
+symbol_counter = 0
+def fresh_symbol(st: str):
+    global symbol_counter
+    symbol_counter += 1
+    return st + str(symbol_counter)
 
 def translate_type(xmv_type: XMVType) -> MCILSort:
     match xmv_type:
@@ -21,11 +26,11 @@ def translate_type(xmv_type: XMVType) -> MCILSort:
         case XMVClock():
             raise ValueError("nuXmv `clock` type not supported in the IL (yet?)")
         case XMVWord(width=w):
-            return MCIL_BITVEC_SORT(w)
+            return MCIL_BITVEC_SORT(int(w))
         case XMVArray(type=t):
             return MCIL_ARRAY_SORT(MCIL_INT_SORT, translate_type(t))
         case XMVWordArray(word_length=wl, type=t):
-            return MCIL_ARRAY_SORT(MCIL_BITVEC_SORT(wl), translate_type(t))
+            return MCIL_ARRAY_SORT(MCIL_BITVEC_SORT(int(wl)), translate_type(t))
         case _:
             raise ValueError(f"Unsupported type: {xmv_type}")
         
@@ -149,38 +154,17 @@ def translate_expr(
     expr_map: dict[XMVExpr, MCILExpr],
     in_let_expr: bool
 ) -> None:
-
+    """Updates `expr_map` to map all sub-expressions of `xmv_expr` to translated MCIL expressions."""
     for expr in postorder_nuxmv(xmv_expr, context):
         if expr in expr_map:
             continue
 
         match expr:
             case XMVIdentifier(ident=ident):
-                # context.expr_map[let][expr] = context.expr_map[let][context.defs[ident]]
                 if ident in context.defs and not in_let_expr:
                     expr_map[expr] = build_define_expr(expr, context)
                 elif ident in context.defs:
                     expr_map[expr] = DEFINE_LET_VAR(expr.ident)
-
-                    # context.expr_map[let][expr] = MCILVar(
-                    #     var_type=MCILVarType.OUTPUT,
-                    #     sort=translate_type(context.defs[ident].type),
-                    #     symbol=ident,
-                    #     prime=False
-                    # )
-
-                    # if ident in context.seen_defs:
-                    #     raise ValueError(f"Circular definition, detected at `{expr}`")
-
-                    # context.seen_defs.append(ident)
-                    # if ident in translated: # cache translated expressions
-                    #     context.seen_defs.pop()
-                    #     return translated[ident]
-                    # else:
-                    #     ret = translate_expr(context.defs[ident], context)
-                    #     translated[ident] = ret
-                    #     context.seen_defs.pop()
-                    #     return ret
                 elif ident in context.vars:
                     expr_map[expr] = MCILVar(
                         var_type=MCILVarType.INPUT,
@@ -206,19 +190,43 @@ def translate_expr(
                     case "unsigned":
                         expr_map[expr] = expr_map[fargs[0]]
                     case "next":
-                        match fargs[0]:
-                            case XMVIdentifier(ident=ident):
-                                expr_map[expr] =  MCILVar(
-                                    var_type=MCILVarType.LOCAL,
-                                    sort=translate_type(context.vars[ident]),
-                                    symbol=ident,
-                                    prime=True
-                                )
-                            case _:
-                                raise ValueError("complex next expressions unsupported")
-                        
+                        if not isinstance(fargs[0], XMVIdentifier):
+                            raise ValueError("complex next expressions unsupported")
+
+                        ident = fargs[0].ident
+                        expr_map[expr] = MCILVar(
+                            var_type=MCILVarType.LOCAL,
+                            sort=translate_type(context.vars[ident]),
+                            symbol=ident,
+                            prime=True
+                        )
+                    case "READ":
+                        expr_map[expr] = MCIL_SELECT_EXPR(
+                            expr_map[fargs[0]],
+                            expr_map[fargs[1]]
+                        )
+                    case "WRITE":
+                        expr_map[expr] = MCIL_STORE_EXPR(
+                            expr_map[fargs[0]],
+                            expr_map[fargs[1]],
+                            expr_map[fargs[2]]
+                        )
+                    case "typeof":
+                        expr_map[expr] = expr_map[fargs[0]]
+                    case "CONSTARRAY":
+                        arr, val = fargs[0], fargs[1]
+                        if isinstance(arr.type, XMVArray):
+                            raise NotImplementedError()
+                        elif isinstance(arr.type, XMVWordArray):
+                            expr_map[expr] = MCIL_ARRAY_CONST(
+                                MCIL_BITVEC_SORT(arr.type.word_length),
+                                translate_type(arr.type.type),
+                                expr_map[val]
+                            )
+                        else:
+                            raise NotImplementedError()
                     case _:
-                        expr_map[expr] =  MCILApply(
+                        expr_map[expr] = MCILApply(
                             sort=MCIL_NO_SORT,
                             identifier=MCILIdentifier(symbol=fname, indices=[]),
                             children=[expr_map[arg] for arg in fargs]
@@ -333,7 +341,7 @@ def translate_expr(
                 raise ValueError(f"[{FILE_NAME}] module access")
             case _:
                 raise ValueError(f"[{FILE_NAME}] unhandled expression {expr}, {expr.__class__}")
-        
+
 
 def conjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
     if len(expr_list) == 1:
@@ -414,15 +422,6 @@ def gather_output(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
                     )
 
                     result.append(mcil_var)
-            # case XMVDefineDeclaration(define_list=define_list):
-            #     for define in define_list:
-            #         mcil_var = MCILVar(
-            #             var_type=MCILVarType.OUTPUT,
-            #             sort=translate_type(define.expr.type),
-            #             symbol=define.name.ident,
-            #             prime=False
-            #         )
-            #         result.append(mcil_var)
             case _:
                pass
     
@@ -511,20 +510,6 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
                             prime=True
                         )
                     ))
-            # TODO: nuXmv calls out anything in the DEFINE section as
-            # just a macro...we treat it the same way
-            # This does have some implications for how we handle module 
-            # accesses -- for something like `module.def`, we replace with
-            # the equivalent expression using the input/outputs for the
-            # `module` subsystem declaration
-            # case XMVDefineDeclaration(define_list=define_list):
-            #     for define in define_list:
-            #         translate_expr(define.name, context)
-            #         translate_expr(define.expr, context)
-            #         inv_list.append(MCIL_EQ_EXPR(
-            #             context.expr_map[define.name], 
-            #             context.expr_map[define.expr]
-            #         ))
             case _:
                pass
 
@@ -533,19 +518,13 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
 def gather_subsystems(xmv_module: XMVModule) -> dict[str, tuple[str, list[str]]]:
     return {}
 
-counter = 0
-def gensym(st: str):
-    global counter
-    counter += 1
-    return st + str(counter)
-
 def gather_enums(xmv_module: XMVModule, xmv_context: XMVContext) -> Tuple[list[MCILCommand], XMVContext]:
     ret: list[MCILCommand] = []
     for var in xmv_context.vars:
         xmv_type: XMVType = xmv_context.vars[var]
         match xmv_type:
             case XMVEnumeration(summands=summands):
-                new_sym: str = gensym("enum")
+                new_sym: str = fresh_symbol("enum")
                 set_list: list[str|int] = list(summands)
                 str_set_list: list[str] = [str(s) for s in set_list]
                 cmd: MCILCommand = MCILDeclareEnumSort(symbol=new_sym, values=str_set_list)
