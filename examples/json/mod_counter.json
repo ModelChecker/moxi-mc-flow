@@ -1,10 +1,5 @@
 [
     {
-        "command": "declare-sort",
-        "symbol": "test_sort_1",
-        "arity": 3
-    },
-    {
         "command": "define-sort",
         "symbol": "test_sort_2",
         "parameters": ["A", "B"],

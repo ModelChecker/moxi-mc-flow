@@ -1,9 +1,8 @@
 ; One-step delay
 (define-system Delay :input ( (i (_ BitVec 8)) ) :output ( (o (_ BitVec 8)) )
   :local ( (s (_ BitVec 8)) )
-  :inv (= s i) 
   :init (= o #b00000000)
-  :trans (= o' s)
+  :trans (= o' i)
 )
 
 ; Two-step delay
