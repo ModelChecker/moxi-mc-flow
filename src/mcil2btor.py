@@ -81,6 +81,8 @@ VarMap = dict[tuple[MCILVar, MCILSystemContext], InputVar | StateVar]
 # which case another lookup is necessary.
 RenameMap = dict[tuple[MCILVar, MCILSystemContext], tuple[MCILVar, MCILSystemContext]]
 
+def get_const_array_init_vars(context: MCILContext, var_map: VarMap):
+    return {v:k[0] for k,v in var_map.items() if k[0] in context.const_array_init_exprs.keys()}
 
 def rename_lookup(
     var: MCILVar, 
@@ -253,14 +255,14 @@ def build_expr_map(
 ) -> None:
     for expr in postorder_mcil(node, context):
         if expr in expr_map:
-            pass
+            continue
 
         if isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
             expr_map[expr] = expr_map[context.bound_let_vars[expr.symbol]]
         elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 3:
             # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
             #   var_map[var] = (init, cur, next)
-            idx = int(not is_init_expr) + (expr.prime)
+            idx = int(not is_init_expr) + int(expr.prime)
             expr_map[expr] = cast(tuple[BtorVar,BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
         elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 2:
             # We use "int(expr.prime)" to compute the index in var_map tuple:
@@ -272,6 +274,10 @@ def build_expr_map(
             expr_map[expr] = BtorConst(sort_map[expr.sort], value)
         elif isinstance(expr, MCILConstant):
             expr_map[expr] = BtorConst(sort_map[expr.sort], expr.value)
+        elif is_init_expr and is_const_array_expr(expr):
+            pass 
+        elif is_init_expr and is_const_array_init_expr(expr):
+            expr_map[expr] = BtorConst(sort_map[MCIL_BOOL_SORT], True)
         elif isinstance(expr, MCILApply) and expr.identifier.symbol in mcil_fun_map:
             if len(expr.children) > 3:
                 raise NotImplementedError
@@ -319,7 +325,8 @@ def translate_define_system(
     btor2_model[-1].set_comment(f"init {system.symbol}")
 
     # type-checking hack: check for len instead of InputVar/StateVar
-    for btor2_var in [v for v in var_map.values() if len(v) == 3]: 
+    # recall that const-initialized arrays are already handled
+    for btor2_var in [v for k,v in var_map.items() if len(v) == 3 and k[0] not in context.const_array_init_exprs.keys()]: 
         (init, cur, _) = btor2_var
         btor2_model.append(BtorInit(cast(BtorStateVar, cur), init))
 
@@ -357,8 +364,18 @@ def translate_check_system(
         btor2_model.append(sort)
 
     # Note: var_map may have repeat values (i.e., renamed variables point to same Btor variables)
+    const_array_init_vars = get_const_array_init_vars(context, var_map)
     for btor2_var in set(var_map.values()):
-        if len(btor2_var) == 3:
+        if btor2_var in const_array_init_vars.keys() and len(btor2_var) == 3:
+            # special case for arrays that are initialized via constants
+            (init, cur, next) = btor2_var
+            const_val = context.const_array_init_exprs[const_array_init_vars[btor2_var]]
+            build_expr_map(const_val, context, True, sort_map, var_map, expr_map)
+            btor2_model.append(expr_map[const_val])
+            btor2_model.append(cur)
+            btor2_model.append(next)
+            btor2_model.append(BtorInit(cast(BtorStateVar, cur), expr_map[const_val]))
+        elif len(btor2_var) == 3:
             (init, cur, next) = btor2_var
             btor2_model.append(init)
             btor2_model.append(cur)
@@ -407,8 +424,8 @@ def translate_check_system(
     
 
 
-def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNode]]]]:
-    """Translate `il_prog` to an equivalent set of Btor programs, labeled by query symbol.
+def translate(mcil_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNode]]]]:
+    """Translate `mcil_prog` to an equisatisfiable set of Btor programs, labeled by query symbol.
     
     The strategy for translation is to sort check the input then construct a Btor program for each query (and targeted system) by:
     1) Constructing a mapping of MCILSorts to BtorSorts for the target system
@@ -416,11 +433,11 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
     3) Translating the relevant model of the query 
     4) Translating the query
 
-    1-3 recursively descend the IL of the program starting from the target system and traversing down through the system's init, trans, and inv expressions as well as any subsystems and 4 recursively descends the relevant attributes of the query.
+    1-3 traverses the IL program starting from the target system and traversing down through the system's init, trans, and inv expressions as well as any subsystems and 4 traverses the relevant attributes of the query.
 
     Note that the output programs will have input/output/local variables renamed based on the query, but all subsystem variables will remain as defined.
     """
-    (well_sorted, context) = sort_check(il_prog)
+    (well_sorted, context) = sort_check(mcil_prog)
 
     if not well_sorted:
         eprint(f"[{FILE_NAME}] failed sort check\n")
@@ -431,9 +448,8 @@ def translate(il_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNod
     sort_map: SortMap = {}
     var_map: VarMap = {}
     expr_map: ExprMap = {}
-    enums: dict[str, int] = { sym:len(vals).bit_length() for sym,vals in context.declared_enum_sorts.items() }
 
-    for check_system in il_prog.get_check_system_cmds():
+    for check_system in mcil_prog.get_check_system_cmds():
         target_system = context.defined_systems[check_system.sys_symbol]
 
         build_sort_map_cmd(target_system,context, sort_map)

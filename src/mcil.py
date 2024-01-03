@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from collections import deque
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, cast
 
 from .util import eprint
 
@@ -352,6 +352,23 @@ def mcil2str(expr: MCILExpr) -> str:
                 queue.append((False, child))
 
     return s
+
+
+def is_const_array_expr(expr: MCILExpr) -> bool:
+    """Returns true if `expr` is of the form: `(as const (Array X Y) x)`"""
+    return isinstance(expr, MCILApply) and expr.identifier.is_symbol("const") and is_array_sort(expr.sort)
+
+
+def is_const_array_init_expr(expr: MCILExpr) -> bool:
+    """Returns true if `expr` is of the form: `(= var (as const (Array X Y) x))`"""
+    if not isinstance(expr, MCILApply) or not expr.identifier.is_symbol("="):
+        return False
+
+    lhs,rhs = expr.children
+    if not (isinstance(lhs, MCILVar) and is_const_array_expr(rhs)):
+        return False
+
+    return True
 
 
 class MCILCommand():
@@ -1042,6 +1059,7 @@ class MCILContext():
         self.system_context = MCILSystemContext() # used during system flattening
         self.cur_command: Optional[MCILCommand] = None
         self.bound_let_vars: dict[str, MCILExpr] = {}
+        self.const_array_init_exprs: dict[MCILVar,MCILExpr] = {}
 
     def get_symbols(self) -> set[str]:
         # TODO: this is computed EVERY time, optimize this
@@ -1093,7 +1111,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
     context: MCILContext = MCILContext()
     status: bool = True
 
-    def sort_check_expr(node: MCILExpr, context: MCILContext, no_prime: bool) -> bool:
+    def sort_check_expr(node: MCILExpr, context: MCILContext, no_prime: bool, is_init_expr: bool) -> bool:
         """Return true if node is well-sorted where `no_prime` is true if primed variables are disabled and `prime_input` is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions)."""
         status = True
 
@@ -1151,6 +1169,14 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 else:
                     eprint(f"[{__name__}] Error: symbol '{expr.identifier.symbol}' not recognized ({expr}).\n\t{context.cur_command}\n")
                     status = False
+
+                # arrays initialized with constants must be handled separately,
+                # maintain a list of them
+                if is_init_expr and is_const_array_init_expr(expr):
+                    var = cast(MCILVar, expr.children[0])
+                    const_val = expr.children[1].children[0]
+                    context.const_array_init_exprs[var] = const_val
+
             elif isinstance(expr, MCILLetExpr):
                 # TODO: check for variable name clashes
                 expr.sort = expr.get_expr().sort
@@ -1198,7 +1224,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
             context.var_sorts.update({ var:var.sort for var in cmd.inputs })
 
-            status = status and sort_check_expr(cmd.body, context, no_prime=True)
+            status = status and sort_check_expr(cmd.body, context, no_prime=True, is_init_expr=False)
 
             for var in cmd.inputs:
                 del context.var_sorts[var]
@@ -1212,9 +1238,9 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             context.output_var_sorts = {var:var.sort for var in cmd.output}
             context.local_var_sorts = {var:var.sort for var in cmd.local}
 
-            status = status and sort_check_expr(cmd.init, context, no_prime=True)
-            status = status and sort_check_expr(cmd.trans, context, no_prime=False)
-            status = status and sort_check_expr(cmd.inv, context, no_prime=False)
+            status = status and sort_check_expr(cmd.init, context, no_prime=True, is_init_expr=True)
+            status = status and sort_check_expr(cmd.trans, context, no_prime=False, is_init_expr=False)
+            status = status and sort_check_expr(cmd.inv, context, no_prime=False, is_init_expr=False)
 
             for name,subsystem in cmd.subsystem_signatures.items():
                 # TODO: check for cycles in system dependency graph
@@ -1316,16 +1342,16 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 # cmd.rename_map[v1] = v2
 
             for expr in cmd.assumption.values():
-                status = status and sort_check_expr(expr, context, False)
+                status = status and sort_check_expr(expr, context, False, is_init_expr=False)
 
             for expr in cmd.reachable.values():
-                status = status and sort_check_expr(expr, context, False)
+                status = status and sort_check_expr(expr, context, False, is_init_expr=False)
 
             for expr in cmd.fairness.values():
-                status = status and sort_check_expr(expr, context, False)
+                status = status and sort_check_expr(expr, context, False, is_init_expr=False)
 
             for expr in cmd.current.values():
-                status = status and sort_check_expr(expr, context, False)
+                status = status and sort_check_expr(expr, context, False, is_init_expr=False)
 
             context.input_var_sorts = {}
             context.output_var_sorts = {}
