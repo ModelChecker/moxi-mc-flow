@@ -4,6 +4,7 @@ Representation of IL
 from __future__ import annotations
 
 from collections import deque
+from copy import copy
 from enum import Enum
 from typing import Any, Callable, Optional, cast
 
@@ -316,7 +317,7 @@ def mcil2str(expr: MCILExpr) -> str:
 
         # first time seeing this node
         if isinstance(cur, MCILApply) and cur.identifier.is_symbol("const"):
-            s += f" (as {cur.identifier} {cur.sort}"
+            s += f" ((as {cur.identifier} {cur.sort})"
         elif isinstance(cur, MCILApply):
             s += f" ({cur.identifier}"
         elif isinstance(cur, MCILLetExpr):
@@ -767,7 +768,18 @@ ARRAY_RANK_TABLE: RankTable = {
 }
 
 INT_RANK_TABLE: RankTable = {
-
+    ("-", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
+    ("+", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
+    ("*", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
+    ("/", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
+    ("div", 0):       lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
+    ("mod", 0):       lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
+    ("abs", 0):       lambda _: ([MCIL_INT_SORT], MCIL_INT_SORT),
+    ("<=", 0):        lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
+    ("<", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
+    (">=", 0):        lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
+    (">", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
+    ("divisible", 1): lambda _: ([MCIL_INT_SORT], MCIL_BOOL_SORT),
 }
 
 
@@ -941,6 +953,27 @@ def sort_check_apply_arrays(node: MCILApply) -> bool:
     return sort_check_apply_rank(node, rank)
 
 
+def sort_check_apply_int(node: MCILApply) -> bool:
+    # "-", "+", "*", "/", "div", "mod", "abs", ">=", ">", "<=", "<", "divisible"
+    identifier = node.identifier
+    identifier_class = identifier.get_class()
+
+    if identifier_class not in INT_RANK_TABLE:
+        return False
+    elif identifier.check("-", 0) and len(node.children) == 1:
+        # special case: negation and subtraction share a symbol
+        # we handle the negation case here
+        rank = INT_RANK_TABLE[identifier_class](None)
+
+        # change from [Int, Int] to [Int]
+        rank[0].pop() 
+
+        return sort_check_apply_rank(node, rank)
+
+    rank = INT_RANK_TABLE[identifier_class](None)
+    return sort_check_apply_rank(node, rank)
+
+
 def sort_check_apply_qf_bv(node: MCILApply) -> bool:
     identifier_class = (node.identifier.symbol, node.identifier.num_indices())
 
@@ -962,6 +995,65 @@ def sort_check_apply_qf_abv(node: MCILApply) -> bool:
     elif identifier_class in ARRAY_RANK_TABLE:
         return sort_check_apply_arrays(node)
     
+    return False
+
+
+def sort_check_apply_qf_lia(node: MCILApply) -> bool:
+    identifier_class = (node.identifier.symbol, node.identifier.num_indices())
+
+    # remove some unsupported functions from theory of Ints
+    lia_rank_table = copy(INT_RANK_TABLE)
+    del lia_rank_table[("/", 0)]
+    del lia_rank_table[("div", 0)]
+    del lia_rank_table[("mod", 0)]
+    del lia_rank_table[("abs", 0)]
+
+    if identifier_class in CORE_RANK_TABLE:
+        return sort_check_apply_core(node)
+    elif identifier_class in lia_rank_table:
+        status = sort_check_apply_int(node)
+
+        if not status:
+            return status
+
+        # Special case for LIA (from SMT-LIB): 
+        # Terms containing * with _concrete_ coefficients are also allowed, that
+        # is, terms of the form c, (* c x), or (* x c)  where x is a free constant
+        # and c is a term of the form n or (- n) for some numeral n.
+        if node.identifier.check("*", 0):
+            lhs,rhs = node.children
+            if isinstance(lhs, MCILApply):
+                if not lhs.identifier.check("-", 0):
+                    return False
+                elif not len(lhs.children) == 1:
+                    return False
+                elif not isinstance(lhs.children[0], MCILConstant):
+                    return False
+                elif not isinstance(rhs, MCILVar):
+                    return False
+            elif isinstance(rhs, MCILApply):
+                if not rhs.identifier.check("-", 0):
+                    return False
+                elif not len(rhs.children) == 1:
+                    return False
+                elif not isinstance(rhs.children[0], MCILConstant):
+                    return False
+                elif not isinstance(lhs, MCILVar):
+                    return False
+
+        return status
+
+    return False
+
+
+def sort_check_apply_qf_nia(node: MCILApply) -> bool:
+    identifier_class = (node.identifier.symbol, node.identifier.num_indices())
+
+    if identifier_class in CORE_RANK_TABLE:
+        return sort_check_apply_core(node)
+    elif identifier_class in INT_RANK_TABLE:
+        return sort_check_apply_int(node)
+
     return False
 
 
@@ -1001,12 +1093,18 @@ QF_ABV = MCILLogic("QF_ABV",
 QF_LIA = MCILLogic("QF_LIA", 
                 {("Bool", 0), ("Int", 0)}, 
                 CORE_RANK_TABLE.keys() | INT_RANK_TABLE.keys(), 
-                sort_check_apply_core)
+                sort_check_apply_qf_lia)
+
+QF_NIA = MCILLogic("QF_NIA", 
+                {("Bool", 0), ("Int", 0)}, 
+                CORE_RANK_TABLE.keys() | INT_RANK_TABLE.keys(), 
+                sort_check_apply_qf_nia)
 
 LOGIC_TABLE: dict[str, MCILLogic] = {
     "QF_BV": QF_BV,
     "QF_ABV": QF_ABV,
-    "QF_LIA": QF_LIA
+    "QF_LIA": QF_LIA,
+    "QF_NIA": QF_NIA
 }
 
 class MCILSystemContext():
@@ -1066,18 +1164,23 @@ class MCILSystemContext():
 class MCILContext():
 
     def __init__(self):
+        self.logic = NO_LOGIC
+
         self.declared_sorts: dict[MCILIdentifier, int] = {}
         self.declared_enum_sorts: dict[str, list[str]] = {}
         self.defined_sorts: set[MCILSort] = set()
+
         self.declared_functions: dict[str, Rank] = {}
         self.defined_functions: dict[str, tuple[Rank, MCILExpr]] = {}
+
         self.defined_systems: dict[str, MCILDefineSystem] = {}
-        self.logic = NO_LOGIC
+        self.system_context = MCILSystemContext() # used during system flattening
+
         self.input_var_sorts: dict[MCILVar, MCILSort] = {}
         self.output_var_sorts: dict[MCILVar, MCILSort] = {}
         self.local_var_sorts: dict[MCILVar, MCILSort] = {}
         self.var_sorts: dict[MCILVar, MCILSort] = {}
-        self.system_context = MCILSystemContext() # used during system flattening
+
         self.cur_command: Optional[MCILCommand] = None
         self.bound_let_vars: dict[str, MCILExpr] = {}
         self.const_array_init_exprs: dict[MCILVar,MCILExpr] = {}

@@ -422,9 +422,9 @@ class MCILParser(Parser):
     def sort_list(self, p):
         return []
 
-    @_("RW_AS identifier sort")
+    @_("LPAREN RW_AS identifier sort RPAREN")
     def qualified_identifier(self, p):
-        return (p[1], p[2])
+        return (p[2], p[3])
 
     # Identifiers
     @_("SYMBOL")

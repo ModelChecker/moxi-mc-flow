@@ -1,4 +1,4 @@
-(set-logic QF_LIA)
+(set-logic QF_NIA)
 
 (define-fun g1 () Int 100)
 
