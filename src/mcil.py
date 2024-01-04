@@ -8,8 +8,6 @@ from copy import copy
 from enum import Enum
 from typing import Any, Callable, Optional, cast
 
-from sympy import E
-
 from .util import eprint
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts

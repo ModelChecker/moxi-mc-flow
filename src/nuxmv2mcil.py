@@ -373,8 +373,8 @@ def disjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
     return ret
 
 
-def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
-    result: list[MCILVar] = []
+def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, MCILSort]]:
+    result: list[tuple[str, MCILSort]] = []
     for module_element in xmv_module.elements:
         match module_element:
             case XMVVarDeclaration(modifier="IVAR"):
@@ -382,24 +382,17 @@ def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
                     if isinstance(xmv_var_type, XMVModuleType):
                         continue
 
-                    mcil_var = MCILVar(
-                        var_type=MCILVarType.INPUT,
-                        sort=translate_type(xmv_var_type),
-                        symbol=var_name.ident,
-                        prime=False
-                    )
-
-                    result.append(mcil_var)
+                    result.append((var_name.ident, translate_type(xmv_var_type)))
             case _:
                 pass
     
     return result
 
-def gather_local(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
+def gather_local(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, MCILSort]]:
     return []
 
-def gather_output(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
-    result: list[MCILVar] = []
+def gather_output(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, MCILSort]]:
+    result: list[tuple[str, MCILSort]] = []
     for module_element in xmv_module.elements:
         match module_element:
             case XMVVarDeclaration(modifier="VAR") | XMVVarDeclaration(modifier="FROZENVAR"):
@@ -414,14 +407,7 @@ def gather_output(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
                         case _:
                             il_type = translate_type(xmv_var_type)
 
-                    mcil_var = MCILVar(
-                        var_type=MCILVarType.OUTPUT,
-                        sort=il_type,
-                        symbol=var_name.ident,
-                        prime=False
-                    )
-
-                    result.append(mcil_var)
+                    result.append((var_name.ident, il_type))
             case _:
                pass
     
