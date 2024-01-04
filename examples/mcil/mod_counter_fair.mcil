@@ -1,3 +1,5 @@
+(set-logic QF_BV)
+
 (define-system Cnt 
     :input ((in (_ BitVec 8)))
     :output ((out (_ BitVec 8)))

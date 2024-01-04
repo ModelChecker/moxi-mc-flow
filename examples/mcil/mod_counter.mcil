@@ -14,11 +14,3 @@
     :reachable (rch (= o #b00001010))
     :query (q (rch))
 )
-
-;(define-system DoubleCnt 
-;  :input ( (in (_ BitVec 64)) ) 
-;  :output ( (out (_ BitVec 64)) )
-;  :local ( (temp (_ BitVec 64)) )
-;  :subsys  (C1 (Cnt in temp))
-;  :subsys  (C2 (Cnt temp out))
-;)
