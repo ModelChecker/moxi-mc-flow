@@ -514,6 +514,9 @@ class MCILSetLogic(MCILCommand):
         super().__init__()
         self.logic = logic
 
+    def __str__(self) -> str:
+        return f"(set-logic {self.logic})"
+
     def to_json(self) -> dict: # type: ignore
         return {
             "command": "set-logic", # type: ignore
@@ -763,6 +766,10 @@ ARRAY_RANK_TABLE: RankTable = {
     ("store", 0):  lambda A: ([MCIL_ARRAY_SORT(A[0], A[1]), A[0], A[1]], MCIL_ARRAY_SORT(A[0], A[1]))
 }
 
+INT_RANK_TABLE: RankTable = {
+
+}
+
 
 def sort_check_apply_rank(node: MCILApply, rank: Rank) -> bool:
     rank_args, rank_return = rank
@@ -975,18 +982,32 @@ class MCILLogic():
 
         self.symbols = sort_symbols | function_symbols
 
-NO_LOGIC = MCILLogic("NONE", set(), set(), lambda x: False)
+
+NO_LOGIC = MCILLogic("Not Set", 
+                    {("Bool", 0)}, 
+                    set(CORE_RANK_TABLE.keys()), 
+                    sort_check_apply_core)
 
 QF_BV = MCILLogic("QF_BV", 
-                {("BitVec", 1)}, 
+                {("Bool", 0), ("BitVec", 1)}, 
                 CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys(), 
                 sort_check_apply_qf_bv)
 
 QF_ABV = MCILLogic("QF_ABV", 
-                {("BitVec", 1), ("Array", 0)}, 
+                {("Bool", 0), ("BitVec", 1), ("Array", 0)}, 
                 CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys() | ARRAY_RANK_TABLE.keys(), 
                 sort_check_apply_qf_abv)
 
+QF_LIA = MCILLogic("QF_LIA", 
+                {("Bool", 0), ("Int", 0)}, 
+                CORE_RANK_TABLE.keys() | INT_RANK_TABLE.keys(), 
+                sort_check_apply_core)
+
+LOGIC_TABLE: dict[str, MCILLogic] = {
+    "QF_BV": QF_BV,
+    "QF_ABV": QF_ABV,
+    "QF_LIA": QF_LIA
+}
 
 class MCILSystemContext():
 
@@ -1051,7 +1072,7 @@ class MCILContext():
         self.declared_functions: dict[str, Rank] = {}
         self.defined_functions: dict[str, tuple[Rank, MCILExpr]] = {}
         self.defined_systems: dict[str, MCILDefineSystem] = {}
-        self.logic = QF_ABV # for now, assume QF_ABV logic
+        self.logic = NO_LOGIC
         self.input_var_sorts: dict[MCILVar, MCILSort] = {}
         self.output_var_sorts: dict[MCILVar, MCILSort] = {}
         self.local_var_sorts: dict[MCILVar, MCILSort] = {}
@@ -1117,10 +1138,16 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
         for expr in postorder_mcil(node, context):
             if isinstance(expr, MCILConstant):
-                pass
+                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    status = False
             elif isinstance(expr, MCILVar) and expr in context.input_var_sorts:
                 expr.var_type = MCILVarType.INPUT
                 expr.sort = context.input_var_sorts[expr]
+
+                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    status = False
 
                 if expr.prime and no_prime:
                     eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
@@ -1128,6 +1155,10 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             elif isinstance(expr, MCILVar) and expr in context.output_var_sorts:
                 expr.var_type = MCILVarType.OUTPUT
                 expr.sort = context.output_var_sorts[expr]
+                
+                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    status = False
 
                 if expr.prime and no_prime:
                     eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
@@ -1136,6 +1167,10 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 expr.var_type = MCILVarType.LOCAL
                 expr.sort = context.local_var_sorts[expr]
 
+                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    status = False
+
                 if expr.prime and no_prime:
                     eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
                     status = False
@@ -1143,6 +1178,10 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 expr.sort = context.bound_let_vars[expr.symbol].sort
             elif isinstance(expr, MCILVar) and expr in context.var_sorts:
                 expr.sort = context.var_sorts[expr]
+
+                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.defined_functions:
                 # constants defined using define-fun
                 ((inputs, output), _) = context.defined_functions[expr.symbol]
@@ -1190,7 +1229,13 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
     for cmd in program.commands:
         context.cur_command = cmd
 
-        if isinstance(cmd, MCILDeclareSort):
+        if isinstance(cmd, MCILSetLogic):
+            if cmd.logic not in LOGIC_TABLE:
+                eprint(f"[{__name__}] Error: logic {cmd.logic} unsupported.\n")
+                status = False
+            else:
+                context.logic = LOGIC_TABLE[cmd.logic]
+        elif isinstance(cmd, MCILDeclareSort):
             # TODO: move this warning to il2btor.py
             eprint(f"[{__name__}] Warning: declare-sort command unsupported, ignoring.\n")
         elif isinstance(cmd, MCILDefineSort):
@@ -1356,6 +1401,8 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             context.input_var_sorts = {}
             context.output_var_sorts = {}
             context.local_var_sorts = {}
+        elif isinstance(cmd, MCILExit):
+            return (status, context)
         else:
             raise NotImplementedError
 

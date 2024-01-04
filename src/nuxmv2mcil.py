@@ -618,7 +618,7 @@ def translate_module(xmv_module: XMVModule) -> list[MCILCommand]:
     # commands
     consts: list[MCILCommand] = gather_consts(xmv_module)
 
-    return enums + consts + [define_system] + check_system
+    return [MCILSetLogic("QF_ABV")] + enums + consts + [define_system] + check_system
 
 
 def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:

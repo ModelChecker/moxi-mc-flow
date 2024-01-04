@@ -298,8 +298,6 @@ def build_expr_map(
                 (idx1, idx2),
                 btor2_args
             )
-        # elif isinstance(expr, MCILApply) and expr.identifier.symbol == "const":
-        #     expr_map[expr] = expr_map[expr.children[0]]
         elif isinstance(expr, MCILLetExpr):
             expr_map[expr] = expr_map[expr.get_expr()]
         else:

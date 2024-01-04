@@ -13,7 +13,7 @@ class MCILLexer(Lexer):
                RW_UNDERSCORE, RW_LET, RW_AS,
                PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV, PK_SUBSYS,
                PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY,
-               CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
+               CMD_SET_LOGIC, CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
                CMD_DECLARE_ENUM_SORT, CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, CMD_EXIT }
 
     # String containing ignored characters between tokens
@@ -66,6 +66,7 @@ class MCILLexer(Lexer):
     KEYWORD[":query"]      = PK_QUERY
 
     # Command names
+    SYMBOL["set-logic"]  = CMD_SET_LOGIC
     SYMBOL["declare-sort"]  = CMD_DECLARE_SORT
     SYMBOL["define-sort"]   = CMD_DEFINE_SORT
     SYMBOL["declare-const"] = CMD_DECLARE_CONST
@@ -105,6 +106,10 @@ class MCILParser(Parser):
     @_("")
     def command_list(self, p):
         return []
+
+    @_("LPAREN CMD_SET_LOGIC SYMBOL RPAREN")
+    def command(self, p):
+        return MCILSetLogic(p[2])
 
     @_("LPAREN CMD_DECLARE_SORT SYMBOL NUMERAL RPAREN")
     def command(self, p):
