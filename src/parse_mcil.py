@@ -324,7 +324,7 @@ class MCILParser(Parser):
     
     @_("SYMBOL sort")
     def sorted_var(self, p):
-        return MCILVar(MCILVarType.NONE, p[1], p[0], False)
+        return (p[0], p[1])
     
     @_("term_list term")
     def term_list(self, p):

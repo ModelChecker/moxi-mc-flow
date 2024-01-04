@@ -8,6 +8,8 @@ from copy import copy
 from enum import Enum
 from typing import Any, Callable, Optional, cast
 
+from sympy import E
+
 from .util import eprint
 
 # Width of integers -- used when we convert Int sorts to BitVec sorts
@@ -371,6 +373,9 @@ def is_const_array_init_expr(expr: MCILExpr) -> bool:
 
     return True
 
+def to_json_sorted_var(symbol: str, sort: MCILSort) -> dict:
+    return {"symbol": symbol, "sort": sort.to_json()} # type: ignore
+
 
 class MCILCommand():
 
@@ -483,12 +488,12 @@ class MCILDefineFun(MCILCommand):
     def __init__(
             self, 
             symbol: str, 
-            input: list[MCILVar], 
+            input: list[tuple[str, MCILSort]], 
             output: MCILSort,  
             body: MCILExpr):
         super().__init__()
         self.symbol = symbol
-        self.inputs = input
+        self.input = input
         self.output_sort = output
         self.body = body
 
@@ -496,14 +501,14 @@ class MCILDefineFun(MCILCommand):
         return [self.body]
 
     def __str__(self) -> str:
-        input_str = " ".join([f"({i.symbol} {i.sort})" for i in self.inputs])
+        input_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.input])
         return f"(define-fun {self.symbol} ({input_str}) {self.output_sort} {self.body})"
 
     def to_json(self) -> dict: # type: ignore
         return {
             "command": "define-fun", # type: ignore
             "symbol": self.symbol, # type: ignore
-            "inputs": [i.to_json_sorted_var() for i in self.inputs], # type: ignore
+            "input": [to_json_sorted_var(symbol,sort) for symbol,sort in self.input],
             "output": self.output_sort.to_json(), # type: ignore
             "body": self.body.to_json() # type: ignore
         }
@@ -530,9 +535,9 @@ class MCILDefineSystem(MCILCommand):
     def __init__(
         self, 
         symbol: str,
-        input: list[MCILVar], 
-        output: list[MCILVar], 
-        local: list[MCILVar], 
+        input: list[tuple[str, MCILSort]], 
+        output: list[tuple[str, MCILSort]], 
+        local: list[tuple[str, MCILSort]], 
         init: MCILExpr,
         trans: MCILExpr, 
         inv: MCILExpr,
@@ -547,19 +552,22 @@ class MCILDefineSystem(MCILCommand):
         self.inv = inv
         self.subsystem_signatures = subsystems
 
-        # convenient data structures
-        self.symbol_map = { var.symbol : var for var in input + output + local }
-
-        # this gets populated by sort checker
+        # these get populated by sort checker
         self.subsystems: dict[str, MCILDefineSystem] = {}
+        self.vars: dict[str, MCILSort] = {}
+
+        # useful for mapping variables across subsystems
+        self.input_vars = [MCILVar(MCILVarType.INPUT, sort, symbol, False) for symbol,sort in input]
+        self.output_vars = [MCILVar(MCILVarType.OUTPUT, sort, symbol, False) for symbol,sort in output]
+        self.local_vars = [MCILVar(MCILVarType.LOCAL, sort, symbol, False) for symbol,sort in local]
 
     def get_exprs(self) -> list[MCILExpr]:
         return [self.init, self.trans, self.inv]
 
     def __str__(self) -> str:
-        input_str = " ".join([f"({i.symbol} {i.sort})" for i in self.input])
-        output_str = " ".join([f"({o.symbol} {o.sort})" for o in self.output])
-        local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.local])
+        input_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.input])
+        output_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.output])
+        local_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.local])
 
         subsystem_str = ""
         for symbol,signature in self.subsystem_signatures.items():
@@ -579,14 +587,14 @@ class MCILDefineSystem(MCILCommand):
 
     def to_json(self) -> dict: # type: ignore
         return {
-            "command": "define-system", # type: ignore
-            "symbol": self.symbol, # type: ignore
-            "input": [i.to_json_sorted_var() for i in self.input], # type: ignore
-            "output": [o.to_json_sorted_var() for o in self.output], # type: ignore
-            "local": [l.to_json_sorted_var() for l in self.local], # type: ignore
-            "init": self.init.to_json(), # type: ignore
-            "trans": self.trans.to_json(), # type: ignore
-            "inv": self.inv.to_json(), # type: ignore
+            "command": "define-system", 
+            "symbol": self.symbol, 
+            "input": [to_json_sorted_var(symbol,sort) for symbol,sort in self.input],
+            "output": [to_json_sorted_var(symbol,sort) for symbol,sort in self.output], 
+            "local": [to_json_sorted_var(symbol,sort) for symbol,sort in self.local], 
+            "init": self.init.to_json(), 
+            "trans": self.trans.to_json(), 
+            "inv": self.inv.to_json(), 
             "subsys": [
                 {
                     "symbol": s, 
@@ -604,9 +612,9 @@ class MCILCheckSystem(MCILCommand):
     def __init__(
         self, 
         sys_symbol: str,
-        input: list[MCILVar], 
-        output: list[MCILVar], 
-        local: list[MCILVar], 
+        input: list[tuple[str, MCILSort]], 
+        output: list[tuple[str, MCILSort]], 
+        local: list[tuple[str, MCILSort]],
         assumption: dict[str, MCILExpr],
         fairness: dict[str, MCILExpr], 
         reachable: dict[str, MCILExpr], 
@@ -623,13 +631,21 @@ class MCILCheckSystem(MCILCommand):
         self.current = current
         self.query = query
 
+        # this gets populated by sort checker
+        self.vars: dict[str, MCILSort] = {}
+
+        # useful for mapping variables across subsystems
+        self.input_vars = [MCILVar(MCILVarType.INPUT, sort, symbol, False) for symbol,sort in input]
+        self.output_vars = [MCILVar(MCILVarType.OUTPUT, sort, symbol, False) for symbol,sort in output]
+        self.local_vars = [MCILVar(MCILVarType.LOCAL, sort, symbol, False) for symbol,sort in local]
+
     def get_exprs(self) -> list[MCILExpr]:
         return [a for a in self.assumption.values()] + [f for f in self.fairness.values()] + [r for r in self.reachable.values()] + [c for c in self.current.values()]
 
     def __str__(self) -> str:
-        input_str = " ".join([f"({i.symbol} {i.sort})" for i in self.input])
-        output_str = " ".join([f"({o.symbol} {o.sort})" for o in self.output])
-        local_str = " ".join([f"({l.symbol} {l.sort})" for l in self.local])
+        input_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.input])
+        output_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.output])
+        local_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.local])
 
         assumption_str = " ".join([f":assumption ({symbol} {expr})" for symbol,expr in self.assumption.items()])
         fairness_str = " ".join([f":fairness ({symbol} {expr})" for symbol,expr in self.fairness.items()])
@@ -651,16 +667,16 @@ class MCILCheckSystem(MCILCommand):
         return s + ")"
 
     def to_json(self) -> dict: # type: ignore
-        return { # type: ignore
+        return { 
             "command": "check-system",
             "symbol": self.sys_symbol,
-            "input": [i.to_json_sorted_var() for i in self.input], # type: ignore
-            "output": [o.to_json_sorted_var() for o in self.output], # type: ignore
-            "local": [l.to_json_sorted_var() for l in self.local],# type: ignore
-            "assumption": [{"symbol": s, "formula": a.to_json()} for s,a in self.assumption.items()], # type: ignore
-            "fairness": [{"symbol": s, "formula": f.to_json()} for s,f in self.fairness.items()], # type: ignore
-            "reachable": [{"symbol": s, "formula": r.to_json()} for s,r in self.reachable.items()], # type: ignore
-            "current": [{"symbol": s, "formula": c.to_json()} for s,c in self.current.items()], # type: ignore
+            "input": [to_json_sorted_var(symbol,sort) for symbol,sort in self.input],
+            "output": [to_json_sorted_var(symbol,sort) for symbol,sort in self.output], 
+            "local": [to_json_sorted_var(symbol,sort) for symbol,sort in self.local], 
+            "assumption": [{"symbol": s, "formula": a.to_json()} for s,a in self.assumption.items()], 
+            "fairness": [{"symbol": s, "formula": f.to_json()} for s,f in self.fairness.items()], 
+            "reachable": [{"symbol": s, "formula": r.to_json()} for s,r in self.reachable.items()], 
+            "current": [{"symbol": s, "formula": c.to_json()} for s,c in self.current.items()], 
             "query": [{"symbol": s, "formulas": q} for s,q in self.query.items()],
             "queries": []
         }
@@ -1169,6 +1185,7 @@ class MCILContext():
         self.declared_sorts: dict[MCILIdentifier, int] = {}
         self.declared_enum_sorts: dict[str, list[str]] = {}
         self.defined_sorts: set[MCILSort] = set()
+        self.sorts: dict[str, MCILSort] = {}
 
         self.declared_functions: dict[str, Rank] = {}
         self.defined_functions: dict[str, tuple[Rank, MCILExpr]] = {}
@@ -1176,36 +1193,89 @@ class MCILContext():
         self.defined_systems: dict[str, MCILDefineSystem] = {}
         self.system_context = MCILSystemContext() # used during system flattening
 
-        self.input_var_sorts: dict[MCILVar, MCILSort] = {}
-        self.output_var_sorts: dict[MCILVar, MCILSort] = {}
-        self.local_var_sorts: dict[MCILVar, MCILSort] = {}
-        self.var_sorts: dict[MCILVar, MCILSort] = {}
+        self.input_vars: set[str] = set()
+        self.output_vars: set[str] = set()
+        self.local_vars: set[str] = set()
+        self.var_sorts: dict[str, MCILSort] = {}
+
+        self.bound_let_vars: dict[str, MCILExpr] = {}
 
         self.cur_command: Optional[MCILCommand] = None
-        self.bound_let_vars: dict[str, MCILExpr] = {}
         self.const_array_init_exprs: dict[MCILVar,MCILExpr] = {}
 
-    def get_symbols(self) -> set[str]:
-        # TODO: this is computed EVERY time, optimize this
-        # need to implement setters/update functions for each data structure
-        symbols: set[str] = set()
+        self.symbols: set[str] = set()
 
-        symbols.update([id.symbol for id in self.declared_sorts])
-        symbols.update([id for id in self.declared_enum_sorts])
-        for syms in self.declared_enum_sorts.values():
-            symbols.update(syms)
-        symbols.update([srt.identifier.symbol for srt in self.defined_sorts])
-        symbols.update([sym for sym in self.declared_functions])
-        symbols.update([sym for sym in self.defined_functions])
-        symbols.update([sym for sym in self.defined_systems])
+    def add_declared_sort(self, ident: MCILIdentifier, arity: int) -> None:
+        self.declared_sorts[ident] = arity
+        self.symbols.add(ident.symbol)
+        self.sorts[ident.symbol] = MCILSort(ident, [])
 
-        return symbols
+    def add_declared_enum_sort(self, symbol: str, vals: list[str]) -> None:
+        self.declared_enum_sorts[symbol] = vals
+        self.defined_sorts.add(MCIL_ENUM_SORT(symbol))
+        self.symbols.add(symbol)
+        [self.symbols.add(v) for v in vals]
 
-    def get_enum_symbols(self) -> set[str]:
-        symbols: set[str] = set()
-        for syms in self.declared_enum_sorts.values():
-            symbols.update(syms)
-        return symbols
+    def add_defined_sort(self, sort: MCILSort) -> None:
+        self.defined_sorts.add(sort)
+        self.symbols.add(sort.identifier.symbol)
+
+    def add_declared_function(self, symbol: str, rank: Rank) -> None:
+        self.declared_functions[symbol] = rank
+        self.symbols.add(symbol)
+
+    def add_defined_function(self, symbol: str, signature: tuple[Rank, MCILExpr]) -> None:
+        self.defined_functions[symbol] = signature
+        self.symbols.add(symbol)
+
+    def add_defined_system(self, symbol: str, system: MCILDefineSystem) -> None:
+        self.defined_systems[symbol] = system
+        self.symbols.add(symbol)
+
+    def add_bound_let_var(self, var: str, expr: MCILExpr) -> None:
+        self.bound_let_vars[var] = expr
+        self.symbols.add(var)
+
+    def remove_bound_let_var(self, var: str) -> None:
+        if var in self.bound_let_vars:
+            del self.bound_let_vars[var]
+            self.symbols.remove(var)
+
+    def add_vars(self, vars: list[tuple[str, MCILSort]]) -> None:
+        self.var_sorts.update({symbol:sort for symbol,sort in vars})
+        self.symbols.update([symbol for symbol,_ in vars])
+
+    def remove_vars(self, vars: list[tuple[str, MCILSort]]) -> None:
+        for symbol,_ in vars:
+            del self.var_sorts[symbol]
+            self.symbols.discard(symbol)
+
+    def add_system_vars(
+        self, 
+        input: list[tuple[str, MCILSort]],
+        output: list[tuple[str, MCILSort]],
+        local: list[tuple[str, MCILSort]]
+    ) -> None:
+        self.input_vars.update([symbol for symbol,_ in input])
+        self.output_vars.update([symbol for symbol,_ in output])
+        self.local_vars.update([symbol for symbol,_ in local])
+        self.add_vars(input + output + local)
+
+    def remove_system_vars(
+        self, 
+        input: list[tuple[str, MCILSort]],
+        output: list[tuple[str, MCILSort]],
+        local: list[tuple[str, MCILSort]]
+    ) -> None:
+        # [self.input_vars.discard(symbol) for symbol,_ in input]
+        # [self.output_vars.discard(symbol) for symbol,_ in output]
+        # [self.local_vars.discard(symbol) for symbol,_ in local]
+        for symbol,_ in (input + output + local):
+            self.input_vars.discard(symbol)
+            self.output_vars.discard(symbol)
+            self.local_vars.discard(symbol)
+
+        self.remove_vars(input + output + local)
 
 
 def postorder_mcil(expr: MCILExpr, context: MCILContext):
@@ -1218,11 +1288,11 @@ def postorder_mcil(expr: MCILExpr, context: MCILContext):
 
         if seen and isinstance(cur, MCILLetExpr):
             for (v,e) in cur.get_binders():
-                del context.bound_let_vars[v]
+                context.remove_bound_let_var(v)
             yield cur
         elif seen and isinstance(cur, MCILBind):
             for (v,e) in cur.binders:
-                context.bound_let_vars[v] = e
+                context.add_bound_let_var(v,e)
         elif seen:
             yield cur
         else:
@@ -1242,40 +1312,40 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
         for expr in postorder_mcil(node, context):
             if isinstance(expr, MCILConstant):
                 if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
-                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
-            elif isinstance(expr, MCILVar) and expr in context.input_var_sorts:
+            elif isinstance(expr, MCILVar) and expr.symbol in context.input_vars:
                 expr.var_type = MCILVarType.INPUT
-                expr.sort = context.input_var_sorts[expr]
+                expr.sort = context.var_sorts[expr.symbol]
 
                 if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
-                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
                 if expr.prime and no_prime:
-                    eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
+                    eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
                     status = False
-            elif isinstance(expr, MCILVar) and expr in context.output_var_sorts:
+            elif isinstance(expr, MCILVar) and expr.symbol in context.output_vars:
                 expr.var_type = MCILVarType.OUTPUT
-                expr.sort = context.output_var_sorts[expr]
+                expr.sort = context.var_sorts[expr.symbol]
                 
                 if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
-                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
                 if expr.prime and no_prime:
-                    eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
+                    eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
                     status = False
-            elif isinstance(expr, MCILVar) and expr in context.local_var_sorts:
+            elif isinstance(expr, MCILVar) and expr.symbol in context.local_vars:
                 expr.var_type = MCILVarType.LOCAL
-                expr.sort = context.local_var_sorts[expr]
+                expr.sort = context.var_sorts[expr.symbol]
 
                 if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
-                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
                 if expr.prime and no_prime:
-                    eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}\n")
+                    eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
                 expr.sort = context.bound_let_vars[expr.symbol].sort
@@ -1283,33 +1353,33 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 expr.sort = context.var_sorts[expr]
 
                 if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
-                    eprint(f"[{__name__}] Error: sort unrecognized ({expr.sort}).\n\tCurrent logic: {context.logic.symbol}\n")
+                    eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.defined_functions:
                 # constants defined using define-fun
                 ((inputs, output), _) = context.defined_functions[expr.symbol]
 
                 if len(inputs) != 0:
-                    eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.symbol}\n")
+                    eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.symbol}")
                     status = False
 
                 expr.sort = output
             elif isinstance(expr, MCILVar):
-                eprint(f"[{__name__}] Error: symbol '{expr.symbol}' not declared.\n\t{context.cur_command}\n")
+                eprint(f"[{__name__}] Error: symbol '{expr.symbol}' not declared.\n\t{context.cur_command}")
                 status = False
             elif isinstance(expr, MCILApply):
                 if expr.identifier.get_class() in context.logic.function_symbols:
                     if not context.logic.sort_check(expr):
-                        eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}\n")
+                        eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}")
                         status = False
                 elif expr.identifier.symbol in context.defined_functions:
                     (rank, _) = context.defined_functions[expr.identifier.symbol]
 
                     if not sort_check_apply_rank(expr, rank):
-                        eprint(f"[{__name__}] Error: function call does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}\n")
+                        eprint(f"[{__name__}] Error: function call does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}")
                         status = False
                 else:
-                    eprint(f"[{__name__}] Error: symbol '{expr.identifier.symbol}' not recognized ({expr}).\n\t{context.cur_command}\n")
+                    eprint(f"[{__name__}] Error: symbol '{expr.identifier.symbol}' not recognized ({expr}).\n\t{context.cur_command}")
                     status = False
 
                 # arrays initialized with constants must be handled separately,
@@ -1323,7 +1393,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 # TODO: check for variable name clashes
                 expr.sort = expr.get_expr().sort
             else:
-                eprint(f"[{__name__}] Error: expr type '{expr.__class__}' not recognized ({expr}).\n\t{context.cur_command}\n")
+                eprint(f"[{__name__}] Error: expr type '{expr.__class__}' not recognized ({expr}).\n\t{context.cur_command}")
                 status = False
 
         return status
@@ -1334,57 +1404,55 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
         if isinstance(cmd, MCILSetLogic):
             if cmd.logic not in LOGIC_TABLE:
-                eprint(f"[{__name__}] Error: logic {cmd.logic} unsupported.\n")
+                eprint(f"[{__name__}] Error: logic {cmd.logic} unsupported.")
                 status = False
             else:
                 context.logic = LOGIC_TABLE[cmd.logic]
         elif isinstance(cmd, MCILDeclareSort):
-            # TODO: move this warning to il2btor.py
-            eprint(f"[{__name__}] Warning: declare-sort command unsupported, ignoring.\n")
+            # TODO: move this warning to mcil2btor.py
+            eprint(f"[{__name__}] Warning: declare-sort command unsupported, ignoring.")
         elif isinstance(cmd, MCILDefineSort):
-            if cmd.symbol in context.get_symbols():
-                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+            if cmd.symbol in context.symbols:
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
             # TODO
+            context.add_defined_sort(cmd.definition)
         elif isinstance(cmd, MCILDeclareEnumSort):
-            if cmd.symbol in context.get_symbols():
-                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+            if cmd.symbol in context.symbols:
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
-            context.declared_enum_sorts[cmd.symbol] = cmd.values
+            context.add_declared_enum_sort(cmd.symbol, cmd.values)
         elif isinstance(cmd, MCILDeclareConst):
-            if cmd.symbol in context.get_symbols():
-                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+            if cmd.symbol in context.symbols:
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
-            context.declared_functions[cmd.symbol] = Rank(([], cmd.sort))
+            context.add_declared_function(cmd.symbol, Rank(([], cmd.sort)))
         elif isinstance(cmd, MCILDeclareFun):
-            if cmd.symbol in context.get_symbols():
-                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+            if cmd.symbol in context.symbols:
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
-            context.declared_functions[cmd.symbol] = Rank((cmd.inputs, cmd.output_sort))
+            context.add_declared_function(cmd.symbol, Rank((cmd.inputs, cmd.output_sort)))
         elif isinstance(cmd, MCILDefineFun):
-            if cmd.symbol in context.get_symbols():
-                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}\n")
+            if cmd.symbol in context.symbols:
+                eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
-            context.var_sorts.update({ var:var.sort for var in cmd.inputs })
+            context.add_vars(cmd.input)
 
             status = status and sort_check_expr(cmd.body, context, no_prime=True, is_init_expr=False)
 
-            for var in cmd.inputs:
-                del context.var_sorts[var]
+            context.remove_vars(cmd.input)
 
-            input_sorts = [s.sort for s in cmd.inputs]
+            input_sorts = [sort for _,sort in cmd.input]
             context.defined_functions[cmd.symbol] = (Rank((input_sorts, cmd.output_sort)), cmd.body)
         elif isinstance(cmd, MCILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
             # TODO: check for valid sort symbols
-            context.input_var_sorts = {var:var.sort for var in cmd.input}
-            context.output_var_sorts = {var:var.sort for var in cmd.output}
-            context.local_var_sorts = {var:var.sort for var in cmd.local}
+            context.add_system_vars(cmd.input, cmd.output, cmd.local)
 
             status = status and sort_check_expr(cmd.init, context, no_prime=True, is_init_expr=True)
             status = status and sort_check_expr(cmd.trans, context, no_prime=False, is_init_expr=False)
@@ -1395,98 +1463,90 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 (sys_symbol, signature_symbols) = subsystem
 
                 if sys_symbol not in context.defined_systems:
-                    eprint(f"[{__name__}] Error: system '{sys_symbol}' not defined in context.\n\t{cmd}\n")
+                    eprint(f"[{__name__}] Error: system '{sys_symbol}' not defined in context.\n\t{cmd}")
                     status = False
                     return (False, context)
 
                 # check that each symbol in signature is in the context
-                signature: list[MCILVar] = []
-                variables: dict[str, MCILVar] = {var.symbol:var for var in cmd.input + cmd.output + cmd.local}
+                signature: list[tuple[str, MCILSort]] = []
                 for symbol in signature_symbols:
-                    if symbol not in variables:
-                        eprint(f"[{__name__}] Error: variable '{symbol}' not declared.\n\t{cmd}\n")
+                    if symbol not in context.var_sorts:
+                        eprint(f"[{__name__}] Error: variable '{symbol}' not declared.\n\t{cmd}")
                         status = False
-                        signature.append(MCIL_EMPTY_VAR)
+                        signature.append(("", MCIL_NO_SORT))
                         continue
 
-                    signature.append(variables[symbol])
-                    if variables[symbol] in cmd.input:
-                        variables[symbol].var_type = MCILVarType.INPUT
-                    elif variables[symbol] in cmd.output:
-                        variables[symbol].var_type = MCILVarType.OUTPUT
-                    elif variables[symbol] in cmd.local:
-                        variables[symbol].var_type = MCILVarType.LOCAL
+                    signature.append((symbol, context.var_sorts[symbol]))
 
                 target_system = context.defined_systems[sys_symbol]
                 target_signature = target_system.input + target_system.output
 
                 if len(signature) != len(target_signature):
-                    eprint(f"[{__name__}] Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}\n")
+                    eprint(f"[{__name__}] Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
                     status = False
                     continue
 
-                for cmd_var,target_var in zip(signature, target_signature):
-                    if cmd_var.sort != target_var.sort:
-                        eprint(f"[{__name__}] Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}\n")
+                for (_,cmd_sort),(_,target_sort) in zip(signature, target_signature):
+                    if cmd_sort != target_sort:
+                        eprint(f"[{__name__}] Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
                         status = False
                         continue
 
                 cmd.subsystems[name] = context.defined_systems[sys_symbol]
 
             context.defined_systems[cmd.symbol] = cmd
-
-            context.input_var_sorts = {}
-            context.output_var_sorts = {}
-            context.local_var_sorts = {}
+            cmd.vars.update({
+                symbol:sort for symbol,sort in cmd.input + cmd.output + cmd.local
+            })
+            
+            context.remove_system_vars(cmd.input, cmd.output, cmd.local)
         elif isinstance(cmd, MCILCheckSystem):
             if not cmd.sys_symbol in context.defined_systems:
-                eprint(f"[{__name__}] Error: system '{cmd.sys_symbol}' undefined.\n\t{cmd}\n")
+                eprint(f"[{__name__}] Error: system '{cmd.sys_symbol}' undefined.\n\t{cmd}")
                 status = False
                 continue
 
-            context.input_var_sorts = {var:var.sort for var in cmd.input}
-            context.output_var_sorts = {var:var.sort for var in cmd.output}
-            context.local_var_sorts = {var:var.sort for var in cmd.local}
-
+            context.add_system_vars(cmd.input, cmd.output, cmd.local)
             system = context.defined_systems[cmd.sys_symbol]
 
             if len(system.input) != len(cmd.input):
-                eprint(f"[{__name__}] Error: input variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}\n")
+                eprint(f"[{__name__}] Error: input variables do not match target system ({system.symbol}).\n\t{system.input}\n\t{cmd.input}")
                 status = False
                 continue
 
-            for i1,i2 in zip(system.input, cmd.input):
-                if i1.sort != i2.sort:
-                    eprint(f"[{__name__}] Error: sorts do not match in check-system (expected {i1.sort}, got {i2.sort})\n")
+            for (_,sort1),(_,sort2) in zip(system.input, cmd.input):
+                if sort1 != sort2:
+                    eprint(f"[{__name__}] Error: sorts do not match in check-system (expected {sort1}, got {sort2})")
                     status = False
                 else:
-                    i2.var_type = MCILVarType.INPUT
+                    pass
+                    # i2.var_type = MCILVarType.INPUT
                 # cmd.rename_map[v1] = v2
 
             if len(system.output) != len(cmd.output):
-                eprint(f"[{__name__}] Error: output variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}\n")
+                eprint(f"[{__name__}] Error: output variables do not match target system ({system.symbol}).\n\t{system.output}\n\t{cmd.output}")
                 status = False
                 continue
 
-            for o1,o2 in zip(system.output, cmd.output):
-                if o1.sort != o2.sort:
-                    eprint(f"[{__name__}] Error: sorts do not match in check-system (expected {o1.sort}, got {o2.sort})\n")
+            for (_,sort1),(_,sort2) in zip(system.output, cmd.output):
+                if sort1 != sort2:
+                    eprint(f"[{__name__}] Error: sorts do not match in check-system (expected {sort1}, got {sort2})")
                     status = False
                 else:
-                    o2.var_type = MCILVarType.OUTPUT
+                    pass
                 # cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
-                eprint(f"[{__name__}] Error: local variables do not match target system ({system.symbol}).\n\tlen(define.local)={len(system.local)}\n\tlen(check.local)={len(cmd.local)}\n")
+                eprint(f"[{__name__}] Error: local variables do not match target system ({system.symbol}).\n\tlen(define.local)={len(system.local)}\n\tlen(check.local)={len(cmd.local)}")
                 status = False
                 continue
 
-            for l1,l2 in zip(system.local, cmd.local):
-                if l1.sort != l2.sort:
-                    eprint(f"[{__name__}] Error: sorts do not match in check-system (expected {l1.sort}, got {l2.sort})\n")
+            for (_,sort1),(_,sort2) in zip(system.local, cmd.local):
+                if sort1 != sort2:
+                    eprint(f"[{__name__}] Error: sorts do not match in check-system (expected {sort1}, got {sort2})")
                     status = False
                 else:
-                    l2.var_type = MCILVarType.LOCAL
+                    pass
                 # cmd.rename_map[v1] = v2
 
             for expr in cmd.assumption.values():
@@ -1501,9 +1561,11 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             for expr in cmd.current.values():
                 status = status and sort_check_expr(expr, context, False, is_init_expr=False)
 
-            context.input_var_sorts = {}
-            context.output_var_sorts = {}
-            context.local_var_sorts = {}
+            cmd.vars.update({
+                symbol:sort for symbol,sort in cmd.input + cmd.output + cmd.local
+            })
+
+            context.remove_system_vars(cmd.input, cmd.output, cmd.local)
         elif isinstance(cmd, MCILExit):
             return (status, context)
         else:
@@ -1557,18 +1619,22 @@ def to_qfbv(program: MCILProgram):
             if command.output_sort.identifier.symbol in SORT_MAP:
                 command.output_sort = SORT_MAP[command.output_sort.identifier.symbol]
         elif isinstance(command, MCILDefineFun):
-            for ivar in [i for i in command.inputs if i.sort.identifier.symbol in SORT_MAP]:
-                command.inputs[command.inputs.index(ivar)].sort = SORT_MAP[ivar.sort.identifier.symbol]
+            for var in [(symbol,sort) for symbol,sort in command.input if sort.identifier.symbol in SORT_MAP]:
+                symbol,sort = var
+                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
 
             if command.output_sort.identifier.symbol in SORT_MAP:
                 command.output_sort = SORT_MAP[command.output_sort.identifier.symbol]
         elif isinstance(command, MCILDefineSystem):
-            for var in [v for v in command.input if v.sort.identifier.symbol in SORT_MAP]:
-                command.input[command.input.index(var)].sort = SORT_MAP[var.sort.identifier.symbol]
-            for var in [v for v in command.output if v.sort.identifier.symbol in SORT_MAP]:
-                command.output[command.output.index(var)].sort = SORT_MAP[var.sort.identifier.symbol]
-            for var in [v for v in command.local if v.sort.identifier.symbol in SORT_MAP]:
-                command.local[command.local.index(var)].sort = SORT_MAP[var.sort.identifier.symbol]
+            for var in [(symbol,sort) for symbol,sort in command.input if sort.identifier.symbol in SORT_MAP]:
+                symbol,sort = var
+                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+            for var in [(symbol,sort) for symbol,sort in command.output if sort.identifier.symbol in SORT_MAP]:
+                symbol,sort = var
+                command.output[command.output.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+            for var in [(symbol,sort) for symbol,sort in command.local if sort.identifier.symbol in SORT_MAP]:
+                symbol,sort = var
+                command.local[command.local.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
 
         context = MCILContext()
         for expr1 in command.get_exprs():
