@@ -11,23 +11,23 @@ FILE_NAME = Path(__file__).name
 
 def main(input_path: Path, echo: bool) -> int:
     if not input_path.is_file():
-        eprint(f"[{FILE_NAME}] '{input_path}' is not a valid file.\n")
+        eprint(f"[{FILE_NAME}] '{input_path}' is not a valid file.")
         return 1
 
     with open(input_path, "r") as file:
         program = parse_mcil(file.read())
 
     if not program:
-        eprint(f"[{FILE_NAME}] failed parsing\n")
+        eprint(f"[{FILE_NAME}] failed parsing")
         return 1
 
     (well_sorted, _) = sort_check(program)
 
     if not well_sorted:
-        eprint(f"[{FILE_NAME}] failed sort check\n")
+        eprint(f"[{FILE_NAME}] failed sort check")
         return 1
 
-    print(f"'{input_path}' is well sorted\n")
+    print(f"'{input_path}' is well sorted")
 
     if echo:
         print(program)
