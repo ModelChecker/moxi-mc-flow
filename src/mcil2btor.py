@@ -5,6 +5,8 @@ import pickle
 import time
 from typing import cast
 
+from torch import sign
+
 from .util import eprint
 from .mcil import *
 from .json2mcil import from_json
@@ -205,9 +207,9 @@ def build_var_map_cmd(
         for (subsys_symbol, subsystem) in cmd.subsystems.items():
             signature: list[MCILVar] = []
             for symbol in cmd.subsystem_signatures[subsys_symbol][1]:
-                for var in cmd.input_vars + cmd.output_vars + cmd.local_vars:
-                    if var.symbol == symbol:
-                        signature.append(var)
+                sys_vars = cmd.input_vars + cmd.output_vars + cmd.local_vars
+                for var in [v for v in sys_vars if v.symbol == symbol]:
+                    signature.append(var)
 
             target_signature = subsystem.input_vars + subsystem.output_vars
 
@@ -232,11 +234,11 @@ def build_var_map_cmd(
             build_var_map_expr(current, context, rename_map, sort_map, var_map)
 
         target_system = context.defined_systems[cmd.sys_symbol]
-        signature_2 = cmd.input_vars + cmd.output_vars + cmd.local_vars
+        signature = cmd.input_vars + cmd.output_vars + cmd.local_vars
         target_signature = target_system.input_vars + target_system.output_vars + target_system.local_vars
 
         update_rename_map(context.system_context, target_system, target_system.symbol, 
-            signature_2, target_signature, rename_map)
+            signature, target_signature, rename_map)
 
         context.system_context.push((cmd.sys_symbol, target_system))
         build_var_map_cmd(target_system, context, rename_map, sort_map, var_map)        
@@ -264,11 +266,13 @@ def build_expr_map(
             #   var_map[var] = (init, cur, next)
             idx = int(not is_init_expr) + int(expr.prime)
             expr_map[expr] = cast(tuple[BtorVar,BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
+            print(f"{expr} --> {expr_map[expr]}")
         elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 2:
             # We use "int(expr.prime)" to compute the index in var_map tuple:
             #   var_map[var] = (cur, next)
             idx = int(expr.prime)
             expr_map[expr] = cast(tuple[BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
+            print(f"{expr} --> {expr_map[expr]}")
         elif isinstance(expr, MCILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
             value = context.declared_enum_sorts[expr.sort.identifier.symbol].index(expr.value)
             expr_map[expr] = BtorConst(sort_map[expr.sort], value)
