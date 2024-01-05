@@ -29,11 +29,6 @@ def from_json_sort(contents: dict) -> MCILSort:
     return MCILSort(identifier, params)
 
 
-def from_json_sorted_var(contents: dict) -> MCILVar:
-    sort = from_json_sort(contents["sort"])
-    return MCILVar(MCILVarType.NONE, sort, contents["symbol"], False)
-
-
 def from_json_expr(contents: dict, enums: dict[str, str]) ->  MCILExpr:
     args: list[MCILExpr] = []
     if "args" in contents:
@@ -70,10 +65,10 @@ def from_json_expr(contents: dict, enums: dict[str, str]) ->  MCILExpr:
 def from_json(contents: dict) -> Optional[MCILProgram]:
     dirname = os.path.dirname(__file__)
 
-    with open(f"{dirname}/../../json-schema/schema/il.json", "r") as f:
+    with open(f"{dirname}/../json-schema/schema/il.json", "r") as f:
         il_schema = json.load(f)
 
-    resolver = RefResolver(f"file://{dirname}/../../json-schema/schema/", {})
+    resolver = RefResolver(f"file://{dirname}/../json-schema/schema/", {})
 
     try:
         validate(contents, il_schema, resolver=resolver)
@@ -111,7 +106,7 @@ def from_json(contents: dict) -> Optional[MCILProgram]:
         elif cmd["command"] == "declare-fun":
             pass # TODO
         elif cmd["command"] == "define-fun":
-            inputs = [from_json_sorted_var(i) for i in cmd["inputs"]]
+            inputs = [(i["symbol"], from_json_sort(i["sort"])) for i in cmd["inputs"]]
             output = from_json_sort(cmd["output"])
             body = from_json_expr(cmd["body"], enums)
 
@@ -123,11 +118,11 @@ def from_json(contents: dict) -> Optional[MCILProgram]:
             subsys = {}
 
             if "input" in cmd:
-                input =  [from_json_sorted_var(i) for i in cmd["input"]]
+                input = [(i["symbol"], from_json_sort(i["sort"])) for i in cmd["input"]]
             if "output" in cmd:
-                output =  [from_json_sorted_var(i) for i in cmd["output"]]
+                output = [(i["symbol"], from_json_sort(i["sort"])) for i in cmd["output"]]
             if "local" in cmd:
-                local =  [from_json_sorted_var(i) for i in cmd["local"]]
+                local = [(i["symbol"], from_json_sort(i["sort"])) for i in cmd["local"]]
 
             if "init" in cmd:
                 init = from_json_expr(cmd["init"], enums)
@@ -149,11 +144,11 @@ def from_json(contents: dict) -> Optional[MCILProgram]:
             assumption, reachable, fairness, current, query, queries = {}, {}, {}, {}, {}, {}
 
             if "input" in cmd:
-                input =  [from_json_sorted_var(i) for i in cmd["input"]]
+                input = [(i["symbol"], from_json_sort(i["sort"])) for i in cmd["input"]]
             if "output" in cmd:
-                output =  [from_json_sorted_var(i) for i in cmd["output"]]
+                output = [(i["symbol"], from_json_sort(i["sort"])) for i in cmd["output"]]
             if "local" in cmd:
-                local =  [from_json_sorted_var(i) for i in cmd["local"]]
+                local = [(i["symbol"], from_json_sort(i["sort"])) for i in cmd["local"]]
 
             if "assumption" in cmd:
                 assumption = { entry["symbol"]: from_json_expr(entry["formula"], enums) for entry in cmd["assumption"] }

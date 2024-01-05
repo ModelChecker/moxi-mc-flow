@@ -2,8 +2,8 @@
 import sys
 
 from .sly import Lexer, Parser
+from .util import eprint
 from .mcil import *
-from .btor_witness import *
 
 class MCILLexer(Lexer):
 
@@ -12,8 +12,8 @@ class MCILLexer(Lexer):
                LPAREN, RPAREN,
                RW_UNDERSCORE, RW_LET, RW_AS,
                PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV, PK_SUBSYS,
-               PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY,
-               CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
+               PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY, PK_QUERIES,
+               CMD_SET_LOGIC, CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
                CMD_DECLARE_ENUM_SORT, CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, CMD_EXIT }
 
     # String containing ignored characters between tokens
@@ -58,14 +58,16 @@ class MCILLexer(Lexer):
     KEYWORD[":init"]   = PK_INIT
     KEYWORD[":trans"]  = PK_TRANS
     KEYWORD[":inv"]    = PK_INV
-    KEYWORD[":subsys"]    = PK_SUBSYS
+    KEYWORD[":subsys"]     = PK_SUBSYS
     KEYWORD[":assumption"] = PK_ASSUMPTION
     KEYWORD[":fairness"]   = PK_FAIRNESS
     KEYWORD[":reachable"]  = PK_REACHABLE
     KEYWORD[":current"]    = PK_CURRENT
     KEYWORD[":query"]      = PK_QUERY
+    KEYWORD[":queries"]    = PK_QUERIES
 
     # Command names
+    SYMBOL["set-logic"]  = CMD_SET_LOGIC
     SYMBOL["declare-sort"]  = CMD_DECLARE_SORT
     SYMBOL["define-sort"]   = CMD_DEFINE_SORT
     SYMBOL["declare-const"] = CMD_DECLARE_CONST
@@ -80,7 +82,7 @@ class MCILLexer(Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}\n")
+        eprint(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}\n")
         self.index += 1
 
 
@@ -94,7 +96,7 @@ class MCILParser(Parser):
 
     def error(self, token):
         self.status = False
-        sys.stderr.write(f"Error:{token.lineno}: Unexpected token ({token})\n")
+        eprint(f"Error:{token.lineno}: Unexpected token ({token})\n")
 
     @_("command_list command")
     def command_list(self, p):
@@ -106,13 +108,18 @@ class MCILParser(Parser):
     def command_list(self, p):
         return []
 
+    @_("LPAREN CMD_SET_LOGIC SYMBOL RPAREN")
+    def command(self, p):
+        return MCILSetLogic(p[2])
+
     @_("LPAREN CMD_DECLARE_SORT SYMBOL NUMERAL RPAREN")
     def command(self, p):
         return MCILDeclareSort(p[2], p[3])
     
-    @_("LPAREN CMD_DEFINE_SORT SYMBOL LPAREN symbol_list RPAREN sort RPAREN")
+    @_("LPAREN CMD_DEFINE_SORT labeled_symbol_list sort RPAREN")
     def command(self, p):
-        return MCILDefineSort(p[2], p[4], p[6])
+        label, symbol_list = p[2]
+        return MCILDefineSort(label, symbol_list, p[3])
     
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
@@ -122,14 +129,16 @@ class MCILParser(Parser):
     def command(self, p):
         return MCILDefineFun(p[2], p[4], p[6], p[7])
     
-    @_("LPAREN CMD_DECLARE_ENUM_SORT SYMBOL LPAREN symbol_list RPAREN RPAREN")
+    @_("LPAREN CMD_DECLARE_ENUM_SORT labeled_symbol_list RPAREN")
     def command(self, p):
-        values = []
-        for value in p[4]:
-            values.append(value)
-            self.enums[value] = p[2]
+        label, symbol_list = p[2]
 
-        return MCILDeclareEnumSort(p[2], values)
+        values = []
+        for value in symbol_list:
+            values.append(value)
+            self.enums[value] = label
+
+        return MCILDeclareEnumSort(label, values)
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
@@ -164,7 +173,7 @@ class MCILParser(Parser):
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
-        input, output, local = [], [], []
+        input, output, local, queries = [], [], [], []
         assume, fair, reach, current, query = {}, {}, {}, {}, {}
 
         if MCILAttribute.INPUT in p[3]:
@@ -190,8 +199,11 @@ class MCILParser(Parser):
             
         if MCILAttribute.QUERY in p[3]:
             query = p[3][MCILAttribute.QUERY]
+            
+        if MCILAttribute.QUERIES in p[3]:
+            queries = p[3][MCILAttribute.QUERIES]
 
-        return MCILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query)
+        return MCILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query, queries)
 
     @_("LPAREN CMD_EXIT RPAREN")
     def command(self, p):
@@ -204,7 +216,7 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            sys.stderr.write(f"Error:{p.lineno}: multiple instances of attribute ({attr.value}).")
+            eprint(f"Error:{p.lineno}: multiple instances of attribute ({attr.value}).")
             self.status = False
         elif attr.get_value_type() == dict:
             p[0][attr].update(value)
@@ -213,7 +225,7 @@ class MCILParser(Parser):
         elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.INV):
             p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("and", []), [p[0][attr], value])
         else:
-            sys.stderr.write(f"Error:{p.lineno}: parser error ({attr.value}).")
+            eprint(f"Error:{p.lineno}: parser error ({attr.value}).")
             self.status = False
 
         return p[0]
@@ -257,16 +269,18 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            sys.stderr.write(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
+            eprint(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
             self.status = False
         elif attr.get_value_type() == dict:
             # check for duplicate symbols
             if [v for v in value.keys() if v in p[0][attr]]:
-                sys.stderr.write(f"Error:{p.lineno}: repeat symbol for attribute '{attr.value}'.\n")
+                eprint(f"Error:{p.lineno}: repeat symbol for attribute '{attr.value}'.\n")
                 self.status = False
             p[0][attr].update(value)
+        elif attr.get_value_type() == list:
+            p[0][attr] += value
         else:
-            sys.stderr.write(f"Error:{p.lineno}: parser error ({attr.value}).\n")
+            eprint(f"Error:{p.lineno}: parser error ({attr.value}).\n")
             self.status = False
 
         return p[0]
@@ -303,10 +317,14 @@ class MCILParser(Parser):
     def check_system_attribute(self, p):
         return (MCILAttribute.CURRENT, {p[2]: p[3]})
 
-    @_("PK_QUERY LPAREN SYMBOL LPAREN symbol_list SYMBOL RPAREN RPAREN")
+    @_("PK_QUERY LPAREN labeled_symbol_list RPAREN")
     def check_system_attribute(self, p):
-        p[4].append(p[5])
-        return (MCILAttribute.QUERY, {p[2]: p[4]})
+        label,symbol_list = p[2]
+        return (MCILAttribute.QUERY, {label: symbol_list})
+
+    @_("PK_QUERIES LPAREN labeled_symbol_list_list RPAREN")
+    def check_system_attribute(self, p):
+        return (MCILAttribute.QUERIES, [p[2]])
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
@@ -319,7 +337,7 @@ class MCILParser(Parser):
     
     @_("SYMBOL sort")
     def sorted_var(self, p):
-        return MCILVar(MCILVarType.NONE, p[1], p[0], False)
+        return (p[0], p[1])
     
     @_("term_list term")
     def term_list(self, p):
@@ -339,6 +357,27 @@ class MCILParser(Parser):
     def symbol_list(self, p):
         return []
 
+    @_("labeled_symbol_list_list LPAREN labeled_symbol_list RPAREN")
+    def labeled_symbol_list_list(self, p):
+        label, symbol_list = p[2]
+        if label in p[0]:
+            eprint(f"Error:{p.lineno}: repeat label in queries attribute '{label}'.\n")
+            self.status = False
+        p[0][label] = symbol_list
+        return p[0]
+
+    @_("")
+    def labeled_symbol_list_list(self, p):
+        return {}
+
+    @_("SYMBOL LPAREN symbol_list RPAREN")
+    def labeled_symbol_list(self, p):
+        return (p[0], p[2])
+
+    @_("")
+    def labeled_symbol_list(self, p):
+        return []
+
     @_("bound_var_list LPAREN SYMBOL term RPAREN")
     def bound_var_list(self, p):
         p[0].append((p[2], p[3]))
@@ -351,7 +390,7 @@ class MCILParser(Parser):
     @_("identifier")
     def term(self, p):
         if len(p[0].indices) > 0:
-            sys.stderr.write(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
+            eprint(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
             self.status = False
 
         symbol: str = p[0].symbol
@@ -417,9 +456,9 @@ class MCILParser(Parser):
     def sort_list(self, p):
         return []
 
-    @_("RW_AS identifier sort")
+    @_("LPAREN RW_AS identifier sort RPAREN")
     def qualified_identifier(self, p):
-        return (p[1], p[2])
+        return (p[2], p[3])
 
     # Identifiers
     @_("SYMBOL")
@@ -456,153 +495,3 @@ def parse_mcil(input: str) -> Optional[MCILProgram]:
         return MCILProgram(cmds)
     return None
 
-
-class BtorWitnessLexer(Lexer):
-
-    tokens = { NEWLINE, NUMBER, SYMBOL, LBRACK, RBRACK, 
-               STATE_HEADER, INPUT_HEADER, BAD_PROP, JUSTICE_PROP, RW_DOT, RW_SAT }
-
-    # String containing ignored characters between tokens
-    ignore = r" "
-    ignore_comment = r";.*\n"
-
-    NEWLINE = r"\n"
-
-    # NUMBER = r"([01]+)|0|([1-9]\d*)" # token for both binary strings and uints
-    NUMBER = r"\d+"
-
-    STATE_HEADER = r"#(0|([1-9]\d*))"
-    INPUT_HEADER = r"@(0|([1-9]\d*))"
-
-    BAD_PROP = r"b(0|([1-9]\d*))"
-    JUSTICE_PROP = r"j(0|([1-9]\d*))"
-
-    LBRACK = r"\["
-    RBRACK = r"\]"
-
-    SYMBOL = r"[a-zA-Z~!@$%^&*_+=<>.?/-:#[\]][0-9a-zA-Z~!@$%^&*_+=<>.?/-:#[\]]*"
-
-    # Reserved keywords
-    SYMBOL["."] = RW_DOT
-    SYMBOL["sat"] = RW_SAT
-
-    # Extra action for newlines
-    def NEWLINE(self, t):
-        self.lineno += t.value.count("\n")
-        return t
-
-    def error(self, t):
-        sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}")
-        self.index += 1
-
-
-class BtorWitnessParser(Parser):
-    tokens = BtorWitnessLexer.tokens
-
-    def __init__(self):
-        super().__init__()
-        self.status = True
-        self.enums = {}
-
-    def error(self, token):
-        self.status = False
-        sys.stderr.write(f"Error: Unexpected token ({token})\n")
-
-    @_("header frame frame_list RW_DOT NEWLINE")
-    def witness(self, p):
-        bad_props = []
-        justice_props = []
-        for prop in p[0]:
-            is_bad_prop, prop_idx = prop
-            if is_bad_prop:
-                bad_props.append(prop_idx)
-            else:
-                justice_props.append(prop_idx)
-
-        frames = [p[1]] + p[2]
-
-        return BtorWitness(bad_props, justice_props, frames)
-
-    @_("RW_SAT NEWLINE prop_list NEWLINE")
-    def header(self, p):
-        return p[2]
-
-    @_("prop_list BAD_PROP")
-    def prop_list(self, p):
-        p[0].append((True, int(p[1][1:])))
-        return p[0]
-
-    @_("prop_list JUSTICE_PROP")
-    def prop_list(self, p):
-        p[0].append((False, int(p[1][1:])))
-        return p[0]
-
-    @_("")
-    def prop_list(self, p):
-        return []
-
-    @_("frame_list frame")
-    def frame_list(self, p):
-        p[0].append(p[1])
-        return p[0]
-
-    @_("")
-    def frame_list(self, p):
-        return []
-
-    @_("state_part input_part")
-    def frame(self, p):
-        idx, state_part = p[0]
-        _, input_part = p[1]
-        return BtorFrame(idx, state_part, input_part)
-
-    @_("input_part")
-    def frame(self, p):
-        idx, input_part = p[0]
-        return BtorFrame(idx, [], input_part)
-
-    @_("STATE_HEADER NEWLINE model")
-    def state_part(self, p):
-        return (int(p[0][1:]), p[2])
-
-    @_("INPUT_HEADER NEWLINE model")
-    def input_part(self, p):
-        return (int(p[0][1:]), p[2])
-
-    @_("model assignment NEWLINE")
-    def model(self, p):
-        p[0].append(p[1])
-        return p[0]
-
-    @_("")
-    def model(self, p):
-        return []
-
-    @_("NUMBER binary_string SYMBOL")
-    def assignment(self, p):
-        return BtorBitVecAssignment(int(p[0]), p[1], p[2])
-
-    @_("NUMBER binary_string")
-    def assignment(self, p):
-        return BtorBitVecAssignment(int(p[0]), p[1], None)
-
-    @_("NUMBER LBRACK binary_string RBRACK binary_string SYMBOL")
-    def assignment(self, p):
-        return BtorArrayAssignment(int(p[0]), (p[2], p[4]), p[5])
-
-    @_("NUMBER LBRACK binary_string RBRACK binary_string")
-    def assignment(self, p):
-        return BtorArrayAssignment(int(p[0]), (p[2], p[4]), None)
-
-    @_("NUMBER")
-    def binary_string(self, p):
-        return BitVec(len(p[0]), int(p[0], base=2))
-
-
-def parse_witness(input: str) -> Optional[BtorWitness]:
-    """Parse contents of input and returns corresponding program on success, else returns None."""
-    lexer: BtorWitnessLexer = BtorWitnessLexer()
-    parser: BtorWitnessParser = BtorWitnessParser()
-    witness = parser.parse(lexer.tokenize(input))
-
-    return witness if parser.status else None

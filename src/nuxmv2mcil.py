@@ -158,23 +158,23 @@ def translate_expr(
 ) -> None:
     """Updates `expr_map` to map all sub-expressions of `xmv_expr` to translated MCIL expressions."""
     for expr in postorder_nuxmv(xmv_expr, context):
-        print(f"TRANSLATING {expr} : {expr.type}", expr.__class__.__name__)
+        # print(f"TRANSLATING {expr} : {expr.type}", expr.__class__.__name__)
         if expr in expr_map:
-            print(f"{expr} in expr_map, {expr.type}, {expr_map[expr].sort}")
+            # print(f"{expr} in expr_map, {expr.type}, {expr_map[expr].sort}")
             continue
 
         match expr:
             case XMVIdentifier(ident=ident):
-                print(f"IDENTIFIER {ident}")
+                # print(f"IDENTIFIER {ident}")
 
                 if ident in context.defs and not in_let_expr:
-                    print(f"{ident}: def case not let")
+                    # print(f"{ident}: def case not let")
                     expr_map[expr] = build_define_expr(expr, context, module=module)
                 elif ident in context.defs:
-                    print(f"{ident}: def case")
+                    # print(f"{ident}: def case")
                     expr_map[expr] = DEFINE_LET_VAR(expr.ident)
                 elif ident in context.vars[module.name]:
-                    print(f"{ident}: var case")
+                    # print(f"{ident}: var case")
                     expr_map[expr] = MCILVar(
                         var_type=MCILVarType.INPUT,
                         sort=translate_type(context.vars[module.name][ident], context),
@@ -182,12 +182,12 @@ def translate_expr(
                         prime=False
                     )
                 elif ident in context.reverse_enums:
-                    print(f"{ident}: enum case")
+                    # print(f"{ident}: enum case")
                     expr_map[expr] = MCILConstant(sort=MCIL_ENUM_SORT(context.reverse_enums[ident][0]), value=ident)
                 elif expr in context.parameters[module.name]:
-                    print(f"{ident}: param case")
+                    # print(f"{ident}: param case")
                     ttype = translate_type(context.parameters[module.name][expr], context)
-                    print(f"assigning {expr} : {ttype}")
+                    # print(f"assigning {expr} : {ttype}")
                     expr_map[expr] = MCILVar(
                         var_type=MCILVarType.INPUT,
                         sort=ttype,
@@ -217,7 +217,7 @@ def translate_expr(
 
                         ident = fargs[0].ident
                         if ident in context.vars[module.name]:
-                            print(f"ident found in variable map")
+                            # print(f"ident found in variable map")
                             expr_map[expr] = MCILVar(
                                 var_type=MCILVarType.LOCAL,
                                 sort=translate_type(context.vars[module.name][ident], context),
@@ -422,18 +422,17 @@ def disjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
 
     return ret
 
-
-def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
-    result: list[MCILVar] = []
+def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, MCILSort]]:
+    result: list[tuple[str, MCILSort]] = []
 
     for param in xmv_module.parameters:
-        v = MCILVar(
-            var_type=MCILVarType.INPUT,
-            sort=translate_type(context.parameters[xmv_module.name][param], context),
-            symbol=param.ident, # type: ignore
-            prime=False
-        )
-        result.append(v)
+        # v = MCILVar(
+        #     var_type=MCILVarType.INPUT,
+        #     sort=,
+        #     symbol=param.ident, # type: ignore
+        #     prime=False
+        # )
+        result.append((param.ident, translate_type(context.parameters[xmv_module.name][param], context)))
 
     for module_element in xmv_module.elements:
         match module_element:
@@ -442,21 +441,14 @@ def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[MCILVar]:
                     if isinstance(xmv_var_type, XMVModuleType):
                         continue
 
-                    mcil_var = MCILVar(
-                        var_type=MCILVarType.INPUT,
-                        sort=translate_type(xmv_var_type, context),
-                        symbol=var_name.ident,
-                        prime=False
-                    )
-
-                    result.append(mcil_var)
+                    result.append((var_name.ident, translate_type(xmv_var_type, context)))
             case _:
                 pass
     
     return result
 
-def gather_local(xmv_module: XMVModule, context: XMVContext) -> tuple[list[MCILVar], XMVContext]:
-    result: list[MCILVar] = []
+def gather_local(xmv_module: XMVModule, context: XMVContext) -> tuple[list[tuple[str, MCILSort]], XMVContext]:
+    result: list[tuple[str, MCILSort]] = []
     for e in [e for e in xmv_module.elements if isinstance(e, XMVVarDeclaration)]:
         for (var_name, xmv_var_type) in e.var_list: 
             if isinstance(xmv_var_type, XMVModuleType):
@@ -470,7 +462,7 @@ def gather_local(xmv_module: XMVModule, context: XMVContext) -> tuple[list[MCILV
                             symbol=var_name.ident + "." + name.ident,
                             prime=False
                         )
-                    result.append(input_var)
+                    result.append((var_name.ident + "." + name.ident, translate_type(type, context)))
                     context.module_locals[var_name.ident].append(input_var)
 
                 # gathering submodule outputs
@@ -482,13 +474,13 @@ def gather_local(xmv_module: XMVModule, context: XMVContext) -> tuple[list[MCILV
                         symbol=var_name.ident + "." + var.symbol,
                         prime=False
                     )
-                    result.append(local_var)
+                    result.append((var_name.ident + "." + var.symbol, var.sort))
                     context.module_locals[var_name.ident].append(local_var)
 
     return (result, context)
 
-def gather_output(xmv_module: XMVModule, context: XMVContext) -> tuple[list[MCILVar], XMVContext]:
-    result: list[MCILVar] = []
+def gather_output(xmv_module: XMVModule, context: XMVContext) -> tuple[list[str, MCILSort], XMVContext]:
+    result: list[tuple[str, MCILSort]] = []
     for module_element in xmv_module.elements:
         match module_element:
             case XMVVarDeclaration(modifier="VAR") | XMVVarDeclaration(modifier="FROZENVAR"):
@@ -505,14 +497,7 @@ def gather_output(xmv_module: XMVModule, context: XMVContext) -> tuple[list[MCIL
                         case _:
                             il_type = translate_type(xmv_var_type, context)
 
-                    mcil_var = MCILVar(
-                        var_type=MCILVarType.OUTPUT,
-                        sort=il_type,
-                        symbol=var_name.ident,
-                        prime=False
-                    )
-
-                    result.append(mcil_var)
+                    result.append((var_name.ident, il_type))
             case _:
                pass
     
@@ -603,13 +588,13 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
     inv_list: list[MCILExpr] = []
     
     # things marked explicitly as INVAR
-    print("inv - looking for INVAR")
+    # print("inv - looking for INVAR")
     for inv_decl in [e for e in xmv_module.elements if isinstance(e, XMVInvarDeclaration)]:
         translate_expr(inv_decl.formula, context, expr_map, in_let_expr=False, module=xmv_module)
         inv_list.append(expr_map[inv_decl.formula])
 
     # standard ASSIGN declarations (without init/next modifiers)
-    print("inv - looking through ASSIGN")
+    # print("inv - looking through ASSIGN")
     for module_element in xmv_module.elements:
         match module_element:
             case XMVAssignDeclaration(assign_list=al):
@@ -637,7 +622,7 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
 
 
     # FROZENVAR declarations
-    print("inv - looking through FROZENVAR")
+    # print("inv - looking through FROZENVAR")
     for module_element in xmv_module.elements:
         match module_element:
             case XMVVarDeclaration(modifier="FROZENVAR", var_list=var_list):
@@ -661,13 +646,13 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
                pass
 
     # module variable instantiations
-    print("inv - looking through module instantiations")
+    # print("inv - looking through module instantiations")
     for var_list in [vd.var_list for vd in xmv_module.elements if isinstance(vd, XMVVarDeclaration)]:
         for (var_name, var_type) in var_list:
             match var_type:
                 case XMVModuleType(module_name=module_name, parameters=parameters):
                     for i, param in enumerate(parameters):
-                        print(f"found parameter {param}")
+                        # print(f"found parameter {param}")
                         match param:
                             case XMVModuleAccess(module=module, element=elem):
                                 if isinstance(module, XMVModuleAccess):
@@ -694,7 +679,7 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
                 case _:
                     pass
 
-    print("inv - done")
+    # print("inv - done")
     return conjoin_list(inv_list) if len(inv_list) > 0 else MCIL_BOOL_EXPR(True)
 
 def gather_subsystems(xmv_module: XMVModule, xmv_context: XMVContext) -> dict[str, tuple[str, list[str]]]:
@@ -782,8 +767,6 @@ def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCom
     print(f"[{FILE_NAME}] {module_name}: translating transition relation")
     trans = gather_trans(xmv_module, xmv_context, emap)
 
-    print("VARS", xmv_context.vars)
-    print("PARAMETERS", xmv_context.parameters)
     print(f"[{FILE_NAME}] {module_name}: translating invariant constraints")
     inv = gather_inv(xmv_module, xmv_context, emap)
 
@@ -815,12 +798,13 @@ def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCom
                 reachable=reachable,
                 current={},
                 query={f"qry_{r}":[r] for r in reachable.keys()},
+                queries=[]
             )]
 
     # commands
     consts: list[MCILCommand] = gather_consts(xmv_module)
 
-    return enums + consts + [define_system] + check_system
+    return [MCILSetLogic("QF_ABV")] + enums + consts + [define_system] + check_system
 
 
 def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:

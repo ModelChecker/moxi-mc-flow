@@ -607,25 +607,24 @@ def type_check_modules(spec: XMVSpecification) -> XMVContext:
     context = XMVContext()
     local_context: dict[XMVIdentifier, XMVType] = {}
     for i, module in enumerate(spec.modules): # module whose parameters we're typechecking
-        print(f"typechecking module {module.name}'s parameters")
         context.vars[module.name] = {}
         context.parameters[module.name] = {}
         context.modules[module.name] = module
         params: list[XMVExpr] = module.parameters
         for j, param in enumerate(params): # parameter we're typechecking
-            print(f"typechecking module {module.name}'s {j}'th parameter {param}")
+            # print(f"typechecking module {module.name}'s {j}'th parameter {param}")
             for other_module in spec.modules[i:]: # looking for instantiations in other modules
-                print(f"looking for instantiations of {param} in {other_module.name}")
+                # print(f"looking for instantiations of {param} in {other_module.name}")
                 for module_element in other_module.elements: # looking for VAR section
                     match module_element:
                         case XMVVarDeclaration(var_list=vl): # found VAR section
-                            print(f"found var section in module {other_module.name}")
+                            # print(f"found var section in module {other_module.name}")
                             for v in vl: # looking through declarations in VAR section for module instantiation
                                 match v[1]:
                                     case XMVModuleType(): # found module instantiation
-                                        print(f"found module instantiation {v}")
+                                        # print(f"found module instantiation {v}")
                                         if v[1].module_name == module.name: # found our module instantiation
-                                            print(f"found our module instantiation {v}")
+                                            # print(f"found our module instantiation {v}")
                                             if param in context.parameters[module.name]:
                                                 continue
                                             else:
@@ -933,7 +932,6 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                         # TODO: check that branches all have same type
                         expr.type = branch.type
                 case XMVIdentifier(ident=ident):
-                    print(f"TYPECHECKING {ident}")
                     if ident in context.vars[module.name]:
                         expr.type = context.vars[module.name][ident]
                     elif ident in context.defs:
@@ -950,7 +948,6 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                         if not flag:        
                             raise ValueError(f"Variable {expr} not declared")
 
-                    print(f"TYPECHECKED {ident} as {expr.type}")
                 case XMVModuleAccess(module=ma_module, element=elem):
                     if isinstance(ma_module, XMVModuleAccess):
                         id_w_elem: str = ma_module.element.ident

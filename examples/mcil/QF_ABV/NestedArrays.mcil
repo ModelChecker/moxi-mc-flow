@@ -1,3 +1,5 @@
+(set-logic QF_ABV)
+
 (define-system ArrayExample
     :input ( (A (Array (Array (_ BitVec 8) (_ BitVec 8)) (_ BitVec 8))) 
              (S (Array (_ BitVec 8) (_ BitVec 8))) )

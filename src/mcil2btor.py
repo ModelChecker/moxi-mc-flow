@@ -103,7 +103,7 @@ def update_rename_map(
     signature: list[MCILVar],
     target_signature: list[MCILVar],
     rename_map: RenameMap
-):
+) -> None:
     target_context = system_context.copy() # need to copy (only copies pointers)
     target_context.push((target_system_symbol, target_system))
     for cmd_var,target_var in zip(signature, target_signature):
@@ -203,16 +203,16 @@ def build_var_map_cmd(
     """Update var_map to map all MCILVar instances to BtorVars"""
     if isinstance(cmd, MCILDefineSystem):
         for (subsys_symbol, subsystem) in cmd.subsystems.items():
-            signature_1: list[MCILVar] = []
+            signature: list[MCILVar] = []
             for symbol in cmd.subsystem_signatures[subsys_symbol][1]:
-                for var in cmd.input + cmd.output + cmd.local:
-                    if var.symbol == symbol:
-                        signature_1.append(var)
+                sys_vars = cmd.input_vars + cmd.output_vars + cmd.local_vars
+                for var in [v for v in sys_vars if v.symbol == symbol]:
+                    signature.append(var)
 
-            target_signature = subsystem.input + subsystem.output
+            target_signature = subsystem.input_vars + subsystem.output_vars
 
             update_rename_map(context.system_context, subsystem, subsys_symbol, 
-                signature_1, target_signature, rename_map)
+                signature, target_signature, rename_map)
             
             context.system_context.push((subsys_symbol, subsystem))
             build_var_map_cmd(subsystem, context, rename_map, sort_map, var_map)
@@ -232,11 +232,11 @@ def build_var_map_cmd(
             build_var_map_expr(current, context, rename_map, sort_map, var_map)
 
         target_system = context.defined_systems[cmd.sys_symbol]
-        signature_2 = cmd.input + cmd.output + cmd.local
-        target_signature = target_system.input + target_system.output + target_system.local
+        signature = cmd.input_vars + cmd.output_vars + cmd.local_vars
+        target_signature = target_system.input_vars + target_system.output_vars + target_system.local_vars
 
         update_rename_map(context.system_context, target_system, target_system.symbol, 
-            signature_2, target_signature, rename_map)
+            signature, target_signature, rename_map)
 
         context.system_context.push((cmd.sys_symbol, target_system))
         build_var_map_cmd(target_system, context, rename_map, sort_map, var_map)        
@@ -254,8 +254,8 @@ def build_expr_map(
     expr_map: ExprMap
 ) -> None:
     for expr in postorder_mcil(node, context):
-        if expr in expr_map:
-            continue
+        # if expr in expr_map:
+        #     pass
 
         if isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
             expr_map[expr] = expr_map[context.bound_let_vars[expr.symbol]]
@@ -298,8 +298,6 @@ def build_expr_map(
                 (idx1, idx2),
                 btor2_args
             )
-        # elif isinstance(expr, MCILApply) and expr.identifier.symbol == "const":
-        #     expr_map[expr] = expr_map[expr.children[0]]
         elif isinstance(expr, MCILLetExpr):
             expr_map[expr] = expr_map[expr.get_expr()]
         else:
