@@ -599,6 +599,7 @@ def translate_module(xmv_module: XMVModule) -> list[MCILCommand]:
                 reachable=reachable,
                 current={},
                 query={f"qry_{r}":[r] for r in reachable.keys()},
+                queries=[]
             )]
 
     # commands
