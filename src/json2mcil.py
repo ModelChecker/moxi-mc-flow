@@ -140,8 +140,8 @@ def from_json(contents: dict) -> Optional[MCILProgram]:
             program.append(new)
         elif cmd["command"] == "check-system":
             # TODO: queries
-            input, output, local = [], [], []
-            assumption, reachable, fairness, current, query, queries = {}, {}, {}, {}, {}, {}
+            input, output, local, queries = [], [], [], []
+            assumption, reachable, fairness, current, query = {}, {}, {}, {}, {}
 
             if "input" in cmd:
                 input = [(i["symbol"], from_json_sort(i["sort"])) for i in cmd["input"]]
@@ -161,8 +161,11 @@ def from_json(contents: dict) -> Optional[MCILProgram]:
 
             if "query" in cmd:
                 query = { entry["symbol"]: entry["formulas"] for entry in cmd["query"] }
+
+            if "queries" in cmd:
+                queries = [{ q["symbol"]: q["formulas"] for q in entry } for entry in cmd["queries"]]
                 
-            new  = MCILCheckSystem(cmd["symbol"],  input, output, local, assumption, fairness, reachable, current, query)
+            new  = MCILCheckSystem(cmd["symbol"],  input, output, local, assumption, fairness, reachable, current, query, queries)
             program.append(new)
 
     return MCILProgram(program)
