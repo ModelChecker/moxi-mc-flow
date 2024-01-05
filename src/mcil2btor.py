@@ -5,8 +5,6 @@ import pickle
 import time
 from typing import cast
 
-from torch import sign
-
 from .util import eprint
 from .mcil import *
 from .json2mcil import from_json
@@ -256,8 +254,8 @@ def build_expr_map(
     expr_map: ExprMap
 ) -> None:
     for expr in postorder_mcil(node, context):
-        if expr in expr_map:
-            continue
+        # if expr in expr_map:
+        #     pass
 
         if isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
             expr_map[expr] = expr_map[context.bound_let_vars[expr.symbol]]
@@ -266,13 +264,11 @@ def build_expr_map(
             #   var_map[var] = (init, cur, next)
             idx = int(not is_init_expr) + int(expr.prime)
             expr_map[expr] = cast(tuple[BtorVar,BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
-            print(f"{expr} --> {expr_map[expr]}")
         elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 2:
             # We use "int(expr.prime)" to compute the index in var_map tuple:
             #   var_map[var] = (cur, next)
             idx = int(expr.prime)
             expr_map[expr] = cast(tuple[BtorVar,BtorVar], var_map[(expr, context.system_context)])[idx]
-            print(f"{expr} --> {expr_map[expr]}")
         elif isinstance(expr, MCILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
             value = context.declared_enum_sorts[expr.sort.identifier.symbol].index(expr.value)
             expr_map[expr] = BtorConst(sort_map[expr.sort], value)

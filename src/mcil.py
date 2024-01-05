@@ -1153,8 +1153,8 @@ class MCILSystemContext():
         top_level = self.get_top_level()
         if not top_level:
             return []
-        top_level_symbol, top_level_system = top_level # type: ignore
-        return [top_level_symbol] + [name for name, sys in self.get_subsystems()] # type: ignore
+        top_level_symbol,_ = top_level
+        return [top_level_symbol] + [name for name,_ in self.get_subsystems()]
 
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, MCILSystemContext):
