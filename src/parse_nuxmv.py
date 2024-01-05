@@ -89,11 +89,10 @@ class NuXmvLexer(Lexer):
     LSHIFT = r"\>\>"
     RSHIFT = r"\<\<"
 
-
-    LESSTHAN = r"\<"
-    GREATERTHAN = r"\>"
     LESSEQUAL = r"\<\="
     GREATEREQUAL= r"\>\="
+    LESSTHAN = r"\<"
+    GREATERTHAN = r"\>"
 
     LPAREN = r"\("
     RPAREN = r"\)"
@@ -204,8 +203,8 @@ class NuXmvParser(Parser):
             return p[0] + [p[1]] # recursive case: n+1 modules
 
     @_(
-        "parameter_list COMMA IDENT", 
-        "IDENT"
+        "parameter_list COMMA expr", 
+        "expr"
     )
     def parameter_list(self, p):
         if len(p) == 1: # base case: `(param)`
@@ -336,9 +335,9 @@ class NuXmvParser(Parser):
             "expr EQUAL expr",
             "expr NOTEQUAL expr",
             "expr LESSTHAN expr",
+            "expr GREATEREQUAL expr",
             "expr GREATERTHAN expr",
             "expr LESSEQUAL expr",
-            "expr GREATEREQUAL expr",
             "expr PLUS expr",
             "expr MINUS expr",
             "expr STAR expr",

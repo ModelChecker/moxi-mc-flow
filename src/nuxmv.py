@@ -2,6 +2,14 @@
 from collections import deque
 import re
 
+from .mcil import MCILVar
+
+
+# forward declaration of XMVExpr
+
+class XMVExpr():
+    pass
+
 # type specifiers -------------------------
 
 class XMVType():
@@ -107,7 +115,7 @@ class XMVWordArray(XMVType):
         return f"array word[{self.word_length}] of {self.type}"    
 
 class XMVModuleType(XMVType):
-    def __init__(self, module_name: str, parameters: list[str]):
+    def __init__(self, module_name: str, parameters: list[XMVExpr]):
         self.module_name = module_name
         self.parameters = parameters
 
@@ -356,8 +364,8 @@ class XMVSymbolicConstant(XMVConstant):
         if isinstance(symbol, XMVIdentifier):
             self.type = XMVEnumeration({symbol.ident})
         elif isinstance(symbol, XMVModuleAccess):
+            raise ValueError("HERE")
             self.type = XMVNoType() # TODO: Module typechecking
-        # elif isinstance(symbol, XMVArrayAccess): # TODO: Handle array accesses
 
     def __repr__(self) -> str:
         return f"{self.symbol}"
@@ -526,7 +534,7 @@ class XMVLTLSpecDeclaration(XMVModuleElement):
 class XMVModule():
     def __init__(
             self, name: str,
-            parameters: list[str],
+            parameters: list[XMVExpr],
             elements: list[XMVModuleElement]
     ):
         self.name = name
@@ -550,7 +558,8 @@ class XMVSpecification():
 class XMVContext():
 
     def __init__(self) -> None:
-        self.vars: dict[str, XMVType] = {}
+        # maps module name to all the variables it has, and then from those variables to their XMVTypes
+        self.vars: dict[str, dict[str, XMVType]] = {}
         self.frozen_vars: set[str] = set()
         self.defs: dict[str, XMVExpr] = {}
         self.init: list[XMVExpr] = []
@@ -561,7 +570,86 @@ class XMVContext():
         # enum1: {s1, s2, s3}; enum2: {t1, t2} --> [[s1, s2, s3], [t1, t2]] (assume they're unique) 
         self.enums: list[list[str|int]] = [] 
         # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
-        self.reverse_enums: dict[str, str] = {}
+        self.reverse_enums: dict[str, list[str]] = {}
+        # maps {module_name |-> list of parameters (p1, t1), ...}, where pi is the variable and ti is its XMVType
+        self.parameters: dict[str, dict[XMVExpr, XMVType]] = {}
+        # maps {module_name |-> list of IL output variables} for use in submodule/local variable construction
+        self.outputs: dict[str, list[MCILVar]] = {}
+        # maps {module_name |-> list of IL local variables} for use in submodule construction
+        self.module_locals: dict[str, list[MCILVar]] = {}
+
+        self.modules: dict[str, XMVModule] = {}
+
+def type_check_parameter(parameter: XMVExpr) -> XMVType:
+    if isinstance(parameter, XMVConstant):
+        match parameter:
+            case XMVBooleanConstant():
+                return XMVBoolean()
+            case XMVIntegerConstant():
+                return XMVInteger()
+            case XMVWordConstant(signed=s, width=w):
+                return XMVWord(signed=s, width=w)
+            case XMVSymbolicConstant():
+                raise ValueError("can't instantiate modules with enumeration type!")
+            case XMVRangeConstant():
+                raise ValueError("can't instantiate modules with range type!")
+            case _:
+                raise ValueError("invalid parameter!")
+    elif isinstance(parameter, XMVBinOp):
+        if parameter.op in ["&", "|", "xor", "xnor", "=", "!=", "<", ">", "<=", ">="]:
+            return XMVBoolean()
+        else:
+            return XMVInteger()
+    else:
+        raise ValueError(f"non-constant module instantiation, {parameter}, {parameter.__class__.__name__}")
+
+def type_check_modules(spec: XMVSpecification) -> XMVContext:
+    context = XMVContext()
+    local_context: dict[XMVIdentifier, XMVType] = {}
+    for i, module in enumerate(spec.modules): # module whose parameters we're typechecking
+        print(f"typechecking module {module.name}'s parameters")
+        context.vars[module.name] = {}
+        context.parameters[module.name] = {}
+        context.modules[module.name] = module
+        params: list[XMVExpr] = module.parameters
+        for j, param in enumerate(params): # parameter we're typechecking
+            print(f"typechecking module {module.name}'s {j}'th parameter {param}")
+            for other_module in spec.modules[i:]: # looking for instantiations in other modules
+                print(f"looking for instantiations of {param} in {other_module.name}")
+                for module_element in other_module.elements: # looking for VAR section
+                    match module_element:
+                        case XMVVarDeclaration(var_list=vl): # found VAR section
+                            print(f"found var section in module {other_module.name}")
+                            for v in vl: # looking through declarations in VAR section for module instantiation
+                                match v[1]:
+                                    case XMVModuleType(): # found module instantiation
+                                        print(f"found module instantiation {v}")
+                                        if v[1].module_name == module.name: # found our module instantiation
+                                            print(f"found our module instantiation {v}")
+                                            if param in context.parameters[module.name]:
+                                                continue
+                                            else:
+                                                if isinstance(v[1].parameters[j], XMVConstant):
+                                                    typ = type_check_parameter(v[1].parameters[j])
+                                                    context.parameters[module.name][param] = typ
+                                                elif isinstance(v[1].parameters[j], XMVIdentifier):
+                                                    context.parameters[module.name][param] = local_context[v[1].parameters[j]]
+                                                elif isinstance(v[1].parameters[j], XMVExpr):
+                                                    typ = type_check_parameter(v[1].parameters[j])
+                                                    context.parameters[module.name][param] = typ
+                                                else:
+                                                    context.parameters[module.name][param] = local_context[v[1].parameters[j]]
+                                        else:
+                                            pass
+                                    case _:
+                                        local_context[v[0]] = v[1]
+                        case _:
+                            pass
+            
+
+    return context
+
+
 
 def type_check_enums(xmv_module: XMVModule, xmv_context: XMVContext) -> tuple[bool, XMVContext]:
     for m in xmv_module.elements:
@@ -629,6 +717,7 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
 
 
 def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext]:
+    context.vars[module.name] = {}
 
     # def propagate_next(expr: XMVExpr):
     #     # complex next expressions must propagate the next, for example:
@@ -844,10 +933,13 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
                         # TODO: check that branches all have same type
                         expr.type = branch.type
                 case XMVIdentifier(ident=ident):
-                    if ident in context.vars:
-                        expr.type = context.vars[ident]
+                    print(f"TYPECHECKING {ident}")
+                    if ident in context.vars[module.name]:
+                        expr.type = context.vars[module.name][ident]
                     elif ident in context.defs:
                         expr.type = context.defs[ident].type
+                    elif expr in context.parameters[module.name]:
+                        expr.type = context.parameters[module.name][expr]
                     else:
                         flag = False
                         for sums in context.enums:
@@ -857,10 +949,36 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
 
                         if not flag:        
                             raise ValueError(f"Variable {expr} not declared")
-                case XMVModuleAccess():
-                    raise NotImplementedError(f"Unsupported operator {type(expr)}")
+
+                    print(f"TYPECHECKED {ident} as {expr.type}")
+                case XMVModuleAccess(module=ma_module, element=elem):
+                    if isinstance(ma_module, XMVModuleAccess):
+                        id_w_elem: str = ma_module.element.ident
+                    elif isinstance(ma_module, XMVIdentifier):
+                        id_w_elem: str = ma_module.ident
+                    else:
+                        raise ValueError(f"weird module access: {expr}")
+
+                    var_lists = [vd.var_list for vd in module.elements if isinstance(vd, XMVVarDeclaration)]
+                    
+                    module_w_elem: str = ""
+                    for var_list in var_lists:
+                        for (var_name, var_type) in var_list:
+                            match var_type:
+                                case XMVModuleType(module_name=found_name):
+                                    if var_name.ident == id_w_elem:
+                                        module_w_elem = found_name
+                                case _:
+                                    pass
+                    if (module_w_elem == ""):
+                        raise ValueError(f"module {id_w_elem} not instantiated in current context")
+                    expr.type = context.vars[module_w_elem][elem]
+                    # raise NotImplementedError(f"Unsupported operator {type(expr)}")
                 case _:
                     raise NotImplementedError(f"Unsupported operator {type(expr)}")
+
+            if (expr.type == XMVNoType()):
+                raise ValueError(f"NOTYPE: {expr}")
 
         for subexpr in postorder_nuxmv(expr, context):
             _type_check_expr(subexpr)
@@ -871,7 +989,7 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
         match element:
             case XMVVarDeclaration(var_list=var_list, modifier=modifier):
                 for (xmv_id, xmv_type) in var_list:
-                    context.vars[xmv_id.ident] = xmv_type
+                    context.vars[module.name][xmv_id.ident] = xmv_type
                     if modifier == "FROZENVAR":
                         context.frozen_vars.add(xmv_id.ident)
             case _:

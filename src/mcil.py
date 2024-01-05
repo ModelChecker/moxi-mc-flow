@@ -638,11 +638,11 @@ class MCILCheckSystem(MCILCommand):
         s += f"\n   :input ({input_str}) "
         s += f"\n   :output ({output_str}) "
         s += f"\n   :local ({local_str}) "
-        s += f"\n   {assumption_str} "
-        s += f"\n   {fairness_str} "
-        s += f"\n   {reachable_str} "
-        s += f"\n   {current_str} "
-        s += f"\n   :query {query_str} "
+        s += f"\n   {assumption_str} " if assumption_str != "" else ""
+        s += f"\n   {fairness_str} " if fairness_str != "" else ""
+        s += f"\n   {reachable_str} " if reachable_str != "" else ""
+        s += f"\n   {current_str} " if current_str != "" else ""
+        s += f"\n   :query {query_str} " if query_str != "" else ""
 
         return s + ")"
 
