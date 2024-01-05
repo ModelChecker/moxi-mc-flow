@@ -1207,12 +1207,12 @@ class MCILSystemContext():
 class MCILContext():
 
     def __init__(self):
-        self.logic = NO_LOGIC
 
         self.declared_sorts: dict[MCILIdentifier, int] = {}
         self.declared_enum_sorts: dict[str, list[str]] = {}
         self.defined_sorts: set[MCILSort] = set()
         self.sorts: dict[str, MCILSort] = {}
+        self.sort_symbols: set[str] = set()
 
         self.declared_functions: dict[str, Rank] = {}
         self.defined_functions: dict[str, tuple[Rank, MCILExpr]] = {}
@@ -1232,6 +1232,21 @@ class MCILContext():
 
         self.symbols: set[str] = set()
 
+        self.set_logic(NO_LOGIC)
+
+    def set_logic(self, logic: MCILLogic) -> None:
+        # remove symbols from previous logic
+        for symbol,_ in logic.function_symbols | logic.sort_symbols:
+            self.sort_symbols.discard(symbol)
+            self.symbols.discard(symbol)
+
+        # TODO: Check for conflicts between symbols and logic symbols
+
+        self.logic = logic
+        self.symbols.update([symbol for symbol,_ in logic.sort_symbols])
+        self.sort_symbols.update([symbol for symbol,_ in logic.sort_symbols])
+        self.symbols.update([symbol for symbol,_ in logic.function_symbols])
+
     def add_declared_sort(self, ident: MCILIdentifier, arity: int) -> None:
         self.declared_sorts[ident] = arity
         self.symbols.add(ident.symbol)
@@ -1240,11 +1255,13 @@ class MCILContext():
     def add_declared_enum_sort(self, symbol: str, vals: list[str]) -> None:
         self.declared_enum_sorts[symbol] = vals
         self.defined_sorts.add(MCIL_ENUM_SORT(symbol))
+        self.sort_symbols.add(symbol)
         self.symbols.add(symbol)
         [self.symbols.add(v) for v in vals]
 
     def add_defined_sort(self, sort: MCILSort) -> None:
         self.defined_sorts.add(sort)
+        self.sort_symbols.add(sort.identifier.symbol)
         self.symbols.add(sort.identifier.symbol)
 
     def add_declared_function(self, symbol: str, rank: Rank) -> None:
@@ -1294,9 +1311,6 @@ class MCILContext():
         output: list[tuple[str, MCILSort]],
         local: list[tuple[str, MCILSort]]
     ) -> None:
-        # [self.input_vars.discard(symbol) for symbol,_ in input]
-        # [self.output_vars.discard(symbol) for symbol,_ in output]
-        # [self.local_vars.discard(symbol) for symbol,_ in local]
         for symbol,_ in (input + output + local):
             self.input_vars.discard(symbol)
             self.output_vars.discard(symbol)
@@ -1338,14 +1352,14 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
         for expr in postorder_mcil(node, context):
             if isinstance(expr, MCILConstant):
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.input_vars:
                 expr.var_type = MCILVarType.INPUT
                 expr.sort = context.var_sorts[expr.symbol]
 
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
@@ -1356,7 +1370,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 expr.var_type = MCILVarType.OUTPUT
                 expr.sort = context.var_sorts[expr.symbol]
                 
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
@@ -1367,7 +1381,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 expr.var_type = MCILVarType.LOCAL
                 expr.sort = context.var_sorts[expr.symbol]
 
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
@@ -1379,7 +1393,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             elif isinstance(expr, MCILVar) and expr in context.var_sorts:
                 expr.sort = context.var_sorts[expr]
 
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.defined_functions:
@@ -1434,7 +1448,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 eprint(f"[{__name__}] Error: logic {cmd.logic} unsupported.")
                 status = False
             else:
-                context.logic = LOGIC_TABLE[cmd.logic]
+                context.set_logic(LOGIC_TABLE[cmd.logic])
         elif isinstance(cmd, MCILDeclareSort):
             # TODO: move this warning to mcil2btor.py
             eprint(f"[{__name__}] Warning: declare-sort command unsupported, ignoring.")
