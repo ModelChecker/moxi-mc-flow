@@ -744,11 +744,11 @@ CORE_RANK_TABLE: RankTable = {
     ("false", 0):    lambda _: ([], MCIL_BOOL_SORT),
     ("not", 0):      lambda _: ([MCIL_BOOL_SORT], MCIL_BOOL_SORT),
     ("=>", 0):       lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("and", 0):      lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("or", 0):       lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("xor", 0):      lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("=", 0):        lambda A: ([A,A], MCIL_BOOL_SORT),
-    ("distinct", 0): lambda A: ([A,A], MCIL_BOOL_SORT),
+    ("and", 0):      lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("or", 0):       lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("xor", 0):      lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("=", 0):        lambda A: ([A[0] for _ in range(0,A[1])], MCIL_BOOL_SORT),
+    ("distinct", 0): lambda A: ([A[0] for _ in range(0,A[1])], MCIL_BOOL_SORT),
     ("ite", 0):      lambda A: ([MCIL_BOOL_SORT, A, A], A),
     ("const", 0):    lambda A: ([MCIL_ANY_SORT], A),
 }
@@ -798,7 +798,7 @@ ARRAY_RANK_TABLE: RankTable = {
 }
 
 INT_RANK_TABLE: RankTable = {
-    ("-", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
+    ("-", 0):         lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_INT_SORT),
     ("+", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
     ("*", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
     ("/", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
@@ -831,13 +831,13 @@ def sort_check_apply_core(node: MCILApply) -> bool:
     if identifier_class not in CORE_RANK_TABLE:
         return False
     elif identifier.check("=", 0) or identifier.check("distinct", 0):
-        # (par (A) (= A A Bool))
-        # (par (A) (distinct A A Bool))
+        # (par (A) (= A ... A Bool))
+        # (par (A) (distinct A ... A Bool))
         if len(node.children) < 1:
             return False
 
         param = node.children[0].sort
-        rank = CORE_RANK_TABLE[(identifier.symbol, 0)](param)
+        rank = CORE_RANK_TABLE[(identifier.symbol, 0)]((param, len(node.children)))
 
         return sort_check_apply_rank(node, rank)
     elif identifier.check("ite", 0):
@@ -849,6 +849,18 @@ def sort_check_apply_core(node: MCILApply) -> bool:
         rank = CORE_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
+    elif identifier.check("and", 0) or identifier.check("or", 0) or identifier.check("xor", 0):
+        # (and Bool ... Bool Bool)
+        # (or Bool ... Bool Bool)
+        # (xor Bool ... Bool Bool)
+        if len(node.children) < 2:
+            return False
+
+        param = len(node.children)
+        rank = CORE_RANK_TABLE[identifier_class](param)
+
+        return sort_check_apply_rank(node, rank)
+
     elif identifier.check("const", 0):
         if len(node.children) < 1:
             return False
@@ -991,12 +1003,13 @@ def sort_check_apply_int(node: MCILApply) -> bool:
     if identifier_class not in INT_RANK_TABLE:
         return False
     elif identifier.check("-", 0) and len(node.children) == 1:
-        # special case: negation and subtraction share a symbol
-        # we handle the negation case here
-        rank = INT_RANK_TABLE[identifier_class](None)
+        # (- Int Int Int)
+        # (- Int Int)
+        if len(node.children) < 1 or len(node.children) > 2:
+            return False
 
-        # change from [Int, Int] to [Int]
-        rank[0].pop() 
+        param = len(node.children)
+        rank = INT_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
 
