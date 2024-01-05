@@ -27,10 +27,10 @@ def main(input_path: Path, echo: bool) -> int:
         eprint(f"[{FILE_NAME}] failed sort check")
         return 1
 
-    print(f"'{input_path}' is well sorted")
-
     if echo:
         print(program)
+    else:
+        print(f"'{input_path}' is well sorted")
 
     return 0
 
