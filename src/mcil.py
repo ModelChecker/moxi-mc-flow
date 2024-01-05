@@ -1240,6 +1240,8 @@ class MCILContext():
         self.declared_functions: dict[str, Rank] = {}
         self.defined_functions: dict[str, tuple[Rank, MCILExpr]] = {}
 
+        self.declared_consts: dict[str, MCILSort] = {}
+
         self.defined_systems: dict[str, MCILDefineSystem] = {}
         self.system_context = MCILSystemContext() # used during system flattening
 
@@ -1293,6 +1295,10 @@ class MCILContext():
 
     def add_defined_function(self, symbol: str, signature: tuple[Rank, MCILExpr]) -> None:
         self.defined_functions[symbol] = signature
+        self.symbols.add(symbol)
+
+    def add_declared_const(self, symbol: str, sort: MCILSort) -> None:
+        self.declared_consts[symbol] = sort
         self.symbols.add(symbol)
 
     def add_defined_system(self, symbol: str, system: MCILDefineSystem) -> None:
@@ -1419,16 +1425,11 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
-            elif isinstance(expr, MCILVar) and expr.symbol in context.defined_functions:
+            elif isinstance(expr, MCILVar) and expr.symbol in context.declared_consts:
                 # constants defined using define-fun
-                ((inputs, output), _) = context.defined_functions[expr.symbol]
-
-                if len(inputs) != 0:
-                    eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.symbol}")
-                    status = False
-
-                expr.sort = output
+                expr.sort = context.declared_consts[expr.symbol]
             elif isinstance(expr, MCILVar):
+                print(context.defined_functions)
                 eprint(f"[{__name__}] Error: symbol '{expr.symbol}' not declared.\n\t{context.cur_command}")
                 status = False
             elif isinstance(expr, MCILApply):
@@ -1493,7 +1494,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
-            context.add_declared_function(cmd.symbol, Rank(([], cmd.sort)))
+            context.add_declared_const(cmd.symbol, cmd.sort)
         elif isinstance(cmd, MCILDeclareFun):
             if cmd.symbol in context.symbols:
                 eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
