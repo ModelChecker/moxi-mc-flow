@@ -11,7 +11,7 @@
 )
 
 (define-system Delay :input ( (i Int) ) :output ( (o Int) )
- :init (<= o 10) ; more than one possible initial output
+ :init (<= 0 o 10) ; more than one possible initial output
  :trans (= o' i)
 )
 

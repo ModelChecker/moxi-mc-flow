@@ -5,7 +5,7 @@
 (define-system Delay
   :input ((in Int))
   :output ((out Int))
-  :init (<= out 10) ; more than one possible initial output
+  :init (<= 0 out 10) ; more than one possible initial output
   :trans (= out' in) ; the new output is the old input
 )
 
