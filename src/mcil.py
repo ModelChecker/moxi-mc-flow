@@ -26,6 +26,7 @@ class MCILAttribute(Enum):
     REACHABLE  = ":reachable"
     CURRENT    = ":current"
     QUERY      = ":query"
+    QUERIES    = ":queries"
 
     def is_variable_declaration(self) -> bool:
         return self.value == ":input" or self.value == ":output" or self.value == ":local"
@@ -36,6 +37,8 @@ class MCILAttribute(Enum):
     def get_value_type(self) -> type:
         if self.value == ":input" or self.value == ":output" or self.value == ":local" or self.value == ":subsys" or self.value == ":assumption" or self.value == ":fairness" or self.value == ":reachable" or self.value == ":current" or self.value == ":query":
             return dict # type: ignore
+        elif self.value == ":queries":
+            return list
         elif self.value == ":init" or self.value == ":trans" or self.value == ":inv":
             return MCILExpr
 
@@ -618,6 +621,7 @@ class MCILCheckSystem(MCILCommand):
         reachable: dict[str, MCILExpr], 
         current: dict[str, MCILExpr], 
         query: dict[str, list[str]], 
+        queries: list[dict[str, list[str]]], 
     ):
         self.sys_symbol = sys_symbol
         self.input = input
@@ -628,6 +632,7 @@ class MCILCheckSystem(MCILCommand):
         self.reachable = reachable
         self.current = current
         self.query = query
+        self.queries = queries
 
         # this gets populated by sort checker
         self.vars: dict[str, MCILSort] = {}
@@ -645,22 +650,33 @@ class MCILCheckSystem(MCILCommand):
         output_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.output])
         local_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.local])
 
-        assumption_str = " ".join([f":assumption ({symbol} {expr})" for symbol,expr in self.assumption.items()])
-        fairness_str = " ".join([f":fairness ({symbol} {expr})" for symbol,expr in self.fairness.items()])
-        reachable_str = " ".join([f":reachable ({symbol} {expr})" for symbol,expr in self.reachable.items()])
-        current_str = " ".join([f":current ({symbol} {expr})" for symbol,expr in self.current.items()])
+        assumption_str = "".join([f"\n   :assumption ({symbol} {expr})" for symbol,expr in self.assumption.items()])
+        fairness_str = "".join([f"\n   :fairness ({symbol} {expr})" for symbol,expr in self.fairness.items()])
+        reachable_str = "".join([f"\n   :reachable ({symbol} {expr})" for symbol,expr in self.reachable.items()])
+        current_str = "".join([f"\n   :current ({symbol} {expr})" for symbol,expr in self.current.items()])
+        query_str = "".join([f"\n   :query ({symbol} ({' '.join(labels)}))" for symbol,labels in self.query.items()])
 
-        query_str = " ".join([f"({symbol} ({' '.join(exprs)}))" for symbol,exprs in self.query.items()])
+        queries_str = ""
+        for query in self.queries:
+            query_list_str = " ".join([f"({symbol} ({' '.join(labels)}))" for symbol,labels in query.items()])
+            queries_str += f"\n   :queries ({query_list_str})"
 
         s =  f"(check-system {self.sys_symbol} "
         s += f"\n   :input ({input_str}) "
         s += f"\n   :output ({output_str}) "
         s += f"\n   :local ({local_str}) "
-        s += f"\n   {assumption_str} "
-        s += f"\n   {fairness_str} "
-        s += f"\n   {reachable_str} "
-        s += f"\n   {current_str} "
-        s += f"\n   :query {query_str} "
+        if assumption_str:
+            s += assumption_str
+        if fairness_str:
+            s += fairness_str
+        if reachable_str:
+            s += reachable_str
+        if current_str:
+            s += current_str
+        if query_str:
+            s += query_str
+        if queries_str:
+            s += queries_str
 
         return s + ")"
 

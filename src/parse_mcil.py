@@ -2,6 +2,7 @@
 import sys
 
 from .sly import Lexer, Parser
+from .util import eprint
 from .mcil import *
 
 class MCILLexer(Lexer):
@@ -11,7 +12,7 @@ class MCILLexer(Lexer):
                LPAREN, RPAREN,
                RW_UNDERSCORE, RW_LET, RW_AS,
                PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV, PK_SUBSYS,
-               PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY,
+               PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY, PK_QUERIES,
                CMD_SET_LOGIC, CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
                CMD_DECLARE_ENUM_SORT, CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, CMD_EXIT }
 
@@ -57,12 +58,13 @@ class MCILLexer(Lexer):
     KEYWORD[":init"]   = PK_INIT
     KEYWORD[":trans"]  = PK_TRANS
     KEYWORD[":inv"]    = PK_INV
-    KEYWORD[":subsys"]    = PK_SUBSYS
+    KEYWORD[":subsys"]     = PK_SUBSYS
     KEYWORD[":assumption"] = PK_ASSUMPTION
     KEYWORD[":fairness"]   = PK_FAIRNESS
     KEYWORD[":reachable"]  = PK_REACHABLE
     KEYWORD[":current"]    = PK_CURRENT
     KEYWORD[":query"]      = PK_QUERY
+    KEYWORD[":queries"]    = PK_QUERIES
 
     # Command names
     SYMBOL["set-logic"]  = CMD_SET_LOGIC
@@ -80,7 +82,7 @@ class MCILLexer(Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}\n")
+        eprint(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}\n")
         self.index += 1
 
 
@@ -94,7 +96,7 @@ class MCILParser(Parser):
 
     def error(self, token):
         self.status = False
-        sys.stderr.write(f"Error:{token.lineno}: Unexpected token ({token})\n")
+        eprint(f"Error:{token.lineno}: Unexpected token ({token})\n")
 
     @_("command_list command")
     def command_list(self, p):
@@ -114,9 +116,10 @@ class MCILParser(Parser):
     def command(self, p):
         return MCILDeclareSort(p[2], p[3])
     
-    @_("LPAREN CMD_DEFINE_SORT SYMBOL LPAREN symbol_list RPAREN sort RPAREN")
+    @_("LPAREN CMD_DEFINE_SORT labeled_symbol_list sort RPAREN")
     def command(self, p):
-        return MCILDefineSort(p[2], p[4], p[6])
+        label, symbol_list = p[2]
+        return MCILDefineSort(label, symbol_list, p[3])
     
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
@@ -126,14 +129,16 @@ class MCILParser(Parser):
     def command(self, p):
         return MCILDefineFun(p[2], p[4], p[6], p[7])
     
-    @_("LPAREN CMD_DECLARE_ENUM_SORT SYMBOL LPAREN symbol_list RPAREN RPAREN")
+    @_("LPAREN CMD_DECLARE_ENUM_SORT labeled_symbol_list RPAREN")
     def command(self, p):
-        values = []
-        for value in p[4]:
-            values.append(value)
-            self.enums[value] = p[2]
+        label, symbol_list = p[2]
 
-        return MCILDeclareEnumSort(p[2], values)
+        values = []
+        for value in symbol_list:
+            values.append(value)
+            self.enums[value] = label
+
+        return MCILDeclareEnumSort(label, values)
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
@@ -168,7 +173,7 @@ class MCILParser(Parser):
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
-        input, output, local = [], [], []
+        input, output, local, queries = [], [], [], []
         assume, fair, reach, current, query = {}, {}, {}, {}, {}
 
         if MCILAttribute.INPUT in p[3]:
@@ -194,8 +199,11 @@ class MCILParser(Parser):
             
         if MCILAttribute.QUERY in p[3]:
             query = p[3][MCILAttribute.QUERY]
+            
+        if MCILAttribute.QUERIES in p[3]:
+            queries = p[3][MCILAttribute.QUERIES]
 
-        return MCILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query)
+        return MCILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query, queries)
 
     @_("LPAREN CMD_EXIT RPAREN")
     def command(self, p):
@@ -208,7 +216,7 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            sys.stderr.write(f"Error:{p.lineno}: multiple instances of attribute ({attr.value}).")
+            eprint(f"Error:{p.lineno}: multiple instances of attribute ({attr.value}).")
             self.status = False
         elif attr.get_value_type() == dict:
             p[0][attr].update(value)
@@ -217,7 +225,7 @@ class MCILParser(Parser):
         elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.INV):
             p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("and", []), [p[0][attr], value])
         else:
-            sys.stderr.write(f"Error:{p.lineno}: parser error ({attr.value}).")
+            eprint(f"Error:{p.lineno}: parser error ({attr.value}).")
             self.status = False
 
         return p[0]
@@ -261,16 +269,18 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            sys.stderr.write(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
+            eprint(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
             self.status = False
         elif attr.get_value_type() == dict:
             # check for duplicate symbols
             if [v for v in value.keys() if v in p[0][attr]]:
-                sys.stderr.write(f"Error:{p.lineno}: repeat symbol for attribute '{attr.value}'.\n")
+                eprint(f"Error:{p.lineno}: repeat symbol for attribute '{attr.value}'.\n")
                 self.status = False
             p[0][attr].update(value)
+        elif attr.get_value_type() == list:
+            p[0][attr] += value
         else:
-            sys.stderr.write(f"Error:{p.lineno}: parser error ({attr.value}).\n")
+            eprint(f"Error:{p.lineno}: parser error ({attr.value}).\n")
             self.status = False
 
         return p[0]
@@ -307,10 +317,14 @@ class MCILParser(Parser):
     def check_system_attribute(self, p):
         return (MCILAttribute.CURRENT, {p[2]: p[3]})
 
-    @_("PK_QUERY LPAREN SYMBOL LPAREN symbol_list SYMBOL RPAREN RPAREN")
+    @_("PK_QUERY LPAREN labeled_symbol_list RPAREN")
     def check_system_attribute(self, p):
-        p[4].append(p[5])
-        return (MCILAttribute.QUERY, {p[2]: p[4]})
+        label,symbol_list = p[2]
+        return (MCILAttribute.QUERY, {label: symbol_list})
+
+    @_("PK_QUERIES LPAREN labeled_symbol_list_list RPAREN")
+    def check_system_attribute(self, p):
+        return (MCILAttribute.QUERIES, [p[2]])
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
@@ -343,6 +357,27 @@ class MCILParser(Parser):
     def symbol_list(self, p):
         return []
 
+    @_("labeled_symbol_list_list LPAREN labeled_symbol_list RPAREN")
+    def labeled_symbol_list_list(self, p):
+        label, symbol_list = p[2]
+        if label in p[0]:
+            eprint(f"Error:{p.lineno}: repeat label in queries attribute '{label}'.\n")
+            self.status = False
+        p[0][label] = symbol_list
+        return p[0]
+
+    @_("")
+    def labeled_symbol_list_list(self, p):
+        return {}
+
+    @_("SYMBOL LPAREN symbol_list RPAREN")
+    def labeled_symbol_list(self, p):
+        return (p[0], p[2])
+
+    @_("")
+    def labeled_symbol_list(self, p):
+        return []
+
     @_("bound_var_list LPAREN SYMBOL term RPAREN")
     def bound_var_list(self, p):
         p[0].append((p[2], p[3]))
@@ -355,7 +390,7 @@ class MCILParser(Parser):
     @_("identifier")
     def term(self, p):
         if len(p[0].indices) > 0:
-            sys.stderr.write(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
+            eprint(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
             self.status = False
 
         symbol: str = p[0].symbol

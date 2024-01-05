@@ -1,4 +1,4 @@
-; Guarded-transititrues-style definititrue
+; Guarded-transition-style definititrue
 (set-logic QF_LIA)
 
 (define-system TimedSwitch :input ((press Bool)) :output ((sig Bool))
