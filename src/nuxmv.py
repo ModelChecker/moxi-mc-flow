@@ -989,6 +989,10 @@ def type_check(module: XMVModule, context: XMVContext) -> tuple[bool, XMVContext
         match element:
             case XMVVarDeclaration(var_list=var_list, modifier=modifier):
                 for (xmv_id, xmv_type) in var_list:
+                    if isinstance(xmv_type, XMVModuleType):
+                        params = xmv_type.parameters
+                        for param in params:
+                            type_check_expr(expr=param, context=context)
                     context.vars[module.name][xmv_id.ident] = xmv_type
                     if modifier == "FROZENVAR":
                         context.frozen_vars.add(xmv_id.ident)

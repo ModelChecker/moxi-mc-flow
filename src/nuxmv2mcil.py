@@ -41,13 +41,6 @@ def translate_type(xmv_type: XMVType, xmv_context: XMVContext) -> MCILSort:
         case _:
             raise ValueError(f"Unsupported type: {xmv_type}")
         
-def coerce_int_to_bv(expr: MCILExpr) -> MCILExpr:
-    if isinstance(expr, MCILConstant) and is_int_sort(expr.sort):
-        return MCILConstant(
-            MCIL_BITVEC_SORT(len(bin(expr.value)[2:])), 
-            expr.value
-        )
-    return expr
 
 def case_to_ite(case_expr: XMVCaseExpr, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
     """Recursively translate a case expression to a series of cascaded ite expressions."""
@@ -295,33 +288,33 @@ def translate_expr(
                         il_rhs = expr_map[rhs]
                     case "<":
                         il_op = "bvult"
-                        il_lhs = coerce_int_to_bv(expr_map[lhs])
-                        il_rhs = coerce_int_to_bv(expr_map[rhs])
+                        il_lhs = expr_map[lhs]
+                        il_rhs = expr_map[rhs]
                     case ">":
                         il_op = "bvugt"
-                        il_lhs = coerce_int_to_bv(expr_map[lhs])
-                        il_rhs = coerce_int_to_bv(expr_map[rhs])
+                        il_lhs = expr_map[lhs]
+                        il_rhs = expr_map[rhs]
                     case "<=":
                         il_op = "bvule"
-                        il_lhs = coerce_int_to_bv(expr_map[lhs])
-                        il_rhs = coerce_int_to_bv(expr_map[rhs])
+                        il_lhs = expr_map[lhs]
+                        il_rhs = expr_map[rhs]
                     case ">=":
                         il_op = "bvuge"
-                        il_lhs = coerce_int_to_bv(expr_map[lhs])
-                        il_rhs = coerce_int_to_bv(expr_map[rhs])
+                        il_lhs = expr_map[lhs]
+                        il_rhs = expr_map[rhs]
                     case "+":
                         il_op = "bvadd"
-                        il_lhs = coerce_int_to_bv(expr_map[lhs])
-                        il_rhs = coerce_int_to_bv(expr_map[rhs])
+                        il_lhs = expr_map[lhs]
+                        il_rhs = expr_map[rhs]
                     case "*":
                         il_op = "bvmul"
-                        il_lhs = coerce_int_to_bv(expr_map[lhs])
-                        il_rhs = coerce_int_to_bv(expr_map[rhs])
+                        il_lhs = expr_map[lhs]
+                        il_rhs = expr_map[rhs]
                     case "/":
                         expr_type = cast(XMVWord, expr.type)
                         il_op = "bvsdiv" if expr_type.signed else "bvudiv"
-                        il_lhs = coerce_int_to_bv(expr_map[lhs])
-                        il_rhs = coerce_int_to_bv(expr_map[rhs])
+                        il_lhs = expr_map[lhs]
+                        il_rhs = expr_map[rhs]
                     case ">>":
                         il_op = "bvashr"
                         il_lhs = expr_map[lhs]
@@ -339,7 +332,7 @@ def translate_expr(
                         try:
                             il_lhs_sort = translate_type(lhs.type, context)
                             if is_int_sort(il_lhs_sort):
-                                il_lhs = coerce_int_to_bv(expr_map[lhs])
+                                il_lhs = expr_map[lhs]
                                 il_rhs = expr_map[rhs]
                             else:
                                 il_lhs = expr_map[lhs]
@@ -348,7 +341,7 @@ def translate_expr(
                             try:
                                 il_rhs_sort = translate_type(rhs.type, context)
                                 if is_int_sort(il_rhs_sort):
-                                    il_rhs = coerce_int_to_bv(expr_map[rhs])
+                                    il_rhs = expr_map[rhs]
                                     il_lhs = expr_map[lhs]
                                 else:
                                     il_lhs = expr_map[lhs]
