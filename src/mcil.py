@@ -62,8 +62,9 @@ class MCILIdentifier():
     def num_indices(self) -> int:
         return len(self.indices)
 
-    def check(self, __symbol: str, num_indices: int) -> bool:
-        return self.symbol == __symbol and len(self.indices) == num_indices
+    def check(self, __symbols: set[str], num_indices: int) -> bool:
+        """Returns true if this has `num_indices` and any of the symbols listed in `__symbols`"""
+        return any([self.symbol == s for s in __symbols]) and len(self.indices) == num_indices
 
     def is_indexed(self) -> bool:
         return len(self.indices) > 0
@@ -365,7 +366,8 @@ def is_const_array_expr(expr: MCILExpr) -> bool:
 
 def is_const_array_init_expr(expr: MCILExpr) -> bool:
     """Returns true if `expr` is of the form: `(= var (as const (Array X Y) x))`"""
-    if not isinstance(expr, MCILApply) or not expr.identifier.is_symbol("="):
+    if (not isinstance(expr, MCILApply) or not expr.identifier.is_symbol("=") or
+            len(expr.children) != 2):
         return False
 
     lhs,rhs = expr.children
@@ -740,17 +742,18 @@ IdentifierClass = tuple[str, int]
 RankTable = dict[IdentifierClass, Callable[[Any], Rank]]
 
 CORE_RANK_TABLE: RankTable = {
-    ("true", 0):     lambda _: ([], MCIL_BOOL_SORT),
-    ("false", 0):    lambda _: ([], MCIL_BOOL_SORT),
-    ("not", 0):      lambda _: ([MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("=>", 0):       lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("and", 0):      lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
-    ("or", 0):       lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
-    ("xor", 0):      lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
-    ("=", 0):        lambda A: ([A[0] for _ in range(0,A[1])], MCIL_BOOL_SORT),
-    ("distinct", 0): lambda A: ([A[0] for _ in range(0,A[1])], MCIL_BOOL_SORT),
-    ("ite", 0):      lambda A: ([MCIL_BOOL_SORT, A, A], A),
-    ("const", 0):    lambda A: ([MCIL_ANY_SORT], A),
+    ("true", 0):       lambda _: ([], MCIL_BOOL_SORT),
+    ("false", 0):      lambda _: ([], MCIL_BOOL_SORT),
+    ("not", 0):        lambda _: ([MCIL_BOOL_SORT], MCIL_BOOL_SORT),
+    ("=>", 0):         lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
+    ("and", 0):        lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("or", 0):         lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("xor", 0):        lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("=", 0):          lambda A: ([A[0] for _ in range(0,A[1])], MCIL_BOOL_SORT),
+    ("distinct", 0):   lambda A: ([A[0] for _ in range(0,A[1])], MCIL_BOOL_SORT),
+    ("ite", 0):        lambda A: ([MCIL_BOOL_SORT, A, A], A),
+    ("const", 0):      lambda A: ([MCIL_ANY_SORT], A),
+    ("OnlyChange", 0): lambda A: ([MCIL_ANY_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
 }
 
 BITVEC_RANK_TABLE: RankTable = {
@@ -805,10 +808,10 @@ INT_RANK_TABLE: RankTable = {
     ("div", 0):       lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
     ("mod", 0):       lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
     ("abs", 0):       lambda _: ([MCIL_INT_SORT], MCIL_INT_SORT),
-    ("<=", 0):        lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
-    ("<", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
-    (">=", 0):        lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
-    (">", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
+    ("<=", 0):        lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("<", 0):         lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    (">=", 0):        lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    (">", 0):         lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
     ("divisible", 1): lambda _: ([MCIL_INT_SORT], MCIL_BOOL_SORT),
 }
 
@@ -830,7 +833,7 @@ def sort_check_apply_core(node: MCILApply) -> bool:
 
     if identifier_class not in CORE_RANK_TABLE:
         return False
-    elif identifier.check("=", 0) or identifier.check("distinct", 0):
+    elif identifier.check({"=", "distinct"}, 0):
         # (par (A) (= A ... A Bool))
         # (par (A) (distinct A ... A Bool))
         if len(node.children) < 1:
@@ -840,7 +843,7 @@ def sort_check_apply_core(node: MCILApply) -> bool:
         rank = CORE_RANK_TABLE[(identifier.symbol, 0)]((param, len(node.children)))
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("ite", 0):
+    elif identifier.check({"ite"}, 0):
         # (par (A) (ite Bool A A A))
         if len(node.children) < 3:
             return False
@@ -849,7 +852,7 @@ def sort_check_apply_core(node: MCILApply) -> bool:
         rank = CORE_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("and", 0) or identifier.check("or", 0) or identifier.check("xor", 0):
+    elif identifier.check({"and", "or", "xor"}, 0):
         # (and Bool ... Bool Bool)
         # (or Bool ... Bool Bool)
         # (xor Bool ... Bool Bool)
@@ -860,8 +863,7 @@ def sort_check_apply_core(node: MCILApply) -> bool:
         rank = CORE_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
-
-    elif identifier.check("const", 0):
+    elif identifier.check({"const"}, 0):
         if len(node.children) < 1:
             return False
 
@@ -869,6 +871,17 @@ def sort_check_apply_core(node: MCILApply) -> bool:
             return False
 
         rank = CORE_RANK_TABLE[identifier_class](node.sort)
+
+        return sort_check_apply_rank(node, rank)
+    elif identifier.check({"OnlyChange"}, 0):
+        if len(node.children) < 1:
+            return False
+
+        if any([not isinstance(c, MCILVar) for c in node.children]):
+            return False
+
+        param = len(node.children)
+        rank = CORE_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
 
@@ -883,7 +896,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
 
     if identifier_class not in BITVEC_RANK_TABLE:
         return False
-    elif identifier.check("concat", 0):
+    elif identifier.check({"concat"}, 0):
         # (concat (_ BitVec i) (_ BitVec j) (_ BitVec i+j))
         if len(node.children) < 2:
             return False
@@ -900,7 +913,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         rank = BITVEC_RANK_TABLE[identifier_class]((i, j))
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("extract", 2):
+    elif identifier.check({"extract"}, 2):
         # ((_ extract i j) (_ BitVec m) (_ BitVec n))
         # subject to:
         #   - m < i <= j
@@ -926,7 +939,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         rank = BITVEC_RANK_TABLE[identifier_class]((m, n))
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("zero_extend", 1) or identifier.check("sign_extend", 1):
+    elif identifier.check({"zero_extend", "sign_extend"}, 1):
         # ((_ zero_extend i) (_ BitVec m) (_ BitVec m+i))
         # ((_ sign_extend i) (_ BitVec m) (_ BitVec m+i))
         i = identifier.indices[0]
@@ -942,7 +955,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         rank = BITVEC_RANK_TABLE[identifier_class]((m, i))
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("rotate_left", 1) or identifier.check("rotate_right", 1):
+    elif identifier.check({"rotate_left", "rotate_right"}, 1):
         # ((_ rotate_left i) (_ BitVec m) (_ BitVec m))
         # ((_ rotate_right i) (_ BitVec m) (_ BitVec m))
         if len(node.children) < 1:
@@ -1002,10 +1015,20 @@ def sort_check_apply_int(node: MCILApply) -> bool:
 
     if identifier_class not in INT_RANK_TABLE:
         return False
-    elif identifier.check("-", 0) and len(node.children) == 1:
+    elif identifier.check({"-"}, 0):
         # (- Int Int Int)
         # (- Int Int)
         if len(node.children) < 1 or len(node.children) > 2:
+            return False
+
+        param = len(node.children)
+        rank = INT_RANK_TABLE[identifier_class](param)
+
+        return sort_check_apply_rank(node, rank)
+    elif identifier.check({">=", ">", "<=", "<"}, 0):
+        # (- Int Int Int)
+        # (- Int Int)
+        if len(node.children) < 2 or len(node.children) > 3:
             return False
 
         param = len(node.children)
@@ -1063,10 +1086,10 @@ def sort_check_apply_qf_lia(node: MCILApply) -> bool:
         # Terms containing * with _concrete_ coefficients are also allowed, that
         # is, terms of the form c, (* c x), or (* x c)  where x is a free constant
         # and c is a term of the form n or (- n) for some numeral n.
-        if node.identifier.check("*", 0):
+        if node.identifier.check({"*"}, 0):
             lhs,rhs = node.children
             if isinstance(lhs, MCILApply):
-                if not lhs.identifier.check("-", 0):
+                if not lhs.identifier.check({"-"}, 0):
                     return False
                 elif not len(lhs.children) == 1:
                     return False
@@ -1075,7 +1098,7 @@ def sort_check_apply_qf_lia(node: MCILApply) -> bool:
                 elif not isinstance(rhs, MCILVar):
                     return False
             elif isinstance(rhs, MCILApply):
-                if not rhs.identifier.check("-", 0):
+                if not rhs.identifier.check({"-"}, 0):
                     return False
                 elif not len(rhs.children) == 1:
                     return False
@@ -1390,8 +1413,8 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
                 expr.sort = context.bound_let_vars[expr.symbol].sort
-            elif isinstance(expr, MCILVar) and expr in context.var_sorts:
-                expr.sort = context.var_sorts[expr]
+            elif isinstance(expr, MCILVar) and expr.symbol in context.var_sorts:
+                expr.sort = context.var_sorts[expr.symbol]
 
                 if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
