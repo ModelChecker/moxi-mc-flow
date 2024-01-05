@@ -1426,8 +1426,16 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.declared_consts:
-                # constants defined using define-fun
                 expr.sort = context.declared_consts[expr.symbol]
+            elif isinstance(expr, MCILVar) and expr.symbol in context.defined_functions:
+                # constants defined using define-fun 
+                ((inputs, output), _) = context.defined_functions[expr.symbol]
+
+                if len(inputs) != 0:
+                    eprint(f"[{__name__}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.symbol}")
+                    status = False
+
+                expr.sort = output
             elif isinstance(expr, MCILVar):
                 print(context.defined_functions)
                 eprint(f"[{__name__}] Error: symbol '{expr.symbol}' not declared.\n\t{context.cur_command}")
