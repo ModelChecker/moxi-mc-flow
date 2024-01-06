@@ -27,7 +27,7 @@ def translate(
 
     vars = collect_var_symbols(btor_program)
 
-    for frame in btor_witness.frames:
+    for frame in btor_witness.frames[:-1]:
         il_assigns: list[MCILAssignment] = []
 
         btor_assigns = [

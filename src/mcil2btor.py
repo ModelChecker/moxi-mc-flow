@@ -432,25 +432,72 @@ def translate_check_system(
         # shallow copy the prog since we don't want to lose sort_map/var_map
         btor2_prog = copy(btor2_model)
 
-        for assume in [a[1] for a in check.assumption.items() if a[0] in query]:
+        for assume in [expr for symbol,expr in check.assumption.items() if symbol in query]:
             build_expr_map(assume, context, False, sort_map, var_map, expr_map)
             btor2_prog += flatten_btor2_expr(expr_map[assume])
             btor2_prog.append(BtorConstraint(expr_map[assume]))
-
-        for reach in [r[1] for r in check.reachable.items() if r[0] in query]:
-            build_expr_map(reach, context, False, sort_map, var_map, expr_map)
-            btor2_prog += flatten_btor2_expr(expr_map[reach])
-            btor2_prog.append(BtorBad(expr_map[reach]))
         
-        for fair in [f[1] for f in check.fairness.items() if f[0] in query]:
+        for fair in [expr for symbol,expr in check.fairness.items() if symbol in query]:
             build_expr_map(fair, context, False, sort_map, var_map, expr_map)
             btor2_prog += flatten_btor2_expr(expr_map[fair])
             btor2_prog.append(BtorFair(expr_map[fair]))
     
-        for current in [c[1] for c in check.current.items() if c[0] in query]:
+        for current in [expr for symbol,expr in check.current.items() if symbol in query]:
             build_expr_map(current, context, True, sort_map, var_map, expr_map)
             btor2_prog += flatten_btor2_expr(expr_map[current])
             btor2_prog.append(BtorConstraint(expr_map[current]))
+
+        # Handle reachability properties:
+        #
+        # In BTOR2, multiple bad properties asks for a trace that satisfies at least one
+        # bad property. In MCIL, multiple :reach properties asks for a trace that eventually
+        # satisfies every property listed. 
+        #
+        # To solve this, we introduce a flag for each :reach property that remains true if the
+        # property is every true, then set the conjunction of all such flags as the bad property.
+        # The resulting witness will be 1 step longer than necessary, but we can solve this in the
+        # witness translator.
+        flag_vars = []
+        btor_bool_sort = sort_map[MCIL_BOOL_SORT]
+        btor_true = BtorConst(btor_bool_sort, 1)
+        btor_false = BtorConst(btor_bool_sort, 0)
+        btor2_prog.append(btor_true)
+        btor2_prog.append(btor_false)
+
+        for symbol,reach in [
+            (symbol,expr) for symbol,expr in check.reachable.items() if symbol in query
+        ]:
+            build_expr_map(reach, context, False, sort_map, var_map, expr_map)
+            btor2_prog += flatten_btor2_expr(expr_map[reach])
+
+            flag_var = BtorStateVar(btor_bool_sort, f"{symbol}__FLAG__")
+            flag_next = BtorApply(btor_bool_sort, BtorOperator.ITE, (None, None),
+                (flag_var, btor_true, expr_map[reach])
+            )
+
+            btor2_prog.append(flag_var)
+            btor2_prog.append(BtorInit(flag_var, btor_false))
+            btor2_prog.append(flag_next)
+            btor2_prog.append(BtorNext(flag_var, flag_next))
+
+            flag_vars.append(flag_var)
+
+        if len(flag_vars) == 1:
+            bad_expr = flag_vars[0]
+        elif len(flag_vars) > 1:
+            bad_expr = BtorApply(btor_bool_sort, BtorOperator.AND, (None, None), 
+                (flag_vars[0], flag_vars[1], None)
+            )
+            for i in range(2, len(flag_vars)):
+                bad_expr = BtorApply(btor_bool_sort, BtorOperator.AND, (None, None), 
+                    (bad_expr, flag_vars[i], None)
+                )
+        else:
+            bad_expr = btor_false
+            
+        btor2_prog += flatten_btor2_expr(bad_expr)
+        btor2_prog.append(BtorBad(bad_expr))
+        # end handling reachability properties
 
         print(f"[{FILE_NAME}] reducing BTOR2 program")
         reduced_btor2_prog = assign_nids(btor2_prog)
@@ -459,7 +506,6 @@ def translate_check_system(
 
     return btor2_prog_list
     
-
 
 def translate(mcil_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNode]]]]:
     """Translate `mcil_prog` to an equisatisfiable set of Btor programs, labeled by query symbol.
