@@ -350,7 +350,9 @@ def translate_define_system(
     build_expr_map(system.init, context, True, sort_map, var_map, expr_map)
     btor2_model += flatten_btor2_expr(expr_map[system.init])
     btor2_model.append(BtorConstraint(expr_map[system.init]))
-    btor2_model[-1].set_comment(f"init {system.symbol}")
+
+    system_symbol = "::".join(context.system_context.get_scope_symbols())
+    btor2_model[-1].set_comment(f"init {system_symbol}")
 
     # type-checking hack: check for len instead of InputVar/StateVar
     # recall that consts and const-initialized arrays are already handled
@@ -360,7 +362,7 @@ def translate_define_system(
     build_expr_map(system.trans, context, False, sort_map, var_map, expr_map)
     btor2_model += flatten_btor2_expr(expr_map[system.trans])
     btor2_model.append(BtorConstraint(expr_map[system.trans]))
-    btor2_model[-1].set_comment(f"trans {system.symbol}")
+    btor2_model[-1].set_comment(f"trans {system_symbol}")
 
     for cur,next in [(c,n) for (_,c,n) in var_map.values() if c and n]:
         btor2_model.append(BtorNext(cast(BtorStateVar, cur), next))
@@ -368,7 +370,7 @@ def translate_define_system(
     build_expr_map(system.inv, context, False, sort_map, var_map, expr_map)
     btor2_model += flatten_btor2_expr(expr_map[system.inv])
     btor2_model.append(BtorConstraint(expr_map[system.inv]))
-    btor2_model[-1].set_comment(f"inv {system.symbol}")
+    btor2_model[-1].set_comment(f"inv {system_symbol}")
 
 
 def translate_check_system(
