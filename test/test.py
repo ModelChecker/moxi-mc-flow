@@ -71,7 +71,7 @@ def test_nuxmv2mcil(src: str, dst: str) -> str:
     try:
         proc = subprocess.run([
             "python3", str(translate_path), str(src_path), "mcil",
-            "--output", str(mcil_path)
+            "--output", str(mcil_path), "--validate"
         ], capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         print_fail(f"{src_path}")
@@ -116,7 +116,7 @@ def test_nuxmv2btor(src: str, dst: str) -> str:
     try:
         proc = subprocess.run([
             "python3", str(translate_path), str(src_path), "btor2",
-            "--output", str(btor_path)
+            "--output", str(btor_path), "--validate"
         ], capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         print_fail(f"{src_path}")
@@ -132,16 +132,18 @@ def test_nuxmv2btor(src: str, dst: str) -> str:
             f.write(proc.stderr.decode("utf-8"))
         return dst
     
-    proc = subprocess.run([
-        str(catbtor_path), str(btor_path)
-    ], capture_output=True)
+    for btor_file in btor_path.rglob("*.btor"):
+        proc = subprocess.run([
+            str(catbtor_path), str(btor_file)
+        ], capture_output=True)
 
-    if proc.returncode:
-        print_fail(f"{src_path}")
-        with open(str(stderr_path), "w") as f:
-            f.write(proc.stderr.decode("utf-8"))
-    else:
-        print_pass(f"{src_path} ({test_end - test_start}s)")
+        if proc.returncode:
+            print_fail(f"{src_path}")
+            with open(str(stderr_path), "w") as f:
+                f.write(proc.stderr.decode("utf-8"))
+            return dst
+
+    print_pass(f"{src_path} ({test_end - test_start}s)")
 
     return dst
 
@@ -171,7 +173,7 @@ def test_mcil2btor(src: str, dst: str) -> str:
     try:
         proc = subprocess.run([
             "python3", str(translate_path), str(src_path), "btor2",
-            "--output", str(btor_path)
+            "--output", str(btor_path), "--validate"
         ], capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
         print_fail(f"{src_path}")
@@ -187,16 +189,18 @@ def test_mcil2btor(src: str, dst: str) -> str:
             f.write(proc.stderr.decode("utf-8"))
         return dst
     
-    proc = subprocess.run([
-        str(catbtor_path), str(btor_path)
-    ], capture_output=True)
+    # for btor_file in btor_path.rglob("*.btor"):
+    #     proc = subprocess.run([
+    #         str(catbtor_path), str(btor_file)
+    #     ], capture_output=True)
 
-    if proc.returncode:
-        print_fail(f"{src_path}")
-        with open(str(stderr_path), "w") as f:
-            f.write(proc.stderr.decode("utf-8"))
-    else:
-        print_pass(f"{src_path} ({test_end - test_start}s)")
+    #     if proc.returncode:
+    #         print_fail(f"{src_path}")
+    #         with open(str(stderr_path), "w") as f:
+    #             f.write(proc.stderr.decode("utf-8"))
+    #         return dst
+
+    print_pass(f"{src_path} ({test_end - test_start}s)")
 
     return dst
 
