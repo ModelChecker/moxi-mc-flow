@@ -449,14 +449,15 @@ def translate_check_system(
 
         # Handle reachability properties:
         #
-        # In BTOR2, multiple bad properties asks for a trace that satisfies at least one
-        # bad property. In MCIL, multiple :reach properties asks for a trace that eventually
-        # satisfies every property listed. 
+        # In BTOR2, multiple bad properties asks for a trace that satisfies at
+        # least one bad property. In MCIL, multiple :reach properties asks for a
+        # trace that eventually satisfies every property listed. 
         #
-        # To solve this, we introduce a flag for each :reach property that remains true if the
-        # property is every true, then set the conjunction of all such flags as the bad property.
-        # The resulting witness will be 1 step longer than necessary, but we can solve this in the
-        # witness translator.
+        # To solve this, we introduce a flag for each :reach property that
+        # remains true if the property is every true, then set the conjunction
+        # of all such flags as the bad property. The resulting witness will be 1
+        # step longer than necessary, but we solve this in the witness
+        # translator by removing the final frame.
         flag_vars = []
         btor_bool_sort = sort_map[MCIL_BOOL_SORT]
         btor_true = BtorConst(btor_bool_sort, 1)
