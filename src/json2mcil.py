@@ -3,7 +3,6 @@ import os
 import re
 import json
 
-from argparse import ArgumentParser
 from pathlib import Path
 from jsonschema import validate, exceptions, RefResolver
 
@@ -197,19 +196,4 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool, do_qfbv: bool
         f.write(str(program))
 
     return 0
-
-
-if __name__ == "__main__":
-    argparser = ArgumentParser(description="Translates an input JSON program to IL format.")
-    argparser.add_argument("input", help="input JSON file")
-    argparser.add_argument("--output", help="output file to dump IL program")
-    argparser.add_argument("--do-qfbv", action="store_true", help="change input file to QFBV logic by casting Ints to bit vectors of length 32 and all operators to bit vector versions")
-    argparser.add_argument("--sort-check", action="store_true", help="enable sort checking")
-
-    args = argparser.parse_args()
-
-    input_path = Path(args.input)
-    output_path = Path(args.output) if args.output else Path(f"{input_path.stem}.mcil")
-
-    main(input_path, output_path, args.sort_check, args.do_qfbv)
 

@@ -641,27 +641,4 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
         f.write(str(result))
         print(f"[{FILE_NAME}] wrote output to {output_path}")
 
-    # print(f"[{FILE_NAME}] sort checking translated output")
-    # if do_sort_check:
-    #     (well_sorted, _) = sort_check(result)
-    #     if not well_sorted:
-    #         eprint(f"[{FILE_NAME}] failed sort checking translated specification in {input_path}")
-    #         return 1
-
     return 0
-    print(f"[{FILE_NAME}] translated invariant constraints")
-
-# if __name__ == '__main__':
-#     argparser = argparse.ArgumentParser(
-#                            prog='nuXmv/NuSMV to IL translation',
-#                            description='Parses a nuXmv/NuSMV (.smv) file and translates the resulting AST into IL'
-#    )
-#     argparser.add_argument("input", help="source nuXmv program to translate")
-#     argparser.add_argument("--output", help="path of output file")
-#     argparser.add_argument("--sort-check", action="store_true", help="enable sort checking")
-
-#     args = argparser.parse_args()
-#     input_path = Path(args.input)
-#     output_path = Path(args.output) if args.output else Path(input_path).with_suffix('.mcil')
-
-#     main(input_path, output_path, args.sort_check)
