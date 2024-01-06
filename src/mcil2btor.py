@@ -382,7 +382,10 @@ def translate_check_system(
 
     context.system_context.pop()
 
-    for sym, query in check.query.items():
+    if check.queries:
+        eprint(f"[{FILE_NAME}] ':queries' attribute unsupported, ignoring")
+
+    for symbol,query in check.query.items():
         # shallow copy the prog since we don't want to lose sort_map/var_map
         btor2_prog = copy(btor2_model)
 
@@ -409,7 +412,7 @@ def translate_check_system(
         print(f"[{FILE_NAME}] reducing BTOR2 program")
         reduced_btor2_prog = assign_nids(btor2_prog)
 
-        btor2_prog_list[sym] = reduced_btor2_prog
+        btor2_prog_list[symbol] = reduced_btor2_prog
 
     return btor2_prog_list
     
@@ -440,6 +443,7 @@ def translate(mcil_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorN
     # bit vectors and inline all functions
     to_qfbv(mcil_prog)
     inline_funs(mcil_prog, context)
+    to_binary_applys(mcil_prog, context)
 
     btor2_prog_list: dict[str, dict[str, list[BtorNode]]] = {}
     sort_map: SortMap = {}

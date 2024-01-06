@@ -187,7 +187,7 @@ def is_array_sort(sort: MCILSort) -> bool:
     return sort.identifier.is_symbol("Array") and sort.arity() == 2
     
 def is_any_sort(sort: MCILSort) -> bool:
-    """An Array sort has an identifier that is the symbol '__Any__'"""
+    """An Any sort has an identifier that is the symbol '__Any__'"""
     return sort.identifier.is_symbol("__Any__")
 
 
@@ -196,6 +196,30 @@ class MCILExpr():
     def __init__(self, sort: MCILSort, children: list[MCILExpr]):
         self.sort = sort
         self.children = children
+
+        self.field: Optional[tuple[MCILCommand, str, str]] = None
+
+        self.parents: list[MCILExpr] = []
+        for child in children:
+            child.parents.append(self)
+
+    def replace(self, new: MCILExpr) -> None:
+        """Replaces `self` with `new` using `self.parents` or `self.field` if `self` is a top-level expression (i.e., has no parents)."""
+        if not self.parents:
+            if not self.field:
+                raise ValueError(f"No field set for top-level expression '{self}'")
+
+            cmd,field_name,symbol = self.field
+            cmd_field = getattr(cmd, field_name)
+
+            if isinstance(cmd_field, MCILExpr):
+                setattr(cmd, field_name, new)
+            elif isinstance(cmd_field, dict):
+                cmd_field[symbol] = new
+
+        for parent in self.parents:
+            parent.children[parent.children.index(self)] = new
+            new.parents.append(parent)
 
     def __hash__(self) -> int:
         return id(self)
@@ -288,7 +312,7 @@ class MCILLetExpr(MCILExpr):
         binders: list[tuple[str, MCILExpr]],
         expr: MCILExpr
     ):
-        super().__init__(sort, [expr] + [MCILBind(binders)] + [b[1] for b in binders])
+        super().__init__(sort, [expr] + [MCILBind()] + [b[1] for b in binders])
         self.vars = [b[0] for b in binders]
 
     def get_expr(self) -> MCILExpr:
@@ -301,9 +325,19 @@ class MCILLetExpr(MCILExpr):
 class MCILBind(MCILExpr):
     """Class used for binding variables in `let` expressions during traversal."""
 
-    def __init__(self, binders: list[tuple[str, MCILExpr]]):
+    def __init__(self):
         super().__init__(MCIL_NO_SORT, [])
-        self.binders = binders
+
+    def get_binders(self) -> list[tuple[str, MCILExpr]]:
+        if not len(self.parents) == 1:
+            raise ValueError(f"MCILBind can only have 1 parent.")
+
+        parent = self.parents[0]
+
+        if not isinstance(parent, MCILLetExpr):
+            raise ValueError(f"MCILBind must have MCILLetExpr parent.")
+
+        return parent.get_binders()
 
 
 def mcil2str(expr: MCILExpr) -> str:
@@ -363,12 +397,9 @@ def rename_vars(expr: MCILExpr, vars: dict[MCILVar, MCILExpr], context: MCILCont
     """Returns a copy of `expr` where each `MCILVar` present in `vars` is replaced with its mapped value. Useful for inlining function calls."""
     new_expr = copy(expr)
 
-    for (subexpr,child) in [(e,child) for e in postorder_mcil(new_expr, context) for child in e.children]:
-        # have to look (subexpr,child) pair in order to replace exprs
-        # a replace looks like 
-        #   subexpr.children[subexpr.children.index(child)] = new_child_expr
-        if child in vars:
-            subexpr.children[subexpr.children.index(child)] = vars[child]
+    for subexpr in postorder_mcil(new_expr, context):
+        if subexpr in vars:
+            subexpr.replace(vars[subexpr])
 
     return new_expr
 
@@ -513,6 +544,8 @@ class MCILDefineFun(MCILCommand):
         self.output_sort = output
         self.body = body
 
+        self.body.field = (self, "body", "")
+
     def get_exprs(self) -> list[MCILExpr]:
         return [self.body]
 
@@ -567,6 +600,10 @@ class MCILDefineSystem(MCILCommand):
         self.trans = trans
         self.inv = inv
         self.subsystem_signatures = subsystems
+
+        self.init.field = (self, "init", "")
+        self.trans.field = (self, "trans", "")
+        self.inv.field = (self, "inv", "")
 
         # these get populated by sort checker
         self.subsystems: dict[str, MCILDefineSystem] = {}
@@ -648,6 +685,15 @@ class MCILCheckSystem(MCILCommand):
         self.current = current
         self.query = query
         self.queries = queries
+
+        for symbol,expr in assumption.items():
+            expr.field = (self, "assumption", symbol)
+        for symbol,expr in fairness.items():
+            expr.field = (self, "fairness", symbol)
+        for symbol,expr in reachable.items():
+            expr.field = (self, "reachable", symbol)
+        for symbol,expr in current.items():
+            expr.field = (self, "current", symbol)
 
         # this gets populated by sort checker
         self.vars: dict[str, MCILSort] = {}
@@ -945,7 +991,6 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         (i,j) = identifier.indices
 
         if j > i or i >= m:
-            print(f"{i}, {j}, {m}")
             return False
 
         n = i - j + 1
@@ -1270,7 +1315,7 @@ class MCILContext():
         self.bound_let_vars: dict[str, MCILExpr] = {}
 
         self.cur_command: Optional[MCILCommand] = None
-        self.const_array_init_exprs: dict[MCILVar,MCILExpr] = {}
+        self.const_array_init_exprs: dict[MCILVar, MCILExpr] = {}
 
         self.symbols: set[str] = set()
 
@@ -1385,7 +1430,7 @@ def postorder_mcil(expr: MCILExpr, context: MCILContext):
                 context.remove_bound_let_var(v)
             yield cur
         elif seen and isinstance(cur, MCILBind):
-            for (v,e) in cur.binders:
+            for (v,e) in cur.get_binders():
                 context.add_bound_let_var(v,e)
         elif seen:
             yield cur
@@ -1461,7 +1506,6 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
                 expr.sort = output
             elif isinstance(expr, MCILVar):
-                print(context.defined_functions)
                 eprint(f"[{__name__}] Error: symbol '{expr.symbol}' not declared.\n\t{context.cur_command}")
                 status = False
             elif isinstance(expr, MCILApply):
@@ -1673,20 +1717,57 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 def inline_funs(program: MCILProgram, context: MCILContext) -> None:
     """Perform function inlining on each expression in `program`."""
     for top_expr in program.get_exprs():
-        # have to look (expr,child) pair in order to replace exprs
-        # a replace looks like 
-        #   expr.children[expr.children.index(child)] = new_child_expr
-        for (expr,child) in [(expr,child) for expr in postorder_mcil(top_expr, context) for child in expr.children]:
-            if isinstance(child, MCILApply) and child.identifier.symbol in context.defined_functions:
-                fun_symbol = child.identifier.symbol
+        for expr in postorder_mcil(top_expr, context):
+            if (
+                isinstance(expr, MCILApply) 
+                and expr.identifier.symbol in context.defined_functions
+            ):
+                fun_symbol = expr.identifier.symbol
 
                 _,fun_def = context.defined_functions[fun_symbol]
                 fun_def_input_vars = context.defined_function_input_vars[fun_symbol]
                 
-                var_map = {arg:val for arg,val in zip(fun_def_input_vars,child.children)}
+                var_map = {arg:val for arg,val in zip(fun_def_input_vars, expr.children)}
                 
-                new_expr = rename_vars(fun_def, var_map, context)
-                expr.children[expr.children.index(child)] = new_expr
+                expr.replace(rename_vars(fun_def, var_map, context))
+
+
+def to_binary_applys(program: MCILProgram, context: MCILContext) -> None:
+    """Replace all multi-arity functions (=, and, or, <, etc.) to binary versions."""
+    for top_expr in program.get_exprs():
+        for expr in postorder_mcil(top_expr, context):
+            if (
+                isinstance(expr, MCILApply) 
+                and expr.identifier.check({"and", "or", "xor", "=", "distinct"}, 0)
+                and len(expr.children) > 2
+            ):
+                new_expr = MCILApply(expr.sort, expr.identifier, [expr.children[-2], expr.children[-1]])
+                for i in range(3, len(expr.children)+1):
+                    new_expr = MCILApply(expr.sort, expr.identifier, [expr.children[-i], new_expr])
+                    print(i)
+
+                expr.replace(new_expr)
+
+                print(f"{expr} ===> {new_expr}")
+            elif (
+                isinstance(expr, MCILApply) 
+                and expr.identifier.check({"<=", "<", ">=", ">"}, 0) 
+                and len(expr.children) == 3
+            ):
+                new_expr = MCILApply(expr.sort, expr.identifier, 
+                    [
+                        expr.children[0],
+                        MCILApply(expr.sort, expr.identifier,
+                            [
+                                expr.children[1],
+                                expr.children[2]
+                            ]
+                        )
+                    ]
+                )
+
+                expr.replace(new_expr)
+
 
 
 def to_qfbv(program: MCILProgram):
