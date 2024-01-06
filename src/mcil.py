@@ -1760,11 +1760,8 @@ def to_binary_applys(program: MCILProgram, context: MCILContext) -> None:
                 new_expr = MCILApply(expr.sort, expr.identifier, [expr.children[-2], expr.children[-1]])
                 for i in range(3, len(expr.children)+1):
                     new_expr = MCILApply(expr.sort, expr.identifier, [expr.children[-i], new_expr])
-                    print(i)
 
                 expr.replace(new_expr)
-
-                print(f"{expr} ===> {new_expr}")
             elif (
                 isinstance(expr, MCILApply) 
                 and expr.identifier.check({"<=", "<", ">=", ">"}, 0) 

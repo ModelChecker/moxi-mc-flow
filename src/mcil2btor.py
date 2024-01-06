@@ -331,7 +331,7 @@ def build_expr_map(
         elif isinstance(expr, MCILLetExpr):
             expr_map[expr] = expr_map[expr.get_expr()]
         else:
-            raise NotImplementedError(f"Unsupported expression ({expr})")
+            raise NotImplementedError(f"Unsupported expression '{expr}'")
 
 
 def translate_define_system(
@@ -482,9 +482,9 @@ def translate(mcil_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorN
     # BTOR2 only supports bit vectors and their operations and 
     # does not support functions, so we force all other types to 
     # bit vectors and inline all functions
-    to_qfbv(mcil_prog)
     inline_funs(mcil_prog, context)
     to_binary_applys(mcil_prog, context)
+    to_qfbv(mcil_prog)
 
     btor2_prog_list: dict[str, dict[str, list[BtorNode]]] = {}
     sort_map: SortMap = {}
