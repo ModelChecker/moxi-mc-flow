@@ -15,6 +15,22 @@ def fresh_symbol(st: str):
     symbol_counter += 1
     return st + str(symbol_counter)
 
+# TODO: Simplify expression handling with function map
+# fn_map: dict[tuple[str, OpType], str] = {
+#     ("&", OpType.BOOL_SORT): "and", ("&", OpType.BITVEC_SORT): "bvand",
+#     ("|", OpType.BOOL_SORT): "or", ("|", OpType.BITVEC_SORT): "bvor",
+#     ("xor", OpType.BOOL_SORT): "xor", ("xor", OpType.BITVEC_SORT): "bvxor",
+#     # ("xnor", MCIL_BOOL_SORT): "xnor", ("xnor", MCIL_BITVEC_SORT): "bvxor",
+#     ("->", OpType.BOOL_SORT): "=>",
+#     ("!=", OpType.BOOL_SORT): "distinct",
+#     (">=", OpType.INT_SORT): ">=", (">=", OpType.BITVEC_SORT): "bvuge",
+#     ("<=", OpType.INT_SORT): "<=", ("<=", OpType.BITVEC_SORT): "bvule",
+#     ("<", OpType.INT_SORT): "<", ("<", OpType.BITVEC_SORT): "bvult",
+#     (">", OpType.INT_SORT): ">", (">", OpType.BITVEC_SORT): "bvugt",
+#     ("+", OpType.INT_SORT): "+", ("+", OpType.BITVEC_SORT): "bvadd",
+#     ("*", OpType.INT_SORT): "*", ("*", OpType.BITVEC_SORT): "bvmul",
+# }
+
 def translate_type(xmv_type: XMVType, xmv_context: XMVContext) -> MCILSort:
     match xmv_type:
         case XMVBoolean():
@@ -270,14 +286,17 @@ def translate_expr(
                         il_op = "and" if isinstance(lhs.type, XMVBoolean) else "bvand"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
+                        # il_op = fn_map[("and", get_optype(lhs.type))]
                     case '|':
                         il_op = "or" if isinstance(lhs.type, XMVBoolean) else "bvor"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
+                        # il_op = fn_map[("or", get_optype(lhs.type))]
                     case 'xor':
                         il_op = "xor" if isinstance(lhs.type, XMVBoolean) else "bvxor"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
+                        # il_op = fn_map[("xor", get_optype(lhs.type))]
                     case "->":
                         il_op = "=>"
                         il_lhs = expr_map[lhs]
@@ -287,29 +306,41 @@ def translate_expr(
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                     case "<":
-                        il_op = "bvult"
+                        il_op = "<" if isinstance(lhs.type, XMVInteger) else "bvult"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
+                        # il_op = "bvult"
+                        # il_op = fn_map[("<", get_optype(lhs.type))]
                     case ">":
-                        il_op = "bvugt"
+                        il_op = ">" if isinstance(lhs.type, XMVInteger) else "bvugt"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
+                        # il_op = "bvugt"
+                        # il_op = fn_map[(">", get_optype(lhs.type))]
                     case "<=":
-                        il_op = "bvule"
+                        il_op = "<=" if isinstance(lhs.type, XMVInteger) else "bvule"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
+                        # il_op = "bvule"
+                        # il_op = fn_map[("<=", get_optype(lhs.type))]
                     case ">=":
-                        il_op = "bvuge"
+                        il_op = ">=" if isinstance(lhs.type, XMVInteger) else "bvuge"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
+                        # il_op = "bvuge"
+                        # il_op = fn_map[(">=", get_optype(lhs.type))]
                     case "+":
-                        il_op = "bvadd"
+                        il_op = "+" if isinstance(lhs.type, XMVInteger) else "bvadd"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
+                        # il_op = "bvadd"
+                        # il_op = fn_map[("+", get_optype(lhs.type))]
                     case "*":
-                        il_op = "bvmul"
+                        il_op = "*" if isinstance(lhs.type, XMVInteger) else "bvmul"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
+                        # il_op = "bvmul"
+                        # il_op = fn_map[("*", get_optype(lhs.type))]
                     case "/":
                         expr_type = cast(XMVWord, expr.type)
                         il_op = "bvsdiv" if expr_type.signed else "bvudiv"
@@ -467,14 +498,14 @@ def gather_local(xmv_module: XMVModule, context: XMVContext) -> tuple[list[tuple
 
                 # gathering submodule outputs
                     
-                for var in context.outputs[xmv_var_type.module_name]:
+                for (var_symbol, var_sort) in context.outputs[xmv_var_type.module_name]:
                     local_var = MCILVar(
                         var_type=MCILVarType.LOCAL,
-                        sort=var.sort,
-                        symbol=var_name.ident + "." + var.symbol,
+                        sort=var_sort,
+                        symbol=var_name.ident + "." + var_symbol,
                         prime=False
                     )
-                    result.append((var_name.ident + "." + var.symbol, var.sort))
+                    result.append((var_name.ident + "." + var_symbol, var_sort))
                     context.module_locals[var_name.ident].append(local_var)
 
     return (result, context)
@@ -804,8 +835,20 @@ def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCom
     # commands
     consts: list[MCILCommand] = gather_consts(xmv_module)
 
-    return [MCILSetLogic("QF_ABV")] + enums + consts + [define_system] + check_system
+    return enums + consts + [define_system] + check_system
 
+
+def infer_logic(commands: list[MCILCommand]) -> MCILSetLogic:
+    for def_sys in [s for s in commands if isinstance(s, MCILDefineSystem)]:
+        variables = def_sys.input + def_sys.output + def_sys.local
+        for var in variables:
+            if is_int_sort(var[1]):
+                return MCILSetLogic(logic="QF_LIA")
+            
+            if is_bitvec_sort(var[1]):
+                return MCILSetLogic(logic="QF_ABV")
+
+    raise ValueError("Specification does not map to a supported SMT logic")
 
 def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
     commands: list[MCILCommand] = []
@@ -819,6 +862,10 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
             
         commands += il_commands
 
+    logic: MCILSetLogic = infer_logic(commands)
+    print(f"[{FILE_NAME}] inferred SMT logic {logic.logic}")
+
+    commands = [logic] + commands
     return MCILProgram(commands=commands)
 
 def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
