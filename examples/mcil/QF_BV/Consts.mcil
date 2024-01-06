@@ -14,5 +14,5 @@
     :output ((o (_ BitVec 8)))
     :assumption (a (= i INPUT))
     :reachable (rch (= o #b00001010))
-    :query (q (rch))
+    :query (q (a rch))
 )
