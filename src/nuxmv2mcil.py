@@ -641,12 +641,12 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
         f.write(str(result))
         print(f"[{FILE_NAME}] wrote output to {output_path}")
 
-    print(f"[{FILE_NAME}] sort checking translated output")
-    if do_sort_check:
-        (well_sorted, _) = sort_check(result)
-        if not well_sorted:
-            eprint(f"[{FILE_NAME}] failed sort checking translated specification in {input_path}")
-            return 1
+    # print(f"[{FILE_NAME}] sort checking translated output")
+    # if do_sort_check:
+    #     (well_sorted, _) = sort_check(result)
+    #     if not well_sorted:
+    #         eprint(f"[{FILE_NAME}] failed sort checking translated specification in {input_path}")
+    #         return 1
 
     return 0
     print(f"[{FILE_NAME}] translated invariant constraints")
