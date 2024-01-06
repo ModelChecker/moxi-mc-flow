@@ -1487,16 +1487,32 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                     eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
+                if expr.prime:
+                    eprint(f"[{__name__}] Error: bound variables cannot be primed ({expr})")
+                    status = False
+                
                 expr.sort = context.bound_let_vars[expr.symbol].sort
             elif isinstance(expr, MCILVar) and expr.symbol in context.var_sorts:
+                if expr.prime:
+                    eprint(f"[{__name__}] Error: only system variables be primed ({expr})")
+                    status = False
+
                 expr.sort = context.var_sorts[expr.symbol]
 
                 if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.declared_consts:
+                if expr.prime:
+                    eprint(f"[{__name__}] Error: consts cannot be primed ({expr})")
+                    status = False
+
                 expr.sort = context.declared_consts[expr.symbol]
             elif isinstance(expr, MCILVar) and expr.symbol in context.defined_functions:
+                if expr.prime:
+                    eprint(f"[{__name__}] Error: consts cannot be primed ({expr})")
+                    status = False
+
                 # constants defined using define-fun 
                 ((inputs, output), _) = context.defined_functions[expr.symbol]
 
