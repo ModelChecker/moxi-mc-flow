@@ -359,6 +359,19 @@ def mcil2str(expr: MCILExpr) -> str:
     return s
 
 
+def rename_vars(expr: MCILExpr, vars: dict[MCILVar, MCILExpr], context: MCILContext) -> MCILExpr:
+    """Returns a copy of `expr` where each `MCILVar` present in `vars` is replaced with its mapped value. Useful for inlining function calls."""
+    new_expr = copy(expr)
+
+    for (subexpr,child) in [(e,child) for e in postorder_mcil(new_expr, context) for child in e.children]:
+        # have to look (subexpr,child) pair in order to replace exprs
+        # a replace looks like 
+        #   subexpr.children[subexpr.children.index(child)] = new_child_expr
+        if child in vars:
+            subexpr.children[subexpr.children.index(child)] = vars[child]
+
+    return new_expr
+
 def is_const_array_expr(expr: MCILExpr) -> bool:
     """Returns true if `expr` is of the form: `(as const (Array X Y) x)`"""
     return isinstance(expr, MCILApply) and expr.identifier.is_symbol("const") and is_array_sort(expr.sort)
@@ -702,6 +715,9 @@ class MCILProgram():
 
     def __init__(self, commands: list[MCILCommand]):
         self.commands: list[MCILCommand] = commands
+
+    def get_exprs(self) -> list[MCILExpr]:
+        return [e for cmd in self.commands for e in cmd.get_exprs()]
 
     def get_check_system_cmds(self) -> list[MCILCheckSystem]:
         return [cmd for cmd in self.commands if isinstance(cmd, MCILCheckSystem)]
@@ -1239,6 +1255,7 @@ class MCILContext():
 
         self.declared_functions: dict[str, Rank] = {}
         self.defined_functions: dict[str, tuple[Rank, MCILExpr]] = {}
+        self.defined_function_input_vars: dict[str, list[MCILVar] ] = {}
 
         self.declared_consts: dict[str, MCILSort] = {}
 
@@ -1293,8 +1310,15 @@ class MCILContext():
         self.declared_functions[symbol] = rank
         self.symbols.add(symbol)
 
-    def add_defined_function(self, symbol: str, signature: tuple[Rank, MCILExpr]) -> None:
+    def add_defined_function(self, define_fun: MCILDefineFun) -> None:
+        symbol = define_fun.symbol
+
+        input_sorts = [sort for _,sort in define_fun.input]
+        signature = (Rank((input_sorts, define_fun.output_sort)), define_fun.body)
+        input_vars = [MCILVar(MCILVarType.LOGIC, sort, sym, False) for sym,sort in define_fun.input]
+
         self.defined_functions[symbol] = signature
+        self.defined_function_input_vars[symbol] = input_vars
         self.symbols.add(symbol)
 
     def add_declared_const(self, symbol: str, sort: MCILSort) -> None:
@@ -1520,8 +1544,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
             context.remove_vars(cmd.input)
 
-            input_sorts = [sort for _,sort in cmd.input]
-            context.defined_functions[cmd.symbol] = (Rank((input_sorts, cmd.output_sort)), cmd.body)
+            context.add_defined_function(cmd)
         elif isinstance(cmd, MCILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
             # TODO: check for valid sort symbols
@@ -1647,10 +1670,29 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
     return (status, context)
 
 
+def inline_funs(program: MCILProgram, context: MCILContext) -> None:
+    """Perform function inlining on each expression in `program`."""
+    for top_expr in program.get_exprs():
+        # have to look (expr,child) pair in order to replace exprs
+        # a replace looks like 
+        #   expr.children[expr.children.index(child)] = new_child_expr
+        for (expr,child) in [(expr,child) for expr in postorder_mcil(top_expr, context) for child in expr.children]:
+            if isinstance(child, MCILApply) and child.identifier.symbol in context.defined_functions:
+                fun_symbol = child.identifier.symbol
+
+                _,fun_def = context.defined_functions[fun_symbol]
+                fun_def_input_vars = context.defined_function_input_vars[fun_symbol]
+                
+                var_map = {arg:val for arg,val in zip(fun_def_input_vars,child.children)}
+                
+                new_expr = rename_vars(fun_def, var_map, context)
+                expr.children[expr.children.index(child)] = new_expr
+
+
 def to_qfbv(program: MCILProgram):
 
-    SORT_MAP = {
-        "Int": MCIL_BITVEC_SORT(64)
+    SORT_MAP: dict[MCILSort, MCILSort] = {
+        MCIL_INT_SORT: MCIL_BITVEC_SORT(32)
     }
 
     UNARY_OPERATOR_MAP = {
@@ -1676,10 +1718,12 @@ def to_qfbv(program: MCILProgram):
             elif len(expr.children) == 2 and expr.identifier.symbol in BINARY_OPERATOR_MAP:
                 expr.identifier = BINARY_OPERATOR_MAP[expr.identifier.symbol]
             
-        if expr.sort.identifier.symbol in SORT_MAP:
-            expr.sort = SORT_MAP[expr.sort.identifier.symbol]
+        if expr.sort in SORT_MAP:
+            expr.sort = SORT_MAP[expr.sort]
 
     for command in program.commands:
+        if isinstance(command, MCILSetLogic):
+            command.logic = "QF_BV"
         if isinstance(command, MCILDefineSort):
             # FIXME: Need to check for any Int parameters of the definition
             raise NotImplementedError
@@ -1687,27 +1731,31 @@ def to_qfbv(program: MCILProgram):
             command.sort = SORT_MAP[command.sort.identifier.symbol]
         elif isinstance(command, MCILDeclareFun):
             for ivar in [i for i in command.inputs if i.identifier.symbol in SORT_MAP]:
-                command.inputs[command.inputs.index(ivar)] = SORT_MAP[ivar.identifier.symbol]
+                command.inputs[command.inputs.index(ivar)] = SORT_MAP[ivar]
 
             if command.output_sort.identifier.symbol in SORT_MAP:
                 command.output_sort = SORT_MAP[command.output_sort.identifier.symbol]
         elif isinstance(command, MCILDefineFun):
             for var in [(symbol,sort) for symbol,sort in command.input if sort.identifier.symbol in SORT_MAP]:
                 symbol,sort = var
-                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort])
 
             if command.output_sort.identifier.symbol in SORT_MAP:
                 command.output_sort = SORT_MAP[command.output_sort.identifier.symbol]
-        elif isinstance(command, MCILDefineSystem):
+        elif isinstance(command, (MCILDefineSystem, MCILCheckSystem)):
             for var in [(symbol,sort) for symbol,sort in command.input if sort.identifier.symbol in SORT_MAP]:
                 symbol,sort = var
-                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort])
             for var in [(symbol,sort) for symbol,sort in command.output if sort.identifier.symbol in SORT_MAP]:
                 symbol,sort = var
-                command.output[command.output.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+                command.output[command.output.index(var)] = (symbol, SORT_MAP[sort])
             for var in [(symbol,sort) for symbol,sort in command.local if sort.identifier.symbol in SORT_MAP]:
                 symbol,sort = var
-                command.local[command.local.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+                command.local[command.local.index(var)] = (symbol, SORT_MAP[sort])
+
+            sys_vars = [v for v in command.input_vars + command.output_vars + command.local_vars if v.sort in SORT_MAP]
+            for var in sys_vars:
+                var.sort = SORT_MAP[var.sort]
 
         context = MCILContext()
         for expr1 in command.get_exprs():

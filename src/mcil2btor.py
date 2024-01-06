@@ -257,21 +257,21 @@ def build_expr_map(
     for expr in postorder_mcil(node, context):
         if isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
             expr_map[expr] = expr_map[context.bound_let_vars[expr.symbol]]
-        elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 3:
+        elif isinstance(expr, MCILVar) and all([b for b in var_map[(expr, context.system_context)]]):
             # We use "int(not is_init_expr) + int(expr.prime)" to compute the index in var_map tuple:
             #   var_map[var] = (init, cur, next)
             idx = int(not is_init_expr) + int(expr.prime)
             btor_var = var_map[(expr, context.system_context)][idx]
             if not btor_var:
-                raise ValueError
+                raise ValueError(f"No BTOR2 var for {'::'.join(context.system_context.get_scope_symbols() + [expr.symbol])}")
             expr_map[expr] = btor_var
-        elif isinstance(expr, MCILVar) and len(var_map[(expr, context.system_context)]) == 2:
+        elif isinstance(expr, MCILVar):
             # We use "int(expr.prime)" to compute the index in var_map tuple:
             #   var_map[var] = (cur, next)
             idx = int(expr.prime)
             btor_var = var_map[(expr, context.system_context)][idx]
             if not btor_var:
-                raise ValueError
+                raise ValueError(f"No BTOR2 var for {'::'.join(context.system_context.get_scope_symbols() + [expr.symbol])}")
             expr_map[expr] = btor_var
         elif isinstance(expr, MCILConstant) and expr.sort.identifier.symbol in context.declared_enum_sorts:
             value = context.declared_enum_sorts[expr.sort.identifier.symbol].index(expr.value)
@@ -284,7 +284,7 @@ def build_expr_map(
             expr_map[expr] = BtorConst(sort_map[MCIL_BOOL_SORT], True)
         elif isinstance(expr, MCILApply) and expr.identifier.symbol in mcil_fun_map:
             if len(expr.children) > 3:
-                raise NotImplementedError
+                raise NotImplementedError(f"{expr}")
 
             tmp_indices = copy(expr.identifier.indices) + ([None] * (2 - len(expr.identifier.indices)))
             (idx1, idx2) = tuple(tmp_indices)
@@ -362,12 +362,13 @@ def translate_check_system(
     # Note: var_map may have repeat values (i.e., renamed variables point to same Btor variables)
     const_array_init_vars = get_const_array_init_vars(context, var_map)
     for (init,cur,next) in set(var_map.values()):
-        if init in const_array_init_vars and cur:
+        if init in const_array_init_vars and cur and next:
             const_val = context.const_array_init_exprs[const_array_init_vars[init]]
             build_expr_map(const_val, context, True, sort_map, var_map, expr_map)
             btor2_model.append(expr_map[const_val])
             btor2_model.append(init)
             btor2_model.append(cur)
+            btor2_model.append(next)
             btor2_model.append(BtorInit(cast(BtorStateVar, cur), expr_map[const_val]))
             continue
 
@@ -434,6 +435,12 @@ def translate(mcil_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorN
         return None
     print(f"[{FILE_NAME}] translating to BTOR2")
     
+    # BTOR2 only supports bit vectors and their operations and 
+    # does not support functions, so we force all other types to 
+    # bit vectors and inline all functions
+    to_qfbv(mcil_prog)
+    inline_funs(mcil_prog, context)
+
     btor2_prog_list: dict[str, dict[str, list[BtorNode]]] = {}
     sort_map: SortMap = {}
     var_map: VarMap = {}
@@ -481,8 +488,6 @@ def main(
     if not program:
         eprint(f"[{FILE_NAME}] failed parsing\n")
         return 1
-
-    to_qfbv(program)
 
     output = translate(program)
 
