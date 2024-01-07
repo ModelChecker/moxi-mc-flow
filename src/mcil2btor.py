@@ -411,7 +411,14 @@ def translate_check_system(
 
     # Add constant arrays
     for (sort,val,expr) in context.const_arrays:
-        const_var = BtorStateVar(sort_map[sort], f"array.{val.value}")
+        sort_str = ((((str(sort)
+            ).replace("(","")
+            ).replace(")","")
+            ).replace("_ BitVec ","bv")
+            ).replace(" ","_")
+        const_str = f"{sort_str}_{val.value}"
+        
+        const_var = BtorStateVar(sort_map[sort], const_str)
 
         build_expr_map(val, context, False, sort_map, var_map, expr_map)
         expr_map[expr] = const_var
