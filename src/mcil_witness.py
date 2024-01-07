@@ -30,6 +30,16 @@ class MCILAssignment():
         self.symbol = symbol
 
 
+class MCILEnumAssignment(MCILAssignment):
+
+    def __init__(self, symbol: str, value: str) -> None:
+        super().__init__(symbol)
+        self.value = value
+
+    def __str__(self) -> str:
+        return f"({self.symbol} {self.value})"
+
+
 class MCILBitVecAssignment(MCILAssignment):
 
     def __init__(self, symbol: str, value: BitVec) -> None:

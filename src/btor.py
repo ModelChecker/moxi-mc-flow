@@ -97,8 +97,11 @@ class BtorNode():
     def set_comment(self, s: str):
         self.comment = f" ; {s}"
 
+    def set_comment_no_space(self, s: str):
+        self.comment = f"; {s}"
+
     def __str__(self) -> str:
-        return f"{self.nid}{self.comment}"
+        return f"{self.comment}"
 
 
 class BtorSort(BtorNode):
@@ -471,7 +474,9 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
 
     reduced_program: list[BtorNode] = []
     for node in program:
-        if node not in btor2_nids:
+        if str(node)[0] == ";":
+            reduced_program.append(node)
+        elif node not in btor2_nids:
             node.nid = cur_nid
             btor2_nids[node] = cur_nid
             cur_nid += 1

@@ -8,10 +8,31 @@ from .btor import *
 from .parse_btorwit import parse_witness
 
 
+def collect_enums(btor_program: list[BtorNode]) -> dict[str, list[str]]:
+    if len(btor_program) < 1:
+        return {}
+
+    enums = {}
+    i = 0
+
+    # enums are encoded in the first comments of the model and are 
+    # of the form:
+    #   var = Val0 Val1 ... ValN
+    while str(btor_program[i])[0] == ";":
+        comment = btor_program[i].comment[2:]
+        var,vals = [v.strip() for v in comment.split("=")]
+        enums[var] = vals.split(" ")
+        i += 1
+
+    return enums
+
+
 def collect_var_symbols(btor_program: list[BtorNode]) -> dict[int, str]:
     vars = {}
     cur = 0
     for node in [n for n in btor_program if isinstance(n, BtorVar)]:
+        # search for '.cur' vars that are not locals to any sub-systems;
+        # a variable with scope '::' is a local in a sub-system
         if node.symbol.find("::") == -1 and node.symbol.find(".cur") != -1:
             vars[cur] = node.symbol.removesuffix(".cur")
         cur += 1
@@ -26,23 +47,36 @@ def translate(
     trail: list[MCILState] = []
 
     vars = collect_var_symbols(btor_program)
+    enums = collect_enums(btor_program)
 
     for frame in btor_witness.frames[:-1]:
-        il_assigns: list[MCILAssignment] = []
+        mcil_assigns: list[MCILAssignment] = []
 
         btor_assigns = [
-            a for a in frame.state_assigns + frame.input_assigns if a.id in vars
+            a 
+            for a 
+            in frame.state_assigns + frame.input_assigns 
+            if a.id in vars
         ]
 
         for btor_assign in btor_assigns:
-            if isinstance(btor_assign, BtorBitVecAssignment):
-                il_assigns.append(MCILBitVecAssignment(
+            if (
+                isinstance(btor_assign, BtorBitVecAssignment) 
+                and vars[btor_assign.id] in enums
+            ):
+                mcil_assigns.append(MCILEnumAssignment(
+                        vars[btor_assign.id], 
+                        enums[vars[btor_assign.id]][btor_assign.value.value]
+                    )
+                )
+            elif isinstance(btor_assign, BtorBitVecAssignment):
+                mcil_assigns.append(MCILBitVecAssignment(
                         vars[btor_assign.id], 
                         btor_assign.value
                     )
                 )
             elif isinstance(btor_assign, BtorArrayAssignment):
-                il_assigns.append(MCILArrayAssignment(
+                mcil_assigns.append(MCILArrayAssignment(
                         vars[btor_assign.id], 
                         (btor_assign.index, btor_assign.element)
                     )
@@ -51,7 +85,7 @@ def translate(
                 raise NotImplementedError
 
         trail.append(
-            MCILState(frame.index, il_assigns)
+            MCILState(frame.index, mcil_assigns)
         )
 
     return MCILTrace(

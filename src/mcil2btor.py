@@ -94,6 +94,9 @@ def get_const_array_init_vars(context: MCILContext, var_map: VarMap):
         if btor_init and mcil_var in context.const_array_init_exprs.keys()
     }
 
+def get_scoped_var_symbol(var: MCILVar, system_context: MCILSystemContext) -> str:
+    return "::".join(system_context.get_scope_symbols() + [var.symbol])
+
 def rename_lookup(
     var: MCILVar, 
     system_context: MCILSystemContext, 
@@ -190,7 +193,7 @@ def build_var_map_expr(
         if isinstance(expr, MCILVar) and (expr, context.system_context) not in var_map:
             var, system_context = rename_lookup(expr, context.system_context, rename_map)
 
-            symbol = "::".join(system_context.get_scope_symbols() + [var.symbol])
+            symbol = get_scoped_var_symbol(var, system_context)
 
             # note: those system context copies only copy the pointers + they are only as big as the subsystems are deep
             if var.var_type == MCILVarType.INPUT:
@@ -384,6 +387,23 @@ def translate_check_system(
     btor2_prog_list: dict[str, list[BtorNode]] = {}
     btor2_model: list[BtorNode] = []
 
+    # Note: var_map may have repeat values (i.e., renamed variables point to
+    # same Btor variables) 
+    # Add enum encoding information to comments in beginning of program
+    for var,sys_ctx in set([
+        (v,c) 
+        for v,c 
+        in var_map.keys() 
+        if v.sort.identifier.symbol in context.declared_enum_sorts
+    ]):
+        enum_sort_symbols = context.declared_enum_sorts[var.sort.identifier.symbol]
+        enum_encoding = (f"{get_scoped_var_symbol(var, sys_ctx)} = "
+                         f"{' '.join(enum_sort_symbols)}")
+
+        enum_var_comment = BtorNode()
+        enum_var_comment.set_comment_no_space(enum_encoding)
+        btor2_model.append(enum_var_comment)
+
     for sort in sort_map.values():
         btor2_model.append(sort)
 
@@ -539,6 +559,7 @@ def translate(mcil_prog: MCILProgram, int_width: int) -> Optional[dict[str, dict
     sort_map: SortMap = {}
     var_map: VarMap = {}
     expr_map: ExprMap = {}
+
 
     for check_system in mcil_prog.get_check_system_cmds():
         target_system = context.defined_systems[check_system.sys_symbol]
