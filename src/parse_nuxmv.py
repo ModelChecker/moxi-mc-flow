@@ -90,10 +90,10 @@ class NuXmvLexer(Lexer):
     RSHIFT = r"\<\<"
 
 
-    LESSTHAN = r"\<"
-    GREATERTHAN = r"\>"
     LESSEQUAL = r"\<\="
     GREATEREQUAL= r"\>\="
+    LESSTHAN = r"\<"
+    GREATERTHAN = r"\>"
 
     LPAREN = r"\("
     RPAREN = r"\)"
