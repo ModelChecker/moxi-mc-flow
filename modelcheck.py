@@ -22,21 +22,25 @@ DEFAULT_AVR = FILE_DIR / "avr"
 DEFAULT_PONO = FILE_DIR / "pono"
 
 
-def cleandir(dir: Path, quiet: bool):
-    """Remove and create fresh dir, print a warning if quiet is False"""
+def rmdir(dir: Path, quiet: bool):
+    """Remove `dir`, print a warning if quiet is False"""
     if dir.is_file():
         if not quiet:
-            print(f"[{FILE_NAME}] Overwriting '{dir}'")
+            print(f"[{FILE_NAME}] Overwriting {dir}")
         os.remove(dir)
     elif dir.is_dir():
         if not quiet:
-            print(f"[{FILE_NAME}] Overwriting '{dir}'")
+            print(f"[{FILE_NAME}] Overwriting {dir}")
         shutil.rmtree(dir)
 
+
+def cleandir(dir: Path, quiet: bool):
+    """Remove and create fresh `dir`, print a warning if quiet is False"""
+    rmdir(dir, quiet)
     os.mkdir(dir)
 
 
-def any2btor(src_path: Path, target_path: Path, pickle_path: Path) -> int:
+def any2btor(src_path: Path, target_path: Path, pickle_path: Path, int_width: int) -> int:
     if not src_path.is_file():
         eprint(f"[{FILE_NAME}] Error: source is not a file ({src_path})\n")
         return 1
@@ -45,9 +49,9 @@ def any2btor(src_path: Path, target_path: Path, pickle_path: Path) -> int:
     if src_path.suffix == ".smv":
         mcil_path = WORK_DIR / src_path.with_suffix(".mcil").name
         retcode += nuxmv2mcil(src_path, mcil_path, False)
-        retcode += mcil2btor(mcil_path, target_path, pickle_path)
+        retcode += mcil2btor(mcil_path, target_path, pickle_path, int_width)
     elif src_path.suffix == ".mcil" or src_path.suffix == ".json":
-        retcode += mcil2btor(src_path, target_path, pickle_path)
+        retcode += mcil2btor(src_path, target_path, pickle_path, int_width)
     else:
         eprint(f"[{FILE_NAME}] Error: file type unsupported ({src_path.suffix})\n")
         return 1
@@ -56,7 +60,7 @@ def any2btor(src_path: Path, target_path: Path, pickle_path: Path) -> int:
 
 
 def run_btormc(btormc_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int:
-    print(f"[{FILE_NAME}] running btormc over `{btor_path}`")
+    print(f"[{FILE_NAME}] running btormc over {btor_path}")
     label = btor_path.suffixes[-2][1:]
 
     proc = subprocess.run([btormc_path, btor_path, "--trace-gen-full"], capture_output=True)
@@ -72,13 +76,13 @@ def run_btormc(btormc_path: Path, btor_path: Path, btor_witness_dir_path: Path) 
     with open(btor_witness_path, "wb") as f:
         f.write(btor_witness_bytes)
 
-    print(f"[{FILE_NAME}] btormc witness created at `{btor_witness_path}`")
+    print(f"[{FILE_NAME}] btormc witness created at {btor_witness_path}")
 
     return 0
 
 
 def run_avr(avr_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int:
-    print(f"[{FILE_NAME}] running avr over `{btor_path}`")
+    print(f"[{FILE_NAME}] running avr over {btor_path}")
     label = btor_path.suffixes[-2][1:]
 
     os.chdir(avr_path)
@@ -98,13 +102,13 @@ def run_avr(avr_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int
     else:
         btor_witness_path.touch()
 
-    print(f"[{FILE_NAME}] avr witness created at `{btor_witness_path}`")
+    print(f"[{FILE_NAME}] avr witness created at {btor_witness_path}")
 
     return 0
 
 
 def run_pono(pono_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int:
-    print(f"[{FILE_NAME}] running pono over `{btor_path}`")
+    print(f"[{FILE_NAME}] running pono over {btor_path}")
 
     label = btor_path.suffixes[-2][1:]
     pono_btor_path = pono_path / "shared" / btor_path.name
@@ -144,7 +148,8 @@ def model_check(
     use_btormc: bool, 
     use_avr: bool, 
     use_pono: bool,
-    copyback: bool
+    copyback: bool,
+    int_width: int
 ) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
     # does not output valid witness output (header is missing), so we don't use it.
@@ -153,12 +158,18 @@ def model_check(
         eprint(f"[{FILE_NAME}] Error: source is not a file ({input_path})\n")
         return 1
 
-    cleandir(WORK_DIR, False)
+    if output_path.exists():
+        rmdir(output_path, False)
 
+    cleandir(WORK_DIR, True)
+
+    src_path = WORK_DIR / input_path.name
     pickled_btor_path = WORK_DIR / input_path.with_suffix(".pickle").name
     mcil_witness_path = WORK_DIR / input_path.with_suffix(".cex").name
+
+    shutil.copy(str(input_path), str(src_path))
     
-    retcode = any2btor(input_path, WORK_DIR, pickled_btor_path)
+    retcode = any2btor(src_path, WORK_DIR, pickled_btor_path, int_width)
     if retcode:
         return retcode
 
@@ -190,10 +201,10 @@ def model_check(
 
         if copyback:
             shutil.copytree(WORK_DIR, output_path)
-            print(f"[{FILE_NAME}] wrote files to `{output_path}`")
+            print(f"[{FILE_NAME}] wrote files to {output_path}")
         else:
             mcil_witness_path.replace(output_path)
-            print(f"[{FILE_NAME}] wrote MCIL witness to `{output_path}`")
+            print(f"[{FILE_NAME}] wrote MCIL witness to {output_path}")
 
         cleandir(WORK_DIR, True)
 
@@ -217,6 +228,7 @@ if __name__ == "__main__":
         help="enable avr")
     parser.add_argument("--pono", action="store_true", 
         help="enable pono")
+    parser.add_argument("--intwidth", default=32, type=int, help="bit width to translate Int types to")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -228,6 +240,6 @@ if __name__ == "__main__":
     if args.output:
         output_path = Path(args.output)
 
-    retcode = model_check(input_path, output_path, args.btormc, args.avr, args.pono, args.copyback)
+    retcode = model_check(input_path, output_path, args.btormc, args.avr, args.pono, args.copyback, args.intwidth)
 
     sys.exit(retcode)

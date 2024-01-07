@@ -35,7 +35,7 @@ def cleandir(dir: Path, quiet: bool):
     os.mkdir(dir)
 
 
-def main(input_path: Path, target_lang: str, output_path: Path, validate: bool) -> int:
+def main(input_path: Path, target_lang: str, output_path: Path, validate: bool, int_width: int) -> int:
     if not input_path.is_file():
         eprint(f"[{FILE_NAME}] source is not a file ({input_path})\n")
         return 1
@@ -64,7 +64,7 @@ def main(input_path: Path, target_lang: str, output_path: Path, validate: bool) 
             if retcode:
                 return retcode
 
-            retcode = mcil2btor(mcil_path, output_path, None)
+            retcode = mcil2btor(mcil_path, output_path, None, int_width)
             if retcode:
                 return retcode
 
@@ -74,7 +74,7 @@ def main(input_path: Path, target_lang: str, output_path: Path, validate: bool) 
             if retcode:
                 return retcode
         case(".mcil", "btor2"):
-            retcode = mcil2btor(input_path, output_path, None)
+            retcode = mcil2btor(input_path, output_path, None, int_width)
             if retcode:
                 return retcode
         case (".json", "mcil"):
@@ -88,7 +88,7 @@ def main(input_path: Path, target_lang: str, output_path: Path, validate: bool) 
             if retcode:
                 return retcode
 
-            retcode = mcil2btor(input_path, output_path, None)
+            retcode = mcil2btor(input_path, output_path, None, int_width)
             if retcode:
                 return retcode
 
@@ -120,6 +120,7 @@ if __name__ == "__main__":
                         help="validate output; uses catbtor if targetlan is btor2, sortcheck.py if targetlang is mcil or mcil-json")
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
     parser.add_argument("--sortcheck", help="path to sortcheck.py for MCIL validation")
+    parser.add_argument("--intwidth", default=32, type=int, help="bit width to translate Int types to when translating to BTOR2")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -147,5 +148,5 @@ if __name__ == "__main__":
 
     # cProfile.run("main(input_path, args.targetlang, output_path)")
 
-    returncode = main(input_path, args.targetlang, output_path, args.validate)
+    returncode = main(input_path, args.targetlang, output_path, args.validate, args.intwidth)
     sys.exit(returncode)

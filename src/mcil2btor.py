@@ -508,8 +508,8 @@ def translate_check_system(
     return btor2_prog_list
     
 
-def translate(mcil_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorNode]]]]:
-    """Translate `mcil_prog` to an equisatisfiable set of Btor programs, labeled by query symbol.
+def translate(mcil_prog: MCILProgram, int_width: int) -> Optional[dict[str, dict[str, list[BtorNode]]]]:
+    """Translate `mcil_prog` to an equisatisfiable set of Btor programs, labeled by query symbol. Translates Int types to BitVecs of width `int_width`.
     
     The strategy for translation is to sort check the input then construct a Btor program for each query (and targeted system) by:
     1) Constructing a mapping of MCILSorts to BtorSorts for the target system
@@ -533,7 +533,7 @@ def translate(mcil_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorN
     # bit vectors and inline all functions
     inline_funs(mcil_prog, context)
     to_binary_applys(mcil_prog, context)
-    to_qfbv(mcil_prog)
+    to_qfbv(mcil_prog, int_width)
 
     btor2_prog_list: dict[str, dict[str, list[BtorNode]]] = {}
     sort_map: SortMap = {}
@@ -557,7 +557,8 @@ def translate(mcil_prog: MCILProgram) -> Optional[dict[str, dict[str, list[BtorN
 def main(
     input_path: Path, 
     output_path: Path, 
-    pickle_path: Optional[Path]
+    pickle_path: Optional[Path],
+    int_width: int
 ) -> int:
     if not input_path.is_file():
         eprint(f"[{FILE_NAME}]  '{input_path}' is not a valid file.\n")
@@ -583,7 +584,7 @@ def main(
         eprint(f"[{FILE_NAME}] failed parsing\n")
         return 1
 
-    output = translate(program)
+    output = translate(program, int_width)
 
     if output is None:
         eprint(f"[{FILE_NAME}] failed translation\n")

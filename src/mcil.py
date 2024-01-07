@@ -10,8 +10,6 @@ from typing import Any, Callable, Optional, cast
 
 from .util import eprint
 
-# Width of integers -- used when we convert Int sorts to BitVec sorts
-INT_WIDTH = 64
 
 class MCILAttribute(Enum):
     INPUT      = ":input"
@@ -1783,10 +1781,10 @@ def to_binary_applys(program: MCILProgram, context: MCILContext) -> None:
 
 
 
-def to_qfbv(program: MCILProgram):
+def to_qfbv(program: MCILProgram, int_width: int):
 
     SORT_MAP: dict[MCILSort, MCILSort] = {
-        MCIL_INT_SORT: MCIL_BITVEC_SORT(32)
+        MCIL_INT_SORT: MCIL_BITVEC_SORT(int_width)
     }
 
     UNARY_OPERATOR_MAP = {
