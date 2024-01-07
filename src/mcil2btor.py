@@ -1,3 +1,4 @@
+from ast import expr
 from copy import copy
 import json
 from pathlib import Path
@@ -80,6 +81,7 @@ VarMap = dict[tuple[MCILVar, MCILSystemContext], BtorVarType]
 # which case another lookup is necessary.
 RenameMap = dict[tuple[MCILVar, MCILSystemContext], tuple[MCILVar, MCILSystemContext]]
 
+
 def get_const_vars(context: MCILContext, var_map: VarMap):
     return {
         btor_cur 
@@ -87,15 +89,10 @@ def get_const_vars(context: MCILContext, var_map: VarMap):
         if btor_cur and mcil_var.symbol in context.declared_consts.keys()
     }
 
-def get_const_array_init_vars(context: MCILContext, var_map: VarMap):
-    return {
-        btor_init : mcil_var 
-        for (mcil_var,_),(btor_init,_,_) in var_map.items() 
-        if btor_init and mcil_var in context.const_array_init_exprs.keys()
-    }
 
 def get_scoped_var_symbol(var: MCILVar, system_context: MCILSystemContext) -> str:
     return "::".join(system_context.get_scope_symbols() + [var.symbol])
+
 
 def rename_lookup(
     var: MCILVar, 
@@ -125,19 +122,26 @@ def update_rename_map(
 
 def mcilsort2btorsort(sort: MCILSort, context: MCILContext, sort_map: SortMap) -> BtorSort:
     if sort in sort_map:
-        return sort_map[sort]
+        btor2_sort = sort_map[sort]
     elif is_bool_sort(sort):
-        return BtorBitVec(1)
+        btor2_sort = BtorBitVec(1)
     elif is_bitvec_sort(sort):
-        return BtorBitVec(sort.identifier.indices[0])
+        btor2_sort = BtorBitVec(sort.identifier.indices[0])
     elif is_array_sort(sort):
-        return BtorArray(mcilsort2btorsort(sort.parameters[0], context, sort_map), 
-                          mcilsort2btorsort(sort.parameters[1], context, sort_map))
+        btor2_sort = BtorArray(
+            mcilsort2btorsort(sort.parameters[0], context, sort_map), 
+            mcilsort2btorsort(sort.parameters[1], context, sort_map)
+        )
     elif sort.identifier.symbol in context.declared_enum_sorts:
         width = len(context.declared_enum_sorts[sort.identifier.symbol]).bit_length()
-        return BtorBitVec(width)
+        btor2_sort = BtorBitVec(width)
     else:
         raise NotImplementedError(f"MCIL sort '{sort}' ({type(sort)}) unrecognized")
+
+    if sort not in sort_map:
+        sort_map[sort] = btor2_sort
+
+    return btor2_sort
 
 
 def build_sort_map_expr(
@@ -148,7 +152,7 @@ def build_sort_map_expr(
     """Iteratively recurse the expr IL and map each unique MCILSort of each node to a new BtorSort."""
     for expr in postorder_mcil(node, context):
         if expr.sort not in sort_map:
-            sort_map[expr.sort] = mcilsort2btorsort(expr.sort, context, sort_map)
+            mcilsort2btorsort(expr.sort, context, sort_map)
 
     return sort_map
 
@@ -307,10 +311,8 @@ def build_expr_map(
             expr_map[expr] = BtorConst(sort_map[expr.sort], value)
         elif isinstance(expr, MCILConstant):
             expr_map[expr] = BtorConst(sort_map[expr.sort], expr.value)
-        elif is_init_expr and is_const_array_expr(expr):
-            pass 
-        elif is_init_expr and is_const_array_init_expr(expr):
-            expr_map[expr] = BtorConst(sort_map[MCIL_BOOL_SORT], True)
+        elif is_const_array_expr(expr):
+            pass
         elif isinstance(expr, MCILApply) and expr.identifier.symbol in mcil_fun_map:
             if len(expr.children) > 3:
                 raise NotImplementedError(f"{expr}")
@@ -359,7 +361,7 @@ def translate_define_system(
 
     # type-checking hack: check for len instead of InputVar/StateVar
     # recall that consts and const-initialized arrays are already handled
-    for init,cur in [(i,c) for (mcil_var,_),(i,c,_) in var_map.items() if (i and c and mcil_var not in context.const_array_init_exprs.keys())]: 
+    for init,cur in [(i,c) for (i,c,_) in var_map.values() if i and c]: 
         btor2_model.append(BtorInit(cast(BtorStateVar, cur), init))
 
     build_expr_map(system.trans, context, False, sort_map, var_map, expr_map)
@@ -407,9 +409,20 @@ def translate_check_system(
     for sort in sort_map.values():
         btor2_model.append(sort)
 
+    # Add constant arrays
+    for (sort,val,expr) in context.const_arrays:
+        const_var = BtorStateVar(sort_map[sort], f"array.{val.value}")
+
+        build_expr_map(val, context, False, sort_map, var_map, expr_map)
+        expr_map[expr] = const_var
+
+        btor2_model.append(expr_map[val])
+        btor2_model.append(const_var)
+        btor2_model.append(BtorInit(const_var, expr_map[val]))
+        btor2_model.append(BtorNext(const_var, const_var))
+
     # Note: var_map may have repeat values (i.e., renamed variables point to same Btor variables)
     const_vars = get_const_vars(context, var_map)
-    const_array_init_vars = get_const_array_init_vars(context, var_map)
     for (init,cur,next) in set(var_map.values()):
         if cur in const_vars:
             btor2_model.append(cur)
@@ -418,20 +431,6 @@ def translate_check_system(
                     cast(BtorStateVar, cur), 
                     cast(BtorStateVar, cur)
             ))
-
-            continue
-        
-        if init in const_array_init_vars and cur and next:
-            const_val = context.const_array_init_exprs[const_array_init_vars[init]]
-
-            build_expr_map(const_val, context, True, sort_map, var_map, expr_map)
-
-            btor2_model.append(expr_map[const_val])
-            btor2_model.append(init)
-            btor2_model.append(cur)
-            btor2_model.append(next)
-
-            btor2_model.append(BtorInit(cast(BtorStateVar, cur), expr_map[const_val]))
 
             continue
 
@@ -559,7 +558,6 @@ def translate(mcil_prog: MCILProgram, int_width: int) -> Optional[dict[str, dict
     sort_map: SortMap = {}
     var_map: VarMap = {}
     expr_map: ExprMap = {}
-
 
     for check_system in mcil_prog.get_check_system_cmds():
         target_system = context.defined_systems[check_system.sys_symbol]

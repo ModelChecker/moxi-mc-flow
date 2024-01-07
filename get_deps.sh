@@ -16,10 +16,10 @@ popd
 popd
 
 # Pono (CAV artifact)
-wget https://figshare.com/ndownloader/files/28213749
-tar -xvf 28213749
-mv pono-paper-artifact pono
-pushd pono
-docker build --no-cache -t pono-artifact ./docker
-popd
+# wget https://figshare.com/ndownloader/files/28213749
+# tar -xvf 28213749
+# mv pono-paper-artifact pono
+# pushd pono
+# docker build --no-cache -t pono-artifact ./docker
+# popd
 

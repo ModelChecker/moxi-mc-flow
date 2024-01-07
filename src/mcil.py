@@ -401,22 +401,11 @@ def rename_vars(expr: MCILExpr, vars: dict[MCILVar, MCILExpr], context: MCILCont
 
     return new_expr
 
+
 def is_const_array_expr(expr: MCILExpr) -> bool:
     """Returns true if `expr` is of the form: `(as const (Array X Y) x)`"""
     return isinstance(expr, MCILApply) and expr.identifier.is_symbol("const") and is_array_sort(expr.sort)
 
-
-def is_const_array_init_expr(expr: MCILExpr) -> bool:
-    """Returns true if `expr` is of the form: `(= var (as const (Array X Y) x))`"""
-    if (not isinstance(expr, MCILApply) or not expr.identifier.is_symbol("=") or
-            len(expr.children) != 2):
-        return False
-
-    lhs,rhs = expr.children
-    if not (isinstance(lhs, MCILVar) and is_const_array_expr(rhs)):
-        return False
-
-    return True
 
 def to_json_sorted_var(symbol: str, sort: MCILSort) -> dict:
     return {"symbol": symbol, "sort": sort.to_json()}
@@ -1313,7 +1302,8 @@ class MCILContext():
         self.bound_let_vars: dict[str, MCILExpr] = {}
 
         self.cur_command: Optional[MCILCommand] = None
-        self.const_array_init_exprs: dict[MCILVar, MCILExpr] = {}
+
+        self.const_arrays: set[tuple[MCILSort, MCILConstant, MCILExpr]] = set()
 
         self.symbols: set[str] = set()
 
@@ -1537,12 +1527,13 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                     eprint(f"[{__name__}] Error: symbol '{expr.identifier.symbol}' not recognized ({expr}).\n\t{context.cur_command}")
                     status = False
 
-                # arrays initialized with constants must be handled separately,
-                # maintain a list of them
-                if is_init_expr and is_const_array_init_expr(expr):
-                    var = cast(MCILVar, expr.children[0])
-                    const_val = expr.children[1].children[0]
-                    context.const_array_init_exprs[var] = const_val
+                # constant arrays must be handled separately, maintain a list of
+                # them
+                if is_const_array_expr(expr):
+                    # this is a safe cast since expr is well-sorted, see sort check
+                    # of "const" in sort_check_apply_core
+                    const_expr = cast(MCILConstant, expr.children[0])
+                    context.const_arrays.add((expr.sort, const_expr, expr))
 
             elif isinstance(expr, MCILLetExpr):
                 # TODO: check for variable name clashes

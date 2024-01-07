@@ -19,7 +19,6 @@ WORK_DIR = FILE_DIR / "__workdir__"
 
 DEFAULT_BTORMC = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
 DEFAULT_AVR = FILE_DIR / "avr"
-DEFAULT_PONO = FILE_DIR / "pono"
 
 
 def rmdir(dir: Path, quiet: bool):
@@ -59,11 +58,12 @@ def any2btor(src_path: Path, target_path: Path, pickle_path: Path, int_width: in
     return retcode
 
 
-def run_btormc(btormc_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int:
+def run_btormc(btormc_path: Path, btor_path: Path, btor_witness_dir_path: Path, fulltrace: bool, kmax: int) -> int:
     print(f"[{FILE_NAME}] running btormc over {btor_path}")
     label = btor_path.suffixes[-2][1:]
 
-    proc = subprocess.run([btormc_path, btor_path, "--trace-gen-full"], capture_output=True)
+    command = [str(btormc_path), str(btor_path), "-kmax", str(kmax)] + (["--trace-gen-full"] if fulltrace else [])
+    proc = subprocess.run(command, capture_output=True)
 
     if proc.returncode:
         eprint(proc.stderr.decode("utf-8"))
@@ -107,49 +107,15 @@ def run_avr(avr_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int
     return 0
 
 
-def run_pono(pono_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int:
-    print(f"[{FILE_NAME}] running pono over {btor_path}")
-
-    label = btor_path.suffixes[-2][1:]
-    pono_btor_path = pono_path / "shared" / btor_path.name
-
-    os.chdir(pono_path)
-    shutil.copy(btor_path, pono_btor_path)
-
-    proc = subprocess.run([
-        "docker", "run", "-it", "-d", "--name", "ponodocker", "--rm", "-v", "./shared:/home/pono-artifact", "pono-artifact"
-    ], capture_output=True)
-
-    if proc.returncode != 0:
-        eprint(f"[{FILE_NAME}] error running docker for pono. Is it built?")
-        return proc.returncode
-
-    proc = subprocess.run([
-        "docker", "exec", "-it", "ponodocker", "./pono/build/pono", "--witness", btor_path.name
-    ], capture_output=True)
-    btor_witness_bytes = proc.stdout
-
-    proc = subprocess.run(["docker", "stop", "ponodocker"], capture_output=True)
-
-    os.chdir("..")
-
-    btor_witness_path = btor_witness_dir_path / btor_path.with_suffix(f".cex").name
-    with open(btor_witness_path, "wb") as f:
-        f.write(btor_witness_bytes)
-
-    print(f"[{FILE_NAME}] pono witness created at ___")
-
-    return 0
-
-
 def model_check(
     input_path: Path, 
     output_path: Path, 
     use_btormc: bool, 
     use_avr: bool, 
-    use_pono: bool,
     copyback: bool,
-    int_width: int
+    fulltrace: bool,
+    int_width: int,
+    kmax: int
 ) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
     # does not output valid witness output (header is missing), so we don't use it.
@@ -175,7 +141,6 @@ def model_check(
 
     btormc_witness_path = Path()
     avr_witness_path = Path()
-    pono_witness_path = Path()
     for check_system_path in [d for d in WORK_DIR.iterdir() if d.is_dir()]:
         if use_btormc:
             btormc_witness_path = check_system_path / "btormc"
@@ -185,17 +150,11 @@ def model_check(
             avr_witness_path = check_system_path / "avr"
             avr_witness_path.mkdir()
 
-        if use_pono:
-            pono_witness_path = check_system_path / "pono"
-            pono_witness_path.mkdir()
-        
         for btor_path in check_system_path.glob("*.btor"):
             if use_btormc:
-                run_btormc(DEFAULT_BTORMC, btor_path, btormc_witness_path)
+                run_btormc(DEFAULT_BTORMC, btor_path, btormc_witness_path, fulltrace, kmax)
             if use_avr:
                 run_avr(DEFAULT_AVR, btor_path, avr_witness_path)
-            if use_pono:
-                run_pono(DEFAULT_PONO, btor_path, pono_witness_path)
 
         retcode = btorwit2mcilwit(btormc_witness_path, pickled_btor_path, mcil_witness_path)
 
@@ -226,20 +185,23 @@ if __name__ == "__main__":
         help="enable btormc")
     parser.add_argument("--avr", action="store_true", 
         help="enable avr")
-    parser.add_argument("--pono", action="store_true", 
-        help="enable pono")
-    parser.add_argument("--intwidth", default=32, type=int, help="bit width to translate Int types to")
+    parser.add_argument("--intwidth", default=32, type=int, 
+        help="bit width to translate Int types to")
+    parser.add_argument("--fulltrace", action="store_true", 
+        help="return traces with all variable values for every state")
+    parser.add_argument("--kmax", default=1000, type=int, 
+        help="max bound for BMC")
     args = parser.parse_args()
 
     input_path = Path(args.input)
 
-    if not args.btormc and not args.avr and not args.pono:
+    if not args.btormc and not args.avr:
         sys.exit(0)
 
     output_path = input_path.with_suffix(".cex")
     if args.output:
         output_path = Path(args.output)
 
-    retcode = model_check(input_path, output_path, args.btormc, args.avr, args.pono, args.copyback, args.intwidth)
+    retcode = model_check(input_path, output_path, args.btormc, args.avr, args.copyback, args.fulltrace, args.intwidth, args.kmax)
 
     sys.exit(retcode)
