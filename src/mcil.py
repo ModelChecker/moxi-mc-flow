@@ -366,8 +366,10 @@ def mcil2str(expr: MCILExpr) -> str:
         elif isinstance(cur, MCILConstant) and is_bitvec_sort(cur.sort):
             format_str = f" #b{'{'}0:0{cur.sort.identifier.indices[0]}b{'}'}"
             s += format_str.format(cur.value)
-        elif isinstance(cur, MCILConstant):
+        elif isinstance(cur, MCILConstant) and isinstance(cur.value, bool):
             s += " " + str(cur.value).lower()
+        elif isinstance(cur, MCILConstant):
+            s += " " + str(cur.value)
         elif isinstance(cur, MCILVar):
             s += f" {cur.symbol}" + ("'" if cur.prime else "")
         elif isinstance(cur, tuple):

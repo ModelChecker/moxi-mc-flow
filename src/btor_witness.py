@@ -23,14 +23,14 @@ class BtorBitVecAssignment(BtorAssignment):
 
 class BtorArrayAssignment(BtorAssignment):
 
-    def __init__(self, id: int, value: tuple[BitVec, BitVec], symbol: Optional[str]) -> None:
+    def __init__(self, id: int, value: tuple[Optional[BitVec], BitVec], symbol: Optional[str]) -> None:
         super().__init__(id, symbol)
         (index, element) = value
         self.index = index
         self.element = element
     
     def __str__(self) -> str:
-        return f"{self.id} [{self.index}] {self.element} {self.symbol}"
+        return f"{self.id} [{self.index if self.index else '*'}] {self.element} {self.symbol}"
 
 
 class BtorFrame():

@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional, Any
 
-from .bitvec import BitVec
+from .mcil import *
 
 
 class MCILQueryResult(Enum):
@@ -26,40 +26,12 @@ class MCILModel():
 
 class MCILAssignment():
 
-    def __init__(self, symbol: str) -> None:
+    def __init__(self, symbol: str, value: MCILExpr) -> None:
         self.symbol = symbol
-
-
-class MCILEnumAssignment(MCILAssignment):
-
-    def __init__(self, symbol: str, value: str) -> None:
-        super().__init__(symbol)
         self.value = value
 
     def __str__(self) -> str:
-        return f"({self.symbol} {self.value})"
-
-
-class MCILBitVecAssignment(MCILAssignment):
-
-    def __init__(self, symbol: str, value: BitVec) -> None:
-        super().__init__(symbol)
-        self.value = value
-
-    def __str__(self) -> str:
-        return f"({self.symbol} #b{self.value})"
-
-
-class MCILArrayAssignment(MCILAssignment):
-
-    def __init__(self, symbol: str, value: tuple[BitVec, BitVec]) -> None:
-        super().__init__(symbol)
-        (index, element) = value
-        self.index = index
-        self.element = element
-
-    def __str__(self) -> str:
-        return f"({self.symbol} #b{self.index} #b{self.element})"
+        return f"({self.symbol} {str(self.value)})"
 
 
 class MCILState():

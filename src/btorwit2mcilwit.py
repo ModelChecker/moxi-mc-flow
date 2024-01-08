@@ -1,25 +1,30 @@
 import pickle
-import sys
 from pathlib import Path
 
 from .btor_witness import *
 from .mcil_witness import *
+from .mcil import *
 from .btor import *
 from .parse_btorwit import parse_witness
+from .util import eprint
+
+FILE_NAME = Path(__file__).name
 
 
-def collect_enums(btor_program: list[BtorNode]) -> dict[str, list[str]]:
-    if len(btor_program) < 1:
+def bitvec_to_mcil(bitvec: BitVec) -> MCILConstant:
+    return MCIL_BITVEC_CONST(bitvec.width, bitvec.value)
+
+
+def collect_enums(btor2_program: list[BtorNode]) -> dict[str, list[str]]:
+    """Return mapping of enum variable names to an order-sensitive list of their potential values. Enums are encoded in the first comments of the model and are of the form: `; E var = Val0 Val1 ... ValN`."""
+    if len(btor2_program) < 1:
         return {}
 
-    enums = {}
+    enums: dict[str, list[str]] = {}
     i = 0
 
-    # enums are encoded in the first comments of the model and are 
-    # of the form:
-    #   var = Val0 Val1 ... ValN
-    while str(btor_program[i])[0] == ";":
-        comment = btor_program[i].comment[2:]
+    while str(btor2_program[i])[0:3] == "; E":
+        comment = btor2_program[i].comment[4:]
         var,vals = [v.strip() for v in comment.split("=")]
         enums[var] = vals.split(" ")
         i += 1
@@ -27,62 +32,137 @@ def collect_enums(btor_program: list[BtorNode]) -> dict[str, list[str]]:
     return enums
 
 
-def collect_var_symbols(btor_program: list[BtorNode]) -> dict[int, str]:
+def collect_arrays(btor2_program: list[BtorNode]) -> dict[str, tuple[int, int]]:
+    """Return mapping of array variable names to their respective sort signatures. Note that BTOR2 solvers only support arrays from bit vectors to bit vectors. These sorts are encoded in the first comments of the model and are of the form: `; A var = X Y`."""
+    if len(btor2_program) < 1:
+        return {}
+
+    arrays: dict[str, tuple[int, int]] = {}
+    i = 0
+
+    while str(btor2_program[i])[0:3] == "; A":
+        comment = btor2_program[i].comment[4:]
+        var,vals = [v.strip() for v in comment.split("=")]
+        (index_width, element_width) = vals.split(" ")
+        arrays[var] = (int(index_width), int(element_width))
+        i += 1
+
+    return arrays
+
+
+def collect_var_symbols(btor2_program: list[BtorNode]) -> dict[int, str]:
+    """Return a mapping of ints (in BTOR2 witness) to variable names. Variables are indexed in the order they appear in the BTOR2 input file. Searches for `.cur` vars that are not locals to any sub-systems; a variable with scope `::` is a local in a sub-system."""
     vars = {}
     cur = 0
-    for node in [n for n in btor_program if isinstance(n, BtorVar)]:
-        # search for '.cur' vars that are not locals to any sub-systems;
-        # a variable with scope '::' is a local in a sub-system
+    for node in [n for n in btor2_program if isinstance(n, BtorVar)]:
         if node.symbol.find("::") == -1 and node.symbol.find(".cur") != -1:
             vars[cur] = node.symbol.removesuffix(".cur")
         cur += 1
     return vars
 
 
+def btor2_array_assigns_to_mcil_array(
+    btor2_array_assigns: list[BtorArrayAssignment],
+    index_sort: MCILSort,
+    element_sort: MCILSort
+) -> MCILExpr:
+    """Return an `MCILExpr` equivalent to `btor2_array_assigns`, using a constant array as a base term and performing a series of stores on that array. The constant array is either the element of an array assignment with index `*`, or the first array assignment's element if no such assignment exists. Assume that there is at most one assignment with index `*`."""
+    # default_assign holds an assignment of the form:
+    #   id [*] element
+    # Example:
+    #   3 [*] 00100001
+    default_assign = None
+    for assign in btor2_array_assigns:
+        if not assign.index:
+            default_assign = assign
+            break
+    
+    if not default_assign:
+        default_assign = btor2_array_assigns[0]
+
+    const_val = bitvec_to_mcil(default_assign.element)
+    mcil_array = MCIL_ARRAY_CONST(index_sort, element_sort, const_val)
+
+    for assign in btor2_array_assigns:
+        if not assign.index:
+            continue
+
+        mcil_array = MCIL_STORE_EXPR(
+            mcil_array,
+            bitvec_to_mcil(assign.index),
+            bitvec_to_mcil(assign.element)
+        )
+            
+    return mcil_array
+
+
 def translate(
-    btor_program: list[BtorNode],
+    btor2_program: list[BtorNode],
     btor_witness: BtorWitness,
     query_symbol: str,
 ) -> Optional[MCILTrace]:
     trail: list[MCILState] = []
 
-    vars = collect_var_symbols(btor_program)
-    enums = collect_enums(btor_program)
+    vars = collect_var_symbols(btor2_program)
+    enums = collect_enums(btor2_program)
+    arrays = collect_arrays(btor2_program)
 
+    # we index at [:-1] to skip the last frame due to encoding of :reach
+    # properties.
     for frame in btor_witness.frames[:-1]:
         mcil_assigns: list[MCILAssignment] = []
 
-        btor_assigns = [
-            a 
-            for a 
+        btor2_assigns = [
+            assign
+            for assign 
             in frame.state_assigns + frame.input_assigns 
-            if a.id in vars
+            if assign.id in vars
         ]
 
-        for btor_assign in btor_assigns:
+        btor2_array_assigns: dict[int, list[BtorArrayAssignment]] = {}
+
+        for btor2_assign in btor2_assigns:
             if (
-                isinstance(btor_assign, BtorBitVecAssignment) 
-                and vars[btor_assign.id] in enums
+                isinstance(btor2_assign, BtorBitVecAssignment) 
+                and vars[btor2_assign.id] in enums
             ):
-                mcil_assigns.append(MCILEnumAssignment(
-                        vars[btor_assign.id], 
-                        enums[vars[btor_assign.id]][btor_assign.value.value]
-                    )
+                enum_sort = vars[btor2_assign.id]
+                enum_val = enums[enum_sort][btor2_assign.value.value]
+
+                mcil_assign = MCILAssignment(
+                    vars[btor2_assign.id], 
+                    MCIL_ENUM_CONST(enum_sort, enum_val)
                 )
-            elif isinstance(btor_assign, BtorBitVecAssignment):
-                mcil_assigns.append(MCILBitVecAssignment(
-                        vars[btor_assign.id], 
-                        btor_assign.value
-                    )
+
+                mcil_assigns.append(mcil_assign)
+            elif isinstance(btor2_assign, BtorBitVecAssignment):
+                mcil_assign = MCILAssignment(
+                    vars[btor2_assign.id], 
+                    bitvec_to_mcil(btor2_assign.value)
                 )
-            elif isinstance(btor_assign, BtorArrayAssignment):
-                mcil_assigns.append(MCILArrayAssignment(
-                        vars[btor_assign.id], 
-                        (btor_assign.index, btor_assign.element)
-                    )
-                )
+
+                mcil_assigns.append(mcil_assign)
+            elif isinstance(btor2_assign, BtorArrayAssignment):
+                id = btor2_assign.id
+                if id not in btor2_array_assigns:
+                    btor2_array_assigns[id] = []
+
+                btor2_array_assigns[id].append(btor2_assign)
             else:
                 raise NotImplementedError
+
+        for id,assigns in btor2_array_assigns.items():
+            index_sort, element_sort = arrays[vars[id]]
+            mcil_assign = MCILAssignment(
+                vars[id],
+                btor2_array_assigns_to_mcil_array(
+                    assigns, 
+                    MCIL_BITVEC_SORT(index_sort), 
+                    MCIL_BITVEC_SORT(element_sort)
+                )
+            )
+            
+            mcil_assigns.append(mcil_assign)
 
         trail.append(
             MCILState(frame.index, mcil_assigns)
@@ -103,7 +183,7 @@ def main(
     elif witness_path.is_file():
         witness_paths = [witness_path]
     else:
-        sys.stderr.write(f"Error: BTOR2 witness path must be file or directory.\n")
+        eprint(f"[{FILE_NAME}] BTOR2 witness path must be file or directory.\n")
         return 1
 
     query_responses: list[MCILQueryResponse] = []
@@ -126,16 +206,16 @@ def main(
         
         btor_witness = parse_witness(witness_content)
         if not btor_witness:
-            sys.stderr.write(f"Error: parse error for BTOR2 witness file '{witness}'.\n")
+            eprint(f"[{FILE_NAME}] parse error for BTOR2 witness file '{witness}'.\n")
             return 1
 
         with open(program_path, "rb") as f:
-            btor_program = pickle.load(f)
+            btor2_program = pickle.load(f)
 
         if btor_witness:
             query_symbol = witness.suffixes[-2][1:]
 
-            mcil_trace = translate(btor_program, btor_witness, query_symbol)
+            mcil_trace = translate(btor2_program, btor_witness, query_symbol)
 
             query_responses.append(MCILQueryResponse(
                     query_symbol,

@@ -399,12 +399,35 @@ def translate_check_system(
         if v.sort.identifier.symbol in context.declared_enum_sorts
     ]):
         enum_sort_symbols = context.declared_enum_sorts[var.sort.identifier.symbol]
-        enum_encoding = (f"{get_scoped_var_symbol(var, sys_ctx)} = "
+        enum_encoding = (f"E {get_scoped_var_symbol(var, sys_ctx)} = "
                          f"{' '.join(enum_sort_symbols)}")
 
         enum_var_comment = BtorNode()
         enum_var_comment.set_comment_no_space(enum_encoding)
         btor2_model.append(enum_var_comment)
+
+    # Add array sorts to comments in beginning of program
+    # Note that solvers only support bitvec -> bitvec arrays
+    for var,sys_ctx in set([
+        (v,c) 
+        for v,c 
+        in var_map.keys() 
+        if is_array_sort(v.sort)
+    ]):
+        index_sort = var.sort.parameters[0]
+        element_sort = var.sort.parameters[1]
+        if is_array_sort(index_sort) or is_array_sort(element_sort):
+            eprint(f"[{FILE_NAME}] Warning: BTOR2 solvers only support arrays of sort signature (Array (_ BitVec X) (_ BitVec Y)). Not adding sort annotation to BTOR2 file.")
+            continue
+
+        index_sort_width = index_sort.identifier.indices[0]
+        element_sort_width = element_sort.identifier.indices[0]
+        sort_encoding = (f"A {get_scoped_var_symbol(var, sys_ctx)} = "
+                         f"{index_sort_width} {element_sort_width}")
+
+        sort_comment = BtorNode()
+        sort_comment.set_comment_no_space(sort_encoding)
+        btor2_model.append(sort_comment)
 
     for sort in sort_map.values():
         btor2_model.append(sort)
@@ -417,7 +440,7 @@ def translate_check_system(
             ).replace("_ BitVec ","bv")
             ).replace(" ","_")
         const_str = f"{sort_str}_{val.value}"
-        
+
         const_var = BtorStateVar(sort_map[sort], const_str)
 
         build_expr_map(val, context, False, sort_map, var_map, expr_map)
@@ -550,7 +573,7 @@ def translate(mcil_prog: MCILProgram, int_width: int) -> Optional[dict[str, dict
     (well_sorted, context) = sort_check(mcil_prog)
 
     if not well_sorted:
-        eprint(f"[{FILE_NAME}] failed sort check\n")
+        eprint(f"[{FILE_NAME}] failed sort check")
         return None
     print(f"[{FILE_NAME}] translating to BTOR2")
     
@@ -587,11 +610,11 @@ def main(
     int_width: int
 ) -> int:
     if not input_path.is_file():
-        eprint(f"[{FILE_NAME}]  '{input_path}' is not a valid file.\n")
+        eprint(f"[{FILE_NAME}]  '{input_path}' is not a valid file.")
         return 1
 
     if output_path.is_file():
-        eprint(f"[{FILE_NAME}]  '{output_path}' is a file.\n")
+        eprint(f"[{FILE_NAME}]  '{output_path}' is a file.")
         return 1
 
     if not output_path.is_dir():
@@ -603,17 +626,17 @@ def main(
         elif input_path.suffix == ".mcil":
             program = parse_mcil(file.read())
         else:
-            eprint(f"[{FILE_NAME}] file format unsupported ({input_path.suffix})\n")
+            eprint(f"[{FILE_NAME}] file format unsupported ({input_path.suffix})")
             return 1
 
     if not program:
-        eprint(f"[{FILE_NAME}] failed parsing\n")
+        eprint(f"[{FILE_NAME}] failed parsing")
         return 1
 
     output = translate(program, int_width)
 
     if output is None:
-        eprint(f"[{FILE_NAME}] failed translation\n")
+        eprint(f"[{FILE_NAME}] failed translation")
         return 1
 
     check_system_index = 0

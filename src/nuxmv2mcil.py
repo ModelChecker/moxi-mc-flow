@@ -435,7 +435,7 @@ def gather_init(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVEx
             case _:
                 pass
 
-    return conjoin_list(init_list) if len(init_list) > 0 else MCIL_BOOL_EXPR(True)
+    return conjoin_list(init_list) if len(init_list) > 0 else MCIL_BOOL_CONST(True)
 
 def gather_trans(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
     trans_list: list[MCILExpr] = []
@@ -468,7 +468,7 @@ def gather_trans(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVE
             case _:
                 pass
 
-    return conjoin_list(trans_list) if len(trans_list) > 0 else MCIL_BOOL_EXPR(True)
+    return conjoin_list(trans_list) if len(trans_list) > 0 else MCIL_BOOL_CONST(True)
 
 def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
     inv_list: list[MCILExpr] = []
@@ -499,7 +499,7 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
             case _:
                pass
 
-    return conjoin_list(inv_list) if len(inv_list) > 0 else MCIL_BOOL_EXPR(True)
+    return conjoin_list(inv_list) if len(inv_list) > 0 else MCIL_BOOL_CONST(True)
 
 def gather_subsystems(xmv_module: XMVModule) -> dict[str, tuple[str, list[str]]]:
     return {}

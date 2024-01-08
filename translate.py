@@ -102,7 +102,7 @@ def main(input_path: Path, target_lang: str, output_path: Path, validate: bool, 
             if proc.returncode:
                 return proc.returncode
         elif target_lang in {"btor2"}:
-            for btor_file in output_path.rglob("*"):
+            for btor_file in output_path.rglob("*.btor"):
                 proc = subprocess.run([CATBTOR, btor_file])
                 if proc.returncode:
                     return proc.returncode
