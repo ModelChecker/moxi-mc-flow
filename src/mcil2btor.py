@@ -392,14 +392,14 @@ def translate_check_system(
     # Note: var_map may have repeat values (i.e., renamed variables point to
     # same Btor variables) 
     # Add enum encoding information to comments in beginning of program
-    for var,sys_ctx in set([
-        (v,c) 
-        for v,c 
-        in var_map.keys() 
-        if v.sort.identifier.symbol in context.declared_enum_sorts
+    for var,cur in set([
+        (v,cur) 
+        for (v,c),(_,cur,_) 
+        in var_map.items() 
+        if cur and v.sort.identifier.symbol in context.declared_enum_sorts
     ]):
         enum_sort_symbols = context.declared_enum_sorts[var.sort.identifier.symbol]
-        enum_encoding = (f"E {get_scoped_var_symbol(var, sys_ctx)} = "
+        enum_encoding = (f"E {cur.with_no_suffix()} = "
                          f"{' '.join(enum_sort_symbols)}")
 
         enum_var_comment = BtorNode()
@@ -408,11 +408,11 @@ def translate_check_system(
 
     # Add array sorts to comments in beginning of program
     # Note that solvers only support bitvec -> bitvec arrays
-    for var,sys_ctx in set([
-        (v,c) 
-        for v,c 
-        in var_map.keys() 
-        if is_array_sort(v.sort)
+    for var,cur in set([
+        (v,cur) 
+        for (v,c),(_,cur,_) 
+        in var_map.items() 
+        if cur and is_array_sort(v.sort)
     ]):
         index_sort = var.sort.parameters[0]
         element_sort = var.sort.parameters[1]
@@ -422,7 +422,7 @@ def translate_check_system(
 
         index_sort_width = index_sort.identifier.indices[0]
         element_sort_width = element_sort.identifier.indices[0]
-        sort_encoding = (f"A {get_scoped_var_symbol(var, sys_ctx)} = "
+        sort_encoding = (f"A {cur.with_no_suffix()} = "
                          f"{index_sort_width} {element_sort_width}")
 
         sort_comment = BtorNode()
@@ -504,7 +504,7 @@ def translate_check_system(
         #
         # To solve this, we introduce a flag for each :reach property that
         # remains true if the property is every true, then set the conjunction
-        # of all such flags as the bad property. The resulting witness will be 1
+        # of all such flags as the bad property. The resulting witness is 1
         # step longer than necessary, but we solve this in the witness
         # translator by removing the final frame.
         flag_vars = []

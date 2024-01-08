@@ -171,6 +171,12 @@ class BtorVar(BtorExpr):
         self.symbol = symbol
         self.var_index: int = 0  # used to refer to vars in witness
 
+    def with_no_suffix(self) -> str:
+        return (((str(self.symbol)
+            ).removesuffix(".init")
+            ).removesuffix(".cur")
+            ).removesuffix("next")
+
 class BtorInputVar(BtorVar):
 
     def __init__(self, sort: BtorSort, symbol: str = ""):
