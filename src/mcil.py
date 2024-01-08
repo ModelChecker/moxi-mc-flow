@@ -135,6 +135,9 @@ class MCILSort():
         if self.identifier != __value.identifier:
             return False
 
+        if [s for s in self.parameters] != [s for s in __value.parameters]:
+            return False
+
         return True
     
     def __hash__(self) -> int:
@@ -766,9 +769,11 @@ class MCILExit(MCILCommand):
     pass
 
 
-MCIL_BOOL_EXPR = lambda x: MCILConstant(MCIL_BOOL_SORT, x)
+MCIL_BOOL_CONST = lambda x: MCILConstant(MCIL_BOOL_SORT, x)
 MCIL_BITVEC_CONST = lambda x,y: MCILConstant(MCIL_BITVEC_SORT(x), y)
 MCIL_ARRAY_CONST = lambda x,y,z: MCILApply(MCIL_ARRAY_SORT(x,y), MCILIdentifier("const", []), [z])
+MCIL_INT_CONST = lambda x: MCILConstant(MCIL_INT_SORT, x)
+MCIL_ENUM_CONST = lambda x,y: MCILConstant(MCIL_ENUM_SORT(x), y)
 
 MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y])
 MCIL_AND_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("and", []), [x,y])
