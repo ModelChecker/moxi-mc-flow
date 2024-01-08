@@ -1,4 +1,3 @@
-import argparse
 import pickle
 import sys
 from pathlib import Path
@@ -22,13 +21,13 @@ def collect_var_symbols(btor_program: list[BtorNode]) -> dict[int, str]:
 def translate(
     btor_program: list[BtorNode],
     btor_witness: BtorWitness,
-    trace_symbol: str,
+    query_symbol: str,
 ) -> Optional[MCILTrace]:
     trail: list[MCILState] = []
 
     vars = collect_var_symbols(btor_program)
 
-    for frame in btor_witness.frames:
+    for frame in btor_witness.frames[:-1]:
         il_assigns: list[MCILAssignment] = []
 
         btor_assigns = [
@@ -55,7 +54,9 @@ def translate(
             MCILState(frame.index, il_assigns)
         )
 
-    return MCILTrace(trace_symbol, MCILTrail(f"{trace_symbol}_0", trail), None)
+    return MCILTrace(
+        f"{query_symbol}_trace", MCILTrail(f"{query_symbol}_trail", trail), None
+    )
 
 
 def main(
@@ -73,7 +74,6 @@ def main(
 
     query_responses: list[MCILQueryResponse] = []
 
-    trace_num = 0
     for witness in witness_paths:
         with open(witness, "r") as f:
             witness_content = f.read()
@@ -99,14 +99,15 @@ def main(
             btor_program = pickle.load(f)
 
         if btor_witness:
-            il_trace = translate(btor_program, btor_witness, f"_t{trace_num}")
-            trace_num += 1
+            query_symbol = witness.suffixes[-2][1:]
+
+            mcil_trace = translate(btor_program, btor_witness, query_symbol)
 
             query_responses.append(MCILQueryResponse(
-                    witness.suffixes[-2][1:],
+                    query_symbol,
                     MCILQueryResult.SAT,
                     None,
-                    il_trace,
+                    mcil_trace,
                     None
                 )
             )
@@ -117,17 +118,3 @@ def main(
         f.write(str(check_sys_response))
 
     return 0
-
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser()
-#     parser.add_argument("witness", help="source BTOR2 witness or directory of witnesses to translate")
-#     parser.add_argument("program", help="pickled BTOR2 program")
-#     parser.add_argument("--output", help="path output IL witness file; defaults to witness filename stem")
-#     args = parser.parse_args()
-
-#     witness_path = Path(args.witness)
-#     program_path = Path(args.program)
-#     output_path = Path(args.output) if args.output else Path(f"{witness_path.stem}")
-
-#     returncode = main(witness_path, program_path, output_path)
-#     sys.exit(returncode)

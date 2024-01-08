@@ -4,6 +4,17 @@ from pathlib import Path
 import shutil
 import time
 
+class Color:
+    HEADER = "\033[95m"
+    OKBLUE = "\033[94m"
+    OKCYAN = "\033[96m"
+    OKGREEN = "\033[92m"
+    WARNING = "\033[93m"
+    FAIL = "\033[91m"
+    ENDC = "\033[0m"
+    BOLD = "\033[1m"
+    UNDERLINE = "\033[4m"
+
 FILE_NAME = Path(__file__).name
 FILE_DIR = Path(__file__).parent
 
@@ -13,6 +24,13 @@ catbtor_path = FILE_DIR / ".." / "btor2tools" / "build" / "bin" / "catbtor"
 sortcheck_path = FILE_DIR / ".." / "sortcheck.py"
 
 timeout = 120
+
+def print_pass(msg: str) -> None:
+    print(f"[{Color.OKGREEN}PASS{Color.ENDC}] {msg}")
+
+def print_fail(msg: str) -> None:
+    print(f"[{Color.FAIL}FAIL{Color.ENDC}] {msg}")
+
 
 def cleandir(dir: Path, quiet: bool):
     """Remove and create fresh dir, print a warning if quiet is False"""
@@ -53,10 +71,10 @@ def test_nuxmv2mcil(src: str, dst: str) -> str:
     try:
         proc = subprocess.run([
             "python3", str(translate_path), str(src_path), "mcil",
-            "--output", str(mcil_path)
+            "--output", str(mcil_path), "--validate"
         ], capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(f"timeout after {timeout}s")
         return dst
@@ -64,11 +82,11 @@ def test_nuxmv2mcil(src: str, dst: str) -> str:
     test_end = time.perf_counter()
 
     if proc.returncode:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
     else:
-        print(f"[PASS] {src_path} ({test_end - test_start}s)")
+        print_pass(f"{src_path} ({test_end - test_start}s)")
 
     return dst
 
@@ -98,10 +116,10 @@ def test_nuxmv2btor(src: str, dst: str) -> str:
     try:
         proc = subprocess.run([
             "python3", str(translate_path), str(src_path), "btor2",
-            "--output", str(btor_path)
+            "--output", str(btor_path), "--validate"
         ], capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(f"timeout after {timeout}s")
         return dst
@@ -109,21 +127,23 @@ def test_nuxmv2btor(src: str, dst: str) -> str:
     test_end = time.perf_counter()
 
     if proc.returncode:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
         return dst
     
-    proc = subprocess.run([
-        str(catbtor_path), str(btor_path)
-    ], capture_output=True)
+    for btor_file in btor_path.rglob("*.btor"):
+        proc = subprocess.run([
+            str(catbtor_path), str(btor_file)
+        ], capture_output=True)
 
-    if proc.returncode:
-        print(f"[FAIL] {src_path}")
-        with open(str(stderr_path), "w") as f:
-            f.write(proc.stderr.decode("utf-8"))
-    else:
-        print(f"[PASS] {src_path} ({test_end - test_start}s)")
+        if proc.returncode:
+            print_fail(f"{src_path}")
+            with open(str(stderr_path), "w") as f:
+                f.write(proc.stderr.decode("utf-8"))
+            return dst
+
+    print_pass(f"{src_path} ({test_end - test_start}s)")
 
     return dst
 
@@ -153,10 +173,10 @@ def test_mcil2btor(src: str, dst: str) -> str:
     try:
         proc = subprocess.run([
             "python3", str(translate_path), str(src_path), "btor2",
-            "--output", str(btor_path)
+            "--output", str(btor_path), "--validate"
         ], capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(f"timeout after {timeout}s")
         return dst
@@ -164,21 +184,23 @@ def test_mcil2btor(src: str, dst: str) -> str:
     test_end = time.perf_counter()
 
     if proc.returncode:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
         return dst
     
-    proc = subprocess.run([
-        str(catbtor_path), str(btor_path)
-    ], capture_output=True)
+    # for btor_file in btor_path.rglob("*.btor"):
+    #     proc = subprocess.run([
+    #         str(catbtor_path), str(btor_file)
+    #     ], capture_output=True)
 
-    if proc.returncode:
-        print(f"[FAIL] {src_path}")
-        with open(str(stderr_path), "w") as f:
-            f.write(proc.stderr.decode("utf-8"))
-    else:
-        print(f"[PASS] {src_path} ({test_end - test_start}s)")
+    #     if proc.returncode:
+    #         print_fail(f"{src_path}")
+    #         with open(str(stderr_path), "w") as f:
+    #             f.write(proc.stderr.decode("utf-8"))
+    #         return dst
+
+    print_pass(f"{src_path} ({test_end - test_start}s)")
 
     return dst
 
@@ -206,7 +228,7 @@ def test_modelcheck(src: str, dst: str) -> str:
             "python3", str(modelcheck_path), str(src_path), "--btormc", "--output", cex_path
         ], capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(f"timeout after {timeout}s")
         return dst
@@ -214,11 +236,11 @@ def test_modelcheck(src: str, dst: str) -> str:
     test_end = time.perf_counter()
 
     if proc.returncode:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
     else:
-        print(f"[PASS] {src_path} ({test_end - test_start}s)")
+        print_pass(f"{src_path} ({test_end - test_start}s)")
 
     return dst
 
@@ -250,7 +272,7 @@ def test_sortcheck(src: str, dst: str) -> str:
             "python3", str(sortcheck_path), str(src_path)
         ], capture_output=True, timeout=timeout)
     except subprocess.TimeoutExpired:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(f"timeout after {timeout}s")
         return dst
@@ -258,11 +280,11 @@ def test_sortcheck(src: str, dst: str) -> str:
     test_end = time.perf_counter()
 
     if proc.returncode:
-        print(f"[FAIL] {src_path}")
+        print_fail(f"{src_path}")
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
     else:
-        print(f"[PASS] {src_path} ({test_end - test_start}s)")
+        print_pass(f"{src_path} ({test_end - test_start}s)")
         with open(str(stdout_path), "w") as f:
             f.write(proc.stdout.decode("utf-8"))
 

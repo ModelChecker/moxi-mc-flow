@@ -36,7 +36,7 @@ class MCILAttribute(Enum):
 
     def get_value_type(self) -> type:
         if self.value == ":input" or self.value == ":output" or self.value == ":local" or self.value == ":subsys" or self.value == ":assumption" or self.value == ":fairness" or self.value == ":reachable" or self.value == ":current" or self.value == ":query":
-            return dict # type: ignore
+            return dict
         elif self.value == ":queries":
             return list
         elif self.value == ":init" or self.value == ":trans" or self.value == ":inv":
@@ -62,8 +62,9 @@ class MCILIdentifier():
     def num_indices(self) -> int:
         return len(self.indices)
 
-    def check(self, __symbol: str, num_indices: int) -> bool:
-        return self.symbol == __symbol and len(self.indices) == num_indices
+    def check(self, __symbols: set[str], num_indices: int) -> bool:
+        """Returns true if this has `num_indices` and any of the symbols listed in `__symbols`"""
+        return any([self.symbol == s for s in __symbols]) and len(self.indices) == num_indices
 
     def is_indexed(self) -> bool:
         return len(self.indices) > 0
@@ -101,8 +102,8 @@ class MCILIdentifier():
         return s[:-1]+")"
 
     
-    def to_json(self) -> dict: # type: ignore
-        return {"symbol": self.symbol, "indices": self.indices} # type: ignore
+    def to_json(self) -> dict:
+        return {"symbol": self.symbol, "indices": self.indices}
 
 
 class MCILSort():
@@ -153,10 +154,10 @@ class MCILSort():
         parameters_str = " ".join([str(p) for p in self.parameters])
         return f"({self.identifier} {parameters_str})"
 
-    def to_json(self) -> dict: # type: ignore
-        identifier = self.identifier.to_json() # type: ignore
-        parameters = [s.to_json() for s in self.parameters] # type: ignore
-        return {"identifier": identifier, "parameters": parameters} # type: ignore
+    def to_json(self) -> dict:
+        identifier = self.identifier.to_json()
+        parameters = [s.to_json() for s in self.parameters]
+        return {"identifier": identifier, "parameters": parameters}
 
 
 # Built-in sorts
@@ -186,7 +187,7 @@ def is_array_sort(sort: MCILSort) -> bool:
     return sort.identifier.is_symbol("Array") and sort.arity() == 2
     
 def is_any_sort(sort: MCILSort) -> bool:
-    """An Array sort has an identifier that is the symbol '__Any__'"""
+    """An Any sort has an identifier that is the symbol '__Any__'"""
     return sort.identifier.is_symbol("__Any__")
 
 
@@ -196,14 +197,38 @@ class MCILExpr():
         self.sort = sort
         self.children = children
 
+        self.field: Optional[tuple[MCILCommand, str, str]] = None
+
+        self.parents: list[MCILExpr] = []
+        for child in children:
+            child.parents.append(self)
+
+    def replace(self, new: MCILExpr) -> None:
+        """Replaces `self` with `new` using `self.parents` or `self.field` if `self` is a top-level expression (i.e., has no parents)."""
+        if not self.parents:
+            if not self.field:
+                raise ValueError(f"No field set for top-level expression '{self}'")
+
+            cmd,field_name,symbol = self.field
+            cmd_field = getattr(cmd, field_name)
+
+            if isinstance(cmd_field, MCILExpr):
+                setattr(cmd, field_name, new)
+            elif isinstance(cmd_field, dict):
+                cmd_field[symbol] = new
+
+        for parent in self.parents:
+            parent.children[parent.children.index(self)] = new
+            new.parents.append(parent)
+
     def __hash__(self) -> int:
         return id(self)
 
     def __str__(self) -> str:
         return mcil2str(self)
 
-    def to_json(self) -> dict: # type: ignore
-        return {} # type: ignore
+    def to_json(self) -> dict:
+        return {}
 
 
 class MCILConstant(MCILExpr):
@@ -212,8 +237,8 @@ class MCILConstant(MCILExpr):
         super().__init__(sort, [])
         self.value = value
 
-    def to_json(self) -> dict: # type: ignore
-        return {"identifier": str(self)} # type: ignore
+    def to_json(self) -> dict:
+        return {"identifier": str(self)}
 
 
 class MCILVarType(Enum):
@@ -242,11 +267,11 @@ class MCILVar(MCILExpr):
     def __hash__(self) -> int:
         return hash(self.symbol)
 
-    def to_json(self) -> dict: # type: ignore
-        return {"identifier": self.symbol + ("'" if self.prime else "")} # type: ignore
+    def to_json(self) -> dict:
+        return {"identifier": self.symbol + ("'" if self.prime else "")}
 
-    def to_json_sorted_var(self) -> dict: # type: ignore
-        return {"symbol": self.symbol, "sort": self.sort.to_json()} # type: ignore
+    def to_json_sorted_var(self) -> dict:
+        return {"symbol": self.symbol, "sort": self.sort.to_json()}
 
 
 MCIL_EMPTY_VAR = MCILVar(MCILVarType.NONE, MCIL_NO_SORT, "", False)
@@ -263,10 +288,10 @@ class MCILApply(MCILExpr):
         super().__init__(sort, children)
         self.identifier = identifier
 
-    def to_json(self) -> dict: # type: ignore
-        identifier = self.identifier.to_json() # type: ignore
-        args = [c.to_json() for c in self.children] # type: ignore
-        return {"identifier": identifier, "args": args} # type: ignore
+    def to_json(self) -> dict:
+        identifier = self.identifier.to_json()
+        args = [c.to_json() for c in self.children]
+        return {"identifier": identifier, "args": args}
 
 
 class MCILLetExpr(MCILExpr):
@@ -287,7 +312,7 @@ class MCILLetExpr(MCILExpr):
         binders: list[tuple[str, MCILExpr]],
         expr: MCILExpr
     ):
-        super().__init__(sort, [expr] + [MCILBind(binders)] + [b[1] for b in binders])
+        super().__init__(sort, [expr] + [MCILBind()] + [b[1] for b in binders])
         self.vars = [b[0] for b in binders]
 
     def get_expr(self) -> MCILExpr:
@@ -300,9 +325,19 @@ class MCILLetExpr(MCILExpr):
 class MCILBind(MCILExpr):
     """Class used for binding variables in `let` expressions during traversal."""
 
-    def __init__(self, binders: list[tuple[str, MCILExpr]]):
+    def __init__(self):
         super().__init__(MCIL_NO_SORT, [])
-        self.binders = binders
+
+    def get_binders(self) -> list[tuple[str, MCILExpr]]:
+        if not len(self.parents) == 1:
+            raise ValueError(f"MCILBind can only have 1 parent.")
+
+        parent = self.parents[0]
+
+        if not isinstance(parent, MCILLetExpr):
+            raise ValueError(f"MCILBind must have MCILLetExpr parent.")
+
+        return parent.get_binders()
 
 
 def mcil2str(expr: MCILExpr) -> str:
@@ -358,6 +393,16 @@ def mcil2str(expr: MCILExpr) -> str:
     return s
 
 
+def rename_vars(expr: MCILExpr, vars: dict[MCILVar, MCILExpr], context: MCILContext) -> MCILExpr:
+    """Returns a copy of `expr` where each `MCILVar` present in `vars` is replaced with its mapped value. Useful for inlining function calls."""
+    new_expr = copy(expr)
+
+    for subexpr in postorder_mcil(new_expr, context):
+        if subexpr in vars:
+            subexpr.replace(vars[subexpr])
+
+    return new_expr
+
 def is_const_array_expr(expr: MCILExpr) -> bool:
     """Returns true if `expr` is of the form: `(as const (Array X Y) x)`"""
     return isinstance(expr, MCILApply) and expr.identifier.is_symbol("const") and is_array_sort(expr.sort)
@@ -365,7 +410,8 @@ def is_const_array_expr(expr: MCILExpr) -> bool:
 
 def is_const_array_init_expr(expr: MCILExpr) -> bool:
     """Returns true if `expr` is of the form: `(= var (as const (Array X Y) x))`"""
-    if not isinstance(expr, MCILApply) or not expr.identifier.is_symbol("="):
+    if (not isinstance(expr, MCILApply) or not expr.identifier.is_symbol("=") or
+            len(expr.children) != 2):
         return False
 
     lhs,rhs = expr.children
@@ -375,7 +421,7 @@ def is_const_array_init_expr(expr: MCILExpr) -> bool:
     return True
 
 def to_json_sorted_var(symbol: str, sort: MCILSort) -> dict:
-    return {"symbol": symbol, "sort": sort.to_json()} # type: ignore
+    return {"symbol": symbol, "sort": sort.to_json()}
 
 
 class MCILCommand():
@@ -383,8 +429,8 @@ class MCILCommand():
     def get_exprs(self) -> list[MCILExpr]:
         return []
 
-    def to_json(self) -> dict: # type: ignore
-        return {} # type: ignore
+    def to_json(self) -> dict:
+        return {}
 
 
 class MCILDeclareSort(MCILCommand):
@@ -397,8 +443,8 @@ class MCILDeclareSort(MCILCommand):
     def __str__(self) -> str:
         return f"(declare-sort {self.symbol} {self.arity})"
 
-    def to_json(self) -> dict: # type: ignore
-        return {"command": "declare-sort", "symbol": self.symbol, "arity": self.arity} # type: ignore
+    def to_json(self) -> dict:
+        return {"command": "declare-sort", "symbol": self.symbol, "arity": self.arity}
 
 
 class MCILDefineSort(MCILCommand):
@@ -413,12 +459,12 @@ class MCILDefineSort(MCILCommand):
         parameters_str = " ".join(self.parameters)
         return f"(define-sort {self.symbol} ({parameters_str}) {self.definition})"
 
-    def to_json(self) -> dict: # type: ignore
+    def to_json(self) -> dict:
         return {
-            "command": "define-sort",  # type: ignore
-            "symbol": self.symbol,  # type: ignore
-            "parameters": self.parameters, # type: ignore
-            "definition": self.definition.to_json() # type: ignore
+            "command": "define-sort", 
+            "symbol": self.symbol, 
+            "parameters": self.parameters,
+            "definition": self.definition.to_json()
         }
 
 
@@ -433,11 +479,11 @@ class MCILDeclareEnumSort(MCILCommand):
         values_str = " ".join(self.values)
         return f"(declare-enum-sort {self.symbol} ({values_str}))"
 
-    def to_json(self) -> dict: # type: ignore
+    def to_json(self) -> dict:
         return {
-            "command": "declare-enum-sort", # type: ignore
-            "symbol": self.symbol, # type: ignore
-            "values": self.values # type: ignore
+            "command": "declare-enum-sort",
+            "symbol": self.symbol,
+            "values": self.values
         }
 
 
@@ -451,11 +497,11 @@ class MCILDeclareConst(MCILCommand):
     def __str__(self) -> str:
         return f"(declare-const {self.symbol} {self.sort})"
 
-    def to_json(self) -> dict: # type: ignore
+    def to_json(self) -> dict:
         return {
-            "command": "declare-const", # type: ignore
-            "symbol": self.symbol, # type: ignore
-            "values": self.sort.to_json() # type: ignore
+            "command": "declare-const",
+            "symbol": self.symbol,
+            "values": self.sort.to_json()
         }
 
 
@@ -475,12 +521,12 @@ class MCILDeclareFun(MCILCommand):
         input_str = " ".join([str(i) for i in self.inputs])
         return f"(declare-fun {self.symbol} ({input_str}) {self.output_sort})"
 
-    def to_json(self) -> dict: # type: ignore
+    def to_json(self) -> dict:
         return {
-            "command": "declare-fun", # type: ignore
-            "symbol": self.symbol, # type: ignore
-            "inputs": [i.to_json() for i in self.inputs], # type: ignore
-            "output": self.output_sort.to_json() # type: ignore
+            "command": "declare-fun",
+            "symbol": self.symbol,
+            "inputs": [i.to_json() for i in self.inputs],
+            "output": self.output_sort.to_json()
         }
 
 
@@ -498,6 +544,8 @@ class MCILDefineFun(MCILCommand):
         self.output_sort = output
         self.body = body
 
+        self.body.field = (self, "body", "")
+
     def get_exprs(self) -> list[MCILExpr]:
         return [self.body]
 
@@ -505,13 +553,13 @@ class MCILDefineFun(MCILCommand):
         input_str = " ".join([f"({symbol} {sort})" for symbol,sort in self.input])
         return f"(define-fun {self.symbol} ({input_str}) {self.output_sort} {self.body})"
 
-    def to_json(self) -> dict: # type: ignore
+    def to_json(self) -> dict:
         return {
-            "command": "define-fun", # type: ignore
-            "symbol": self.symbol, # type: ignore
+            "command": "define-fun",
+            "symbol": self.symbol,
             "input": [to_json_sorted_var(symbol,sort) for symbol,sort in self.input],
-            "output": self.output_sort.to_json(), # type: ignore
-            "body": self.body.to_json() # type: ignore
+            "output": self.output_sort.to_json(),
+            "body": self.body.to_json()
         }
 
 
@@ -524,10 +572,10 @@ class MCILSetLogic(MCILCommand):
     def __str__(self) -> str:
         return f"(set-logic {self.logic})"
 
-    def to_json(self) -> dict: # type: ignore
+    def to_json(self) -> dict:
         return {
-            "command": "set-logic", # type: ignore
-            "symbol": self.logic # type: ignore
+            "command": "set-logic",
+            "logic": self.logic
         }
 
 
@@ -552,6 +600,10 @@ class MCILDefineSystem(MCILCommand):
         self.trans = trans
         self.inv = inv
         self.subsystem_signatures = subsystems
+
+        self.init.field = (self, "init", "")
+        self.trans.field = (self, "trans", "")
+        self.inv.field = (self, "inv", "")
 
         # these get populated by sort checker
         self.subsystems: dict[str, MCILDefineSystem] = {}
@@ -586,7 +638,7 @@ class MCILDefineSystem(MCILCommand):
 
         return s + ")"
 
-    def to_json(self) -> dict: # type: ignore
+    def to_json(self) -> dict:
         return {
             "command": "define-system", 
             "symbol": self.symbol, 
@@ -634,6 +686,15 @@ class MCILCheckSystem(MCILCommand):
         self.query = query
         self.queries = queries
 
+        for symbol,expr in assumption.items():
+            expr.field = (self, "assumption", symbol)
+        for symbol,expr in fairness.items():
+            expr.field = (self, "fairness", symbol)
+        for symbol,expr in reachable.items():
+            expr.field = (self, "reachable", symbol)
+        for symbol,expr in current.items():
+            expr.field = (self, "current", symbol)
+
         # this gets populated by sort checker
         self.vars: dict[str, MCILSort] = {}
 
@@ -680,7 +741,7 @@ class MCILCheckSystem(MCILCommand):
 
         return s + ")"
 
-    def to_json(self) -> dict: # type: ignore
+    def to_json(self) -> dict:
         return { 
             "command": "check-system",
             "symbol": self.sys_symbol,
@@ -692,7 +753,7 @@ class MCILCheckSystem(MCILCommand):
             "reachable": [{"symbol": s, "formula": r.to_json()} for s,r in self.reachable.items()], 
             "current": [{"symbol": s, "formula": c.to_json()} for s,c in self.current.items()], 
             "query": [{"symbol": s, "formulas": q} for s,q in self.query.items()],
-            "queries": []
+            "queries": [[{"symbol": s, "formulas": q} for s,q in query.items()] for query in self.queries]
         }
 
 
@@ -701,14 +762,17 @@ class MCILProgram():
     def __init__(self, commands: list[MCILCommand]):
         self.commands: list[MCILCommand] = commands
 
+    def get_exprs(self) -> list[MCILExpr]:
+        return [e for cmd in self.commands for e in cmd.get_exprs()]
+
     def get_check_system_cmds(self) -> list[MCILCheckSystem]:
         return [cmd for cmd in self.commands if isinstance(cmd, MCILCheckSystem)]
 
     def __str__(self) -> str:
         return "\n".join(str(cmd) for cmd in self.commands)
 
-    def to_json(self) -> list: # type: ignore
-        return [cmd.to_json() for cmd in self.commands] # type: ignore
+    def to_json(self) -> list:
+        return [cmd.to_json() for cmd in self.commands]
 
 
 class MCILExit(MCILCommand):
@@ -740,17 +804,18 @@ IdentifierClass = tuple[str, int]
 RankTable = dict[IdentifierClass, Callable[[Any], Rank]]
 
 CORE_RANK_TABLE: RankTable = {
-    ("true", 0):     lambda _: ([], MCIL_BOOL_SORT),
-    ("false", 0):    lambda _: ([], MCIL_BOOL_SORT),
-    ("not", 0):      lambda _: ([MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("=>", 0):       lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("and", 0):      lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("or", 0):       lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("xor", 0):      lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
-    ("=", 0):        lambda A: ([A,A], MCIL_BOOL_SORT),
-    ("distinct", 0): lambda A: ([A,A], MCIL_BOOL_SORT),
-    ("ite", 0):      lambda A: ([MCIL_BOOL_SORT, A, A], A),
-    ("const", 0):    lambda A: ([MCIL_ANY_SORT], A),
+    ("true", 0):       lambda _: ([], MCIL_BOOL_SORT),
+    ("false", 0):      lambda _: ([], MCIL_BOOL_SORT),
+    ("not", 0):        lambda _: ([MCIL_BOOL_SORT], MCIL_BOOL_SORT),
+    ("=>", 0):         lambda _: ([MCIL_BOOL_SORT, MCIL_BOOL_SORT], MCIL_BOOL_SORT),
+    ("and", 0):        lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("or", 0):         lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("xor", 0):        lambda A: ([MCIL_BOOL_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("=", 0):          lambda A: ([A[0] for _ in range(0,A[1])], MCIL_BOOL_SORT),
+    ("distinct", 0):   lambda A: ([A[0] for _ in range(0,A[1])], MCIL_BOOL_SORT),
+    ("ite", 0):        lambda A: ([MCIL_BOOL_SORT, A, A], A),
+    ("const", 0):      lambda A: ([MCIL_ANY_SORT], A),
+    ("OnlyChange", 0): lambda A: ([MCIL_ANY_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
 }
 
 BITVEC_RANK_TABLE: RankTable = {
@@ -798,17 +863,17 @@ ARRAY_RANK_TABLE: RankTable = {
 }
 
 INT_RANK_TABLE: RankTable = {
-    ("-", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
+    ("-", 0):         lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_INT_SORT),
     ("+", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
     ("*", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
     ("/", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
     ("div", 0):       lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
     ("mod", 0):       lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_INT_SORT),
     ("abs", 0):       lambda _: ([MCIL_INT_SORT], MCIL_INT_SORT),
-    ("<=", 0):        lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
-    ("<", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
-    (">=", 0):        lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
-    (">", 0):         lambda _: ([MCIL_INT_SORT, MCIL_INT_SORT], MCIL_BOOL_SORT),
+    ("<=", 0):        lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    ("<", 0):         lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    (">=", 0):        lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
+    (">", 0):         lambda A: ([MCIL_INT_SORT for _ in range(0,A)], MCIL_BOOL_SORT),
     ("divisible", 1): lambda _: ([MCIL_INT_SORT], MCIL_BOOL_SORT),
 }
 
@@ -830,17 +895,17 @@ def sort_check_apply_core(node: MCILApply) -> bool:
 
     if identifier_class not in CORE_RANK_TABLE:
         return False
-    elif identifier.check("=", 0) or identifier.check("distinct", 0):
-        # (par (A) (= A A Bool))
-        # (par (A) (distinct A A Bool))
+    elif identifier.check({"=", "distinct"}, 0):
+        # (par (A) (= A ... A Bool))
+        # (par (A) (distinct A ... A Bool))
         if len(node.children) < 1:
             return False
 
         param = node.children[0].sort
-        rank = CORE_RANK_TABLE[(identifier.symbol, 0)](param)
+        rank = CORE_RANK_TABLE[(identifier.symbol, 0)]((param, len(node.children)))
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("ite", 0):
+    elif identifier.check({"ite"}, 0):
         # (par (A) (ite Bool A A A))
         if len(node.children) < 3:
             return False
@@ -849,7 +914,18 @@ def sort_check_apply_core(node: MCILApply) -> bool:
         rank = CORE_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("const", 0):
+    elif identifier.check({"and", "or", "xor"}, 0):
+        # (and Bool ... Bool Bool)
+        # (or Bool ... Bool Bool)
+        # (xor Bool ... Bool Bool)
+        if len(node.children) < 2:
+            return False
+
+        param = len(node.children)
+        rank = CORE_RANK_TABLE[identifier_class](param)
+
+        return sort_check_apply_rank(node, rank)
+    elif identifier.check({"const"}, 0):
         if len(node.children) < 1:
             return False
 
@@ -857,6 +933,17 @@ def sort_check_apply_core(node: MCILApply) -> bool:
             return False
 
         rank = CORE_RANK_TABLE[identifier_class](node.sort)
+
+        return sort_check_apply_rank(node, rank)
+    elif identifier.check({"OnlyChange"}, 0):
+        if len(node.children) < 1:
+            return False
+
+        if any([not isinstance(c, MCILVar) for c in node.children]):
+            return False
+
+        param = len(node.children)
+        rank = CORE_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
 
@@ -871,7 +958,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
 
     if identifier_class not in BITVEC_RANK_TABLE:
         return False
-    elif identifier.check("concat", 0):
+    elif identifier.check({"concat"}, 0):
         # (concat (_ BitVec i) (_ BitVec j) (_ BitVec i+j))
         if len(node.children) < 2:
             return False
@@ -888,7 +975,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         rank = BITVEC_RANK_TABLE[identifier_class]((i, j))
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("extract", 2):
+    elif identifier.check({"extract"}, 2):
         # ((_ extract i j) (_ BitVec m) (_ BitVec n))
         # subject to:
         #   - m < i <= j
@@ -904,7 +991,6 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         (i,j) = identifier.indices
 
         if j > i or i >= m:
-            print(f"{i}, {j}, {m}")
             return False
 
         n = i - j + 1
@@ -914,7 +1000,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         rank = BITVEC_RANK_TABLE[identifier_class]((m, n))
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("zero_extend", 1) or identifier.check("sign_extend", 1):
+    elif identifier.check({"zero_extend", "sign_extend"}, 1):
         # ((_ zero_extend i) (_ BitVec m) (_ BitVec m+i))
         # ((_ sign_extend i) (_ BitVec m) (_ BitVec m+i))
         i = identifier.indices[0]
@@ -930,7 +1016,7 @@ def sort_check_apply_bitvec(node: MCILApply) -> bool:
         rank = BITVEC_RANK_TABLE[identifier_class]((m, i))
 
         return sort_check_apply_rank(node, rank)
-    elif identifier.check("rotate_left", 1) or identifier.check("rotate_right", 1):
+    elif identifier.check({"rotate_left", "rotate_right"}, 1):
         # ((_ rotate_left i) (_ BitVec m) (_ BitVec m))
         # ((_ rotate_right i) (_ BitVec m) (_ BitVec m))
         if len(node.children) < 1:
@@ -990,13 +1076,24 @@ def sort_check_apply_int(node: MCILApply) -> bool:
 
     if identifier_class not in INT_RANK_TABLE:
         return False
-    elif identifier.check("-", 0) and len(node.children) == 1:
-        # special case: negation and subtraction share a symbol
-        # we handle the negation case here
-        rank = INT_RANK_TABLE[identifier_class](None)
+    elif identifier.check({"-"}, 0):
+        # (- Int Int Int)
+        # (- Int Int)
+        if len(node.children) < 1 or len(node.children) > 2:
+            return False
 
-        # change from [Int, Int] to [Int]
-        rank[0].pop() 
+        param = len(node.children)
+        rank = INT_RANK_TABLE[identifier_class](param)
+
+        return sort_check_apply_rank(node, rank)
+    elif identifier.check({">=", ">", "<=", "<"}, 0):
+        # (- Int Int Int)
+        # (- Int Int)
+        if len(node.children) < 2 or len(node.children) > 3:
+            return False
+
+        param = len(node.children)
+        rank = INT_RANK_TABLE[identifier_class](param)
 
         return sort_check_apply_rank(node, rank)
 
@@ -1050,10 +1147,10 @@ def sort_check_apply_qf_lia(node: MCILApply) -> bool:
         # Terms containing * with _concrete_ coefficients are also allowed, that
         # is, terms of the form c, (* c x), or (* x c)  where x is a free constant
         # and c is a term of the form n or (- n) for some numeral n.
-        if node.identifier.check("*", 0):
+        if node.identifier.check({"*"}, 0):
             lhs,rhs = node.children
             if isinstance(lhs, MCILApply):
-                if not lhs.identifier.check("-", 0):
+                if not lhs.identifier.check({"-"}, 0):
                     return False
                 elif not len(lhs.children) == 1:
                     return False
@@ -1062,7 +1159,7 @@ def sort_check_apply_qf_lia(node: MCILApply) -> bool:
                 elif not isinstance(rhs, MCILVar):
                     return False
             elif isinstance(rhs, MCILApply):
-                if not rhs.identifier.check("-", 0):
+                if not rhs.identifier.check({"-"}, 0):
                     return False
                 elif not len(rhs.children) == 1:
                     return False
@@ -1194,15 +1291,18 @@ class MCILSystemContext():
 class MCILContext():
 
     def __init__(self):
-        self.logic = NO_LOGIC
 
         self.declared_sorts: dict[MCILIdentifier, int] = {}
         self.declared_enum_sorts: dict[str, list[str]] = {}
         self.defined_sorts: set[MCILSort] = set()
         self.sorts: dict[str, MCILSort] = {}
+        self.sort_symbols: set[str] = set()
 
         self.declared_functions: dict[str, Rank] = {}
         self.defined_functions: dict[str, tuple[Rank, MCILExpr]] = {}
+        self.defined_function_input_vars: dict[str, list[MCILVar] ] = {}
+
+        self.declared_consts: dict[str, MCILSort] = {}
 
         self.defined_systems: dict[str, MCILDefineSystem] = {}
         self.system_context = MCILSystemContext() # used during system flattening
@@ -1215,9 +1315,24 @@ class MCILContext():
         self.bound_let_vars: dict[str, MCILExpr] = {}
 
         self.cur_command: Optional[MCILCommand] = None
-        self.const_array_init_exprs: dict[MCILVar,MCILExpr] = {}
+        self.const_array_init_exprs: dict[MCILVar, MCILExpr] = {}
 
         self.symbols: set[str] = set()
+
+        self.set_logic(NO_LOGIC)
+
+    def set_logic(self, logic: MCILLogic) -> None:
+        # remove symbols from previous logic
+        for symbol,_ in logic.function_symbols | logic.sort_symbols:
+            self.sort_symbols.discard(symbol)
+            self.symbols.discard(symbol)
+
+        # TODO: Check for conflicts between symbols and logic symbols
+
+        self.logic = logic
+        self.symbols.update([symbol for symbol,_ in logic.sort_symbols])
+        self.sort_symbols.update([symbol for symbol,_ in logic.sort_symbols])
+        self.symbols.update([symbol for symbol,_ in logic.function_symbols])
 
     def add_declared_sort(self, ident: MCILIdentifier, arity: int) -> None:
         self.declared_sorts[ident] = arity
@@ -1227,19 +1342,32 @@ class MCILContext():
     def add_declared_enum_sort(self, symbol: str, vals: list[str]) -> None:
         self.declared_enum_sorts[symbol] = vals
         self.defined_sorts.add(MCIL_ENUM_SORT(symbol))
+        self.sort_symbols.add(symbol)
         self.symbols.add(symbol)
         [self.symbols.add(v) for v in vals]
 
     def add_defined_sort(self, sort: MCILSort) -> None:
         self.defined_sorts.add(sort)
+        self.sort_symbols.add(sort.identifier.symbol)
         self.symbols.add(sort.identifier.symbol)
 
     def add_declared_function(self, symbol: str, rank: Rank) -> None:
         self.declared_functions[symbol] = rank
         self.symbols.add(symbol)
 
-    def add_defined_function(self, symbol: str, signature: tuple[Rank, MCILExpr]) -> None:
+    def add_defined_function(self, define_fun: MCILDefineFun) -> None:
+        symbol = define_fun.symbol
+
+        input_sorts = [sort for _,sort in define_fun.input]
+        signature = (Rank((input_sorts, define_fun.output_sort)), define_fun.body)
+        input_vars = [MCILVar(MCILVarType.LOGIC, sort, sym, False) for sym,sort in define_fun.input]
+
         self.defined_functions[symbol] = signature
+        self.defined_function_input_vars[symbol] = input_vars
+        self.symbols.add(symbol)
+
+    def add_declared_const(self, symbol: str, sort: MCILSort) -> None:
+        self.declared_consts[symbol] = sort
         self.symbols.add(symbol)
 
     def add_defined_system(self, symbol: str, system: MCILDefineSystem) -> None:
@@ -1281,9 +1409,6 @@ class MCILContext():
         output: list[tuple[str, MCILSort]],
         local: list[tuple[str, MCILSort]]
     ) -> None:
-        # [self.input_vars.discard(symbol) for symbol,_ in input]
-        # [self.output_vars.discard(symbol) for symbol,_ in output]
-        # [self.local_vars.discard(symbol) for symbol,_ in local]
         for symbol,_ in (input + output + local):
             self.input_vars.discard(symbol)
             self.output_vars.discard(symbol)
@@ -1305,7 +1430,7 @@ def postorder_mcil(expr: MCILExpr, context: MCILContext):
                 context.remove_bound_let_var(v)
             yield cur
         elif seen and isinstance(cur, MCILBind):
-            for (v,e) in cur.binders:
+            for (v,e) in cur.get_binders():
                 context.add_bound_let_var(v,e)
         elif seen:
             yield cur
@@ -1325,14 +1450,14 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
         for expr in postorder_mcil(node, context):
             if isinstance(expr, MCILConstant):
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.input_vars:
                 expr.var_type = MCILVarType.INPUT
                 expr.sort = context.var_sorts[expr.symbol]
 
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
@@ -1343,7 +1468,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 expr.var_type = MCILVarType.OUTPUT
                 expr.sort = context.var_sorts[expr.symbol]
                 
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
@@ -1354,7 +1479,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 expr.var_type = MCILVarType.LOCAL
                 expr.sort = context.var_sorts[expr.symbol]
 
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
@@ -1362,15 +1487,33 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                     eprint(f"[{__name__}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
+                if expr.prime:
+                    eprint(f"[{__name__}] Error: bound variables cannot be primed ({expr})")
+                    status = False
+                
                 expr.sort = context.bound_let_vars[expr.symbol].sort
-            elif isinstance(expr, MCILVar) and expr in context.var_sorts:
-                expr.sort = context.var_sorts[expr]
+            elif isinstance(expr, MCILVar) and expr.symbol in context.var_sorts:
+                if expr.prime:
+                    eprint(f"[{__name__}] Error: only system variables be primed ({expr})")
+                    status = False
 
-                if expr.sort.identifier.get_class() not in context.logic.sort_symbols:
+                expr.sort = context.var_sorts[expr.symbol]
+
+                if expr.sort.identifier.symbol not in context.sort_symbols:
                     eprint(f"[{__name__}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
+            elif isinstance(expr, MCILVar) and expr.symbol in context.declared_consts:
+                if expr.prime:
+                    eprint(f"[{__name__}] Error: consts cannot be primed ({expr})")
+                    status = False
+
+                expr.sort = context.declared_consts[expr.symbol]
             elif isinstance(expr, MCILVar) and expr.symbol in context.defined_functions:
-                # constants defined using define-fun
+                if expr.prime:
+                    eprint(f"[{__name__}] Error: consts cannot be primed ({expr})")
+                    status = False
+
+                # constants defined using define-fun 
                 ((inputs, output), _) = context.defined_functions[expr.symbol]
 
                 if len(inputs) != 0:
@@ -1421,7 +1564,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 eprint(f"[{__name__}] Error: logic {cmd.logic} unsupported.")
                 status = False
             else:
-                context.logic = LOGIC_TABLE[cmd.logic]
+                context.set_logic(LOGIC_TABLE[cmd.logic])
         elif isinstance(cmd, MCILDeclareSort):
             # TODO: move this warning to mcil2btor.py
             eprint(f"[{__name__}] Warning: declare-sort command unsupported, ignoring.")
@@ -1443,7 +1586,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
-            context.add_declared_function(cmd.symbol, Rank(([], cmd.sort)))
+            context.add_declared_const(cmd.symbol, cmd.sort)
         elif isinstance(cmd, MCILDeclareFun):
             if cmd.symbol in context.symbols:
                 eprint(f"[{__name__}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
@@ -1461,8 +1604,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
             context.remove_vars(cmd.input)
 
-            input_sorts = [sort for _,sort in cmd.input]
-            context.defined_functions[cmd.symbol] = (Rank((input_sorts, cmd.output_sort)), cmd.body)
+            context.add_defined_function(cmd)
         elif isinstance(cmd, MCILDefineSystem):
             # TODO: check for variable name clashes across cmd.input, cmd.output, cmd.local
             # TODO: check for valid sort symbols
@@ -1588,10 +1730,63 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
     return (status, context)
 
 
+def inline_funs(program: MCILProgram, context: MCILContext) -> None:
+    """Perform function inlining on each expression in `program`."""
+    for top_expr in program.get_exprs():
+        for expr in postorder_mcil(top_expr, context):
+            if (
+                isinstance(expr, MCILApply) 
+                and expr.identifier.symbol in context.defined_functions
+            ):
+                fun_symbol = expr.identifier.symbol
+
+                _,fun_def = context.defined_functions[fun_symbol]
+                fun_def_input_vars = context.defined_function_input_vars[fun_symbol]
+                
+                var_map = {arg:val for arg,val in zip(fun_def_input_vars, expr.children)}
+                
+                expr.replace(rename_vars(fun_def, var_map, context))
+
+
+def to_binary_applys(program: MCILProgram, context: MCILContext) -> None:
+    """Replace all multi-arity functions (=, and, or, <, etc.) to binary versions."""
+    for top_expr in program.get_exprs():
+        for expr in postorder_mcil(top_expr, context):
+            if (
+                isinstance(expr, MCILApply) 
+                and expr.identifier.check({"and", "or", "xor", "=", "distinct"}, 0)
+                and len(expr.children) > 2
+            ):
+                new_expr = MCILApply(expr.sort, expr.identifier, [expr.children[-2], expr.children[-1]])
+                for i in range(3, len(expr.children)+1):
+                    new_expr = MCILApply(expr.sort, expr.identifier, [expr.children[-i], new_expr])
+
+                expr.replace(new_expr)
+            elif (
+                isinstance(expr, MCILApply) 
+                and expr.identifier.check({"<=", "<", ">=", ">"}, 0) 
+                and len(expr.children) == 3
+            ):
+                new_expr = MCILApply(expr.sort, expr.identifier, 
+                    [
+                        expr.children[0],
+                        MCILApply(expr.sort, expr.identifier,
+                            [
+                                expr.children[1],
+                                expr.children[2]
+                            ]
+                        )
+                    ]
+                )
+
+                expr.replace(new_expr)
+
+
+
 def to_qfbv(program: MCILProgram):
 
-    SORT_MAP = {
-        "Int": MCIL_BITVEC_SORT(64)
+    SORT_MAP: dict[MCILSort, MCILSort] = {
+        MCIL_INT_SORT: MCIL_BITVEC_SORT(32)
     }
 
     UNARY_OPERATOR_MAP = {
@@ -1617,10 +1812,12 @@ def to_qfbv(program: MCILProgram):
             elif len(expr.children) == 2 and expr.identifier.symbol in BINARY_OPERATOR_MAP:
                 expr.identifier = BINARY_OPERATOR_MAP[expr.identifier.symbol]
             
-        if expr.sort.identifier.symbol in SORT_MAP:
-            expr.sort = SORT_MAP[expr.sort.identifier.symbol]
+        if expr.sort in SORT_MAP:
+            expr.sort = SORT_MAP[expr.sort]
 
     for command in program.commands:
+        if isinstance(command, MCILSetLogic):
+            command.logic = "QF_BV"
         if isinstance(command, MCILDefineSort):
             # FIXME: Need to check for any Int parameters of the definition
             raise NotImplementedError
@@ -1628,27 +1825,31 @@ def to_qfbv(program: MCILProgram):
             command.sort = SORT_MAP[command.sort.identifier.symbol]
         elif isinstance(command, MCILDeclareFun):
             for ivar in [i for i in command.inputs if i.identifier.symbol in SORT_MAP]:
-                command.inputs[command.inputs.index(ivar)] = SORT_MAP[ivar.identifier.symbol]
+                command.inputs[command.inputs.index(ivar)] = SORT_MAP[ivar]
 
             if command.output_sort.identifier.symbol in SORT_MAP:
                 command.output_sort = SORT_MAP[command.output_sort.identifier.symbol]
         elif isinstance(command, MCILDefineFun):
             for var in [(symbol,sort) for symbol,sort in command.input if sort.identifier.symbol in SORT_MAP]:
                 symbol,sort = var
-                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort])
 
             if command.output_sort.identifier.symbol in SORT_MAP:
                 command.output_sort = SORT_MAP[command.output_sort.identifier.symbol]
-        elif isinstance(command, MCILDefineSystem):
+        elif isinstance(command, (MCILDefineSystem, MCILCheckSystem)):
             for var in [(symbol,sort) for symbol,sort in command.input if sort.identifier.symbol in SORT_MAP]:
                 symbol,sort = var
-                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+                command.input[command.input.index(var)] = (symbol, SORT_MAP[sort])
             for var in [(symbol,sort) for symbol,sort in command.output if sort.identifier.symbol in SORT_MAP]:
                 symbol,sort = var
-                command.output[command.output.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+                command.output[command.output.index(var)] = (symbol, SORT_MAP[sort])
             for var in [(symbol,sort) for symbol,sort in command.local if sort.identifier.symbol in SORT_MAP]:
                 symbol,sort = var
-                command.local[command.local.index(var)] = (symbol, SORT_MAP[sort.identifier.symbol])
+                command.local[command.local.index(var)] = (symbol, SORT_MAP[sort])
+
+            sys_vars = [v for v in command.input_vars + command.output_vars + command.local_vars if v.sort in SORT_MAP]
+            for var in sys_vars:
+                var.sort = SORT_MAP[var.sort]
 
         context = MCILContext()
         for expr1 in command.get_exprs():

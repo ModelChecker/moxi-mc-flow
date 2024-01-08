@@ -221,7 +221,10 @@ if __name__ == "__main__":
 
     input_path = Path(args.input)
 
-    output_path = input_path.with_suffix(".btor.cex")
+    if not args.btormc and not args.avr and not args.pono:
+        sys.exit(0)
+
+    output_path = input_path.with_suffix(".cex")
     if args.output:
         output_path = Path(args.output)
 

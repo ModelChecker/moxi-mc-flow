@@ -85,23 +85,3 @@ def preprocess(input: Path) -> str:
     with open(str(input), 'r') as file:
         names = module_names(file)
         return handle_variables(str(input), names)
-
-
-# if __name__ == "__main__":
-#     argparser = argparse.ArgumentParser(
-#                             prog='preprocess script for nuXmv files',
-#     )
-#     argparser.add_argument("input")
-#     argparser.add_argument("output")
-
-#     args = argparser.parse_args()
-
-#     input_path = Path(args.input)
-#     output_path = Path(args.output)
-
-#     new_file_contents = preprocess(input_path)
-
-#     with open(str(output_path), 'w') as file:
-#         file.write(new_file_contents)
-
-#     print(f"[preprocess.py] Wrote output to `{output_path}`")

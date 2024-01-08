@@ -1,6 +1,5 @@
 import sys
 import json
-from argparse import ArgumentParser
 from pathlib import Path
 
 from .mcil import sort_check
@@ -27,20 +26,4 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool, do_pretty: bo
     with open(output_path, "w") as f:
         json.dump(program.to_json(), f, indent=4 if do_pretty else None)
         return 0
-
-
-# if __name__ == "__main__":
-#     argparser = ArgumentParser(description="Translates an input IL program to JSON format.")
-#     argparser.add_argument("input", help="input IL file")
-#     argparser.add_argument("--output", help="output file to dump JSON data")
-#     argparser.add_argument("--pretty", action="store_true", help="enable pretty JSON")
-#     argparser.add_argument("--sort-check", action="store_true", help="enable sort checking")
-
-#     args = argparser.parse_args()
-
-#     input_path = Path(args.input)
-#     output_path = Path(args.output) if args.output else Path(f"{input_path.stem}.json")
-
-#     returncode = main(input_path, output_path, args.sort_check, args.pretty)
-#     sys.exit(returncode)
 
