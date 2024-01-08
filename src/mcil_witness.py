@@ -36,12 +36,19 @@ class MCILAssignment():
 
 class MCILState():
 
-    def __init__(self, index: int, assignments: list[MCILAssignment]) -> None:
+    def __init__(
+        self, 
+        index: int,
+        state_assigns: list[MCILAssignment],
+        input_assigns: list[MCILAssignment]
+    ) -> None:
         self.index = index
-        self.assignments = assignments
+        self.state_assigns = state_assigns
+        self.input_assigns = input_assigns
+        self.assigns = state_assigns + input_assigns
 
     def __str__(self) -> str:
-        assigns_str = " ".join([str(a) for a in self.assignments])
+        assigns_str = " ".join([str(a) for a in self.assigns])
         return f"({self.index} {assigns_str})"
 
 

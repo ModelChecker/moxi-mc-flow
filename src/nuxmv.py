@@ -263,7 +263,7 @@ class XMVFunCall(XMVExpr):
         self.args = args
 
     def __repr__(self) -> str:
-        return f"{self.name}({self.args})"
+        return f"{self.name}({', '.join(str(a) for a in self.args)})"
 
 class XMVBinOp(XMVExpr):
     def __init__(self, op: str, lhs: XMVExpr, rhs: XMVExpr):

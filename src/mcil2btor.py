@@ -429,6 +429,19 @@ def translate_check_system(
         sort_comment.set_comment_no_space(sort_encoding)
         btor2_model.append(sort_comment)
 
+    # Add input var symbols. MCIL allows for primed inputs in certain spots, so
+    # we can't use BtorInputVar in our translation.
+    for var,cur in set([
+        (v,cur) 
+        for (v,_),(_,cur,_) 
+        in var_map.items() 
+        if cur and v.var_type == MCILVarType.INPUT
+    ]):
+        input_encoding = f"I {cur.with_no_suffix()}"
+        sort_comment = BtorNode()
+        sort_comment.set_comment_no_space(input_encoding)
+        btor2_model.append(sort_comment)
+
     for sort in sort_map.values():
         btor2_model.append(sort)
 
