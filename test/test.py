@@ -1,4 +1,5 @@
 import argparse
+from ntpath import join
 import subprocess
 from os.path import commonpath
 from os import walk
@@ -80,8 +81,10 @@ def run_test(
 
     stdout_path = test_dir / "stdout"
     stderr_path = test_dir /  "stderr"
+    cmd_path = test_dir /  "cmd"
     stdout_path.touch()
     stderr_path.touch()
+    cmd_path.touch()
 
     print_test(str(output_dir))
     test_start = time.perf_counter()
@@ -101,14 +104,18 @@ def run_test(
 
     test_end = time.perf_counter()
 
-    if proc.returncode and should_pass:
-        print_fail(f"{output_dir}", test_dir)
+    if ((proc.returncode and should_pass)
+        or (not proc.returncode and not should_pass)):
+        print_fail(f"{output_dir}. Command to reproduce:\n{' '.join(command)}", test_dir)
 
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
 
         with open(str(stdout_path), "w") as f:
             f.write(proc.stdout.decode("utf-8"))
+
+        with open(str(cmd_path), "w") as f:
+            f.write(' '.join(command))
 
         with open(str(fail_file), "a") as f:
             f.write(f"{output_dir} {stderr_path}\n")
@@ -122,6 +129,9 @@ def run_test(
 
         with open(str(stdout_path), "w") as f:
             f.write(proc.stdout.decode("utf-8"))
+
+        with open(str(cmd_path), "w") as f:
+            f.write(' '.join(command))
 
         with open(str(pass_file), "a") as f:
             f.write(f"{output_dir} {test_end - test_start}s\n")
