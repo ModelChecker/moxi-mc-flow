@@ -64,9 +64,13 @@ class NuXmvLexer(Lexer):
     ignore = " \t"
     ignore_comment = r"--.*"
     ignore_newline = r"\n+"
+    
+    WORDCONSTANT = r"0[us]?[bBoOdDhH][0-9]+?_[0-9a-fA-F]+"
+    INTEGER = r'-?[0-9][0-9]*'
 
     # punctuation
     COLONEQ = r"\:\="
+    NOTEQUAL = r"\!\="
     COMMA = r"\,"
     CONCAT = r"\:\:"
     COLON = r"\:"
@@ -80,7 +84,6 @@ class NuXmvLexer(Lexer):
     RIGHTARROW = r"\-\>"
     LEFTRIGHTARROW = r"\<\-\>"
     EQUAL = r"\="
-    NOTEQUAL = r"\!\="
     PLUS = r"\+"
     MINUS = r"\-"
     DIVIDE = r"\/"
@@ -101,14 +104,12 @@ class NuXmvLexer(Lexer):
     LBRACK = r"\["
     RBRACK = r"\]"
 
-    WORDCONSTANT = r"0[us]?[bBoOdDhH][0-9]+?_[0-9a-fA-F]+"
 
     LTLUNOP = r"[XGFYZHO](?=[ \n])"
     LTLBINOP = r"(?<=[ \n])[UVST](?=[ \n])"
 
     # primitives
     IDENT = r'[a-zA-Z_][a-zA-Z_0-9#$]*'
-    INTEGER = r'-?[0-9][0-9]*'
 
 
 
@@ -204,22 +205,26 @@ class NuXmvParser(Parser):
 
     @_(
         "parameter_list COMMA expr", 
-        "expr"
+        "expr",
+        ""
     )
     def parameter_list(self, p):
+        if len(p) == 0:
+            return []
         if len(p) == 1: # base case: `(param)`
             return [p[0]]
         return p[0] + [p[2]] # recursive case: `(param1, param2, ...)`
     
     @_(
         "XMV_MODULE IDENT LPAREN parameter_list RPAREN module_body",
-        "XMV_MODULE IDENT module_body"
+        "XMV_MODULE IDENT module_body",
+        "XMV_MODULE IDENT LPAREN RPAREN module_body"
     )
     def module(self, p):
-        if len(p) == 3:
-            return XMVModule(name=p[1], parameters=[], elements=p[2])
+        if len(p) == 6:
+            return XMVModule(name=p[1], parameters=p.parameter_list, elements=p.module_body)
         else:
-            return XMVModule(name=p[1], parameters=p[3], elements=p[5])
+            return XMVModule(name=p[1], parameters=[], elements=p.module_body)
     
 
     @_(
@@ -249,8 +254,12 @@ class NuXmvParser(Parser):
         # not dealing with INVAR simple_expr -> simple_expr
         "XMV_INVARSPEC expr",
         "XMV_INVARSPEC expr SEMICOLON",
+        "XMV_INVARSPEC XMV_NAME IDENT COLONEQ expr",
+        "XMV_INVARSPEC XMV_NAME IDENT COLONEQ expr SEMICOLON",
         "XMV_LTLSPEC ltl_expr",
-        "XMV_LTLSPEC ltl_expr SEMICOLON"
+        "XMV_LTLSPEC ltl_expr SEMICOLON",
+        "XMV_LTLSPEC XMV_NAME IDENT COLONEQ expr",
+        "XMV_LTLSPEC XMV_NAME IDENT COLONEQ expr SEMICOLON"
     )
     def module_element(self, p):
         match p[0]:
@@ -275,7 +284,7 @@ class NuXmvParser(Parser):
             case "INVAR":
                 return XMVInvarDeclaration(formula=p[1])
             case "INVARSPEC":
-                return XMVInvarspecDeclaration(formula=p[1])
+                return XMVInvarspecDeclaration(formula=p.expr)
             case "LTLSPEC":
                 return XMVLTLSpecDeclaration(formula=p[1])
     @_(

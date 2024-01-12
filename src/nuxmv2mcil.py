@@ -228,27 +228,41 @@ def translate_expr(
                     case "unsigned":
                         expr_map[expr] = expr_map[fargs[0]]
                     case "next":
-                        if not isinstance(fargs[0], XMVIdentifier):
-                            raise ValueError("complex next expressions unsupported")
-
-                        ident = fargs[0].ident
-                        if ident in context.vars[module.name]:
-                            # print(f"ident found in variable map")
+                        # if not isinstance(fargs[0], XMVIdentifier):
+                        #     raise ValueError("complex next expressions unsupported")
+                        if isinstance(fargs[0], XMVModuleAccess):
+                            print(f'expr: {fargs[0]}')
+                            print(f"context: {context.vars}")
+                            print(f"accessing context.vars[{module.name}][{fargs[0].module}]")
+                            mod_type = context.vars[module.name][fargs[0].module.ident]
+                            print(f"mod_type: {mod_type}")
+                            mod_name = mod_type.module_name
+                            module_access = fargs[0]
                             expr_map[expr] = MCILVar(
                                 var_type=MCILVarType.LOCAL,
-                                sort=translate_type(context.vars[module.name][ident], context),
-                                symbol=ident,
+                                sort=translate_type(context.vars[mod_name][module_access.element], context),
+                                symbol=expr_map[fargs[0]].symbol,
                                 prime=True
                             )
-                        elif fargs[0] in context.parameters[module.name]:
-                            expr_map[expr] = MCILVar(
-                                var_type=MCILVarType.LOCAL,
-                                sort=translate_type(context.parameters[module.name][fargs[0]], context),
-                                symbol=ident,
-                                prime=True
-                            )
-                        else:
-                            raise ValueError(f"{ident} not in either variables or parameters = {context.parameters[module.name]}?")
+                        else: # XMVIdentifier
+                            ident = fargs[0].ident
+                            if ident in context.vars[module.name]:
+                                # print(f"ident found in variable map")
+                                expr_map[expr] = MCILVar(
+                                    var_type=MCILVarType.LOCAL,
+                                    sort=translate_type(context.vars[module.name][ident], context),
+                                    symbol=ident,
+                                    prime=True
+                                )
+                            elif fargs[0] in context.parameters[module.name]:
+                                expr_map[expr] = MCILVar(
+                                    var_type=MCILVarType.LOCAL,
+                                    sort=translate_type(context.parameters[module.name][fargs[0]], context),
+                                    symbol=ident,
+                                    prime=True
+                                )
+                            else:
+                                raise ValueError(f"{ident} not in either variables or parameters = {context.parameters[module.name]}?")
                     case "READ":
                         expr_map[expr] = MCIL_SELECT_EXPR(
                             expr_map[fargs[0]],
@@ -639,7 +653,7 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
                                         var_type=MCILVarType.LOCAL,
                                         sort=translate_type(assign_decl.rhs.type, context),
                                         symbol=assign_decl.lhs.ident,
-                                        prime=True
+                                        prime=False
                                     )
                         else:
                             raise ValueError(f"Unsupported: next(complex_identifier)")
@@ -847,12 +861,14 @@ def infer_logic(commands: list[MCILCommand]) -> MCILSetLogic:
             
             if is_bitvec_sort(var[1]):
                 return MCILSetLogic(logic="QF_ABV")
-
-    raise ValueError("Specification does not map to a supported SMT logic")
+        
+    return
 
 def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
     commands: list[MCILCommand] = []
-    context = type_check_modules(xmv_specification)
+    context = initialize_vars(xmv_specification) 
+    # type_check_modules(xmv_specification, context)
+    top_down_param_analysis(xmv_specification, context)
     for xmv_module in xmv_specification.modules:
         try:
             il_commands = translate_module(xmv_module=xmv_module, context=context)
