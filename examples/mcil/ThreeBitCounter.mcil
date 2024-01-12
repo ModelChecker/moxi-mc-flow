@@ -1,17 +1,15 @@
-
 (define-system Latch  
     :input ( (set Bool) (reset_count Bool) )  
     :output ( (out Bool)) 
-    :local ( (s Bool) (b Bool) )
-    :init (and (not out) (not b) (not s))
-    :trans (and
-        (= out' s)
-        (= s' (or (and set (or (not reset_count) b)) 
-                    (and (not set) (not reset_count) out)))
+    :init (not out)
+    :trans (
+        (= out' (or (and set (not reset_count)) 
+                  (and (not reset_count) out)))
     )
 )
 
-(define-system OneBitCounter :input ( (inc Bool) (start Bool) ) 
+(define-system OneBitCounter 
+    :input ( (inc Bool) (start Bool) ) 
     :output ( (out Bool) (carry Bool) )
     :local ( (set Bool) (reset_count Bool) )
     :subsys (L (Latch set reset_count out))

@@ -2,12 +2,8 @@ import argparse
 import subprocess
 from pathlib import Path
 import sys
-import os
-import shutil
 
-import cProfile
-
-from src.util import eprint
+from src.util import eprint, cleandir
 from src.nuxmv2mcil import main as nuxmv2mcil
 from src.mcil2btor import main as mcil2btor
 from src.mcil2json import main as mcil2json
@@ -21,91 +17,101 @@ MCIL2BTOR_DIR = FILE_DIR / "mcil2btor"
 CATBTOR = FILE_DIR / "btor2tools" / "build" / "bin" / "catbtor"
 SORTCHECK = FILE_DIR / "sortcheck.py"
 
-def cleandir(dir: Path, quiet: bool):
-    """Remove and create fresh dir, print a warning if quiet is False"""
-    if dir.is_file():
-        if not quiet:
-            print(f"[{FILE_NAME}] Overwriting '{dir}'")
-        os.remove(dir)
-    elif dir.is_dir():
-        if not quiet:
-            print(f"[{FILE_NAME}] Overwriting '{dir}'")
-        shutil.rmtree(dir)
+PASS = 0
+FAIL = 1
 
-    os.mkdir(dir)
+def run_sortcheck(src_path: Path) -> int:
+    proc = subprocess.run(
+        ["python3", SORTCHECK, src_path],
+        capture_output=True
+    )
+    
+    if proc.returncode:
+        eprint(proc.stderr.decode("utf-8"))
+        return FAIL
+
+    print(proc.stdout.decode("utf-8"))
+    return PASS
 
 
-def main(input_path: Path, target_lang: str, output_path: Path, validate: bool) -> int:
+def run_catbtor(src_path: Path) -> int:
+    proc = subprocess.run(
+        [CATBTOR, src_path], 
+        capture_output=True
+    )
+    
+    if proc.returncode:
+        eprint(proc.stderr.decode("utf-8"))
+        return FAIL
+
+    print(f"[{FILE_NAME}] {src_path} is well-sorted")
+    return PASS
+
+
+def main(
+    input_path: Path, 
+    target_lang: str, 
+    output_path: Path, 
+    validate: bool,
+    do_pickle: bool, 
+    int_width: int,
+) -> int:
     if not input_path.is_file():
         eprint(f"[{FILE_NAME}] source is not a file ({input_path})\n")
         return 1
 
     match (input_path.suffix, target_lang):
         case (".smv", "mcil"):
-            retcode = nuxmv2mcil(input_path, output_path, True)
-            if retcode:
-                return retcode
+            if nuxmv2mcil(input_path, output_path):
+                return FAIL
         case (".smv", "mcil-json"):
             mcil_path = input_path.with_suffix(".mcil")
 
-            retcode = nuxmv2mcil(input_path, mcil_path, True)
-            if retcode:
-                return retcode
+            if nuxmv2mcil(input_path, mcil_path):
+                return FAIL
 
-            retcode = mcil2json(mcil_path, output_path, False, False)
-            if retcode:
-                return retcode
-
-            mcil_path.unlink()
+            if mcil2json(mcil_path, output_path, False, False):
+                return FAIL
         case (".smv", "btor2"):
             mcil_path = input_path.with_suffix(".mcil")
 
-            retcode = nuxmv2mcil(input_path, mcil_path, True)
-            if retcode:
-                return retcode
+            if  nuxmv2mcil(input_path, mcil_path):
+                return FAIL
 
-            retcode = mcil2btor(mcil_path, output_path, None)
-            if retcode:
-                return retcode
-
-            mcil_path.unlink()
+            if  mcil2btor(mcil_path, output_path, int_width, do_pickle):
+                return FAIL
         case (".mcil", "mcil-json"):
-            retcode = mcil2json(input_path, output_path, False, False)
-            if retcode:
-                return retcode
+            if  mcil2json(input_path, output_path, False, False):
+                return FAIL
         case(".mcil", "btor2"):
-            retcode = mcil2btor(input_path, output_path, None)
-            if retcode:
-                return retcode
+            if  mcil2btor(input_path, output_path, int_width, do_pickle):
+                return FAIL
         case (".json", "mcil"):
-            retcode = json2mcil(input_path, output_path, False, False)
-            if retcode:
-                return retcode
+            if  json2mcil(input_path, output_path, False, False, int_width):
+                return FAIL
         case (".json", "btor2"):
             mcil_path = input_path.with_suffix(".mcil")
 
-            retcode = json2mcil(input_path, output_path, False, False)
-            if retcode:
-                return retcode
+            if  json2mcil(input_path, mcil_path, False, False, int_width):
+                return FAIL
 
-            retcode = mcil2btor(input_path, output_path, None)
-            if retcode:
-                return retcode
-
-            mcil_path.unlink()
+            if  mcil2btor(mcil_path, output_path, int_width, do_pickle):
+                return FAIL
         case _:
             return 1
 
     if validate:
         if target_lang in {"mcil", "mcil-json"}:
-            proc = subprocess.run(["python3", SORTCHECK, output_path])
-            if proc.returncode:
-                return proc.returncode
+            return run_sortcheck(output_path)
         elif target_lang in {"btor2"}:
-            for btor_file in output_path.rglob("*"):
-                proc = subprocess.run([CATBTOR, btor_file])
-                if proc.returncode:
-                    return proc.returncode
+            retcodes = [
+                run_catbtor(btor_file) 
+                for btor_file 
+                in output_path.rglob("*.btor2")
+            ]
+
+            if any(retcodes):
+                return 1
 
     return 0
 
@@ -118,8 +124,11 @@ if __name__ == "__main__":
     parser.add_argument("--output", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
     parser.add_argument("--validate", action="store_true", 
                         help="validate output; uses catbtor if targetlan is btor2, sortcheck.py if targetlang is mcil or mcil-json")
+    parser.add_argument("--pickle", action="store_true", 
+                        help="if targetlang is `btor2`, dump pickled BTOR2; needed for witness translations")
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
     parser.add_argument("--sortcheck", help="path to sortcheck.py for MCIL validation")
+    parser.add_argument("--intwidth", default=32, type=int, help="bit width to translate Int types to when translating to BTOR2")
     args = parser.parse_args()
 
     input_path = Path(args.input)
@@ -147,5 +156,5 @@ if __name__ == "__main__":
 
     # cProfile.run("main(input_path, args.targetlang, output_path)")
 
-    returncode = main(input_path, args.targetlang, output_path, args.validate)
+    returncode = main(input_path, args.targetlang, output_path, args.validate, args.pickle, args.intwidth)
     sys.exit(returncode)

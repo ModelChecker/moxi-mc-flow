@@ -6,8 +6,9 @@ from .btor_witness import *
 
 class BtorWitnessLexer(Lexer):
 
-    tokens = { NEWLINE, NUMBER, SYMBOL, LBRACK, RBRACK, 
-               STATE_HEADER, INPUT_HEADER, BAD_PROP, JUSTICE_PROP, RW_DOT, RW_SAT }
+    tokens = { NEWLINE, NUMBER, SYMBOL, LBRACK, RBRACK, STAR,
+               STATE_HEADER, INPUT_HEADER, BAD_PROP, JUSTICE_PROP, 
+               RW_DOT, RW_SAT }
 
     # String containing ignored characters between tokens
     ignore = r" "
@@ -26,8 +27,9 @@ class BtorWitnessLexer(Lexer):
 
     LBRACK = r"\["
     RBRACK = r"\]"
+    STAR   = r"\*"
 
-    SYMBOL = r"[a-zA-Z~!@$%^&*_+=<>.?/-:#[\]][0-9a-zA-Z~!@$%^&*_+=<>.?/-:#[\]]*"
+    SYMBOL = r"[a-zA-Z~!@$%^&*_+=<>.?/-:#|[\]][0-9a-zA-Z~!@$%^&*_+=<>.?/-:#|[\]]*"
 
     # Reserved keywords
     SYMBOL["."] = RW_DOT
@@ -140,6 +142,14 @@ class BtorWitnessParser(Parser):
     @_("NUMBER LBRACK binary_string RBRACK binary_string")
     def assignment(self, p):
         return BtorArrayAssignment(int(p[0]), (p[2], p[4]), None)
+
+    @_("NUMBER LBRACK STAR RBRACK binary_string SYMBOL")
+    def assignment(self, p):
+        return BtorArrayAssignment(int(p[0]), (None, p[4]), p[5])
+
+    @_("NUMBER LBRACK STAR RBRACK binary_string")
+    def assignment(self, p):
+        return BtorArrayAssignment(int(p[0]), (None, p[4]), None)
 
     @_("NUMBER")
     def binary_string(self, p):

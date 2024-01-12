@@ -1,9 +1,11 @@
 #type: ignore
-import sys
+from pathlib import Path
 
 from .sly import Lexer, Parser
 from .util import eprint
 from .mcil import *
+
+FILE_NAME = Path(__file__).name
 
 class MCILLexer(Lexer):
 
@@ -82,7 +84,7 @@ class MCILLexer(Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        eprint(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}\n")
+        eprint(f"[{FILE_NAME}] {self.lineno}: Illegal character \"%s\" {t.value[0]}")
         self.index += 1
 
 
@@ -96,7 +98,7 @@ class MCILParser(Parser):
 
     def error(self, token):
         self.status = False
-        eprint(f"Error:{token.lineno}: Unexpected token ({token})\n")
+        eprint(f"[{FILE_NAME}] Error:{token.lineno}: Unexpected token ({token})")
 
     @_("command_list command")
     def command_list(self, p):
@@ -216,10 +218,17 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            eprint(f"Error:{p.lineno}: multiple instances of attribute ({attr.value}).")
+            eprint(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
             self.status = False
         elif attr.get_value_type() == dict:
+            # check for duplicate symbols
+            for v in value.keys():
+                if v in p[0][attr]:
+                    eprint(f"[{FILE_NAME}] Error:{p.lineno}: repeat symbol for attribute {attr.value} ({v})")
+                    self.status = False
             p[0][attr].update(value)
+        elif attr.get_value_type() == list:
+            p[0][attr] += value
         elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.TRANS):
             p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("or", []), [p[0][attr], value])
         elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.INV):
@@ -395,30 +404,30 @@ class MCILParser(Parser):
 
         symbol: str = p[0].symbol
         if symbol == "true":
-            return MCILConstant(MCIL_BOOL_SORT, True)
+            return MCIL_BOOL_CONST(True)
         elif symbol == "false":
-            return MCILConstant(MCIL_BOOL_SORT, False)
+            return MCIL_BOOL_CONST(False)
         elif symbol in self.enums:
-            return MCILConstant(MCIL_ENUM_SORT(self.enums[symbol]), symbol)
+            return MCIL_ENUM_CONST(self.enums[symbol], symbol)
 
         prime: bool = False
         if symbol[len(symbol)-1] == "'":
             prime = True
             symbol = symbol[:-1]
 
-        return MCILVar(MCILVarType.NONE, MCIL_NO_SORT, symbol, prime)
+        return MCILVar(MCIL_NO_SORT, symbol, prime)
 
     @_("NUMERAL")
     def term(self, p):
-        return MCILConstant(MCIL_INT_SORT, int(p[0]))
+        return MCIL_INT_CONST(int(p[0]))
 
     @_("HEXADECIMAL") # example: "#x123"
     def term(self, p):
-        return MCILConstant(MCIL_BITVEC_SORT(len(p[0][2:])*4), int(p[0][2:], base=16))
+        return MCIL_BITVEC_CONST(len(p[0][2:])*4, int(p[0][2:], base=16))
 
     @_("BINARY") # example: "#b101"
     def term(self, p):
-        return MCILConstant(MCIL_BITVEC_SORT(len(p[0][2:])), int(p[0][2:], base=2))
+        return MCIL_BITVEC_CONST(len(p[0][2:]), int(p[0][2:], base=2))
 
     @_("LPAREN identifier term_list term RPAREN")
     def term(self, p):

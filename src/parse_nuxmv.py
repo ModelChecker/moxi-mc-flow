@@ -92,6 +92,7 @@ class NuXmvLexer(Lexer):
     LSHIFT = r"\>\>"
     RSHIFT = r"\<\<"
 
+
     LESSEQUAL = r"\<\="
     GREATEREQUAL= r"\>\="
     LESSTHAN = r"\<"

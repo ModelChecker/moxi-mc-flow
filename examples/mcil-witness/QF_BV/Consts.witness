@@ -1,0 +1,15 @@
+(check-system-response Cnt
+:query (q :result sat :trace q_trace)
+:trace (q_trace :prefix q_trail)
+:trail (q_trail 
+	(0 (INPUT  #b01000110) (o  #b00000001) (i  #b01000110))
+	(1 (INPUT  #b01000110) (o  #b00000010) (i  #b01000110))
+	(2 (INPUT  #b01000110) (o  #b00000011) (i  #b01000110))
+	(3 (INPUT  #b01000110) (o  #b00000100) (i  #b01000110))
+	(4 (INPUT  #b01000110) (o  #b00000101) (i  #b01000110))
+	(5 (INPUT  #b01000110) (o  #b00000110) (i  #b01000110))
+	(6 (INPUT  #b01000110) (o  #b00000111) (i  #b01000110))
+	(7 (INPUT  #b01000110) (o  #b00001000) (i  #b01000110))
+	(8 (INPUT  #b01000110) (o  #b00001001) (i  #b01000110))
+	(9 (INPUT  #b01000110) (o  #b00001010) (i  #b01000110)))
+)

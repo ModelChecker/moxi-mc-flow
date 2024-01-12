@@ -271,7 +271,7 @@ class XMVFunCall(XMVExpr):
         self.args = args
 
     def __repr__(self) -> str:
-        return f"{self.name}({self.args})"
+        return f"{self.name}({', '.join(str(a) for a in self.args)})"
 
 class XMVBinOp(XMVExpr):
     def __init__(self, op: str, lhs: XMVExpr, rhs: XMVExpr):
@@ -996,7 +996,11 @@ def type_check_expr(expr: XMVExpr, context: XMVContext, module: XMVModule) -> No
                                 pass
                 if (module_w_elem == ""):
                     raise ValueError(f"module {id_w_elem} not instantiated in current context")
-                expr.type = context.vars[module_w_elem][elem]
+
+                if elem in context.vars[module_w_elem]:
+                    expr.type = context.vars[module_w_elem][elem]
+                else:
+                    expr.type = context.parameters[module_w_elem][XMVIdentifier(ident=elem)]
                 # raise NotImplementedError(f"Unsupported operator {type(expr)}")
             case _:
                 raise NotImplementedError(f"Unsupported operator {type(expr)}")

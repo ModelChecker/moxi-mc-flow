@@ -87,7 +87,7 @@ def case_to_ite(case_expr: XMVCaseExpr, context: XMVContext, expr_map: dict[XMVE
 
     return _case_to_ite(case_expr.branches, 0)
 
-DEFINE_LET_VAR = lambda e: MCILVar(MCILVarType.NONE, MCIL_NO_SORT, e, False)
+DEFINE_LET_VAR = lambda e: MCILVar(MCIL_NO_SORT, e, False)
 
 def build_define_expr(
     expr: XMVIdentifier,
@@ -192,7 +192,6 @@ def translate_expr(
                 elif ident in context.vars[module.name]:
                     # print(f"{ident}: var case")
                     expr_map[expr] = MCILVar(
-                        var_type=MCILVarType.INPUT,
                         sort=translate_type(context.vars[module.name][ident], context),
                         symbol=ident,
                         prime=False
@@ -205,7 +204,6 @@ def translate_expr(
                     ttype = translate_type(context.parameters[module.name][expr], context)
                     # print(f"assigning {expr} : {ttype}")
                     expr_map[expr] = MCILVar(
-                        var_type=MCILVarType.INPUT,
                         sort=ttype,
                         symbol=ident,
                         prime=False
@@ -239,7 +237,6 @@ def translate_expr(
                             mod_name = mod_type.module_name
                             module_access = fargs[0]
                             expr_map[expr] = MCILVar(
-                                var_type=MCILVarType.LOCAL,
                                 sort=translate_type(context.vars[mod_name][module_access.element], context),
                                 symbol=expr_map[fargs[0]].symbol,
                                 prime=True
@@ -249,14 +246,12 @@ def translate_expr(
                             if ident in context.vars[module.name]:
                                 # print(f"ident found in variable map")
                                 expr_map[expr] = MCILVar(
-                                    var_type=MCILVarType.LOCAL,
                                     sort=translate_type(context.vars[module.name][ident], context),
                                     symbol=ident,
                                     prime=True
                                 )
                             elif fargs[0] in context.parameters[module.name]:
                                 expr_map[expr] = MCILVar(
-                                    var_type=MCILVarType.LOCAL,
                                     sort=translate_type(context.parameters[module.name][fargs[0]], context),
                                     symbol=ident,
                                     prime=True
@@ -320,25 +315,25 @@ def translate_expr(
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                     case "<":
-                        il_op = "<" if isinstance(lhs.type, XMVInteger) else "bvult"
+                        il_op = "<" if isinstance(lhs.type, XMVInteger) else ("bvslt" if isinstance(lhs.type, XMVWord) and lhs.type.signed else "bvult")
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                         # il_op = "bvult"
                         # il_op = fn_map[("<", get_optype(lhs.type))]
                     case ">":
-                        il_op = ">" if isinstance(lhs.type, XMVInteger) else "bvugt"
+                        il_op = ">" if isinstance(lhs.type, XMVInteger) else ("bvsgt" if isinstance(lhs.type, XMVWord) and lhs.type.signed else "bvugt")
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                         # il_op = "bvugt"
                         # il_op = fn_map[(">", get_optype(lhs.type))]
                     case "<=":
-                        il_op = "<=" if isinstance(lhs.type, XMVInteger) else "bvule"
+                        il_op = "<=" if isinstance(lhs.type, XMVInteger) else ("bvsle" if isinstance(lhs.type, XMVWord) and lhs.type.signed else "bvule")
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                         # il_op = "bvule"
                         # il_op = fn_map[("<=", get_optype(lhs.type))]
                     case ">=":
-                        il_op = ">=" if isinstance(lhs.type, XMVInteger) else "bvuge"
+                        il_op = ">=" if isinstance(lhs.type, XMVInteger) else ("bvsge" if isinstance(lhs.type, XMVWord) and lhs.type.signed else "bvuge")
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                         # il_op = "bvuge"
@@ -410,7 +405,7 @@ def translate_expr(
                     case "!":
                         il_op = "not" if isinstance(arg.type, XMVBoolean) else "bvnot"
                     case "-":
-                        il_op = "bvneg"
+                        il_op = "-" if isinstance(arg.type, XMVInteger) else "bvneg"
                     case _:
                         il_op = op
 
@@ -429,7 +424,6 @@ def translate_expr(
                 expr_map[expr] =  case_to_ite(expr, context, expr_map)
             case XMVModuleAccess(module=ma_module, element=ma_elem):
                 expr_map[expr] = MCILVar(
-                    var_type=MCILVarType.LOCAL,
                     sort=expr.type,
                     symbol=ma_module.ident + "." + ma_elem,
                     prime=False
@@ -472,7 +466,6 @@ def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, 
 
     for param in xmv_module.parameters:
         # v = MCILVar(
-        #     var_type=MCILVarType.INPUT,
         #     sort=,
         #     symbol=param.ident, # type: ignore
         #     prime=False
@@ -502,7 +495,6 @@ def gather_local(xmv_module: XMVModule, context: XMVContext) -> tuple[list[tuple
                 for name in context.parameters[xmv_var_type.module_name]:
                     type = context.parameters[xmv_var_type.module_name][name]
                     input_var = MCILVar(
-                            var_type=MCILVarType.LOCAL,
                             sort=translate_type(type, context),
                             symbol=var_name.ident + "." + name.ident,
                             prime=False
@@ -514,7 +506,6 @@ def gather_local(xmv_module: XMVModule, context: XMVContext) -> tuple[list[tuple
                     
                 for (var_symbol, var_sort) in context.outputs[xmv_var_type.module_name]:
                     local_var = MCILVar(
-                        var_type=MCILVarType.LOCAL,
                         sort=var_sort,
                         symbol=var_name.ident + "." + var_symbol,
                         prime=False
@@ -552,7 +543,6 @@ def gather_output(xmv_module: XMVModule, context: XMVContext) -> tuple[list[str,
 
 def specialize_variable(module_name: str, var: MCILVar) -> MCILVar:
     return MCILVar(
-        var_type=var.var_type,
         sort=var.sort,
         symbol=module_name + "." + var.symbol,
         prime=var.prime
@@ -593,8 +583,7 @@ def gather_init(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVEx
             case _:
                 pass
 
-    result = conjoin_list(init_list) if len(init_list) > 0 else MCIL_BOOL_EXPR(True)
-    return result
+    return conjoin_list(init_list) if len(init_list) > 0 else MCIL_BOOL_CONST(True)
 
 def gather_trans(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
     trans_list: list[MCILExpr] = []
@@ -612,7 +601,6 @@ def gather_trans(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVE
 
                         if isinstance(assign_decl.lhs, XMVIdentifier):
                             lhs_expr = MCILVar(
-                                        var_type=MCILVarType.LOCAL,
                                         sort=translate_type(assign_decl.rhs.type, context),
                                         symbol=assign_decl.lhs.ident,
                                         prime=True
@@ -627,7 +615,7 @@ def gather_trans(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVE
             case _:
                 pass
 
-    return conjoin_list(trans_list) if len(trans_list) > 0 else MCIL_BOOL_EXPR(True)
+    return conjoin_list(trans_list) if len(trans_list) > 0 else MCIL_BOOL_CONST(True)
 
 def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
     inv_list: list[MCILExpr] = []
@@ -650,7 +638,6 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
 
                         if isinstance(assign_decl.lhs, XMVIdentifier):
                             lhs_expr = MCILVar(
-                                        var_type=MCILVarType.LOCAL,
                                         sort=translate_type(assign_decl.rhs.type, context),
                                         symbol=assign_decl.lhs.ident,
                                         prime=False
@@ -675,13 +662,11 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
                     var_ident = var_name.ident
                     inv_list.append(MCIL_EQ_EXPR(
                         MCILVar(
-                            var_type=MCILVarType.OUTPUT,
                             sort=translate_type(context.vars[xmv_module.name][var_ident], context),
                             symbol=var_ident,
                             prime=False
                         ),
                         MCILVar(
-                            var_type=MCILVarType.OUTPUT,
                             sort=translate_type(context.vars[xmv_module.name][var_ident], context),
                             symbol=var_ident,
                             prime=True
@@ -725,7 +710,7 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
                     pass
 
     # print("inv - done")
-    return conjoin_list(inv_list) if len(inv_list) > 0 else MCIL_BOOL_EXPR(True)
+    return conjoin_list(inv_list) if len(inv_list) > 0 else MCIL_BOOL_CONST(True)
 
 def gather_subsystems(xmv_module: XMVModule, xmv_context: XMVContext) -> dict[str, tuple[str, list[str]]]:
     subsystems: dict[str, tuple[str, list[str]]] = {}
@@ -834,7 +819,7 @@ def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCom
         check_system: list[MCILCommand] = []
     else:
         check_system: list[MCILCommand] = [MCILCheckSystem(
-                sys_symbol=xmv_module.name,
+                symbol=xmv_module.name,
                 input=input,
                 output=output,
                 local=local,
@@ -852,7 +837,7 @@ def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCom
     return enums + consts + [define_system] + check_system
 
 
-def infer_logic(commands: list[MCILCommand]) -> MCILSetLogic:
+def infer_logic(commands: list[MCILCommand]) -> Optional[MCILSetLogic]:
     for def_sys in [s for s in commands if isinstance(s, MCILDefineSystem)]:
         variables = def_sys.input + def_sys.output + def_sys.local
         for var in variables:
@@ -879,12 +864,13 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
         commands += il_commands
 
     logic: MCILSetLogic = infer_logic(commands)
-    print(f"[{FILE_NAME}] inferred SMT logic {logic.logic}")
+    if logic:
+        print(f"[{FILE_NAME}] inferred SMT logic {logic.logic}")
+        commands = [logic] + commands
 
-    commands = [logic] + commands
     return MCILProgram(commands=commands)
 
-def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
+def main(input_path: Path, output_path: Path) -> int:
     content = preprocess(input_path)
 
     print(f"[{FILE_NAME}] parsing specification in {input_path}")

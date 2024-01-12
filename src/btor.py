@@ -4,8 +4,10 @@ https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 from __future__ import annotations
 from collections import deque
 from enum import Enum
+from pathlib import Path
 from typing import Any, Optional
-import time
+
+FILE_NAME = Path(__file__).name
 
 EMPTY_ARGS = (None, None, None)
 
@@ -97,8 +99,11 @@ class BtorNode():
     def set_comment(self, s: str):
         self.comment = f" ; {s}"
 
+    def set_comment_no_space(self, s: str):
+        self.comment = f"; {s}"
+
     def __str__(self) -> str:
-        return f"{self.nid}{self.comment}"
+        return f"{self.comment}"
 
 
 class BtorSort(BtorNode):
@@ -167,6 +172,13 @@ class BtorVar(BtorExpr):
         self.sort: BtorSort = sort
         self.symbol = symbol
         self.var_index: int = 0  # used to refer to vars in witness
+
+    def with_no_suffix(self) -> str:
+        return (((str(self.symbol)
+            ).removesuffix(".init")
+            ).removesuffix(".cur")
+            ).removesuffix("next")
+
 
 class BtorInputVar(BtorVar):
 
@@ -394,17 +406,11 @@ class BtorFair(BtorNode):
 
 class BtorProgram():
 
-    def __init__(self, sorts: set[BtorSort], instr: list[BtorExpr]):
-        self.sorts = sorts
-        self.instructions = instr
+    def __init__(self, nodes: list[BtorNode]):
+        self.nodes = nodes
 
     def __str__(self) -> str:
-        s: str  = ""
-        for sort in self.sorts:
-            s += f"{sort}\n"
-        for instruction in self.instructions:
-            s += f"{instruction}\n"
-        return s[:-1] # delete last newline and return
+        return "\n".join([str(n) for n in self.nodes]) + "\n"
     
 
 operator_table: dict[BtorOperator, tuple[list[type], type]] = {
@@ -471,7 +477,9 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
 
     reduced_program: list[BtorNode] = []
     for node in program:
-        if node not in btor2_nids:
+        if str(node)[0] == ";":
+            reduced_program.append(node)
+        elif node not in btor2_nids:
             node.nid = cur_nid
             btor2_nids[node] = cur_nid
             cur_nid += 1

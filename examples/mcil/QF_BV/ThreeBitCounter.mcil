@@ -1,0 +1,75 @@
+(set-logic QF_BV)
+
+(define-system Latch  
+    :input ( (set Bool) (reset_count Bool) )  
+    :output ( (out Bool)) 
+    :init (not out)
+    :trans (
+        (= out' (or (and set (not reset_count)) 
+                  (and (not reset_count) out)))
+    )
+)
+
+(define-system OneBitCounter 
+    :input ( (inc Bool) (start Bool) ) 
+    :output ( (out Bool) (carry Bool) )
+    :local ( (set Bool) (reset_count Bool) )
+    :subsys (L (Latch set reset_count out))
+    :inv (and 
+        (= set (and inc (not reset_count)))
+        (= reset_count (or carry start))
+        (= carry (and inc out))
+    )
+)
+
+(define-system ThreeBitCounter  
+    :input ( (inc Bool) (start Bool) )
+    :output ( (out0 Bool) (out1 Bool) (out2 Bool) ) 
+    :local ( (car0 Bool) (car1 Bool) (car2 Bool) )
+    :init ( and (not out0) (not out1) (not out2) )
+    :subsys (C1 (OneBitCounter inc start out0 car0))
+    :subsys (C2 (OneBitCounter car0 start out1 car1)) 
+    :subsys (C3 (OneBitCounter car1 start out2 car2))
+)
+
+(check-system ThreeBitCounter
+    :input ((inc Bool) (start Bool) )
+    :output ((out0 Bool) (out1 Bool) (out2 Bool))
+    :local ((car0 Bool) (car1 Bool) (car2 Bool))
+    :reachable (r (and out0 out1 out2))
+    :query (query1 (r))
+)
+
+(define-system BVThreeBitCounter  
+    :input ( (inc Bool) (start Bool) )
+    :output ( (out (_ BitVec 3)) ) 
+    :init ( (and start (= out #b000)) )
+    :trans (= out' (ite start #b000 (ite inc (bvadd out #b001) out)))
+)
+
+(define-fun to_bv3 ((bit0 Bool) (bit1 Bool) (bit2 Bool)) (_ BitVec 3)
+    (ite (and (not bit2) (not bit1) (not bit0)) #b000
+    (ite (and (not bit2) (not bit1)      bit0 ) #b001
+    (ite (and (not bit2)      bit1  (not bit0)) #b010
+    (ite (and (not bit2)      bit1       bit0 ) #b011
+    (ite (and      bit2  (not bit1) (not bit0)) #b100
+    (ite (and      bit2  (not bit1)      bit0 ) #b101
+    (ite (and      bit2       bit1  (not bit0)) #b110
+                                                #b111
+    )))))))
+)
+
+(define-system Monitor
+    :local ( (inc Bool) (out_bit (_ BitVec 3)) (out_bv (_ BitVec 3))
+        (start Bool) (bit0 Bool) (bit1 Bool) (bit2 Bool) )
+    :subsys ( C1 (ThreeBitCounter inc start bit0 bit1 bit2 ) )
+    :subsys ( C2 (BVThreeBitCounter inc start out_bv ) )
+    :inv (= out_bit (to_bv3 bit0 bit1 bit2))
+)
+
+(check-system Monitor
+    :local ( (inc Bool) (out_bit (_ BitVec 3)) (out_bv (_ BitVec 3))
+        (start Bool) (bit0 Bool) (bit1 Bool) (bit2 Bool) )
+    :reachable (rch (distinct out_bit out_bv) )
+    :query (query1 (rch))
+)

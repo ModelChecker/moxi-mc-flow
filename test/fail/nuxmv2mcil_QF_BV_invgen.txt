@@ -1,0 +1,5 @@
+../examples/smv/nuxmv/invgen/QF_BV/heapsort.c.smv
+../examples/smv/nuxmv/invgen/QF_BV/heapsort1.c.smv
+../examples/smv/nuxmv/invgen/QF_BV/heapsort2.c.smv
+../examples/smv/nuxmv/invgen/QF_BV/heapsort3.c.smv
+../examples/smv/nuxmv/invgen/QF_BV/id_trans.c.smv

@@ -1,0 +1,3 @@
+(check-system-response TimedSwitch2
+:query (p1 :result unsat)
+)
