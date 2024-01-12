@@ -11,23 +11,25 @@ from .util import eprint
 FILE_NAME = Path(__file__).name
 
 
-def bitvec_to_mcil(bitvec: BitVec) -> MCILConstant:
+def bitvec_to_mcil(bitvec: BitVec, is_bool: bool) -> MCILConstant:
+    if is_bool:
+        return MCIL_BOOL_CONST(bool(bitvec.value))
     return MCIL_BITVEC_CONST(bitvec.width, bitvec.value)
 
 
-def collect_enums(btor2_program: list[BtorNode]) -> dict[str, list[str]]:
+def collect_enums(btor2_program: BtorProgram) -> dict[str, list[str]]:
     """Return mapping of enum variable names to an order-sensitive list of their potential values. Enums are encoded in the first comments of the model and are of the form: `; E var = Val0 Val1 ... ValN`."""
-    if len(btor2_program) < 1:
+    if len(btor2_program.nodes) < 1:
         return {}
 
     enums: dict[str, list[str]] = {}
     i = 0
 
-    while str(btor2_program[i])[0] == ";":
-        if str(btor2_program[i])[0:3] != "; E":
+    while str(btor2_program.nodes[i])[0] == ";":
+        if str(btor2_program.nodes[i])[0:3] != "; E":
             i += 1
             continue
-        comment = btor2_program[i].comment[4:]
+        comment = btor2_program.nodes[i].comment[4:]
         var,vals = [v.strip() for v in comment.split("=")]
         enums[var] = vals.split(" ")
         i += 1
@@ -35,19 +37,19 @@ def collect_enums(btor2_program: list[BtorNode]) -> dict[str, list[str]]:
     return enums
 
 
-def collect_arrays(btor2_program: list[BtorNode]) -> dict[str, tuple[int, int]]:
+def collect_arrays(btor2_program: BtorProgram) -> dict[str, tuple[int, int]]:
     """Return mapping of array variable names to their respective sort signatures. Note that BTOR2 solvers only support arrays from bit vectors to bit vectors. These sorts are encoded in the first comments of the model and are of the form: `; A var = X Y`."""
-    if len(btor2_program) < 1:
+    if len(btor2_program.nodes) < 1:
         return {}
 
     arrays: dict[str, tuple[int, int]] = {}
     i = 0
 
-    while str(btor2_program[i])[0] == ";":
-        if str(btor2_program[i])[0:3] != "; A":
+    while str(btor2_program.nodes[i])[0] == ";":
+        if str(btor2_program.nodes[i])[0:3] != "; A":
             i += 1
             continue
-        comment = btor2_program[i].comment[4:]
+        comment = btor2_program.nodes[i].comment[4:]
         var,vals = [v.strip() for v in comment.split("=")]
         (index_width, element_width) = vals.split(" ")
         arrays[var] = (int(index_width), int(element_width))
@@ -56,19 +58,19 @@ def collect_arrays(btor2_program: list[BtorNode]) -> dict[str, tuple[int, int]]:
     return arrays
 
 
-def collect_input_vars(btor2_program: list[BtorNode]) -> set[str]:
-    """Return a set of variable names corresponding to the input variable. Reads the annotation of the `I var`"""
-    if len(btor2_program) < 1:
+def collect_input_vars(btor2_program: BtorProgram) -> set[str]:
+    """Return a set of variable names corresponding to the input variables. Reads the annotation of the `I var`"""
+    if len(btor2_program.nodes) < 1:
         return set()
 
     input_vars = set()
     i = 0
 
-    while str(btor2_program[i])[0] == ";":
-        if str(btor2_program[i])[0:3] != "; I":
+    while str(btor2_program.nodes[i])[0] == ";":
+        if str(btor2_program.nodes[i])[0:3] != "; I":
             i += 1
             continue
-        comment = btor2_program[i].comment[4:]
+        comment = btor2_program.nodes[i].comment[4:]
         var = comment.strip()
         input_vars.add(var)
         i += 1
@@ -76,11 +78,31 @@ def collect_input_vars(btor2_program: list[BtorNode]) -> set[str]:
     return input_vars
 
 
-def collect_var_symbols(btor2_program: list[BtorNode]) -> dict[int, str]:
+def collect_bool_vars(btor2_program: BtorProgram) -> set[str]:
+    """Return a set of variable names corresponding to the variables with Bool sorts. Reads the annotation of the `B var`"""
+    if len(btor2_program.nodes) < 1:
+        return set()
+
+    bool_vars = set()
+    i = 0
+
+    while str(btor2_program.nodes[i])[0] == ";":
+        if str(btor2_program.nodes[i])[0:3] != "; B":
+            i += 1
+            continue
+        comment = btor2_program.nodes[i].comment[4:]
+        var = comment.strip()
+        bool_vars.add(var)
+        i += 1
+
+    return bool_vars
+
+
+def collect_var_symbols(btor2_program: BtorProgram) -> dict[int, str]:
     """Return a mapping of ints (in BTOR2 witness) to variable names. Variables are indexed in the order they appear in the BTOR2 input file. Searches for `.cur` vars that are not locals to any sub-systems; a variable with scope `::` is a local in a sub-system."""
     vars = {}
     cur = 0
-    for node in [n for n in btor2_program if isinstance(n, BtorVar)]:
+    for node in [n for n in btor2_program.nodes if isinstance(n, BtorVar)]:
         if node.symbol.find("::") == -1 and node.symbol.find(".cur") != -1:
             vars[cur] = node.symbol.removesuffix(".cur")
         cur += 1
@@ -90,7 +112,8 @@ def collect_var_symbols(btor2_program: list[BtorNode]) -> dict[int, str]:
 def to_mcil_array(
     btor2_array_assigns: list[BtorArrayAssignment],
     index_sort: MCILSort,
-    element_sort: MCILSort
+    element_sort: MCILSort,
+    bool_vars: set[int],
 ) -> MCILExpr:
     """Return an `MCILExpr` equivalent to `btor2_array_assigns`, using a constant array as a base term and performing a series of stores on that array. The constant array is either the element of an array assignment with index `*`, or the first array assignment's element if no such assignment exists. Assume that there is at most one assignment with index `*`."""
     # default_assign holds an assignment of the form:
@@ -106,7 +129,7 @@ def to_mcil_array(
     if not default_assign:
         default_assign = btor2_array_assigns[0]
 
-    const_val = bitvec_to_mcil(default_assign.element)
+    const_val = bitvec_to_mcil(default_assign.element, default_assign.id in bool_vars)
     mcil_array = MCIL_ARRAY_CONST(index_sort, element_sort, const_val)
 
     for assign in btor2_array_assigns:
@@ -115,8 +138,8 @@ def to_mcil_array(
 
         mcil_array = MCIL_STORE_EXPR(
             mcil_array,
-            bitvec_to_mcil(assign.index),
-            bitvec_to_mcil(assign.element)
+            bitvec_to_mcil(assign.index, default_assign.id in bool_vars),
+            bitvec_to_mcil(assign.element, default_assign.id in bool_vars)
         )
             
     return mcil_array
@@ -124,11 +147,10 @@ def to_mcil_array(
 
 def to_mcil_assigns(
     new_btor2_assigns: list[BtorAssignment],
-    old_btor2_assigns: Optional[list[BtorAssignment]],
     enums: dict[str, list[str]],
     vars: dict[int, str],
     arrays: dict[str, tuple[int, int]],
-    verbose: bool
+    bool_vars: set[int],
 ) -> list[MCILAssignment]:
     # TODO: Use `verbose` to enable verbose/compact witness options
     mcil_assigns: list[MCILAssignment] = []
@@ -151,7 +173,7 @@ def to_mcil_assigns(
         elif isinstance(btor2_assign, BtorBitVecAssignment):
             mcil_assign = MCILAssignment(
                 vars[btor2_assign.id], 
-                bitvec_to_mcil(btor2_assign.value)
+                bitvec_to_mcil(btor2_assign.value, btor2_assign.id in bool_vars)
             )
 
             mcil_assigns.append(mcil_assign)
@@ -171,20 +193,23 @@ def to_mcil_assigns(
             to_mcil_array(
                 assigns, 
                 MCIL_BITVEC_SORT(index_sort), 
-                MCIL_BITVEC_SORT(element_sort)
+                MCIL_BITVEC_SORT(element_sort),
+                bool_vars
             )
         )
 
         mcil_assigns.append(mcil_assign)
 
+    # sort the assigns lexicographically according to their symbols 
+    mcil_assigns.sort(key=lambda x: x.symbol)
+
     return mcil_assigns
 
 
 def translate(
-    btor2_program: list[BtorNode],
+    btor2_program: BtorProgram,
     btor_witness: BtorWitness,
     query_symbol: str,
-    verbose: bool
 ) -> Optional[MCILTrace]:
     trail: list[MCILState] = []
 
@@ -195,27 +220,21 @@ def translate(
     input_var_symbols = collect_input_vars(btor2_program)
     input_vars = {i for i,s in vars.items() if s in input_var_symbols}
 
-    new_btor2_state_assigns = None
-    new_btor2_input_assigns = None
-    old_btor2_state_assigns = None
-    old_btor2_input_assigns = None
+    bool_var_symbols = collect_bool_vars(btor2_program)
+    bool_vars = {i for i,s in vars.items() if s in bool_var_symbols}
 
     # we index at [:-1] to skip the last frame due to encoding of :reach
     # properties.
     for frame in btor_witness.frames[:-1]:
-        if new_btor2_state_assigns:
-            old_btor2_state_assigns = new_btor2_state_assigns
-        if new_btor2_input_assigns:
-            old_btor2_input_assigns = new_btor2_input_assigns
 
-        new_btor2_state_assigns = [
+        btor2_state_assigns = [
             assign
             for assign 
             in frame.state_assigns
             if assign.id in vars and assign.id not in input_vars
         ]
 
-        new_btor2_input_assigns = [
+        btor2_input_assigns = [
             assign
             for assign 
             in frame.state_assigns 
@@ -223,14 +242,10 @@ def translate(
         ]
 
         mcil_state_assigns = to_mcil_assigns(
-            new_btor2_state_assigns, 
-            old_btor2_state_assigns,
-            enums, vars, arrays, verbose
+            btor2_state_assigns, enums, vars, arrays, bool_vars
         )
         mcil_input_assigns = to_mcil_assigns(
-            new_btor2_input_assigns, 
-            old_btor2_input_assigns,
-            enums, vars, arrays, verbose
+            btor2_input_assigns, enums, vars, arrays, bool_vars
         )
 
         trail.append(
@@ -243,51 +258,66 @@ def translate(
 
 
 def main(
-    witness_path: Path, 
-    program_path: Path,
+    input_path: Path, 
     output_path: Path,
-    verbose: bool
-) -> Optional[MCILCheckSystemResponse]:
-    if witness_path.is_dir():
-        witness_paths = [p for p in witness_path.glob("*")]
-    elif witness_path.is_file():
-        witness_paths = [witness_path]
-    else:
-        eprint(f"[{FILE_NAME}] BTOR2 witness path must be file or directory.")
-        return None
+    verbose: bool,
+    do_pickle: bool
+) -> int:
+    """Translates each BTOR2 file set in each `check-system` directory in `witness_path` into the corresponding `MCILWitness` and writes the result to `output_path`. If `verbose` is enabled, writes the `MCILWitness` in verbose format (TODO: Implement compact format). 
 
-    query_responses: list[MCILQueryResponse] = []
+    `witness_path` should have a directory structure of the form (one directory for each `check-system` command of the original MCIL file):
+    `system.1/(BTOR2 file set)`
+    ...
+    `system.N/(BTOR2 file set)`
+    
+    BTOR2 file sets are of the form: 
+    {`query1.btor2`, `query1.btor2.cex`, `query1.btor2.pickle`}, 
+    {`query2.btor2`, `query2.btor2.cex`, `query2.btor2.pickle`}, 
+    {`query3.btor2`, `query3.btor2.pickle`},
+    etc.
 
-    for witness in witness_paths:
-        with open(witness, "r") as f:
-            witness_content = f.read()
+    If the file set for `query` includes a file with the `.cex` suffix, then `query` is sat. Otherwise, `query is unsat."""
+    if not input_path.is_dir():
+        eprint(f"[{FILE_NAME}] Error: witness path must be a directory.")
+        return 1
 
-        # check for empty witness
-        # this means the query was unsat
-        if witness_content == "":
-            query_responses.append(MCILQueryResponse(
-                witness.suffixes[-2][1:],
+    check_system_responses: list[MCILCheckSystemResponse] = []
+
+    for check_system_path in input_path.iterdir():
+        program_paths = [prog for prog in check_system_path.glob("*.btor2")]
+        pickle_paths = [p.with_suffix(".btor2.pickle") for p in program_paths]
+
+        system_symbol = check_system_path.stem
+
+        query_responses: list[MCILQueryResponse] = []
+
+        for program_path,pickle_path in zip(program_paths,pickle_paths):
+            witness_path = check_system_path / f"{program_path.name}.cex"
+
+            with open(str(witness_path), "r") as f:
+                witness_content = f.read()
+
+            query_symbol = program_path.stem
+
+            # check for empty witness
+            # this means the query was unsat
+            if witness_content == "":
+                query_responses.append(MCILQueryResponse(
+                    query_symbol,
                     MCILQueryResult.UNSAT,
-                    None,
-                    None,
-                    None
-            ))
-            continue
-        
-        btor_witness = parse_witness(witness_content)
-        if not btor_witness:
-            eprint(f"[{FILE_NAME}] parse error for BTOR2 witness file '{witness}'.")
-            return None
+                    None, None, None
+                ))
+                continue
+            
+            btor_witness = parse_witness(witness_content)
+            if not btor_witness:
+                eprint(f"[{FILE_NAME}] parse error for BTOR2 witness file {input_path}")
+                return 1
 
-        with open(program_path, "rb") as f:
-            btor2_program = pickle.load(f)
+            with open(pickle_path, "rb") as f:
+                btor2_program = pickle.load(f)
 
-        if btor_witness:
-            query_symbol = witness.suffixes[-2][1:]
-
-            mcil_trace = translate(
-                btor2_program, btor_witness, query_symbol, verbose
-            )
+            mcil_trace = translate(btor2_program, btor_witness, query_symbol)
 
             query_responses.append(MCILQueryResponse(
                     query_symbol,
@@ -298,9 +328,17 @@ def main(
                 )
             )
 
-    check_sys_response = MCILCheckSystemResponse(query_responses)
+        check_system_responses.append(
+            MCILCheckSystemResponse(system_symbol, query_responses)
+        )
+
+    mcil_witness = MCILWitness(check_system_responses)
 
     with open(str(output_path), "w") as f:
-        f.write(str(check_sys_response))
+        f.write(str(mcil_witness))
 
-    return check_sys_response
+    if do_pickle:
+        with open(f"{output_path}.pickle", "wb") as f:
+            pickle.dump(mcil_witness, f)
+
+    return 0

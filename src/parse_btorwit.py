@@ -29,7 +29,7 @@ class BtorWitnessLexer(Lexer):
     RBRACK = r"\]"
     STAR   = r"\*"
 
-    SYMBOL = r"[a-zA-Z~!@$%^&*_+=<>.?/-:#[\]][0-9a-zA-Z~!@$%^&*_+=<>.?/-:#[\]]*"
+    SYMBOL = r"[a-zA-Z~!@$%^&*_+=<>.?/-:#|[\]][0-9a-zA-Z~!@$%^&*_+=<>.?/-:#|[\]]*"
 
     # Reserved keywords
     SYMBOL["."] = RW_DOT

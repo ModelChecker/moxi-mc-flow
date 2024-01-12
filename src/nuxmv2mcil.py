@@ -71,7 +71,7 @@ def case_to_ite(case_expr: XMVCaseExpr, context: XMVContext, expr_map: dict[XMVE
 
     return _case_to_ite(case_expr.branches, 0)
 
-DEFINE_LET_VAR = lambda e: MCILVar(MCILVarType.NONE, MCIL_NO_SORT, e, False)
+DEFINE_LET_VAR = lambda e: MCILVar(MCIL_NO_SORT, e, False)
 
 def build_define_expr(
     expr: XMVIdentifier,
@@ -167,7 +167,6 @@ def translate_expr(
                     expr_map[expr] = DEFINE_LET_VAR(expr.ident)
                 elif ident in context.vars:
                     expr_map[expr] = MCILVar(
-                        var_type=MCILVarType.INPUT,
                         sort=translate_type(context.vars[ident]),
                         symbol=ident,
                         prime=False
@@ -195,7 +194,6 @@ def translate_expr(
 
                         ident = fargs[0].ident
                         expr_map[expr] = MCILVar(
-                            var_type=MCILVarType.LOCAL,
                             sort=translate_type(context.vars[ident]),
                             symbol=ident,
                             prime=True
@@ -254,7 +252,15 @@ def translate_expr(
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                     case "<":
-                        il_op = "bvult"
+                        il_op = "bvslt" if isinstance(lhs.type, XMVWord) and lhs.type.signed else "bvult"
+                        il_lhs = coerce_int_to_bv(expr_map[lhs])
+                        il_rhs = coerce_int_to_bv(expr_map[rhs])
+                    case "<=":
+                        il_op = "bvsle" if isinstance(lhs.type, XMVWord) and lhs.type.signed else "bvule"
+                        il_lhs = coerce_int_to_bv(expr_map[lhs])
+                        il_rhs = coerce_int_to_bv(expr_map[rhs])
+                    case ">=":
+                        il_op = "bvsgt" if isinstance(lhs.type, XMVWord) and lhs.type.signed else "bvuge"
                         il_lhs = coerce_int_to_bv(expr_map[lhs])
                         il_rhs = coerce_int_to_bv(expr_map[rhs])
                     case "+":
@@ -453,7 +459,6 @@ def gather_trans(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVE
 
                         if isinstance(assign_decl.lhs, XMVIdentifier):
                             lhs_expr = MCILVar(
-                                        var_type=MCILVarType.LOCAL,
                                         sort=translate_type(assign_decl.rhs.type),
                                         symbol=assign_decl.lhs.ident,
                                         prime=True
@@ -590,7 +595,7 @@ def translate_module(xmv_module: XMVModule) -> list[MCILCommand]:
         check_system: list[MCILCommand] = []
     else:
         check_system: list[MCILCommand] = [MCILCheckSystem(
-                sys_symbol=xmv_module.name,
+                symbol=xmv_module.name,
                 input=input,
                 output=output,
                 local=[],
@@ -619,9 +624,9 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
             
         commands += il_commands
 
-    return MCILProgram(commands=commands)
+    return MCILProgram(commands)
 
-def main(input_path: Path, output_path: Path, do_sort_check: bool) -> int:
+def main(input_path: Path, output_path: Path) -> int:
     content = preprocess(input_path)
 
     print(f"[{FILE_NAME}] parsing specification in {input_path}")

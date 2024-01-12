@@ -1,17 +1,14 @@
-"""
-TODO: Do not differentiate between unsat and unknown -- how to do this?
-"""
 import argparse
 from pathlib import Path
 import subprocess
 import sys
 import os
 import shutil
+import time
 
-from src.util import eprint
-from src.nuxmv2mcil import main as nuxmv2mcil
-from src.mcil2btor import main as mcil2btor
+from src.util import eprint, cleandir, rmdir
 from src.btorwit2mcilwit import main as btorwit2mcilwit
+from src.mcilwit2nuxmvwit import main as mcilwit2nuxmvwit
 
 FILE_NAME = Path(__file__).name
 FILE_DIR = Path(__file__).parent
@@ -19,60 +16,34 @@ WORK_DIR = FILE_DIR / "__workdir__"
 
 DEFAULT_BTORMC = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
 DEFAULT_AVR = FILE_DIR / "avr"
+DEFAULT_TRANSLATE = FILE_DIR / "translate.py"
 
 
-def rmdir(dir: Path, quiet: bool):
-    """Remove `dir`, print a warning if quiet is False"""
-    if dir.is_file():
-        if not quiet:
-            print(f"[{FILE_NAME}] Overwriting {dir}")
-        os.remove(dir)
-    elif dir.is_dir():
-        if not quiet:
-            print(f"[{FILE_NAME}] Overwriting {dir}")
-        shutil.rmtree(dir)
-
-
-def cleandir(dir: Path, quiet: bool):
-    """Remove and create fresh `dir`, print a warning if quiet is False"""
-    rmdir(dir, quiet)
-    os.mkdir(dir)
-
-
-def any2btor(src_path: Path, target_path: Path, pickle_path: Path, int_width: int) -> int:
-    if not src_path.is_file():
-        eprint(f"[{FILE_NAME}] Error: source is not a file ({src_path})\n")
-        return 1
-
-    retcode = 0
-    if src_path.suffix == ".smv":
-        mcil_path = WORK_DIR / src_path.with_suffix(".mcil").name
-        retcode += nuxmv2mcil(src_path, mcil_path, False)
-        retcode += mcil2btor(mcil_path, target_path, pickle_path, int_width)
-    elif src_path.suffix == ".mcil" or src_path.suffix == ".json":
-        retcode += mcil2btor(src_path, target_path, pickle_path, int_width)
-    else:
-        eprint(f"[{FILE_NAME}] Error: file type unsupported ({src_path.suffix})\n")
-        return 1
-
-    return retcode
-
-
-def run_btormc(btormc_path: Path, btor_path: Path, btor_witness_dir_path: Path, fulltrace: bool, kmax: int) -> int:
+def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
     print(f"[{FILE_NAME}] running btormc over {btor_path}")
-    label = btor_path.suffixes[-2][1:]
+    label = btor_path.stem
 
-    command = [str(btormc_path), str(btor_path), "-kmax", str(kmax)] + (["--trace-gen-full"] if fulltrace else [])
+    command = [str(btormc_path), str(btor_path), "-kmax", str(kmax), "--trace-gen-full"]
+    
+    if kind:
+        command.append("--kind")
+
+    start_mc = time.perf_counter()
+    
     proc = subprocess.run(command, capture_output=True)
+    
+    end_mc = time.perf_counter()
 
     if proc.returncode:
         eprint(proc.stderr.decode("utf-8"))
-        eprint(f"[{FILE_NAME}] Error: model checker failure for query '{label}'\n")
+        eprint(f"[{FILE_NAME}] Error: btormc failure for query '{label}'")
         return proc.returncode
+
+    print(f"[{FILE_NAME}] done model checking in {end_mc-start_mc}s")
 
     btor_witness_bytes = proc.stdout
 
-    btor_witness_path = btor_witness_dir_path / btor_path.with_suffix(f".cex").name
+    btor_witness_path = btor_path.with_suffix(f".btor2.cex")
     with open(btor_witness_path, "wb") as f:
         f.write(btor_witness_bytes)
 
@@ -81,26 +52,48 @@ def run_btormc(btormc_path: Path, btor_path: Path, btor_witness_dir_path: Path, 
     return 0
 
 
-def run_avr(avr_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int:
-    print(f"[{FILE_NAME}] running avr over {btor_path}")
-    label = btor_path.suffixes[-2][1:]
+def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
+    absolute_btor_path = btor_path.absolute()
+
+    print(f"[{FILE_NAME}] running avr over {absolute_btor_path}")
+    label = absolute_btor_path.stem
+
+    avr_output_path = absolute_btor_path.parent
+    avr_results_path = avr_output_path / "work_test"
 
     os.chdir(avr_path)
-    proc = subprocess.run(["python3", "avr_pr.py", btor_path, "--witness"], capture_output=True)
+
+    command = ["python", "avr.py", str(absolute_btor_path), "--bmc", "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax)]
+    
+    if kind:
+        command.append("--kind")
+
+    start_mc = time.perf_counter()
+    
+    proc = subprocess.run(command, capture_output=True)
+    
+    end_mc = time.perf_counter()
 
     if proc.returncode:
         eprint(proc.stderr.decode("utf-8"))
-        eprint(f"[{FILE_NAME}] Error: avr failure for query '{label}'\n")
+        eprint(f"[{FILE_NAME}] Error: avr failure for query '{label}'")
         return proc.returncode
 
-    avr_witness_path = [c for c in avr_path.glob("cex.witness")]
-    btor_witness_path = btor_witness_dir_path / btor_path.with_suffix(f".cex").name
+    print(f"[{FILE_NAME}] done model checking in {end_mc-start_mc}s")
+
+    avr_witness_path = [c for c in avr_results_path.glob("cex.witness")]
+    btor_witness_path = absolute_btor_path.with_suffix(f".btor2.cex")
     
+    avr_proof_path = [c for c in avr_results_path.glob("inv.txt")]
+
     os.chdir("..")
     if len(avr_witness_path) > 0:
         avr_witness_path[0].rename(str(btor_witness_path))
     else:
         btor_witness_path.touch()
+
+    if len(avr_proof_path) > 0:
+        avr_proof_path[0].rename(str(btor_witness_path.parent / "inv.txt"))
 
     print(f"[{FILE_NAME}] avr witness created at {btor_witness_path}")
 
@@ -110,65 +103,90 @@ def run_avr(avr_path: Path, btor_path: Path, btor_witness_dir_path: Path) -> int
 def model_check(
     input_path: Path, 
     output_path: Path, 
-    use_btormc: bool, 
-    use_avr: bool, 
+    model_checker: str, 
     copyback: bool,
     fulltrace: bool,
     int_width: int,
-    kmax: int
+    kmax: int,
+    kind: bool
 ) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
     # does not output valid witness output (header is missing), so we don't use it.
     # NOTE: for a model checker like avr, this might be necessary for full traces
     if not input_path.is_file():
-        eprint(f"[{FILE_NAME}] Error: source is not a file ({input_path})\n")
+        eprint(f"[{FILE_NAME}] Error: source is not a file ({input_path})")
         return 1
 
-    if output_path.exists():
-        rmdir(output_path, False)
-
+    rmdir(output_path, False)
     cleandir(WORK_DIR, True)
 
     src_path = WORK_DIR / input_path.name
-    pickled_btor_path = WORK_DIR / input_path.with_suffix(".pickle").name
-    mcil_witness_path = WORK_DIR / input_path.with_suffix(".cex").name
+    btor2_output_path = WORK_DIR / "btor2" 
+    mcil_witness_path = WORK_DIR / input_path.with_suffix(".mcil.witness").name
+    mcil_witness_pickle_path = WORK_DIR / input_path.with_suffix(".mcil.witness.pickle").name
+    nuxmv_witness_path = WORK_DIR / input_path.with_suffix(".smv.witness").name
+
+    if input_path.suffix == ".smv":
+        witness_path = nuxmv_witness_path
+    else:
+        witness_path = mcil_witness_path
 
     shutil.copy(str(input_path), str(src_path))
+
+    start_total = time.perf_counter()
     
-    retcode = any2btor(src_path, WORK_DIR, pickled_btor_path, int_width)
+    proc = subprocess.run([
+        "python3", str(DEFAULT_TRANSLATE), str(src_path), "btor2", 
+        "--output", str(btor2_output_path),
+        "--validate", "--intwidth", str(int_width),
+        "--pickle"
+        # TODO: Add paths to sortcheck.py, catbtor
+    ])
+
+    if proc.returncode:
+        eprint(f"[{FILE_NAME}] Error: translation failure for {input_path}")
+        return proc.returncode
+    
+    for check_system_path in btor2_output_path.iterdir():
+        for btor_path in check_system_path.glob("*.btor2"):
+            if model_checker == "btormc":
+                retcode = run_btormc(DEFAULT_BTORMC, btor_path, kmax, kind)
+                if retcode:
+                    return retcode
+            elif model_checker == "avr":
+                retcode = run_avr(DEFAULT_AVR, btor_path, kmax, kind)
+                if retcode:
+                    return retcode
+            else:
+                eprint(f"[{FILE_NAME}] Error: unsupported model checker {model_checker}")
+                return 1
+
+    retcode = btorwit2mcilwit(
+        btor2_output_path, mcil_witness_path, 
+        verbose=True, do_pickle=(input_path.suffix == ".smv")
+    )
+
     if retcode:
         return retcode
 
-    btormc_witness_path = Path()
-    avr_witness_path = Path()
-    for check_system_path in [d for d in WORK_DIR.iterdir() if d.is_dir()]:
-        if use_btormc:
-            btormc_witness_path = check_system_path / "btormc"
-            btormc_witness_path.mkdir()
+    if input_path.suffix == ".smv":
+        retcode = mcilwit2nuxmvwit(
+            mcil_witness_pickle_path, nuxmv_witness_path
+        )
 
-        if use_avr:
-            avr_witness_path = check_system_path / "avr"
-            avr_witness_path.mkdir()
-
-        for btor_path in check_system_path.glob("*.btor"):
-            if use_btormc:
-                run_btormc(DEFAULT_BTORMC, btor_path, btormc_witness_path, fulltrace, kmax)
-            if use_avr:
-                run_avr(DEFAULT_AVR, btor_path, avr_witness_path)
-
-        retcode = btorwit2mcilwit(btormc_witness_path, pickled_btor_path, mcil_witness_path)
-
-        if copyback:
-            shutil.copytree(WORK_DIR, output_path)
-            print(f"[{FILE_NAME}] wrote files to {output_path}")
-        else:
-            mcil_witness_path.replace(output_path)
-            print(f"[{FILE_NAME}] wrote MCIL witness to {output_path}")
-
-        cleandir(WORK_DIR, True)
-
-        if retcode:
+        if retcode: 
             return retcode
+        
+    end_total = time.perf_counter()
+
+    print(f"[{FILE_NAME}] end-to-end done in {end_total-start_total}s")
+
+    if copyback:
+        print(f"[{FILE_NAME}] wrote files to {output_path}")
+    else:
+        witness_path.replace(output_path)
+        print(f"[{FILE_NAME}] wrote MCIL witness to {output_path}")
+        rmdir(WORK_DIR, True)
 
     return 0
 
@@ -177,31 +195,40 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input", 
         help="input program to model check via translation to btor2")
+    parser.add_argument("modelchecker", choices=["btormc", "avr"], 
+        help="model checker to use")
     parser.add_argument("--output",  
         help="location of output check-system response")
     parser.add_argument("--copyback",  action="store_true",
         help="copy all intermediate translations and results to output location")
-    parser.add_argument("--btormc", action="store_true", 
-        help="enable btormc")
-    parser.add_argument("--avr", action="store_true", 
-        help="enable avr")
     parser.add_argument("--intwidth", default=32, type=int, 
         help="bit width to translate Int types to")
-    parser.add_argument("--fulltrace", action="store_true", 
-        help="return traces with all variable values for every state")
+    # parser.add_argument("--fulltrace", action="store_true", 
+    #     help="return traces with all variable values for every state")
     parser.add_argument("--kmax", default=1000, type=int, 
         help="max bound for BMC")
+    parser.add_argument("--kind", action="store_true", 
+        help="enable k-induction")
     args = parser.parse_args()
 
     input_path = Path(args.input)
 
-    if not args.btormc and not args.avr:
-        sys.exit(0)
-
-    output_path = input_path.with_suffix(".cex")
+    output_path = input_path.with_suffix(".witness")
     if args.output:
         output_path = Path(args.output)
 
-    retcode = model_check(input_path, output_path, args.btormc, args.avr, args.copyback, args.fulltrace, args.intwidth, args.kmax)
+    if args.copyback:
+        WORK_DIR = output_path
+
+    retcode = model_check(
+        input_path=input_path, 
+        output_path=output_path, 
+        model_checker=args.modelchecker, 
+        copyback=args.copyback, 
+        fulltrace=True, 
+        int_width=args.intwidth, 
+        kmax=args.kmax,
+        kind=args.kind
+    )
 
     sys.exit(retcode)

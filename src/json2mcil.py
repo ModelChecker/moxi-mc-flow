@@ -58,7 +58,7 @@ def from_json_expr(contents: dict, enums: dict[str, str]) ->  MCILExpr:
         prime = True
         symbol = symbol[:-1]
 
-    return MCILVar(MCILVarType.NONE, MCIL_NO_SORT, symbol, prime)
+    return MCILVar(MCIL_NO_SORT, symbol, prime)
 
 
 def from_json(contents: dict) -> Optional[MCILProgram]:
@@ -170,7 +170,13 @@ def from_json(contents: dict) -> Optional[MCILProgram]:
     return MCILProgram(program)
 
 
-def main(input_path: Path, output_path: Path, do_sort_check: bool, do_qfbv: bool) -> int:
+def main(
+    input_path: Path, 
+    output_path: Path, 
+    do_sort_check: bool, 
+    do_qfbv: bool, 
+    int_width: int
+) -> int:
     if not input_path.is_file():
         sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
         return 1
@@ -190,7 +196,7 @@ def main(input_path: Path, output_path: Path, do_sort_check: bool, do_qfbv: bool
             return 2
 
     if do_qfbv:
-        to_qfbv(program)
+        to_qfbv(program, int_width)
 
     with open(output_path, "w") as f:
         f.write(str(program))

@@ -1,13 +1,17 @@
+"""
+Representation of nuXmv witnesses (mostly traces). See Section 4.7 (p97) of https://nuxmv.fbk.eu/downloads/nuxmv-user-manual.pdf for reference. 
+"""
 from enum import Enum
-from typing import Optional, Any
+from typing import Optional
 
 from .nuxmv import *
 
 
 class XMVSpecResult(Enum):
     UNKNOWN = "unknown"
-    SAT = "true"
-    UNSAT = "false"
+    SAT = "false"
+    UNSAT = "true"
+
 
 def post_process_xmv_identifier(xmv_identifier: str) -> str:
     # reverse the pre-processing steps from preprocess_nuxmv.py
@@ -46,14 +50,18 @@ class XMVState():
 
     def __str__(self) -> str:
         s = ""
+
+        # Input of first frame is omitted in nuXmv traces
+        if self.input_assigns and self.index != 1:
+            s += f"  -> Input: {self.trace_id}.{self.index} <-\n"
+            for assign in self.input_assigns:
+                s += f"    {assign}\n"
+
         if self.state_assigns:
             s += f"  -> State: {self.trace_id}.{self.index} <-\n"
             for assign in self.state_assigns:
                 s += f"    {assign}\n"
-        if self.input_assigns:
-            s += f"  -> Input: {self.trace_id}.{self.index} <-\n"
-            for assign in self.input_assigns:
-                s += f"    {assign}\n"
+
         return s
 
 
@@ -97,7 +105,7 @@ class XMVSpecResponse():
         return s
 
 
-class XMVResponse():
+class XMVWitness():
 
     def __init__(
         self, 
@@ -106,4 +114,4 @@ class XMVResponse():
         self.responses = responses
 
     def __str__(self) -> str:
-        return "".join(str(r) for r in self.responses)
+        return "\n".join(str(r) for r in self.responses)

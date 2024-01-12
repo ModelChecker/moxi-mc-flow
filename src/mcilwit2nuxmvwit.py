@@ -1,5 +1,5 @@
-from multiprocessing.sharedctypes import Value
 from pathlib import Path
+import pickle
 
 from .mcil_witness import *
 from .nuxmv_witness import *
@@ -17,7 +17,9 @@ def to_xmv_word_const(mcil_bitvec: MCILConstant) -> XMVWordConstant:
 
 
 def to_xmv_expr(mcil_expr: MCILExpr, symbol: str) -> XMVExpr:
-    if isinstance(mcil_expr, MCILConstant) and is_bitvec_sort(mcil_expr.sort):
+    if isinstance(mcil_expr, MCILConstant) and is_bool_sort(mcil_expr.sort):
+        return XMVBooleanConstant(mcil_expr.value)
+    elif isinstance(mcil_expr, MCILConstant) and is_bitvec_sort(mcil_expr.sort):
         return to_xmv_word_const(mcil_expr)
     elif isinstance(mcil_expr, MCILApply) and mcil_expr.identifier.check({"const"}, 0):
         array_var = XMVIdentifier(post_process_xmv_identifier(symbol))
@@ -29,7 +31,7 @@ def to_xmv_expr(mcil_expr: MCILExpr, symbol: str) -> XMVExpr:
         return XMVFunCall("WRITE", [
             to_xmv_expr(array, symbol), to_xmv_expr(index, symbol), to_xmv_expr(element, symbol)
         ])
-    raise ValueError
+    raise ValueError(f"{mcil_expr}")
 
 def to_xmv_assign(mcil_assign: MCILAssignment) -> XMVAssignment:
     return XMVAssignment(mcil_assign.symbol, to_xmv_expr(mcil_assign.value, mcil_assign.symbol))
@@ -53,8 +55,7 @@ def to_xmv_trail(
 
 def translate(
     mcil_response: MCILQueryResponse,
-    trace_id: int,
-    query_symbol: str,
+    trace_id: int
 ) -> XMVSpecResponse:
     if mcil_response.result is MCILQueryResult.UNKNOWN:
         xmv_response = XMVSpecResponse(
@@ -83,27 +84,24 @@ def translate(
 
 
 def main(
-    check_system_response: MCILCheckSystemResponse, 
+    input_path: Path, 
     output_path: Path
 ) -> int:
     xmv_responses: list[XMVSpecResponse] = []    
 
-    # for query_response in check_system_response.query_responses:
-    #     if query_response.result is MCILQueryResult.UNKNOWN:
-    #         xmv_response = XMVSpecResponse(
-    #             XMVSpecResult.UNKNOWN, query_response.symbol, None
-    #         )
-    #         xmv_responses.append(xmv_response)
-    #     elif query_response.result is MCILQueryResult.UNSAT:
-    #         xmv_response = XMVSpecResponse(
-    #             XMVSpecResult.UNSAT, query_response.symbol, None
-    #         )
-    #         xmv_responses.append(xmv_response)
-    #     elif query_response.result is MCILQueryResult.SAT:
-    #         xmv_response = translate(query_response, "")
+    with open(str(input_path), "rb") as f:
+        mcil_witness: MCILWitness = pickle.load(f)
+
+    if len(mcil_witness.responses) < 1:
+        output_path.touch()
+        return 0
+    elif len(mcil_witness.responses) > 1:
+        eprint(f"[{FILE_NAME}] Warning: MCIL witness should only have 1 check-system response, using first.")
+
+    check_system_response = mcil_witness.responses[0]
 
     xmv_responses = [
-        translate(query, id, "") 
+        translate(query, id) 
         for query,id
         in zip(
             check_system_response.query_responses, 
@@ -111,9 +109,9 @@ def main(
         )
     ]
 
-    response = XMVResponse(xmv_responses)
+    xmv_witness = XMVWitness(xmv_responses)
 
     with open(str(output_path), "w") as f:
-        f.write(str(response))
+        f.write(str(xmv_witness))
 
     return 0

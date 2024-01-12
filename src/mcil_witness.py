@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Optional, Any
+from typing import Optional
 
 from .mcil import *
 
@@ -79,12 +79,12 @@ class MCILTrace():
 class MCILQueryResponse():
 
     def __init__(
-            self, 
-            symbol: str, 
-            result: MCILQueryResult, 
-            model: Optional[MCILModel], 
-            trace: Optional[MCILTrace],
-            certificate: Optional[MCILCertificate]
+        self, 
+        symbol: str, 
+        result: MCILQueryResult, 
+        model: Optional[MCILModel], 
+        trace: Optional[MCILTrace],
+        certificate: Optional[MCILCertificate]
     ) -> None:
         self.symbol = symbol
         self.result = result
@@ -105,7 +105,8 @@ class MCILQueryResponse():
 
 class MCILCheckSystemResponse():
 
-    def __init__(self, query_responses: list[MCILQueryResponse]):
+    def __init__(self, symbol: str, query_responses: list[MCILQueryResponse]):
+        self.symbol = symbol
         self.query_responses = query_responses
 
         self.certificates = []
@@ -125,7 +126,7 @@ class MCILCheckSystemResponse():
                     self.trails.append(response.trace.lasso)
 
     def __str__(self) -> str:
-        s = "(check-system-response \n"
+        s = f"(check-system-response {self.symbol}\n"
         if self.query_responses:
             s += "\n".join([f":query {q}" for q in self.query_responses]) + "\n"
         if self.traces:
@@ -139,4 +140,10 @@ class MCILCheckSystemResponse():
         return s + ")"
 
 
- 
+class MCILWitness():
+
+    def __init__(self, responses: list[MCILCheckSystemResponse]) -> None:
+        self.responses = responses
+
+    def __str__(self) -> str:
+        return "\n\n".join([str(r) for r in self.responses])

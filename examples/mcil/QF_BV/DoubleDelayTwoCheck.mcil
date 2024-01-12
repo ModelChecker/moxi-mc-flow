@@ -20,7 +20,7 @@
   :output ( (o (_ BitVec 8)) )
   :local ( (t (_ BitVec 8)) )
   :reachable (rch1 (= o #b00000001))
-  :query (q (rch1))
+  :query (q.qry (rch1))
 )
 
 (check-system DoubleDelay 
@@ -28,5 +28,5 @@
   :output ( (o (_ BitVec 8)) )
   :local ( (t (_ BitVec 8)) )
   :reachable (rch2 (= o #b00000010))
-  :query (q (rch2))
+  :query (q.qry (rch2))
 )

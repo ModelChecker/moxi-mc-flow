@@ -7,6 +7,7 @@
 (check-system Delay
     :input ((i Bool))
     :output ((o Bool))
-    :reachable (rch (= o false))
-    :query (q (rch))
+    :current (cur (= o false))
+    :reachable (rch (= o true))
+    :query (q (rch cur))
 )

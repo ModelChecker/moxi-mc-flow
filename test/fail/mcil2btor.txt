@@ -1,0 +1,3 @@
+../examples/mcil/QF_LIA/IncrementOnlyChangeX.mcil
+../examples/mcil/QF_LIA/LossyIntChannelX.mcil
+../examples/mcil/QF_LIA/IntNonDetArbiterX.mcil

@@ -1,6 +1,5 @@
 #type: ignore
 from pathlib import Path
-import sys
 
 from .sly import Lexer, Parser
 from .util import eprint
@@ -219,10 +218,17 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            eprint(f"Error:{p.lineno}: multiple instances of attribute ({attr.value}).")
+            eprint(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
             self.status = False
         elif attr.get_value_type() == dict:
+            # check for duplicate symbols
+            for v in value.keys():
+                if v in p[0][attr]:
+                    eprint(f"[{FILE_NAME}] Error:{p.lineno}: repeat symbol for attribute {attr.value} ({v})")
+                    self.status = False
             p[0][attr].update(value)
+        elif attr.get_value_type() == list:
+            p[0][attr] += value
         elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.TRANS):
             p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("or", []), [p[0][attr], value])
         elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.INV):
@@ -409,7 +415,7 @@ class MCILParser(Parser):
             prime = True
             symbol = symbol[:-1]
 
-        return MCILVar(MCILVarType.NONE, MCIL_NO_SORT, symbol, prime)
+        return MCILVar(MCIL_NO_SORT, symbol, prime)
 
     @_("NUMERAL")
     def term(self, p):

@@ -16,7 +16,7 @@
        (and (= s' off) (= n' n)))            ; off --> off
    (=> (and (= s off) press')
        (and (= s' on) (= n' n)))             ; off --> on
-   (=> (and (= s on) (not press') (< 10 n))
+   (=> (and (= s on) (not press') (< n 10))
         (and (= s' on) (= n' (+ n 1))))      ; on --> on
    (=> (and (= s on) (or press' (>= n 10)))
        (and (= s' off) (= n' 0)))            ; on --> off

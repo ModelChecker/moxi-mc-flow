@@ -4,8 +4,10 @@ https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 from __future__ import annotations
 from collections import deque
 from enum import Enum
+from pathlib import Path
 from typing import Any, Optional
-import time
+
+FILE_NAME = Path(__file__).name
 
 EMPTY_ARGS = (None, None, None)
 
@@ -176,6 +178,7 @@ class BtorVar(BtorExpr):
             ).removesuffix(".init")
             ).removesuffix(".cur")
             ).removesuffix("next")
+
 
 class BtorInputVar(BtorVar):
 
@@ -403,17 +406,11 @@ class BtorFair(BtorNode):
 
 class BtorProgram():
 
-    def __init__(self, sorts: set[BtorSort], instr: list[BtorExpr]):
-        self.sorts = sorts
-        self.instructions = instr
+    def __init__(self, nodes: list[BtorNode]):
+        self.nodes = nodes
 
     def __str__(self) -> str:
-        s: str  = ""
-        for sort in self.sorts:
-            s += f"{sort}\n"
-        for instruction in self.instructions:
-            s += f"{instruction}\n"
-        return s[:-1] # delete last newline and return
+        return "\n".join([str(n) for n in self.nodes]) + "\n"
     
 
 operator_table: dict[BtorOperator, tuple[list[type], type]] = {
