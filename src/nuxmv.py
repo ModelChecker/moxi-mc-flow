@@ -640,54 +640,6 @@ def top_down_param_analysis(spec: XMVSpecification, context: XMVContext) -> XMVC
     
     raise ValueError("Module `main` not declared!")
 
-
-
-def type_check_modules(spec: XMVSpecification, context: XMVContext) -> XMVContext:
-    local_context: dict[XMVIdentifier, XMVType] = {}
-    for i, module in enumerate(spec.modules): # module whose parameters we're typechecking
-        context.vars[module.name] = {}
-        context.parameters[module.name] = {}
-        context.modules[module.name] = module
-        params: list[XMVExpr] = module.parameters
-        for j, param in enumerate(params): # parameter we're typechecking
-            # print(f"typechecking module {module.name}'s {j}'th parameter {param}")
-            for other_module in spec.modules[i:]: # looking for instantiations in other modules
-                # print(f"looking for instantiations of {param} in {other_module.name}")
-                for module_element in other_module.elements: # looking for VAR section
-                    match module_element:
-                        case XMVVarDeclaration(var_list=vl): # found VAR section
-                            # print(f"found var section in module {other_module.name}")
-                            for v in vl: # looking through declarations in VAR section for module instantiation
-                                match v[1]:
-                                    case XMVModuleType(): # found module instantiation
-                                        # print(f"found module instantiation {v}")
-                                        if v[1].module_name == module.name: # found our module instantiation
-                                            # print(f"found our module instantiation {v}")
-                                            if param in context.parameters[module.name]:
-                                                continue
-                                            else:
-                                                if isinstance(v[1].parameters[j], XMVConstant):
-                                                    typ = type_check_parameter(v[1].parameters[j])
-                                                    context.parameters[module.name][param] = typ
-                                                elif isinstance(v[1].parameters[j], XMVIdentifier):
-                                                    context.parameters[module.name][param] = local_context[v[1].parameters[j]]
-                                                elif isinstance(v[1].parameters[j], XMVExpr):
-                                                    typ = type_check_parameter(v[1].parameters[j])
-                                                    context.parameters[module.name][param] = typ
-                                                else:
-                                                    context.parameters[module.name][param] = local_context[v[1].parameters[j]]
-                                        else:
-                                            pass
-                                    case _:
-                                        local_context[v[0]] = v[1]
-                        case _:
-                            pass
-            
-
-    return context
-
-
-
 def type_check_enums(xmv_module: XMVModule, xmv_context: XMVContext) -> tuple[bool, XMVContext]:
     for m in xmv_module.elements:
         match m:
