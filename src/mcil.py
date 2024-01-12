@@ -361,32 +361,32 @@ def mcil2str(expr: MCILExpr) -> str:
         (handled, cur) = queue.pop()
 
         if handled:
-            s += ")" if isinstance(cur, (MCILApply, MCILLetExpr, tuple)) else ""
+            s = (s[:-1] + ") ") if isinstance(cur, (MCILApply, MCILLetExpr, tuple)) else s
             continue
 
         # first time seeing this node
         if isinstance(cur, MCILApply) and cur.identifier.is_symbol("const"):
-            s += f" ((as {cur.identifier} {cur.sort})"
+            s += f"((as {cur.identifier} {cur.sort}) "
         elif isinstance(cur, MCILApply):
-            s += f" ({cur.identifier}"
+            s += f"({cur.identifier} "
         elif isinstance(cur, MCILLetExpr):
-            s += f" (let ("
+            s += f"(let ("
         elif isinstance(cur, MCILBind):
-            s += ")"
+            s = s[:-1] + ") "
         elif isinstance(cur, MCILConstant) and is_bitvec_sort(cur.sort):
-            format_str = f" #b{'{'}0:0{cur.sort.identifier.indices[0]}b{'}'}"
+            format_str = f"#b{'{'}0:0{cur.sort.identifier.indices[0]}b{'}'} "
             s += format_str.format(cur.value)
         elif isinstance(cur, MCILConstant) and isinstance(cur.value, bool):
-            s += " " + str(cur.value).lower()
+            s += str(cur.value).lower() + " "
         elif isinstance(cur, MCILConstant):
-            s += " " + str(cur.value)
+            s += f"{cur.value} "
         elif isinstance(cur, MCILVar):
-            s += f" {cur.symbol}" + ("'" if cur.prime else "")
+            s += f"{cur.symbol}" + ("' " if cur.prime else " ")
         elif isinstance(cur, tuple):
             (v,e) = cur
-            s += f" ({v}"
+            s += f"({v} "
         else:
-            s += f" {str(cur)}"
+            s += f"{str(cur)} "
 
         queue.append((True, cur))
 
@@ -402,6 +402,9 @@ def mcil2str(expr: MCILExpr) -> str:
         else:
             for child in reversed(cur.children):
                 queue.append((False, child))
+
+    if s[-1] == " ":
+        s = s[:-1]
 
     return s
 
