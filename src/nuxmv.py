@@ -577,7 +577,6 @@ class XMVContext():
 def initialize_vars(spec: XMVSpecification) -> XMVContext:
     context = XMVContext()
     for module in spec.modules:
-        print(f"initializing vars for {module.name}")
         context.vars[module.name] = {}
         var_decls = [
             vdecls
@@ -587,7 +586,6 @@ def initialize_vars(spec: XMVSpecification) -> XMVContext:
         ]
         for var_decl in var_decls:
             (xmv_var, xmv_type) = var_decl
-            print(f"setting context.vars[{module.name}][{xmv_var.ident}] = {xmv_type}")
             context.vars[module.name][xmv_var.ident] = xmv_type
 
     return context
@@ -605,7 +603,6 @@ def initialize_modules(spec: XMVSpecification, context: XMVContext) -> XMVContex
 
 # precondition: context.parameters[pi] = ti
 def param_analysis(module: XMVModule, context: XMVContext) -> XMVContext:
-    print(f"*-- param_analysis({module.name}) --*")
     mod_insts = [
         vdecls
         for elem in module.elements
@@ -613,21 +610,15 @@ def param_analysis(module: XMVModule, context: XMVContext) -> XMVContext:
         for vdecls in elem.var_list
         if isinstance(vdecls[1], XMVModuleType)
     ]
-    print(f"==> mod_insts: {mod_insts}\n")
     for (_, mod_typ) in mod_insts:
         for i, param in enumerate(mod_typ.parameters):
             type_check_expr(expr=param, context=context, module=module)
             param_expr = context.modules[mod_typ.module_name].parameters[i]
             context.parameters[mod_typ.module_name][param_expr] = param.type
-            print(f"==> {mod_typ.module_name} - assigning {i} # {param} : {param.type}")
         context = param_analysis(context.modules[mod_typ.module_name], context)
-    print("\n")
-    print(f"==> final parameters for {module.name}: {context.parameters[module.name]}")
     return context
 
 def top_down_param_analysis(spec: XMVSpecification, context: XMVContext) -> XMVContext:
-    print("\n")
-    print("=== top_down_param_analysis ===")
     context = initialize_params(spec, context)
     context = initialize_modules(spec, context)
     for module in spec.modules:
