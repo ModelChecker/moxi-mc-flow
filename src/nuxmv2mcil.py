@@ -229,19 +229,21 @@ def translate_expr(
                         # if not isinstance(fargs[0], XMVIdentifier):
                         #     raise ValueError("complex next expressions unsupported")
                         if isinstance(fargs[0], XMVModuleAccess):
-                            print(f'expr: {fargs[0]}')
-                            print(f"context: {context.vars}")
-                            print(f"accessing context.vars[{module.name}][{fargs[0].module}]")
-                            mod_type = context.vars[module.name][fargs[0].module.ident]
-                            print(f"mod_type: {mod_type}")
+                            # print(f'expr: {fargs[0]}')
+                            # print(f"context: {context.vars}")
+                            # print(f"accessing context.vars[{module.name}][{fargs[0].module}]")
+                            # FIXME: I'm assuming that we know that mod_type will be a XMVModuleType
+                            mod_type = cast(XMVModuleType, context.vars[module.name][fargs[0].module.ident])
+                            # print(f"mod_type: {mod_type}")
+                            # 
                             mod_name = mod_type.module_name
                             module_access = fargs[0]
                             expr_map[expr] = MCILVar(
-                                sort=translate_type(context.vars[mod_name][module_access.element], context),
-                                symbol=expr_map[fargs[0]].symbol,
+                                sort=translate_type(context.vars[mod_name][module_access.element.ident], context),
+                                symbol=expr_map[fargs[0]].symbol, # FIXME: What is this line assuming about the type of expr_map[fargs[0]]? MCILExprs don't have a member `symbol` generally...
                                 prime=True
                             )
-                        else: # XMVIdentifier
+                        elif isinstance(fargs[0], XMVIdentifier): # XMVIdentifier
                             ident = fargs[0].ident
                             if ident in context.vars[module.name]:
                                 # print(f"ident found in variable map")
@@ -258,6 +260,8 @@ def translate_expr(
                                 )
                             else:
                                 raise ValueError(f"{ident} not in either variables or parameters = {context.parameters[module.name]}?")
+                        else:
+                            raise ValueError(f"Unsupported argument to next expression.")
                     case "READ":
                         expr_map[expr] = MCIL_SELECT_EXPR(
                             expr_map[fargs[0]],
@@ -424,8 +428,8 @@ def translate_expr(
                 expr_map[expr] =  case_to_ite(expr, context, expr_map)
             case XMVModuleAccess(module=ma_module, element=ma_elem):
                 expr_map[expr] = MCILVar(
-                    sort=expr.type,
-                    symbol=ma_module.ident + "." + ma_elem,
+                    sort=translate_type(expr.type, context),
+                    symbol=ma_module.ident + "." + ma_elem.ident,
                     prime=False
                 )
             case _:
@@ -470,6 +474,9 @@ def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, 
         #     symbol=param.ident, # type: ignore
         #     prime=False
         # )
+        #
+        # FIXME: what is param? If the only type inference we have is that it's an XMVExpr, then the `param.ident` is very unsafe...
+        # We should either explicitly  make params all XMVIdentifiers or handle the general case 
         result.append((param.ident, translate_type(context.parameters[xmv_module.name][param], context)))
 
     for module_element in xmv_module.elements:
@@ -494,6 +501,7 @@ def gather_local(xmv_module: XMVModule, context: XMVContext) -> tuple[list[tuple
                 # gathering submodule inputs
                 for name in context.parameters[xmv_var_type.module_name]:
                     type = context.parameters[xmv_var_type.module_name][name]
+                    # FIXME: Same issue as in gather_input...should `name` just be an XMVIdentifier?
                     input_var = MCILVar(
                             sort=translate_type(type, context),
                             symbol=var_name.ident + "." + name.ident,
@@ -515,7 +523,7 @@ def gather_local(xmv_module: XMVModule, context: XMVContext) -> tuple[list[tuple
 
     return (result, context)
 
-def gather_output(xmv_module: XMVModule, context: XMVContext) -> tuple[list[str, MCILSort], XMVContext]:
+def gather_output(xmv_module: XMVModule, context: XMVContext) -> tuple[list[tuple[str, MCILSort]], XMVContext]:
     result: list[tuple[str, MCILSort]] = []
     for module_element in xmv_module.elements:
         match module_element:
@@ -559,7 +567,8 @@ def specialize_vars_in_expr(module_name: str, expr: MCILExpr) -> MCILExpr:
                 schildren.append(specialize_vars_in_expr(module_name, child))
             return MCILApply(sort=sort, identifier=identifier, children=schildren)
         case _:
-            print("CATCH ALL CASE:", expr, expr.__class__.__name__)
+            return MCIL_BOOL_CONST(True)
+            # print("CATCH ALL CASE:", expr, expr.__class__.__name__)
 
 def gather_init(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
     init_list: list[MCILExpr] = []
@@ -863,7 +872,7 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
             
         commands += il_commands
 
-    logic: MCILSetLogic = infer_logic(commands)
+    logic: Optional[MCILSetLogic] = infer_logic(commands)
     if logic:
         print(f"[{FILE_NAME}] inferred SMT logic {logic.logic}")
         commands = [logic] + commands

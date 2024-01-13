@@ -4,7 +4,7 @@ from __future__ import annotations
 from collections import deque
 import re
 
-from .mcil import MCILVar
+from .mcil import MCILVar, MCILSort
 
 
 # forward declaration of XMVExpr
@@ -176,8 +176,9 @@ class XMVExpr():
             
 
 class XMVComplexIdentifier(XMVExpr):
-    def __init__(self) -> None:
+    def __init__(self, ident: str) -> None:
         super().__init__()
+        self.ident = ident
 
 class XMVConstant(XMVExpr):
     def __init__(self) -> None:
@@ -346,8 +347,7 @@ class XMVCaseExpr(XMVExpr):
 
 class XMVIdentifier(XMVComplexIdentifier):
     def __init__(self, ident: str):
-        super().__init__()
-        self.ident = ident
+        super().__init__(ident)
 
     def __repr__(self) -> str:
         return f"{self.ident}"
@@ -369,7 +369,7 @@ class XMVSymbolicConstant(XMVConstant):
 
 class XMVModuleAccess(XMVComplexIdentifier):
     def __init__(self, module: XMVComplexIdentifier, element: XMVIdentifier):
-        super().__init__()
+        super().__init__(module.ident)
         self.module = module
         self.element = element
 
@@ -570,7 +570,7 @@ class XMVContext():
         # maps {module_name |-> list of parameters (p1, t1), ...}, where pi is the variable and ti is its XMVType
         self.parameters: dict[str, dict[XMVExpr, XMVType]] = {}
         # maps {module_name |-> list of IL output variables} for use in submodule/local variable construction
-        self.outputs: dict[str, list[MCILVar]] = {}
+        self.outputs: dict[str, list[tuple[str, MCILSort]]] = {}
         # maps {module_name |-> list of IL local variables} for use in submodule construction
         self.module_locals: dict[str, list[MCILVar]] = {}
 
@@ -945,7 +945,7 @@ def type_check_expr(expr: XMVExpr, context: XMVContext, module: XMVModule) -> No
                 if elem in context.vars[module_w_elem]:
                     expr.type = context.vars[module_w_elem][elem]
                 else:
-                    expr.type = context.parameters[module_w_elem][XMVIdentifier(ident=elem)]
+                    expr.type = context.parameters[module_w_elem][XMVIdentifier(ident=elem.ident)]
                 # raise NotImplementedError(f"Unsupported operator {type(expr)}")
             case _:
                 raise NotImplementedError(f"Unsupported operator {type(expr)}")
