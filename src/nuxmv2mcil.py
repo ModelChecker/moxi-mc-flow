@@ -427,9 +427,10 @@ def translate_expr(
             case XMVCaseExpr():
                 expr_map[expr] =  case_to_ite(expr, context, expr_map)
             case XMVModuleAccess(module=ma_module, element=ma_elem):
+                # FIXME: ma_elem should be a XMVIdentifier but is a str
                 expr_map[expr] = MCILVar(
                     sort=translate_type(expr.type, context),
-                    symbol=ma_module.ident + "." + ma_elem.ident,
+                    symbol=ma_module.ident + "." + str(ma_elem),
                     prime=False
                 )
             case _:

@@ -945,7 +945,8 @@ def type_check_expr(expr: XMVExpr, context: XMVContext, module: XMVModule) -> No
                 if elem in context.vars[module_w_elem]:
                     expr.type = context.vars[module_w_elem][elem]
                 else:
-                    expr.type = context.parameters[module_w_elem][XMVIdentifier(ident=elem.ident)]
+                    # FIXME: elem should be XMVIdentifier but is a str
+                    expr.type = context.parameters[module_w_elem][XMVIdentifier(ident=str(elem))]
                 # raise NotImplementedError(f"Unsupported operator {type(expr)}")
             case _:
                 raise NotImplementedError(f"Unsupported operator {type(expr)}")
