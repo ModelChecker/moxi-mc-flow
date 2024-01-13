@@ -1,3 +1,21 @@
+"""
+This script preprocesses nuXmv specifications in 2 phases, outlined as follows:
+1) C Preprocessor Invocation
+
+Since nuXmv admits C-style macros (#ifdef, #include, etc.), we run the file through the C preprocessor
+and obtain a single nuXmv file.
+
+2) Identifier Cleanup
+
+Identifiers appearing in nuXmv distribution benchmarks do not conform to the identifier grammar
+specified in the nuXmv reference manual.
+
+As such, we replace restricted tokens (`:`, `"`, `\`, `[`, `]`, `$`) that appear in identifiers with
+conformant alternatives (usually the written name of the character - `_colon_`, etc.).
+
+
+"""
+
 from io import TextIOWrapper
 from pathlib import Path
 
@@ -46,7 +64,9 @@ def handle_variables(file_path: str, module_names: list[str]):
             file_contents = file2.read()
 
             ret_fc = file_contents
+            line_no = 0
             for line in file:
+                line_no += 1
                 if line.rstrip() in section_kws:
                     var_decl = False
                 if line.rstrip() in var_kws: # at variable declaration site!
@@ -55,6 +75,8 @@ def handle_variables(file_path: str, module_names: list[str]):
                 
                 if var_decl:
                     spl = line.rstrip().split(": ")
+                    if len(spl) == 1:
+                        continue
                     var_name = spl[0].rstrip()
                     vspl = var_name.split(".")
                     if vspl[0] in module_names:
@@ -70,12 +92,12 @@ def handle_variables(file_path: str, module_names: list[str]):
                         if cleaned_var_name == var_name:
                             continue
                         else:
-                            # print(f"replacing {var_name} with {cleaned_var_name}")
+                            # print(f"{line_no}: replacing {var_name} with {cleaned_var_name}")
                             # if ret_fc.find(var_name) != -1:
-                            #     print(f"FOUND {var_name}")
+                            #     print(f"{line_no}: FOUND {var_name}")
                             new_ret_fc = ret_fc.replace(var_name, cleaned_var_name)
                             # if ret_fc == new_ret_fc:
-                            #     print("NO CHANGE")
+                            #     print(f"{line_no}: NO CHANGE")
                             ret_fc = new_ret_fc
 
             return ret_fc
