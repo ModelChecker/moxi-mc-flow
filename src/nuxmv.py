@@ -1,4 +1,6 @@
 # TODO: IMPLEMENT THIS
+from __future__ import annotations
+
 from collections import deque
 import re
 
@@ -7,8 +9,8 @@ from .mcil import MCILVar
 
 # forward declaration of XMVExpr
 
-class XMVExpr():
-    pass
+# class XMVExpr():
+#     pass
 
 # type specifiers -------------------------
 
@@ -610,7 +612,7 @@ def param_analysis(module: XMVModule, context: XMVContext) -> XMVContext:
         for vdecls in elem.var_list
         if isinstance(vdecls[1], XMVModuleType)
     ]
-    for (_, mod_typ) in mod_insts:
+    for mod_typ in [t for _,t in mod_insts if isinstance(t, XMVModuleType)]:
         for i, param in enumerate(mod_typ.parameters):
             type_check_expr(expr=param, context=context, module=module)
             param_expr = context.modules[mod_typ.module_name].parameters[i]

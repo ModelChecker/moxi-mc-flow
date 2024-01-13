@@ -98,6 +98,7 @@ def main(
             if  mcil2btor(mcil_path, output_path, int_width, do_pickle):
                 return FAIL
         case _:
+            eprint(f"[{FILE_NAME}] Translation unsupported: {input_path.suffix} to { target_lang}")
             return 1
 
     if validate:

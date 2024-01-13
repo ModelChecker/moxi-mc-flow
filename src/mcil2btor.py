@@ -341,6 +341,7 @@ def to_btor2_define_system(
 
 
 def to_btor2_annotations(
+    check: MCILCheckSystem, 
     context: MCILContext,
     var_map: VarMap,
 ) -> list[BtorNode]:
@@ -348,7 +349,7 @@ def to_btor2_annotations(
     
     1. Annotates enumeration-sorted variables with an `E` and the list of their potential values.
     2. Annotates array-sorted variables with an `A`and their index/element sorts.
-    3. Annotates input variables with an `I`, since MCIL allows for primed inputs in certain spots (i.e., we can't use `BtorInputVar`s in our translation).
+    3. Annotates input variables with an `I`, since MCIL allows for primed inputs in certain spots (i.e., we can't use `BtorInputVar`s in our translation). Only variables of `check` can be inputs.
     4. Annotates Boolean variables with a `B`, MCIL since distinguishes between Booleans and bit vectors of length 1 and BTOR2 does not.
     """
     btor2_annotations: list[BtorNode] = []
@@ -369,7 +370,6 @@ def to_btor2_annotations(
         top = sys_ctx.get_top()
         if not top:
             raise ValueError(f"System context for {var_symbol} is empty")
-
         (_,system) = top
 
         sort = system.get_sort(var_symbol)
@@ -406,18 +406,23 @@ def to_btor2_annotations(
             sort_comment.set_comment_no_space(sort_encoding)
             btor2_annotations.append(sort_comment)
 
-        # Add input var symbols. MCIL allows for primed inputs in certain spots, so
-        # we can't use BtorInputVar in our translation.
-        if var_symbol in system.get_input_symbols():
-            bool_encoding = f"I {cur.with_no_suffix()}"
-            sort_comment = BtorNode()
-            sort_comment.set_comment_no_space(bool_encoding)
-            btor2_annotations.append(sort_comment)
-
         # Add Bool var symbols. MCIL distinguishes between Bool and bit vectors of
         # length 1, BTOR2 does not.
         if is_bool_sort(sort):
             bool_encoding = f"B {cur.with_no_suffix()}"
+            sort_comment = BtorNode()
+            sort_comment.set_comment_no_space(bool_encoding)
+            btor2_annotations.append(sort_comment)
+
+        # Add input var symbols. MCIL allows for primed inputs in certain spots,
+        # so we can't use BtorInputVar in our translation. Only use vars in
+        # `check`, all others are mapped to other vars or are locals.
+        top_level_system = sys_ctx.get_bottom()
+        if (var_symbol in check.get_input_symbols() 
+            and top_level_system and top_level_system[0] == system.symbol
+        ):
+            print(f"{var_symbol} {cur.with_no_suffix()}")
+            bool_encoding = f"I {cur.with_no_suffix()}"
             sort_comment = BtorNode()
             sort_comment.set_comment_no_space(bool_encoding)
             btor2_annotations.append(sort_comment)
@@ -603,7 +608,7 @@ def to_btor2_check_system(
     btor2_programs: dict[str, BtorProgram] = {}
     btor2_model: list[BtorNode] = []
         
-    btor2_model += to_btor2_annotations(context, var_map)
+    btor2_model += to_btor2_annotations(check, context, var_map)
 
     for sort in sort_map.values():
         btor2_model.append(sort)
