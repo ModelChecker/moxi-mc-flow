@@ -259,8 +259,8 @@ class NuXmvParser(Parser):
         "XMV_INVARSPEC XMV_NAME IDENT COLONEQ expr SEMICOLON",
         "XMV_LTLSPEC ltl_expr",
         "XMV_LTLSPEC ltl_expr SEMICOLON",
-        "XMV_LTLSPEC XMV_NAME IDENT COLONEQ expr",
-        "XMV_LTLSPEC XMV_NAME IDENT COLONEQ expr SEMICOLON"
+        "XMV_LTLSPEC XMV_NAME IDENT COLONEQ ltl_expr",
+        "XMV_LTLSPEC XMV_NAME IDENT COLONEQ ltl_expr SEMICOLON"
     )
     def module_element(self, p):
         match p[0]:

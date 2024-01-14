@@ -111,6 +111,7 @@ def model_check(
     int_width: int,
     kmax: int,
     kind: bool,
+    cpp: bool,
     debug: bool,
 ) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
@@ -147,9 +148,11 @@ def model_check(
     ]
     if copyback:
         command.append("--keep")
+    if cpp:
+        command.append("--cpp")
     if debug:
         command.append("--debug")
-    
+
     proc = subprocess.run(command)
 
     if proc.returncode:
@@ -218,6 +221,8 @@ if __name__ == "__main__":
         help="max bound for BMC")
     parser.add_argument("--kind", action="store_true", 
         help="enable k-induction")
+    parser.add_argument("--cpp", action="store_true", 
+        help="runs cpp on input if SMV")
     parser.add_argument("--debug", action="store_true", 
         help="output debug messages")
     parser.add_argument("--quiet", action="store_true", 
@@ -248,6 +253,7 @@ if __name__ == "__main__":
         int_width=args.intwidth, 
         kmax=args.kmax,
         kind=args.kind,
+        cpp=args.cpp,
         debug=args.debug
     )
 

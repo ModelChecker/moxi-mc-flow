@@ -888,8 +888,8 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
 
     return MCILProgram(commands=commands)
 
-def main(input_path: Path, output_path: Path) -> int:
-    content = preprocess(input_path)
+def main(input_path: Path, output_path: Path, do_cpp: bool = True) -> int:
+    content = preprocess(input_path, do_cpp)
 
     logger.info(f"parsing specification in {input_path}")
     parse_tree = parse(content)

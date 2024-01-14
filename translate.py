@@ -56,6 +56,7 @@ def main(
     keep: bool,
     validate: bool,
     do_pickle: bool, 
+    do_cpp: bool, 
     int_width: int,
 ) -> int:
     if not input_path.is_file():
@@ -64,12 +65,12 @@ def main(
 
     match (input_path.suffix, target_lang):
         case (".smv", "mcil"):
-            if nuxmv2mcil(input_path, output_path):
+            if nuxmv2mcil(input_path, output_path, do_cpp):
                 return FAIL
         case (".smv", "mcil-json"):
             mcil_path = input_path.with_suffix(".mcil")
 
-            if nuxmv2mcil(input_path, mcil_path):
+            if nuxmv2mcil(input_path, mcil_path, do_cpp):
                 return FAIL
 
             if mcil2json(mcil_path, output_path, False, False):
@@ -80,7 +81,7 @@ def main(
         case (".smv", "btor2"):
             mcil_path = input_path.with_suffix(".mcil")
 
-            if  nuxmv2mcil(input_path, mcil_path):
+            if  nuxmv2mcil(input_path, mcil_path, do_cpp):
                 return FAIL
 
             if  mcil2btor(mcil_path, output_path, int_width, do_pickle):
@@ -140,6 +141,8 @@ if __name__ == "__main__":
                         help="validate output; uses catbtor if targetlan is btor2, sortcheck.py if targetlang is mcil or mcil-json")
     parser.add_argument("--pickle", action="store_true", 
                         help="if targetlang is `btor2`, dump pickled BTOR2; needed for witness translations")
+    parser.add_argument("--cpp", action="store_true", 
+                        help="runs cpp on input if input is SMV")
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
     parser.add_argument("--sortcheck", help="path to sortcheck.py for MCIL validation")
     parser.add_argument("--intwidth", default=32, type=int, help="bit width to translate Int types to when translating to BTOR2")
@@ -176,5 +179,5 @@ if __name__ == "__main__":
 
     # cProfile.run("main(input_path, args.targetlang, output_path)")
 
-    returncode = main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.intwidth)
+    returncode = main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)
     sys.exit(returncode)
