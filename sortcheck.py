@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import sys
 
-from src.util import logger.error
+from src.util import logger
 from src.mcil import *
 from src.parse_mcil import parse_mcil
 
