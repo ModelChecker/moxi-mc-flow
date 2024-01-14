@@ -100,7 +100,7 @@ def build_define_expr(
         visited: set[XMVExpr] = set()
         deps: list[XMVIdentifier] = []
 
-        stack.append((False, context.defs[ident]))
+        stack.append((False, context.defs[module.name][ident]))
 
         while len(stack) > 0:
             (seen, cur) = stack.pop()
@@ -108,7 +108,7 @@ def build_define_expr(
             if cur in visited:
                 continue
             elif seen:
-                if isinstance(cur, XMVIdentifier) and cur.ident in context.defs:
+                if isinstance(cur, XMVIdentifier) and cur.ident in context.defs[module.name]:
                     deps.append(cur)
                 visited.add(cur)
                 continue
@@ -117,8 +117,8 @@ def build_define_expr(
 
             match cur:
                 case XMVIdentifier(ident=ident):
-                    if ident in context.defs:
-                        stack.append((False, context.defs[ident]))
+                    if ident in context.defs[module.name]:
+                        stack.append((False, context.defs[module.name][ident]))
                 case XMVFunCall(args=args):
                     [stack.append((False, arg)) for arg in args]
                 case XMVUnOp(arg=arg):
@@ -147,18 +147,18 @@ def build_define_expr(
         return deps
 
     emap = {}
-    translate_expr(context.defs[expr.ident], context, emap, in_let_expr=True, module=module)
+    translate_expr(context.defs[module.name][expr.ident], context, emap, in_let_expr=True, module=module)
     ret = MCILLetExpr(
         MCIL_NO_SORT, 
-        [(expr.ident, emap[context.defs[expr.ident]])], 
+        [(expr.ident, emap[context.defs[module.name][expr.ident]])], 
         DEFINE_LET_VAR(expr.ident)
     )
 
     for d in reversed(dependent_defines(expr.ident, context)):
-        translate_expr(context.defs[d.ident], context, emap, in_let_expr=True, module=module)
+        translate_expr(context.defs[module.name][d.ident], context, emap, in_let_expr=True, module=module)
         ret = MCILLetExpr(
             MCIL_NO_SORT, 
-            [(d.ident, emap[context.defs[d.ident]])], 
+            [(d.ident, emap[context.defs[module.name][d.ident]])], 
             ret
         )
 
@@ -183,10 +183,10 @@ def translate_expr(
             case XMVIdentifier(ident=ident):
                 # print(f"IDENTIFIER {ident}")
 
-                if ident in context.defs and not in_let_expr:
+                if ident in context.defs[module.name] and not in_let_expr:
                     # print(f"{ident}: def case not let")
                     expr_map[expr] = build_define_expr(expr, context, module=module)
-                elif ident in context.defs:
+                elif ident in context.defs[module.name]:
                     # print(f"{ident}: def case")
                     expr_map[expr] = DEFINE_LET_VAR(expr.ident)
                 elif ident in context.vars[module.name]:
@@ -239,7 +239,7 @@ def translate_expr(
                             mod_name = mod_type.module_name
                             module_access = fargs[0]
                             expr_map[expr] = MCILVar(
-                                sort=translate_type(context.vars[mod_name][module_access.element.ident], context),
+                                sort=translate_type(context.vars[mod_name][module_access.element], context),
                                 symbol=expr_map[fargs[0]].symbol, # FIXME: What is this line assuming about the type of expr_map[fargs[0]]? MCILExprs don't have a member `symbol` generally...
                                 prime=True
                             )
@@ -700,9 +700,12 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
                                 else:
                                     module_to_check = module.ident
 
-                                if elem in context.defs: # if the module access refers to a def'd element, specialize it and construct expr
-                                    translate_expr(context.defs[elem], context, expr_map, in_let_expr=False, module=context.modules[module_name])
-                                    defn = expr_map[context.defs[elem]]
+                                mod_typ = context.vars[xmv_module.name][module.ident]
+                                source_module = mod_typ.module_name
+
+                                if elem in context.defs[source_module]: # if the module access refers to a def'd element, specialize it and construct expr
+                                    translate_expr(context.defs[source_module][elem], context, expr_map, in_let_expr=False, module=context.modules[module_name])
+                                    defn = expr_map[context.defs[source_module][elem]]
                                     sdefn = specialize_vars_in_expr(var_name.ident, defn)
                                     init_expr = MCIL_EQ_EXPR(context.module_locals[var_name.ident][i], sdefn)
                                     inv_list.append(init_expr)
