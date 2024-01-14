@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import deque
 import re
 
+from .util import logger
 from .mcil import MCILVar, MCILSort
 
 
@@ -626,9 +627,9 @@ def param_analysis(module: XMVModule, context: XMVContext) -> XMVContext:
     return context
 
 def top_down_param_analysis(spec: XMVSpecification, context: XMVContext) -> XMVContext:
-    print(f"initialized variables, context = {context.vars}")
+    logger.debug(f"initialized variables, context = {context.vars}")
     context = initialize_params(spec, context)
-    print(f"initialized parameters, context = {context.parameters}")
+    logger.debug(f"initialized parameters, context = {context.parameters}")
     context = initialize_modules(spec, context)
     context = initialize_defs(spec, context)
     for module in spec.modules:
