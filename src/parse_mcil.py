@@ -2,7 +2,7 @@
 from pathlib import Path
 
 from .sly import Lexer, Parser
-from .util import eprint
+from .util import logger
 from .mcil import *
 
 FILE_NAME = Path(__file__).name
@@ -24,6 +24,7 @@ class MCILLexer(Lexer):
     ignore_newline = r"\n+"
 
     NUMERAL     = r"0|[1-9]\d*"
+
     # DECIMAL     = r"-?\d*\.\d+"
     HEXADECIMAL = r"#x[A-F0-9]+"
     BINARY      = r"#b[01]+"
@@ -84,7 +85,7 @@ class MCILLexer(Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        eprint(f"[{FILE_NAME}] {self.lineno}: Illegal character \"%s\" {t.value[0]}")
+        logger.error(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}")
         self.index += 1
 
 
@@ -98,7 +99,7 @@ class MCILParser(Parser):
 
     def error(self, token):
         self.status = False
-        eprint(f"[{FILE_NAME}] Error:{token.lineno}: Unexpected token ({token})")
+        logger.error(f"Error:{token.lineno}: Unexpected token ({token})")
 
     @_("command_list command")
     def command_list(self, p):
@@ -218,13 +219,13 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            eprint(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
+            logger.error(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
             self.status = False
         elif attr.get_value_type() == dict:
             # check for duplicate symbols
             for v in value.keys():
                 if v in p[0][attr]:
-                    eprint(f"[{FILE_NAME}] Error:{p.lineno}: repeat symbol for attribute {attr.value} ({v})")
+                    logger.error(f"Error:{p.lineno}: repeat symbol for attribute {attr.value} ({v})")
                     self.status = False
             p[0][attr].update(value)
         elif attr.get_value_type() == list:
@@ -234,7 +235,7 @@ class MCILParser(Parser):
         elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.INV):
             p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("and", []), [p[0][attr], value])
         else:
-            eprint(f"Error:{p.lineno}: parser error ({attr.value}).")
+            logger.error(f"Error:{p.lineno}: parser error ({attr.value}).")
             self.status = False
 
         return p[0]
@@ -278,18 +279,18 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            eprint(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
+            logger.error(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
             self.status = False
         elif attr.get_value_type() == dict:
             # check for duplicate symbols
             if [v for v in value.keys() if v in p[0][attr]]:
-                eprint(f"Error:{p.lineno}: repeat symbol for attribute '{attr.value}'.\n")
+                logger.error(f"Error:{p.lineno}: repeat symbol for attribute '{attr.value}'.\n")
                 self.status = False
             p[0][attr].update(value)
         elif attr.get_value_type() == list:
             p[0][attr] += value
         else:
-            eprint(f"Error:{p.lineno}: parser error ({attr.value}).\n")
+            logger.error(f"Error:{p.lineno}: parser error ({attr.value}).\n")
             self.status = False
 
         return p[0]
@@ -370,7 +371,7 @@ class MCILParser(Parser):
     def labeled_symbol_list_list(self, p):
         label, symbol_list = p[2]
         if label in p[0]:
-            eprint(f"Error:{p.lineno}: repeat label in queries attribute '{label}'.\n")
+            logger.error(f"Error:{p.lineno}: repeat label in queries attribute '{label}'.\n")
             self.status = False
         p[0][label] = symbol_list
         return p[0]
@@ -399,7 +400,7 @@ class MCILParser(Parser):
     @_("identifier")
     def term(self, p):
         if len(p[0].indices) > 0:
-            eprint(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
+            logger.error(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
             self.status = False
 
         symbol: str = p[0].symbol

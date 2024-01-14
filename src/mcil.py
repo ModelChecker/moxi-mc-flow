@@ -9,7 +9,7 @@ from copy import copy
 from enum import Enum
 from typing import Any, Callable, Optional, cast
 
-from .util import eprint
+from .util import logger
 
 FILE_NAME = Path(__file__).name
 
@@ -825,6 +825,8 @@ MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x
 MCIL_AND_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("and", []), [x,y])
 MCIL_OR_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("or", []), [x,y])
 
+MCIL_INT_NEG_EXPR = lambda x: MCILApply(MCIL_INT_SORT, MCILIdentifier("-", []), [x])
+
 MCIL_SELECT_EXPR = lambda x,y: MCILApply(MCIL_NO_SORT, MCILIdentifier("select", []), [x,y])
 MCIL_STORE_EXPR = lambda x,y,z: MCILApply(MCIL_NO_SORT, MCILIdentifier("store", []), [x,y,z])
 
@@ -1605,89 +1607,89 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
         for expr in postorder_mcil(node, context):
             if isinstance(expr, MCILConstant):
                 if expr.sort.symbol not in context.sort_symbols:
-                    eprint(f"[{FILE_NAME}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
+                    logger.error(f"Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.input_vars:
                 expr.sort = context.var_sorts[expr.symbol]
 
                 if expr.sort.symbol not in context.sort_symbols:
-                    eprint(f"[{FILE_NAME}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
+                    logger.error(f"Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
                 if expr.prime and no_prime:
-                    eprint(f"[{FILE_NAME}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
+                    logger.error(f"Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.output_vars:
                 expr.sort = context.var_sorts[expr.symbol]
                 
                 if expr.sort.symbol not in context.sort_symbols:
-                    eprint(f"[{FILE_NAME}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
+                    logger.error(f"Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
                 if expr.prime and no_prime:
-                    eprint(f"[{FILE_NAME}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
+                    logger.error(f"Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.local_vars:
                 expr.sort = context.var_sorts[expr.symbol]
 
                 if expr.sort.symbol not in context.sort_symbols:
-                    eprint(f"[{FILE_NAME}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
+                    logger.error(f"Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
 
                 if expr.prime and no_prime:
-                    eprint(f"[{FILE_NAME}] Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
+                    logger.error(f"Error: primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.bound_let_vars:
                 if expr.prime:
-                    eprint(f"[{FILE_NAME}] Error: bound variables cannot be primed ({expr})")
+                    logger.error(f"Error: bound variables cannot be primed ({expr})")
                     status = False
                 
                 expr.sort = context.bound_let_vars[expr.symbol].sort
             elif isinstance(expr, MCILVar) and expr.symbol in context.var_sorts:
                 if expr.prime:
-                    eprint(f"[{FILE_NAME}] Error: only system variables be primed ({expr})")
+                    logger.error(f"Error: only system variables be primed ({expr})")
                     status = False
 
                 expr.sort = context.var_sorts[expr.symbol]
 
                 if expr.sort.symbol not in context.sort_symbols:
-                    eprint(f"[{FILE_NAME}] Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
+                    logger.error(f"Error: sort unrecognized '{expr.sort}' ({expr}).\n\tCurrent logic: {context.logic.symbol}")
                     status = False
             elif isinstance(expr, MCILVar) and expr.symbol in context.declared_consts:
                 if expr.prime:
-                    eprint(f"[{FILE_NAME}] Error: consts cannot be primed ({expr})")
+                    logger.error(f"Error: consts cannot be primed ({expr})")
                     status = False
 
                 expr.sort = context.declared_consts[expr.symbol]
             elif isinstance(expr, MCILVar) and expr.symbol in context.defined_functions:
                 if expr.prime:
-                    eprint(f"[{FILE_NAME}] Error: consts cannot be primed ({expr})")
+                    logger.error(f"Error: consts cannot be primed ({expr})")
                     status = False
 
                 # constants defined using define-fun 
                 ((inputs, output), _) = context.defined_functions[expr.symbol]
 
                 if len(inputs) != 0:
-                    eprint(f"[{FILE_NAME}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.symbol}")
+                    logger.error(f"Error: function signature does not match definition.\n\t{expr}\n\t{expr.symbol}")
                     status = False
 
                 expr.sort = output
             elif isinstance(expr, MCILVar):
-                eprint(f"[{FILE_NAME}] Error: symbol '{expr.symbol}' not declared.\n\t{context.cur_command}")
+                logger.error(f"Error: symbol '{expr.symbol}' not declared.\n\t{context.cur_command}")
                 status = False
             elif isinstance(expr, MCILApply):
                 if expr.identifier.get_class() in context.logic.function_symbols:
                     if not context.logic.sort_check(expr):
-                        eprint(f"[{FILE_NAME}] Error: function signature does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}")
+                        logger.error(f"Error: function signature does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}")
                         status = False
                 elif expr.identifier.symbol in context.defined_functions:
                     (rank, _) = context.defined_functions[expr.identifier.symbol]
 
                     if not sort_check_apply_rank(expr, rank):
-                        eprint(f"[{FILE_NAME}] Error: function call does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}")
+                        logger.error(f"Error: function call does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}")
                         status = False
                 else:
-                    eprint(f"[{FILE_NAME}] Error: symbol '{expr.identifier.symbol}' not recognized ({expr}).\n\t{context.cur_command}")
+                    logger.error(f"Error: symbol '{expr.identifier.symbol}' not recognized ({expr}).\n\t{context.cur_command}")
                     status = False
 
                 # constant arrays must be handled separately, maintain a list of
@@ -1702,7 +1704,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 # TODO: check for variable name clashes
                 expr.sort = expr.get_expr().sort
             else:
-                eprint(f"[{FILE_NAME}] Error: expr type '{expr.__class__}' not recognized ({expr}).\n\t{context.cur_command}")
+                logger.error(f"Error: expr type '{expr.__class__}' not recognized ({expr}).\n\t{context.cur_command}")
                 status = False
 
         return status
@@ -1713,41 +1715,41 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
         if isinstance(cmd, MCILSetLogic):
             if cmd.logic not in LOGIC_TABLE:
-                eprint(f"[{FILE_NAME}] Error: logic {cmd.logic} unsupported.")
+                logger.error(f"Error: logic {cmd.logic} unsupported.")
                 status = False
             else:
                 context.set_logic(LOGIC_TABLE[cmd.logic])
         elif isinstance(cmd, MCILDeclareSort):
             # TODO: move this warning to mcil2btor.py
-            eprint(f"[{FILE_NAME}] Warning: declare-sort command unsupported, ignoring.")
+            logger.error(f"Warning: declare-sort command unsupported, ignoring.")
         elif isinstance(cmd, MCILDefineSort):
             if cmd.symbol in context.symbols:
-                eprint(f"[{FILE_NAME}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
+                logger.error(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
             # TODO
             context.add_defined_sort(cmd.definition)
         elif isinstance(cmd, MCILDeclareEnumSort):
             if cmd.symbol in context.symbols:
-                eprint(f"[{FILE_NAME}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
+                logger.error(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
             context.add_declared_enum_sort(cmd.symbol, cmd.values)
         elif isinstance(cmd, MCILDeclareConst):
             if cmd.symbol in context.symbols:
-                eprint(f"[{FILE_NAME}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
+                logger.error(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
             context.add_declared_const(cmd.symbol, cmd.sort)
         elif isinstance(cmd, MCILDeclareFun):
             if cmd.symbol in context.symbols:
-                eprint(f"[{FILE_NAME}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
+                logger.error(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
             context.add_declared_function(cmd.symbol, Rank((cmd.inputs, cmd.output_sort)))
         elif isinstance(cmd, MCILDefineFun):
             if cmd.symbol in context.symbols:
-                eprint(f"[{FILE_NAME}] Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
+                logger.error(f"Error: symbol '{cmd.symbol}' already in use.\n\t{cmd}")
                 status = False
 
             context.add_vars(cmd.input)
@@ -1772,7 +1774,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 (sys_symbol, signature_symbols) = subsystem
 
                 if sys_symbol not in context.defined_systems:
-                    eprint(f"[{FILE_NAME}] Error: system '{sys_symbol}' not defined in context.\n\t{cmd}")
+                    logger.error(f"Error: system '{sys_symbol}' not defined in context.\n\t{cmd}")
                     status = False
                     return (False, context)
 
@@ -1780,7 +1782,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 signature: list[tuple[str, MCILSort]] = []
                 for symbol in signature_symbols:
                     if symbol not in context.var_sorts:
-                        eprint(f"[{FILE_NAME}] Error: variable '{symbol}' not declared.\n\t{cmd}")
+                        logger.error(f"Error: variable '{symbol}' not declared.\n\t{cmd}")
                         status = False
                         signature.append(("", MCIL_NO_SORT))
                         continue
@@ -1791,13 +1793,13 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 target_signature = target_system.input + target_system.output
 
                 if len(signature) != len(target_signature):
-                    eprint(f"[{FILE_NAME}] Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
+                    logger.error(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
                     status = False
                     continue
 
                 for (_,cmd_sort),(_,target_sort) in zip(signature, target_signature):
                     if cmd_sort != target_sort:
-                        eprint(f"[{FILE_NAME}] Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
+                        logger.error(f"Error: subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}")
                         status = False
                         continue
 
@@ -1811,7 +1813,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             context.pop_system()
         elif isinstance(cmd, MCILCheckSystem):
             if not cmd.symbol in context.defined_systems:
-                eprint(f"[{FILE_NAME}] Error: system '{cmd.symbol}' undefined.\n\t{cmd}")
+                logger.error(f"Error: system '{cmd.symbol}' undefined.\n\t{cmd}")
                 status = False
                 continue
 
@@ -1819,7 +1821,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
             system = context.defined_systems[cmd.symbol]
 
             if len(system.input) != len(cmd.input):
-                eprint(f"[{FILE_NAME}] Error: input variables do not match target system ({system.symbol})."
+                logger.error(f"Error: input variables do not match target system ({system.symbol})."
                     f"\n\t{', '.join([f'({v}: {s})' for v,s in system.input])}"
                     f"\n\t{', '.join([f'({v}: {s})' for v,s in cmd.input])}")
                 status = False
@@ -1827,7 +1829,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
             for (_,sort1),(_,sort2) in zip(system.input, cmd.input):
                 if sort1 != sort2:
-                    eprint(f"[{FILE_NAME}] Error: sorts do not match in check-system (expected {sort1}, got {sort2})")
+                    logger.error(f"Error: sorts do not match in check-system (expected {sort1}, got {sort2})")
                     status = False
                 else:
                     pass
@@ -1835,7 +1837,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
                 # cmd.rename_map[v1] = v2
 
             if len(system.output) != len(cmd.output):
-                eprint(f"[{FILE_NAME}] Error: output variables do not match target system ({system.symbol})."
+                logger.error(f"Error: output variables do not match target system ({system.symbol})."
                     f"\n\t{', '.join([f'({v}: {s})' for v,s in system.output])}"
                     f"\n\t{', '.join([f'({v}: {s})' for v,s in cmd.output])}")
                 status = False
@@ -1843,14 +1845,14 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
             for (_,sort1),(_,sort2) in zip(system.output, cmd.output):
                 if sort1 != sort2:
-                    eprint(f"[{FILE_NAME}] Error: sorts do not match in check-system (expected {sort1}, got {sort2})")
+                    logger.error(f"Error: sorts do not match in check-system (expected {sort1}, got {sort2})")
                     status = False
                 else:
                     pass
                 # cmd.rename_map[v1] = v2
 
             if len(system.local) != len(cmd.local):
-                eprint(f"[{FILE_NAME}] Error: local variables do not match target system ({system.symbol})."
+                logger.error(f"Error: local variables do not match target system ({system.symbol})."
                     f"\n\t{', '.join([f'({v}: {s})' for v,s in system.local])}"
                     f"\n\t{', '.join([f'({v}: {s})' for v,s in cmd.local])}")
                 status = False
@@ -1858,7 +1860,7 @@ def sort_check(program: MCILProgram) -> tuple[bool, MCILContext]:
 
             for (_,sort1),(_,sort2) in zip(system.local, cmd.local):
                 if sort1 != sort2:
-                    eprint(f"[{FILE_NAME}] Error: sorts do not match in check-system (expected {sort1}, got {sort2})")
+                    logger.error(f"Error: sorts do not match in check-system (expected {sort1}, got {sort2})")
                     status = False
                 else:
                     pass

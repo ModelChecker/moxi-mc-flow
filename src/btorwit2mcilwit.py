@@ -6,7 +6,7 @@ from .mcil_witness import *
 from .mcil import *
 from .btor import *
 from .parse_btorwit import parse_witness
-from .util import eprint
+from .util import logger
 
 FILE_NAME = Path(__file__).name
 
@@ -278,7 +278,7 @@ def main(
 
     If the file set for `query` includes a file with the `.cex` suffix, then `query` is sat. Otherwise, `query is unsat."""
     if not input_path.is_dir():
-        eprint(f"[{FILE_NAME}] Error: witness path must be a directory.")
+        logger.error(f"Error: witness path must be a directory.")
         return 1
 
     check_system_responses: list[MCILCheckSystemResponse] = []
@@ -311,7 +311,7 @@ def main(
             
             btor_witness = parse_witness(witness_content)
             if not btor_witness:
-                eprint(f"[{FILE_NAME}] parse error for BTOR2 witness file {input_path}")
+                logger.error(f"parse error for BTOR2 witness file {input_path}")
                 return 1
 
             with open(pickle_path, "rb") as f:

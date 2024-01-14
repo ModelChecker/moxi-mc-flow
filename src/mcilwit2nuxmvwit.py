@@ -5,7 +5,7 @@ from .mcil_witness import *
 from .nuxmv_witness import *
 from .mcil import *
 from .nuxmv import *
-from .util import eprint
+from .util import logger
 
 FILE_NAME = Path(__file__).name
 
@@ -96,7 +96,7 @@ def main(
         output_path.touch()
         return 0
     elif len(mcil_witness.responses) > 1:
-        eprint(f"[{FILE_NAME}] Warning: MCIL witness should only have 1 check-system response, using first.")
+        logger.error(f"Warning: MCIL witness should only have 1 check-system response, using first.")
 
     check_system_response = mcil_witness.responses[0]
 

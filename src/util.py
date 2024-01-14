@@ -1,29 +1,72 @@
 import sys
 import os
 import shutil
-import inspect
 from pathlib import Path
+import logging
 
 FILE_NAME = Path(__file__).name
 
-def get_line_info() -> str:
-    return f"{inspect.stack()[1][1]}:{inspect.stack()[1][2]}"
-
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
 
 def rmdir(dir: Path, quiet: bool):
     """Remove `dir`, print a warning if quiet is False"""
     if dir.is_file():
         if not quiet:
-            print(f"[{FILE_NAME}] Overwriting {dir}")
+            print(f"Overwriting {dir}")
         os.remove(dir)
     elif dir.is_dir():
         if not quiet:
-            print(f"[{FILE_NAME}] Overwriting {dir}")
+            print(f"Overwriting {dir}")
         shutil.rmtree(dir)
+
 
 def cleandir(dir: Path, quiet: bool):
     """Remove and create fresh `dir`, print a warning if quiet is False"""
     rmdir(dir, quiet)
     os.mkdir(dir)
+
+
+class StandardFormatter(logging.Formatter):
+    format_str = '%(levelname)s'
+
+    FORMATS = {
+        logging.DEBUG: '[%(filename)s:%(lineno)d] %(message)s',
+        logging.INFO: '[%(module)s] %(message)s',
+        logging.WARNING: '[%(filename)s:%(lineno)d] ' + format_str + ': %(message)s',
+        logging.ERROR: '[%(filename)s:%(lineno)d] ' + format_str + ': %(message)s',
+        logging.CRITICAL: '[%(filename)s:%(lineno)d] ' + format_str + ': %(message)s',
+    }
+
+    def format(self, record) -> str:
+        log_fmt = self.FORMATS.get(record.levelno)
+        formatter = logging.Formatter(log_fmt)
+        return formatter.format(record)
+
+LOGGER_NAME = __name__
+
+logger = logging.getLogger(LOGGER_NAME)
+logger.setLevel(logging.INFO)
+
+stdout_handler = logging.StreamHandler(sys.stdout)
+stdout_handler.setLevel(logging.DEBUG)
+# filter out everything that is above INFO level (WARN, ERROR, ...)
+stdout_handler.addFilter(lambda record: record.levelno <= logging.INFO)
+stdout_handler.setFormatter(StandardFormatter())
+logger.addHandler(stdout_handler)
+
+stderr_handler = logging.StreamHandler(sys.stderr)
+# take only warnings and error logs
+stderr_handler.setLevel(logging.WARNING)
+stderr_handler.setFormatter(StandardFormatter())
+logger.addHandler(stderr_handler)
+
+
+# def setup_logger(logger: logging.Logger, debug: bool):
+#     if debug:
+#         logger.setLevel(logging.DEBUG)
+#     else:
+#         logger.setLevel(logging.INFO)
+
+#     logger_handler = logging.StreamHandler(sys.stdout)
+#     logger_handler.setFormatter(StandardFormatter())
+
+#     logger.addHandler(logger_handler)

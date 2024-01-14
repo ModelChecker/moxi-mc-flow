@@ -10,7 +10,7 @@ and obtain a single nuXmv file.
 Identifiers appearing in nuXmv distribution benchmarks do not conform to the identifier grammar
 specified in the nuXmv reference manual.
 
-As such, we replace restricted tokens (`:`, `"`, `\`, `[`, `]`, `$`) that appear in identifiers with
+As such, we replace restricted tokens (`:`, `"`, `\\`, `[`, `]`, `$`) that appear in identifiers with
 conformant alternatives (usually the written name of the character - `_colon_`, etc.).
 
 

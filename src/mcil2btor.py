@@ -4,7 +4,7 @@ from pathlib import Path
 import pickle
 from typing import cast
 
-from .util import cleandir, eprint
+from .util import cleandir, logger
 from .mcil import *
 from .json2mcil import from_json
 from .btor import *
@@ -394,7 +394,7 @@ def to_btor2_annotations(
             index_sort = sort.parameters[0]
             element_sort = sort.parameters[1]
             if is_array_sort(index_sort) or is_array_sort(element_sort):
-                eprint(f"[{FILE_NAME}] Warning: BTOR2 solvers only support arrays of sort signature (Array (_ BitVec X) (_ BitVec Y)). Not adding sort annotation to BTOR2 file.")
+                logger.error(f"Warning: BTOR2 solvers only support arrays of sort signature (Array (_ BitVec X) (_ BitVec Y)). Not adding sort annotation to BTOR2 file.")
                 continue
 
             index_sort_width = index_sort.get_index(0)
@@ -421,7 +421,6 @@ def to_btor2_annotations(
         if (var_symbol in check.get_input_symbols() 
             and top_level_system and top_level_system[0] == system.symbol
         ):
-            print(f"{var_symbol} {cur.with_no_suffix()}")
             bool_encoding = f"I {cur.with_no_suffix()}"
             sort_comment = BtorNode()
             sort_comment.set_comment_no_space(bool_encoding)
@@ -631,7 +630,7 @@ def to_btor2_check_system(
     context.pop_system()
 
     if check.queries:
-        eprint(f"[{FILE_NAME}] Warning: ':queries' attribute unsupported, ignoring")
+        logger.error(f"Warning: ':queries' attribute unsupported, ignoring")
 
     for query_symbol,query in check.query.items():
         # shallow copy the prog since we don't want to lose sort_map/var_map
@@ -654,7 +653,7 @@ def to_btor2_check_system(
 
         btor2_prog += to_btor2_reach_properties(check, query, context, sort_map, var_map, expr_map)
 
-        print(f"[{FILE_NAME}] reducing BTOR2 program")
+        logger.info(f"reducing BTOR2 program")
         reduced_btor2_prog = assign_nids(btor2_prog)
 
         btor2_programs[query_symbol] = BtorProgram(reduced_btor2_prog)
@@ -683,9 +682,9 @@ def translate(
     (well_sorted, context) = sort_check(mcil_program)
 
     if not well_sorted:
-        eprint(f"[{FILE_NAME}] failed sort check")
+        logger.error(f"failed sort check")
         return 1
-    print(f"[{FILE_NAME}] translating to BTOR2")
+    logger.info(f"translating to BTOR2")
     
     # BTOR2 only supports bit vectors and their operations and 
     # does not support functions, so we force all other types to 
@@ -735,7 +734,7 @@ def translate(
                 with open(output_file_path.with_suffix(".btor2.pickle"), "wb") as f:
                     pickle.dump(btor2_program, f)
 
-    print(f"[{FILE_NAME}] wrote BTOR2 to {output_path}")
+    logger.info(f"wrote BTOR2 to {output_path}")
     return 0
 
 
@@ -746,11 +745,11 @@ def main(
     do_pickle: bool
 ) -> int:
     if not input_path.is_file():
-        eprint(f"[{FILE_NAME}] {input_path} is not a valid file.")
+        logger.error(f"{input_path} is not a valid file.")
         return 1
 
     if output_path.is_file():
-        eprint(f"[{FILE_NAME}] {output_path} is a file.")
+        logger.error(f"{output_path} is a file.")
         return 1
 
     cleandir(output_path, False)
@@ -761,11 +760,11 @@ def main(
         elif input_path.suffix == ".mcil":
             program = parse_mcil(file.read())
         else:
-            eprint(f"[{FILE_NAME}] file format unsupported ({input_path.suffix})")
+            logger.error(f"file format unsupported ({input_path.suffix})")
             return 1
 
     if not program:
-        eprint(f"[{FILE_NAME}] failed parsing")
+        logger.error(f"failed parsing")
         return 1
 
     return translate(program, output_path, int_width, do_pickle)

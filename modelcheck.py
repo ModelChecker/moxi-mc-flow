@@ -1,4 +1,6 @@
 import argparse
+from logging import getLogger
+import logging
 from pathlib import Path
 import subprocess
 import sys
@@ -6,7 +8,7 @@ import os
 import shutil
 import time
 
-from src.util import eprint, cleandir, rmdir
+from src.util import cleandir, rmdir, logger
 from src.btorwit2mcilwit import main as btorwit2mcilwit
 from src.mcilwit2nuxmvwit import main as mcilwit2nuxmvwit
 
@@ -20,7 +22,7 @@ DEFAULT_TRANSLATE = FILE_DIR / "translate.py"
 
 
 def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
-    print(f"[{FILE_NAME}] running btormc over {btor_path}")
+    logger.info(f"running btormc over {btor_path}")
     label = btor_path.stem
 
     command = [str(btormc_path), str(btor_path), "-kmax", str(kmax), "--trace-gen-full"]
@@ -35,11 +37,11 @@ def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int
     end_mc = time.perf_counter()
 
     if proc.returncode:
-        eprint(proc.stderr.decode("utf-8"))
-        eprint(f"[{FILE_NAME}] Error: btormc failure for query '{label}'")
+        logger.error(proc.stderr.decode("utf-8"))
+        logger.error(f"Error: btormc failure for query '{label}'")
         return proc.returncode
 
-    print(f"[{FILE_NAME}] done model checking in {end_mc-start_mc}s")
+    logger.info(f"done model checking in {end_mc-start_mc}s")
 
     btor_witness_bytes = proc.stdout
 
@@ -47,7 +49,7 @@ def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int
     with open(btor_witness_path, "wb") as f:
         f.write(btor_witness_bytes)
 
-    print(f"[{FILE_NAME}] btormc witness created at {btor_witness_path}")
+    logger.info(f"btormc witness created at {btor_witness_path}")
 
     return 0
 
@@ -55,7 +57,7 @@ def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int
 def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
     absolute_btor_path = btor_path.absolute()
 
-    print(f"[{FILE_NAME}] running avr over {absolute_btor_path}")
+    logger.info(f"running avr over {absolute_btor_path}")
     label = absolute_btor_path.stem
 
     avr_output_path = absolute_btor_path.parent
@@ -75,11 +77,11 @@ def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
     end_mc = time.perf_counter()
 
     if proc.returncode:
-        eprint(proc.stderr.decode("utf-8"))
-        eprint(f"[{FILE_NAME}] Error: avr failure for query '{label}'")
+        logger.error(proc.stderr.decode("utf-8"))
+        logger.error(f"Error: avr failure for query '{label}'")
         return proc.returncode
 
-    print(f"[{FILE_NAME}] done model checking in {end_mc-start_mc}s")
+    logger.info(f"done model checking in {end_mc-start_mc}s")
 
     avr_witness_path = [c for c in avr_results_path.glob("cex.witness")]
     btor_witness_path = absolute_btor_path.with_suffix(f".btor2.cex")
@@ -95,7 +97,7 @@ def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
     if len(avr_proof_path) > 0:
         avr_proof_path[0].rename(str(btor_witness_path.parent / "inv.txt"))
 
-    print(f"[{FILE_NAME}] avr witness created at {btor_witness_path}")
+    logger.info(f"avr witness created at {btor_witness_path}")
 
     return 0
 
@@ -108,13 +110,14 @@ def model_check(
     fulltrace: bool,
     int_width: int,
     kmax: int,
-    kind: bool
+    kind: bool,
+    debug: bool,
 ) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
     # does not output valid witness output (header is missing), so we don't use it.
     # NOTE: for a model checker like avr, this might be necessary for full traces
     if not input_path.is_file():
-        eprint(f"[{FILE_NAME}] Error: source is not a file ({input_path})")
+        logger.error(f"Error: source is not a file ({input_path})")
         return 1
 
     rmdir(output_path, False)
@@ -134,17 +137,23 @@ def model_check(
     shutil.copy(str(input_path), str(src_path))
 
     start_total = time.perf_counter()
-    
-    proc = subprocess.run([
+
+    command = [
         "python3", str(DEFAULT_TRANSLATE), str(src_path), "btor2", 
         "--output", str(btor2_output_path),
         "--validate", "--intwidth", str(int_width),
         "--pickle"
         # TODO: Add paths to sortcheck.py, catbtor
-    ])
+    ]
+    if copyback:
+        command.append("--keep")
+    if debug:
+        command.append("--debug")
+    
+    proc = subprocess.run(command)
 
     if proc.returncode:
-        eprint(f"[{FILE_NAME}] Error: translation failure for {input_path}")
+        logger.error(f"Error: translation failure for {input_path}")
         return proc.returncode
     
     for check_system_path in btor2_output_path.iterdir():
@@ -158,7 +167,7 @@ def model_check(
                 if retcode:
                     return retcode
             else:
-                eprint(f"[{FILE_NAME}] Error: unsupported model checker {model_checker}")
+                logger.error(f"Error: unsupported model checker {model_checker}")
                 return 1
 
     retcode = btorwit2mcilwit(
@@ -179,13 +188,13 @@ def model_check(
         
     end_total = time.perf_counter()
 
-    print(f"[{FILE_NAME}] end-to-end done in {end_total-start_total}s")
+    logger.info(f"end-to-end done in {end_total-start_total}s")
 
     if copyback:
-        print(f"[{FILE_NAME}] wrote files to {output_path}")
+        logger.info(f"wrote files to {output_path}")
     else:
         witness_path.replace(output_path)
-        print(f"[{FILE_NAME}] wrote MCIL witness to {output_path}")
+        logger.info(f"wrote MCIL witness to {output_path}")
         rmdir(WORK_DIR, True)
 
     return 0
@@ -209,7 +218,17 @@ if __name__ == "__main__":
         help="max bound for BMC")
     parser.add_argument("--kind", action="store_true", 
         help="enable k-induction")
+    parser.add_argument("--debug", action="store_true", 
+        help="output debug messages")
+    parser.add_argument("--quiet", action="store_true", 
+        help="silence output")
     args = parser.parse_args()
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+
+    if args.quiet:
+        pass
 
     input_path = Path(args.input)
 
@@ -228,7 +247,8 @@ if __name__ == "__main__":
         fulltrace=True, 
         int_width=args.intwidth, 
         kmax=args.kmax,
-        kind=args.kind
+        kind=args.kind,
+        debug=args.debug
     )
 
     sys.exit(retcode)

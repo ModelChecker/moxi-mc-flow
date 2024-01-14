@@ -2,8 +2,9 @@ import argparse
 import subprocess
 from pathlib import Path
 import sys
+import logging
 
-from src.util import eprint, cleandir
+from src.util import cleandir, logger
 from src.nuxmv2mcil import main as nuxmv2mcil
 from src.mcil2btor import main as mcil2btor
 from src.mcil2json import main as mcil2json
@@ -27,7 +28,7 @@ def run_sortcheck(src_path: Path) -> int:
     )
     
     if proc.returncode:
-        eprint(proc.stderr.decode("utf-8"))
+        logger.error(proc.stderr.decode("utf-8"))
         return FAIL
 
     print(proc.stdout.decode("utf-8"))
@@ -41,10 +42,10 @@ def run_catbtor(src_path: Path) -> int:
     )
     
     if proc.returncode:
-        eprint(proc.stderr.decode("utf-8"))
+        logger.error(proc.stderr.decode("utf-8"))
         return FAIL
 
-    print(f"[{FILE_NAME}] {src_path} is well-sorted")
+    print(f"{src_path} is well-sorted")
     return PASS
 
 
@@ -52,12 +53,13 @@ def main(
     input_path: Path, 
     target_lang: str, 
     output_path: Path, 
+    keep: bool,
     validate: bool,
     do_pickle: bool, 
     int_width: int,
 ) -> int:
     if not input_path.is_file():
-        eprint(f"[{FILE_NAME}] source is not a file ({input_path})\n")
+        logger.error(f"source is not a file ({input_path})\n")
         return 1
 
     match (input_path.suffix, target_lang):
@@ -72,6 +74,9 @@ def main(
 
             if mcil2json(mcil_path, output_path, False, False):
                 return FAIL
+
+            if not keep:
+                mcil_path.unlink()
         case (".smv", "btor2"):
             mcil_path = input_path.with_suffix(".mcil")
 
@@ -80,6 +85,9 @@ def main(
 
             if  mcil2btor(mcil_path, output_path, int_width, do_pickle):
                 return FAIL
+
+            if not keep:
+                mcil_path.unlink()
         case (".mcil", "mcil-json"):
             if  mcil2json(input_path, output_path, False, False):
                 return FAIL
@@ -97,8 +105,11 @@ def main(
 
             if  mcil2btor(mcil_path, output_path, int_width, do_pickle):
                 return FAIL
+
+            if not keep:
+                mcil_path.unlink()
         case _:
-            eprint(f"[{FILE_NAME}] Translation unsupported: {input_path.suffix} to { target_lang}")
+            logger.error(f"Translation unsupported: {input_path.suffix} to { target_lang}")
             return 1
 
     if validate:
@@ -123,6 +134,8 @@ if __name__ == "__main__":
     parser.add_argument("targetlang", choices=["mcil", "mcil-json", "btor2"],
                         help="target language")
     parser.add_argument("--output", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
+    parser.add_argument("--keep", action="store_true", 
+        help="keep intermediate translation files")
     parser.add_argument("--validate", action="store_true", 
                         help="validate output; uses catbtor if targetlan is btor2, sortcheck.py if targetlang is mcil or mcil-json")
     parser.add_argument("--pickle", action="store_true", 
@@ -130,7 +143,13 @@ if __name__ == "__main__":
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
     parser.add_argument("--sortcheck", help="path to sortcheck.py for MCIL validation")
     parser.add_argument("--intwidth", default=32, type=int, help="bit width to translate Int types to when translating to BTOR2")
+    parser.add_argument("--debug", action="store_true", 
+                        help="output debug messages")
     args = parser.parse_args()
+
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
+    print("level")
 
     input_path = Path(args.input)
 
@@ -146,7 +165,7 @@ if __name__ == "__main__":
                 output_path = input_path.with_suffix("")
                 cleandir(output_path, False)
             case _:
-                eprint(f"[{FILE_NAME}] invalid target language")
+                logger.error(f"invalid target language")
                 sys.exit(1)
 
     if args.catbtor:
@@ -157,5 +176,5 @@ if __name__ == "__main__":
 
     # cProfile.run("main(input_path, args.targetlang, output_path)")
 
-    returncode = main(input_path, args.targetlang, output_path, args.validate, args.pickle, args.intwidth)
+    returncode = main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.intwidth)
     sys.exit(returncode)

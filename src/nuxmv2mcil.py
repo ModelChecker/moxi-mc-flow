@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Tuple, cast
 
-from .util import eprint
+from .util import logger
 from .preprocess_nuxmv import preprocess
 from .parse_nuxmv import parse
 from .nuxmv import *
@@ -211,7 +211,10 @@ def translate_expr(
                 else:
                     raise ValueError(f"Unrecognized var `{ident}`")
             case XMVIntegerConstant(integer=i):
-                expr_map[expr] =  MCILConstant(sort=MCIL_INT_SORT, value=i)
+                if i < 0:
+                    expr_map[expr] = MCIL_INT_NEG_EXPR(MCILConstant(sort=MCIL_INT_SORT, value=-i))
+                else:
+                    expr_map[expr] =  MCILConstant(sort=MCIL_INT_SORT, value=i)
             case XMVBooleanConstant(boolean=b):
                 expr_map[expr] =  MCILConstant(sort=MCIL_BOOL_SORT, value=b)
             case XMVWordConstant(width=width, value=value):
@@ -434,7 +437,7 @@ def translate_expr(
                     prime=False
                 )
             case _:
-                raise ValueError(f"[{FILE_NAME}] unhandled expression {expr}, {expr.__class__}")
+                raise ValueError(f"unhandled expression {expr}, {expr.__class__}")
 
 
 def conjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
@@ -759,25 +762,28 @@ def gather_consts(xmv_module: XMVModule) -> list[MCILCommand]:
 def gather_invarspecs(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> dict[str, MCILExpr]:
     invarspec_dict: dict[str, MCILExpr] = {}
 
+    spec_num = 1
     for invarspec_decl in [e for e in xmv_module.elements if isinstance(e, XMVInvarspecDeclaration)]:
         xmv_expr = invarspec_decl.formula
         translate_expr(xmv_expr, context, expr_map, in_let_expr=False, module=xmv_module)
 
-        invarspec_dict[f"rch_{repr(xmv_expr).replace(' ','_')}"] = (
+        invarspec_dict[f"rch_{spec_num}"] = (
             cast(MCILExpr, MCILApply(
                 MCIL_BOOL_SORT, 
                 MCILIdentifier("not", []), 
                 [expr_map[xmv_expr]]
             )))
+            
+        spec_num += 1
 
     return invarspec_dict
 
 def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCommand]:
     module_name = xmv_module.name
 
-    print(f"[{FILE_NAME}] translating module {module_name}")
+    logger.debug(f"translating module {module_name}")
 
-    print(f"[{FILE_NAME}] {module_name}: type checking")
+    logger.debug(f"{module_name}: type checking")
     (_, enum_context) = type_check_enums(xmv_module, context)
     (type_correct, enum_context) = type_check(xmv_module, enum_context)
     if not type_correct:
@@ -786,28 +792,27 @@ def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCom
     enums, updated_enum_context = gather_enums(xmv_module, enum_context)
     xmv_context = updated_enum_context
 
-    print(f"[{FILE_NAME}] {module_name}: translating input variables")
+    logger.debug(f"{module_name}: translating input variables")
     input = gather_input(xmv_module, xmv_context)
 
-    print(f"[{FILE_NAME}] {module_name}: translating output variables")
+    logger.debug(f"{module_name}: translating output variables")
     (output, output_ctx) = gather_output(xmv_module, xmv_context)
 
     xmv_context = output_ctx
 
-    print(f"[{FILE_NAME}] {module_name}: translating local variables")
+    logger.debug(f"{module_name}: translating local variables")
     (local, local_ctx) = gather_local(xmv_module, xmv_context)
-    # print(f"[{FILE_NAME}] translated specification in {input_path}")
 
     xmv_context = local_ctx
 
-    print(f"[{FILE_NAME}] {module_name}: translating initialization constraints")
+    logger.debug(f"{module_name}: translating initialization constraints")
     emap = {}
     init = gather_init(xmv_module, xmv_context, emap)
 
-    print(f"[{FILE_NAME}] {module_name}: translating transition relation")
+    logger.debug(f"{module_name}: translating transition relation")
     trans = gather_trans(xmv_module, xmv_context, emap)
 
-    print(f"[{FILE_NAME}] {module_name}: translating invariant constraints")
+    logger.debug(f"{module_name}: translating invariant constraints")
     inv = gather_inv(xmv_module, xmv_context, emap)
 
     subsystems = gather_subsystems(xmv_module, xmv_context)
@@ -868,14 +873,14 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
         try:
             il_commands = translate_module(xmv_module=xmv_module, context=context)
         except ValueError as err:
-            eprint(err)
+            logger.error(err)
             return None
             
         commands += il_commands
 
     logic: Optional[MCILSetLogic] = infer_logic(commands)
     if logic:
-        print(f"[{FILE_NAME}] inferred SMT logic {logic.logic}")
+        logger.debug(f"inferred SMT logic {logic.logic}")
         commands = [logic] + commands
 
     return MCILProgram(commands=commands)
@@ -883,21 +888,21 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
 def main(input_path: Path, output_path: Path) -> int:
     content = preprocess(input_path)
 
-    print(f"[{FILE_NAME}] parsing specification in {input_path}")
+    logger.info(f"parsing specification in {input_path}")
     parse_tree = parse(content)
     if not parse_tree:
-        eprint(f"[{FILE_NAME}] failed parsing specification in {input_path}")
+        logger.error(f"failed parsing specification in {input_path}")
         return 1
 
-    print(f"[{FILE_NAME}] translating specification in {input_path}")
+    logger.info(f"translating specification in {input_path}")
     result = translate(parse_tree)
     if not result:
-        eprint(f"[{FILE_NAME}] failed translating specification in {input_path}")
+        logger.error(f"failed translating specification in {input_path}")
         return 1
 
-    print(f"[{FILE_NAME}] writing output to {output_path}")
+    logger.info(f"writing output to {output_path}")
     with open(str(output_path), "w") as f:
         f.write(str(result))
-        print(f"[{FILE_NAME}] wrote output to {output_path}")
+        logger.info(f"wrote output to {output_path}")
 
     return 0
