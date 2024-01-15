@@ -1,5 +1,4 @@
 import argparse
-from ntpath import join
 import subprocess
 from os.path import commonpath
 from os import walk
@@ -158,7 +157,6 @@ def test_nuxmv2mcil(
             ["python3", str(translate_path), str(file), "mcil", "--validate",
             "--output", str(results_path / output_dir / file.with_suffix(".mcil").name)]
     )
-
 
     for file in pass_files:
         output_dir = file.relative_to(common_path).with_suffix("")

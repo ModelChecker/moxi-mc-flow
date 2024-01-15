@@ -6,6 +6,7 @@ import sys
 import os
 import shutil
 import time
+from typing import Optional
 
 from src.util import cleandir, rmdir, logger
 from src.btorwit2mcilwit import main as btorwit2mcilwit
@@ -105,6 +106,8 @@ def model_check(
     input_path: Path, 
     output_path: Path, 
     model_checker: str, 
+    sortcheck: Optional[str],
+    catbtor: Optional[str],
     copyback: bool,
     fulltrace: bool,
     int_width: int,
@@ -143,8 +146,13 @@ def model_check(
         "--output", str(btor2_output_path),
         "--validate", "--intwidth", str(int_width),
         "--pickle"
-        # TODO: Add paths to sortcheck.py, catbtor
     ]
+    if sortcheck:
+        command.append("--sortcheck")
+        command.append(sortcheck)
+    if catbtor:
+        command.append("--catbtor")
+        command.append(catbtor)
     if copyback:
         command.append("--keep")
     if cpp:
@@ -216,6 +224,8 @@ if __name__ == "__main__":
         help="bit width to translate Int types to")
     # parser.add_argument("--fulltrace", action="store_true", 
     #     help="return traces with all variable values for every state")
+    parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
+    parser.add_argument("--sortcheck", help="path to sortcheck.py for MCIL validation")
     parser.add_argument("--kmax", default=1000, type=int, 
         help="max bound for BMC")
     parser.add_argument("--kind", action="store_true", 
@@ -247,6 +257,8 @@ if __name__ == "__main__":
         input_path=input_path, 
         output_path=output_path, 
         model_checker=args.modelchecker, 
+        sortcheck=args.sortcheck,
+        catbtor=args.catbtor,
         copyback=args.copyback, 
         fulltrace=True, 
         int_width=args.intwidth, 

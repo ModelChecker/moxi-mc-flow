@@ -30,7 +30,7 @@ def main(input_path: Path, echo: bool) -> int:
     if echo:
         print(program)
     else:
-        print(f"'{input_path}' is well sorted")
+        print(f"{input_path} is well sorted")
 
     return 0
 

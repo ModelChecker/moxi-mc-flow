@@ -6,25 +6,6 @@ import logging
 
 FILE_NAME = Path(__file__).name
 
-
-def rmdir(dir: Path, quiet: bool):
-    """Remove `dir`, print a warning if quiet is False"""
-    if dir.is_file():
-        if not quiet:
-            print(f"Overwriting {dir}")
-        os.remove(dir)
-    elif dir.is_dir():
-        if not quiet:
-            print(f"Overwriting {dir}")
-        shutil.rmtree(dir)
-
-
-def cleandir(dir: Path, quiet: bool):
-    """Remove and create fresh `dir`, print a warning if quiet is False"""
-    rmdir(dir, quiet)
-    os.mkdir(dir)
-
-
 class StandardFormatter(logging.Formatter):
     format_str = '%(levelname)s'
 
@@ -60,13 +41,19 @@ stderr_handler.setFormatter(StandardFormatter())
 logger.addHandler(stderr_handler)
 
 
-# def setup_logger(logger: logging.Logger, debug: bool):
-#     if debug:
-#         logger.setLevel(logging.DEBUG)
-#     else:
-#         logger.setLevel(logging.INFO)
+def rmdir(dir: Path, quiet: bool):
+    """Remove `dir`, print a warning if quiet is False"""
+    if dir.is_file():
+        if not quiet:
+            logger.info(f"Overwriting {dir}")
+        os.remove(dir)
+    elif dir.is_dir():
+        if not quiet:
+            logger.info(f"Overwriting {dir}")
+        shutil.rmtree(dir)
 
-#     logger_handler = logging.StreamHandler(sys.stdout)
-#     logger_handler.setFormatter(StandardFormatter())
 
-#     logger.addHandler(logger_handler)
+def cleandir(dir: Path, quiet: bool):
+    """Remove and create fresh `dir`, print a warning if quiet is False"""
+    rmdir(dir, quiet)
+    os.mkdir(dir)
