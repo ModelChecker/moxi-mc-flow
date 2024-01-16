@@ -16,9 +16,9 @@ FILE_NAME = Path(__file__).name
 FILE_DIR = Path(__file__).parent
 WORK_DIR = FILE_DIR / "__workdir__"
 
-DEFAULT_BTORMC = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
-DEFAULT_AVR = FILE_DIR / "avr"
-DEFAULT_TRANSLATE = FILE_DIR / "translate.py"
+btormc_path = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
+avr_path = FILE_DIR / "avr"
+translate_path = FILE_DIR / "translate.py"
 
 
 def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
@@ -150,7 +150,7 @@ def model_check(
     start_total = time.perf_counter()
 
     command = [
-        "python3", str(DEFAULT_TRANSLATE), str(src_path), "btor2", 
+        "python3", str(translate_path), str(src_path), "btor2", 
         "--output", str(btor2_output_path),
         "--validate", "--intwidth", str(int_width),
         "--pickle"
@@ -182,11 +182,11 @@ def model_check(
     for check_system_path in btor2_output_path.iterdir():
         for btor_path in check_system_path.glob("*.btor2"):
             if model_checker == "btormc":
-                retcode = run_btormc(DEFAULT_BTORMC, btor_path, kmax, kind)
+                retcode = run_btormc(btormc_path, btor_path, kmax, kind)
                 if retcode:
                     return retcode
             elif model_checker == "avr":
-                retcode = run_avr(DEFAULT_AVR, btor_path, kmax, kind)
+                retcode = run_avr(avr_path, btor_path, kmax, kind)
                 if retcode:
                     return retcode
             else:
@@ -233,6 +233,12 @@ if __name__ == "__main__":
         help="model checker to use")
     parser.add_argument("--output",  
         help="location of output check-system response")
+    parser.add_argument("--avr-path",
+        help=f"path to avr directory")
+    parser.add_argument("--btormc-path",  
+        help=f"path to btormc binary")
+    parser.add_argument("--translate-path",  
+        help=f"path to translate.py script")
     parser.add_argument("--copyback",  action="store_true",
         help="copy all intermediate translations and results to output location")
     parser.add_argument("--intwidth", default=32, type=int, 
@@ -256,9 +262,17 @@ if __name__ == "__main__":
     if args.debug:
         logger.setLevel(logging.DEBUG)
 
-    # TODO should output just sat/unsat
     if args.quiet:
         logger.setLevel(logging.ERROR)
+
+    if args.avr_path:
+        avr_path = Path(args.avr_path)
+
+    if args.btormc_path:
+        btormc_path = Path(args.btormc_path)
+
+    if args.translate_path:
+        translate_path = Path(args.translate_path)
 
     input_path = Path(args.input)
 
