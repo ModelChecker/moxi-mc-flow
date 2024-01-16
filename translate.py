@@ -4,6 +4,8 @@ import argparse
 import subprocess
 import sys
 import logging
+import cProfile
+from pstats import SortKey
 
 from src.util import cleandir, logger
 from src.btor import write_btor2_program_set as write_btor2
@@ -15,7 +17,6 @@ from src.mcil2btor import translate_file as mcil2btor_file
 from src.mcil2json import main as mcil2json
 from src.json2mcil import main as json2mcil
 
-import cProfile
 
 FILE_NAME = Path(__file__).name
 FILE_DIR = Path(__file__).parent
@@ -169,6 +170,8 @@ if __name__ == "__main__":
     parser.add_argument("--intwidth", default=32, type=int, help="bit width to translate Int types to when translating to BTOR2")
     parser.add_argument("--debug", action="store_true", 
                         help="output debug messages")
+    parser.add_argument("--profile", action="store_true", 
+                        help="runs using cProfile if true")
     args = parser.parse_args()
 
     if args.debug:
@@ -197,7 +200,9 @@ if __name__ == "__main__":
     if args.sortcheck:
         SORTCHECK = Path(args.sortcheck)
 
-    # cProfile.run("main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)")
+    if args.profile:
+        cProfile.run("main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)", sort=SortKey.TIME)
+        sys.exit(0)
 
     returncode = main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)
     sys.exit(returncode)

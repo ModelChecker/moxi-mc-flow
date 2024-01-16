@@ -649,6 +649,8 @@ class NuXmvParser(Parser):
 def parse(input_path: Path, do_cpp: bool) -> Optional[XMVSpecification]:
     content = preprocess(input_path, do_cpp)
 
+    logger.debug(f"Parsing {input_path}")
+
     lexer = NuXmvLexer()
     parser = NuXmvParser()
 

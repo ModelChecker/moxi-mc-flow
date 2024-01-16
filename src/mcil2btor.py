@@ -418,7 +418,7 @@ def to_btor2_annotations(
         # so we can't use BtorInputVar in our translation. Only use vars in
         # `check`, all others are mapped to other vars or are locals.
         top_level_system = sys_ctx.get_bottom()
-        if (var_symbol in check.get_input_symbols() 
+        if (var_symbol in check.input_symbols
             and top_level_system and top_level_system[0] == system.symbol
         ):
             bool_encoding = f"I {cur.with_no_suffix()}"

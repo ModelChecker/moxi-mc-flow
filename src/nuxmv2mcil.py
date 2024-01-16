@@ -1,5 +1,4 @@
 from pathlib import Path
-import pickle
 from typing import Tuple, cast
 
 from .util import logger
@@ -785,9 +784,9 @@ def gather_invarspecs(xmv_module: XMVModule, context: XMVContext, expr_map: dict
 def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCommand]:
     module_name = xmv_module.name
 
-    logger.debug(f"translating module {module_name}")
+    logger.debug(f"Translating module {module_name}")
 
-    logger.debug(f"{module_name}: type checking")
+    logger.debug(f"Type checking")
     (_, enum_context) = type_check_enums(xmv_module, context)
     (type_correct, enum_context) = type_check(xmv_module, enum_context)
     if not type_correct:
@@ -796,27 +795,27 @@ def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCom
     enums, updated_enum_context = gather_enums(xmv_module, enum_context)
     xmv_context = updated_enum_context
 
-    logger.debug(f"{module_name}: translating input variables")
+    logger.debug(f"Translating input variables")
     input = gather_input(xmv_module, xmv_context)
 
-    logger.debug(f"{module_name}: translating output variables")
+    logger.debug(f"Translating output variables")
     (output, output_ctx) = gather_output(xmv_module, xmv_context)
 
     xmv_context = output_ctx
 
-    logger.debug(f"{module_name}: translating local variables")
+    logger.debug(f"Translating local variables")
     (local, local_ctx) = gather_local(xmv_module, xmv_context)
 
     xmv_context = local_ctx
 
-    logger.debug(f"{module_name}: translating initialization constraints")
+    logger.debug(f"Translating initialization constraints")
     emap = {}
     init = gather_init(xmv_module, xmv_context, emap)
 
-    logger.debug(f"{module_name}: translating transition relation")
+    logger.debug(f"Translating transition relation")
     trans = gather_trans(xmv_module, xmv_context, emap)
 
-    logger.debug(f"{module_name}: translating invariant constraints")
+    logger.debug(f"Translating invariant constraints")
     inv = gather_inv(xmv_module, xmv_context, emap)
 
     subsystems = gather_subsystems(xmv_module, xmv_context)

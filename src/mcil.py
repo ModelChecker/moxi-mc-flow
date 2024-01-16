@@ -605,17 +605,9 @@ class MCILSystemCommand(MCILCommand):
         self.output_vars = [MCILVar(sort, symbol, False) for symbol,sort in output]
         self.local_vars = [MCILVar(sort, symbol, False) for symbol,sort in local]
 
-    def update_input_var_sorts(self, new_input: list[tuple[str, MCILSort]]) -> None:
-        pass
-
-    def get_input_symbols(self) -> set[str]:
-        return set([s for s,_ in self.input])
-
-    def get_output_symbols(self) -> set[str]:
-        return set([s for s,_ in self.output])
-
-    def get_local_symbols(self) -> set[str]:
-        return set([s for s,_ in self.local])
+        self.input_symbols = set([s for s,_ in self.input])
+        self.output_symbols = set([s for s,_ in self.output])
+        self.local_symbols = set([s for s,_ in self.local])
 
     def get_signature(self) -> list[str]:
         """Returns list of input and output variable names. Useful for when instantiating this as a subsystem."""
@@ -1314,21 +1306,21 @@ class MCILSystemContext():
         if not top:
             raise KeyError("No system in context")
         (_,system) = top
-        return system.get_input_symbols()
+        return system.input_symbols
 
     def get_output_symbols(self) -> set[str]:
         top = self.get_top()
         if not top:
             raise KeyError("No system in context")
         (_,system) = top
-        return system.get_output_symbols()
-
+        return system.output_symbols
+    
     def get_local_symbols(self) -> set[str]:
         top = self.get_top()
         if not top:
             raise KeyError("No system in context")
         (_,system) = top
-        return system.get_local_symbols()
+        return system.local_symbols
 
     def get_sort(self, symbol: str) -> MCILSort:
         top = self.get_top()
