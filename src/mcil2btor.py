@@ -8,7 +8,7 @@ from .util import cleandir, logger
 from .mcil import *
 from .json2mcil import from_json
 from .btor import *
-from .parse_mcil import parse_mcil
+from .parse_mcil import parse
 
 FILE_NAME = Path(__file__).name
 
@@ -189,7 +189,7 @@ def build_var_map_cmd(
         context.push_system(cmd.symbol, cmd, [])
 
         target_system = context.defined_systems[cmd.symbol]
-        context.push_system(cmd.symbol, target_system, cmd.get_full_signature())
+        context.push_system(cmd.symbol, target_system, cmd.full_signature)
 
         build_var_map_cmd(target_system, context, sort_map, var_map)    
 
@@ -418,7 +418,7 @@ def to_btor2_annotations(
         # so we can't use BtorInputVar in our translation. Only use vars in
         # `check`, all others are mapped to other vars or are locals.
         top_level_system = sys_ctx.get_bottom()
-        if (var_symbol in check.get_input_symbols() 
+        if (var_symbol in check.input_symbols
             and top_level_system and top_level_system[0] == system.symbol
         ):
             bool_encoding = f"I {cur.with_no_suffix()}"
@@ -619,7 +619,7 @@ def to_btor2_check_system(
     context.push_system(
         check.symbol, 
         context.defined_systems[check.symbol],
-        check.get_full_signature()
+        check.full_signature
     )
 
     btor2_model += to_btor2_define_system(
@@ -653,19 +653,18 @@ def to_btor2_check_system(
 
         btor2_prog += to_btor2_reach_properties(check, query, context, sort_map, var_map, expr_map)
 
-        logger.info(f"reducing BTOR2 program")
+        logger.debug(f"Reducing BTOR2 program")
         reduced_btor2_prog = assign_nids(btor2_prog)
 
         btor2_programs[query_symbol] = BtorProgram(reduced_btor2_prog)
 
     return btor2_programs
 
+
 def translate(
     mcil_program: MCILProgram, 
-    output_path: Path,
-    int_width: int,
-    do_pickle: bool
-) -> int:
+    int_width: int
+) -> Optional[BtorProgramSet]:
     """Translate `mcil_prog` to an equisatisfiable set of Btor programs, labeled by query symbol. Translates `Int` types to `BitVec`s of width `int_width`. Dumps a pickle file for each generated BTOR2 file if `do_pickle` is true.
     
     The strategy for translation is to sort check the input then construct a Btor program for each query (and targeted system) by:
@@ -676,15 +675,13 @@ def translate(
 
     1-3 traverses the IL program starting from the target system and traversing down through the system's subsystems and init, trans, and inv expressions and 4 traverses the relevant attributes of the query.
 
-    Note that the output programs will have input/output/local variables renamed based on the query, but all local subsystem variables will remain as defined.
-    
-    We write the output here (instead of in `main`) due to the reuse of nodes in `expr_map`. Each time a BTOR2 program is generated, their nodes must have their IDs reassigned, and these nodes may exist across many programs."""
+    Note that the output programs will have input/output/local variables renamed based on the query, but all local subsystem variables will remain as defined."""
     (well_sorted, context) = sort_check(mcil_program)
 
     if not well_sorted:
-        logger.error(f"failed sort check")
-        return 1
-    logger.info(f"translating to BTOR2")
+        logger.error(f"Failed sort check")
+        return None
+    logger.debug(f"Translating to BTOR2")
     
     # BTOR2 only supports bit vectors and their operations and 
     # does not support functions, so we force all other types to 
@@ -693,18 +690,19 @@ def translate(
     to_binary_applys(mcil_program, context)
     to_qfbv(mcil_program, int_width)
 
-    sort_map: SortMap = {}
-    expr_map: ExprMap = {}
-
     check_system_index: dict[str, int] = {}
+    btor2_program_set: BtorProgramSet = []
+
     for check_system in mcil_program.get_check_system_cmds():
         sys_symbol = check_system.symbol
         target_system = context.defined_systems[sys_symbol]
 
+        sort_map: SortMap = {}
         var_map: VarMap = {}
+        expr_map: ExprMap = {}
 
         build_sort_map_cmd(target_system, context, sort_map)
-        build_sort_map_cmd(check_system,context, sort_map)
+        build_sort_map_cmd(check_system, context, sort_map)
         build_var_map_cmd(check_system, context, sort_map, var_map)
 
         context.push_system(check_system.symbol, check_system, [])
@@ -715,30 +713,15 @@ def translate(
 
         if not sys_symbol in check_system_index:
             check_system_index[sys_symbol] = 1
-
-        check_system_path = (
-            output_path / f"{sys_symbol}.{check_system_index[sys_symbol]}"
-        )
         
         check_system_index[sys_symbol] += 1
 
-        cleandir(check_system_path, True)
+        btor2_program_set.append((sys_symbol, btor2_programs))
 
-        for query_symbol,btor2_program in btor2_programs.items():
-            output_file_path = check_system_path / f"{query_symbol}.btor2"
-
-            with open(str(output_file_path), "w") as f:
-                f.write(str(btor2_program)) 
-
-            if do_pickle:
-                with open(output_file_path.with_suffix(".btor2.pickle"), "wb") as f:
-                    pickle.dump(btor2_program, f)
-
-    logger.info(f"wrote BTOR2 to {output_path}")
-    return 0
+    return btor2_program_set
 
 
-def main(
+def translate_file(
     input_path: Path, 
     output_path: Path, 
     int_width: int,
@@ -748,23 +731,28 @@ def main(
         logger.error(f"{input_path} is not a valid file.")
         return 1
 
-    if output_path.is_file():
-        logger.error(f"{output_path} is a file.")
-        return 1
-
-    cleandir(output_path, False)
-
-    with open(input_path, "r") as file:
-        if input_path.suffix == ".json":
+    if input_path.suffix == ".json":
+        with open(str(input_path), "r") as file:
             program = from_json(json.load(file))
-        elif input_path.suffix == ".mcil":
-            program = parse_mcil(file.read())
-        else:
-            logger.error(f"file format unsupported ({input_path.suffix})")
-            return 1
+    elif input_path.suffix == ".mcil":
+        program = parse(input_path)
+    elif input_path.suffix == ".pickle":
+        with open(str(input_path), "rb") as f:
+            program = pickle.load(f)
+    else:
+        logger.error(f"File format unsupported ({input_path.suffix})")
+        return 1
 
     if not program:
-        logger.error(f"failed parsing")
+        logger.error(f"Failed parsing")
+        return 1
+    
+    btor2_program_set = translate(program, int_width)
+
+    if not btor2_program_set:
+        logger.error(f"Failed translation")
         return 1
 
-    return translate(program, output_path, int_width, do_pickle)
+    write_btor2_program_set(btor2_program_set, output_path, do_pickle)
+
+    return 0

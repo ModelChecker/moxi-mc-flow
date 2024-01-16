@@ -3,7 +3,7 @@ from typing import Tuple, cast
 
 from .util import logger
 from .preprocess_nuxmv import preprocess
-from .parse_nuxmv import parse
+from .parse_nuxmv import parse, parse
 from .nuxmv import *
 from .mcil import *
 
@@ -784,9 +784,9 @@ def gather_invarspecs(xmv_module: XMVModule, context: XMVContext, expr_map: dict
 def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCommand]:
     module_name = xmv_module.name
 
-    logger.debug(f"translating module {module_name}")
+    logger.debug(f"Translating module {module_name}")
 
-    logger.debug(f"{module_name}: type checking")
+    logger.debug(f"Type checking")
     (_, enum_context) = type_check_enums(xmv_module, context)
     (type_correct, enum_context) = type_check(xmv_module, enum_context)
     if not type_correct:
@@ -795,27 +795,27 @@ def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCom
     enums, updated_enum_context = gather_enums(xmv_module, enum_context)
     xmv_context = updated_enum_context
 
-    logger.debug(f"{module_name}: translating input variables")
+    logger.debug(f"Translating input variables")
     input = gather_input(xmv_module, xmv_context)
 
-    logger.debug(f"{module_name}: translating output variables")
+    logger.debug(f"Translating output variables")
     (output, output_ctx) = gather_output(xmv_module, xmv_context)
 
     xmv_context = output_ctx
 
-    logger.debug(f"{module_name}: translating local variables")
+    logger.debug(f"Translating local variables")
     (local, local_ctx) = gather_local(xmv_module, xmv_context)
 
     xmv_context = local_ctx
 
-    logger.debug(f"{module_name}: translating initialization constraints")
+    logger.debug(f"Translating initialization constraints")
     emap = {}
     init = gather_init(xmv_module, xmv_context, emap)
 
-    logger.debug(f"{module_name}: translating transition relation")
+    logger.debug(f"Translating transition relation")
     trans = gather_trans(xmv_module, xmv_context, emap)
 
-    logger.debug(f"{module_name}: translating invariant constraints")
+    logger.debug(f"Translating invariant constraints")
     inv = gather_inv(xmv_module, xmv_context, emap)
 
     subsystems = gather_subsystems(xmv_module, xmv_context)
@@ -867,17 +867,19 @@ def infer_logic(commands: list[MCILCommand]) -> Optional[MCILSetLogic]:
         
     return
 
+
 def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
     commands: list[MCILCommand] = []
     context = initialize_vars(xmv_specification) 
     # type_check_modules(xmv_specification, context)
     top_down_param_analysis(xmv_specification, context)
     for xmv_module in xmv_specification.modules:
-        try:
-            il_commands = translate_module(xmv_module=xmv_module, context=context)
-        except ValueError as err:
-            logger.error(err)
-            return None
+        il_commands = translate_module(xmv_module=xmv_module, context=context)
+        # try:
+        #     il_commands = translate_module(xmv_module=xmv_module, context=context)
+        # except ValueError as err:
+        #     logger.error(err)
+        #     return None
             
         commands += il_commands
 
@@ -888,24 +890,29 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
 
     return MCILProgram(commands=commands)
 
-def main(input_path: Path, output_path: Path, do_cpp: bool = True) -> int:
-    content = preprocess(input_path, do_cpp)
 
-    logger.info(f"parsing specification in {input_path}")
-    parse_tree = parse(content)
+def translate_file(
+    input_path: Path, 
+    output_path: Path, 
+    do_cpp: bool
+) -> int:
+    """Parses, type checks, translates, and writes the translation result of `input_path` to `output_path`. Runs C preprocessor if `do_cpp` is True. Returns 0 on success, 1 otherwise."""
+    logger.info(f"Parsing specification in {input_path}")
+    parse_tree = parse(input_path, do_cpp)
     if not parse_tree:
-        logger.error(f"failed parsing specification in {input_path}")
+        logger.error(f"Failed parsing specification in {input_path}")
         return 1
 
-    logger.info(f"translating specification in {input_path}")
+    logger.info(f"Translating specification in {input_path}")
     result = translate(parse_tree)
     if not result:
-        logger.error(f"failed translating specification in {input_path}")
+        logger.error(f"Failed translating specification in {input_path}")
         return 1
 
-    logger.info(f"writing output to {output_path}")
+    logger.info(f"Writing output to {output_path}")
+
     with open(str(output_path), "w") as f:
         f.write(str(result))
-        logger.info(f"wrote output to {output_path}")
+        logger.info(f"Wrote output to {output_path}")
 
     return 0

@@ -495,13 +495,18 @@ class MCILParser(Parser):
         return int(p[0])
 
 
-def parse_mcil(input: str) -> Optional[MCILProgram]:
-    """Parse contents of input and returns corresponding program on success, else returns None."""
+def parse(input_path: Path) -> Optional[MCILProgram]:
+    """Parse contents of `input_path` and returns corresponding program on success, else returns None."""
+    with open(str(input_path), "r") as f:
+        content = f.read()
+
     lexer: MCILLexer = MCILLexer()
     parser: MCILParser = MCILParser()
-    cmds = parser.parse(lexer.tokenize(input))
+
+    cmds = parser.parse(lexer.tokenize(content))
 
     if parser.status and cmds:
         return MCILProgram(cmds)
+    
     return None
 

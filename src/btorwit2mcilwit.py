@@ -311,7 +311,7 @@ def main(
             
             btor_witness = parse_witness(witness_content)
             if not btor_witness:
-                logger.error(f"parse error for BTOR2 witness file {input_path}")
+                logger.error(f"Parse error for BTOR2 witness file {input_path}")
                 return 1
 
             with open(pickle_path, "rb") as f:

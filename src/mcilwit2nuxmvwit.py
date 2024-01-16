@@ -96,7 +96,7 @@ def main(
         output_path.touch()
         return 0
     elif len(mcil_witness.responses) > 1:
-        logger.error(f"Warning: MCIL witness should only have 1 check-system response, using first.")
+        logger.warning(f"MCIL witness should only have 1 check-system response, using first.")
 
     check_system_response = mcil_witness.responses[0]
 
