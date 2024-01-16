@@ -284,7 +284,6 @@ def main(
     check_system_responses: list[MCILCheckSystemResponse] = []
 
     for check_system_path in input_path.iterdir():
-        print(check_system_path)
         program_paths = [prog for prog in check_system_path.glob("*.btor2")]
         pickle_paths = [p.with_suffix(".btor2.pickle") for p in program_paths]
 

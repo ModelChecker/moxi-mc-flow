@@ -49,6 +49,11 @@ def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int
     with open(btor_witness_path, "wb") as f:
         f.write(btor_witness_bytes)
 
+    if btor_witness_bytes:
+        print("sat")
+    else:
+        print("unsat")
+
     logger.info(f"btormc witness created at {btor_witness_path}")
 
     return 0
@@ -91,8 +96,10 @@ def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
     os.chdir("..")
     if len(avr_witness_path) > 0:
         avr_witness_path[0].rename(str(btor_witness_path))
+        print("sat")
     else:
         btor_witness_path.touch()
+        print("unsat")
 
     if len(avr_proof_path) > 0:
         avr_proof_path[0].rename(str(btor_witness_path.parent / "inv.txt"))
@@ -162,9 +169,13 @@ def model_check(
     if debug:
         command.append("--debug")
 
-    proc = subprocess.run(command)
+    logger.info(f"Translating {input_path}")
+    proc = subprocess.run(command, capture_output=True)
+
+    logger.info(proc.stdout.decode("utf-8")[:-1]) # [:-1] removes trailing "\n"
 
     if proc.returncode:
+        logger.error(proc.stderr.decode("utf-8")[:-1]) # [:-1] removes trailing "\n"
         logger.error(f"Translation failure for {input_path}")
         return proc.returncode
     
@@ -203,11 +214,13 @@ def model_check(
     logger.info(f"End-to-end done in {end_total-start_total}s")
 
     if copyback:
+        shutil.copytree(WORK_DIR, output_path)
         logger.info(f"Wrote files to {output_path}")
     else:
         witness_path.replace(output_path)
         logger.info(f"Wrote witness to {output_path}")
-        rmdir(WORK_DIR, True)
+
+    rmdir(WORK_DIR, True)
 
     return 0
 
@@ -243,17 +256,17 @@ if __name__ == "__main__":
     if args.debug:
         logger.setLevel(logging.DEBUG)
 
+    # TODO should output just sat/unsat
     if args.quiet:
-        pass
+        logger.setLevel(logging.ERROR)
 
     input_path = Path(args.input)
 
     output_path = input_path.with_suffix(".witness")
     if args.output:
         output_path = Path(args.output)
-
-    if args.copyback:
-        WORK_DIR = output_path
+        
+    WORK_DIR = FILE_DIR / f"__workdir__{input_path.name}"
 
     retcode = model_check(
         input_path=input_path, 

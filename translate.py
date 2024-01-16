@@ -40,7 +40,7 @@ def run_sortcheck(src_path: Path) -> int:
         logger.error(proc.stderr.decode("utf-8"))
         return FAIL
 
-    print(proc.stdout.decode("utf-8"))
+    logger.info(proc.stdout.decode("utf-8")[:-1])
     return PASS
 
 
@@ -54,7 +54,7 @@ def run_catbtor(src_path: Path) -> int:
         logger.error(proc.stderr.decode("utf-8"))
         return FAIL
 
-    print(f"{src_path} is well-sorted")
+    logger.info(proc.stdout.decode("utf-8")[:-1])
     return PASS
 
 

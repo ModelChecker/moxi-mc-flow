@@ -189,7 +189,7 @@ def build_var_map_cmd(
         context.push_system(cmd.symbol, cmd, [])
 
         target_system = context.defined_systems[cmd.symbol]
-        context.push_system(cmd.symbol, target_system, cmd.get_full_signature())
+        context.push_system(cmd.symbol, target_system, cmd.full_signature)
 
         build_var_map_cmd(target_system, context, sort_map, var_map)    
 
@@ -619,7 +619,7 @@ def to_btor2_check_system(
     context.push_system(
         check.symbol, 
         context.defined_systems[check.symbol],
-        check.get_full_signature()
+        check.full_signature
     )
 
     btor2_model += to_btor2_define_system(

@@ -609,13 +609,10 @@ class MCILSystemCommand(MCILCommand):
         self.output_symbols = set([s for s,_ in self.output])
         self.local_symbols = set([s for s,_ in self.local])
 
-    def get_signature(self) -> list[str]:
-        """Returns list of input and output variable names. Useful for when instantiating this as a subsystem."""
-        return [s for s,_ in self.input] + [s for s,_ in self.output]
-
-    def get_full_signature(self) -> list[str]:
-        """Returns list of input, output, and local variable names. Useful for when targeting this system with a check-system command."""
-        return [s for s,_ in self.input] + [s for s,_ in self.output] + [s for s,_ in self.local]
+        self.signature = [s for s,_ in self.input] + [s for s,_ in self.output]
+        self.full_signature = ([s for s,_ in self.input] 
+                               + [s for s,_ in self.output] 
+                               + [s for s,_ in self.local])
 
     def get_sort(self, symbol: str) -> Optional[MCILSort]:
         """Returns the sort of the variable with symbol `symbol`, if there exists such a variable."""
@@ -1553,9 +1550,9 @@ class MCILContext():
         # If we are mapping define-system to define-system variables,
         # then we only need to map each input and output.
         if isinstance(cur_system, MCILCheckSystem):
-            target_signature = target_system.get_full_signature()
+            target_signature = target_system.full_signature
         else:
-            target_signature = target_system.get_signature()
+            target_signature = target_system.signature
 
         # print(f"Mapping:")
         # print(f"{''.join([f'{s:13}' for s in signature])}")
