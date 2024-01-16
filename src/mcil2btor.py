@@ -664,7 +664,7 @@ def translate(
     mcil_program: MCILProgram, 
     output_path: Path,
     int_width: int,
-    do_pickle: bool
+    do_pickle: bool,
 ) -> int:
     """Translate `mcil_prog` to an equisatisfiable set of Btor programs, labeled by query symbol. Translates `Int` types to `BitVec`s of width `int_width`. Dumps a pickle file for each generated BTOR2 file if `do_pickle` is true.
     
@@ -759,6 +759,9 @@ def main(
             program = from_json(json.load(file))
         elif input_path.suffix == ".mcil":
             program = parse_mcil(file.read())
+        elif input_path.suffix == ".pickle":
+            with open(str(input_path), "rb") as f:
+                program = pickle.load(f)
         else:
             logger.error(f"file format unsupported ({input_path.suffix})")
             return 1

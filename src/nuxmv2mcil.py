@@ -1,4 +1,5 @@
 from pathlib import Path
+import pickle
 from typing import Tuple, cast
 
 from .util import logger
@@ -873,11 +874,12 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
     # type_check_modules(xmv_specification, context)
     top_down_param_analysis(xmv_specification, context)
     for xmv_module in xmv_specification.modules:
-        try:
-            il_commands = translate_module(xmv_module=xmv_module, context=context)
-        except ValueError as err:
-            logger.error(err)
-            return None
+        il_commands = translate_module(xmv_module=xmv_module, context=context)
+        # try:
+        #     il_commands = translate_module(xmv_module=xmv_module, context=context)
+        # except ValueError as err:
+        #     logger.error(err)
+        #     return None
             
         commands += il_commands
 
@@ -888,7 +890,12 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
 
     return MCILProgram(commands=commands)
 
-def main(input_path: Path, output_path: Path, do_cpp: bool = True) -> int:
+def main(
+    input_path: Path, 
+    output_path: Path, 
+    do_only_pickle: bool = False,
+    do_cpp: bool = True
+) -> int:
     content = preprocess(input_path, do_cpp)
 
     logger.info(f"parsing specification in {input_path}")
@@ -904,8 +911,15 @@ def main(input_path: Path, output_path: Path, do_cpp: bool = True) -> int:
         return 1
 
     logger.info(f"writing output to {output_path}")
-    with open(str(output_path), "w") as f:
-        f.write(str(result))
-        logger.info(f"wrote output to {output_path}")
+
+    if do_only_pickle:
+        with open(str(output_path), "wb") as f:
+            pickle.dumps(f)
+            logger.info(f"wrote output to {output_path}")
+        return 0
+    else:
+        with open(str(output_path), "w") as f:
+            f.write(str(result))
+            logger.info(f"wrote output to {output_path}")
 
     return 0

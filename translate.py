@@ -10,6 +10,8 @@ from src.mcil2btor import main as mcil2btor
 from src.mcil2json import main as mcil2json
 from src.json2mcil import main as json2mcil
 
+import cProfile
+
 FILE_NAME = Path(__file__).name
 FILE_DIR = Path(__file__).parent
 SMV2MCIL_DIR = FILE_DIR / "smv2mcil"
@@ -177,7 +179,7 @@ if __name__ == "__main__":
     if args.sortcheck:
         SORTCHECK = Path(args.sortcheck)
 
-    # cProfile.run("main(input_path, args.targetlang, output_path)")
+    cProfile.run("main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)")
 
-    returncode = main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)
-    sys.exit(returncode)
+    # returncode = main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)
+    # sys.exit(returncode)
