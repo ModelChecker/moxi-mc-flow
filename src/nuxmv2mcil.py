@@ -4,7 +4,7 @@ from typing import Tuple, cast
 
 from .util import logger
 from .preprocess_nuxmv import preprocess
-from .parse_nuxmv import parse
+from .parse_nuxmv import parse, parse
 from .nuxmv import *
 from .mcil import *
 
@@ -868,6 +868,7 @@ def infer_logic(commands: list[MCILCommand]) -> Optional[MCILSetLogic]:
         
     return
 
+
 def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
     commands: list[MCILCommand] = []
     context = initialize_vars(xmv_specification) 
@@ -890,36 +891,29 @@ def translate(xmv_specification: XMVSpecification) -> Optional[MCILProgram]:
 
     return MCILProgram(commands=commands)
 
-def main(
+
+def translate_file(
     input_path: Path, 
     output_path: Path, 
-    do_only_pickle: bool = False,
-    do_cpp: bool = True
+    do_cpp: bool
 ) -> int:
-    content = preprocess(input_path, do_cpp)
-
-    logger.info(f"parsing specification in {input_path}")
-    parse_tree = parse(content)
+    """Parses, type checks, translates, and writes the translation result of `input_path` to `output_path`. Runs C preprocessor if `do_cpp` is True. Returns 0 on success, 1 otherwise."""
+    logger.info(f"Parsing specification in {input_path}")
+    parse_tree = parse(input_path, do_cpp)
     if not parse_tree:
-        logger.error(f"failed parsing specification in {input_path}")
+        logger.error(f"Failed parsing specification in {input_path}")
         return 1
 
-    logger.info(f"translating specification in {input_path}")
+    logger.info(f"Translating specification in {input_path}")
     result = translate(parse_tree)
     if not result:
-        logger.error(f"failed translating specification in {input_path}")
+        logger.error(f"Failed translating specification in {input_path}")
         return 1
 
-    logger.info(f"writing output to {output_path}")
+    logger.info(f"Writing output to {output_path}")
 
-    if do_only_pickle:
-        with open(str(output_path), "wb") as f:
-            pickle.dumps(f)
-            logger.info(f"wrote output to {output_path}")
-        return 0
-    else:
-        with open(str(output_path), "w") as f:
-            f.write(str(result))
-            logger.info(f"wrote output to {output_path}")
+    with open(str(output_path), "w") as f:
+        f.write(str(result))
+        logger.info(f"Wrote output to {output_path}")
 
     return 0

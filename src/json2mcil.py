@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from jsonschema import validate, exceptions, RefResolver
 
+from .util import logger
 from .mcil import *
 
 def from_json_identifier(contents: dict | str) -> MCILIdentifier:
@@ -72,10 +73,10 @@ def from_json(contents: dict) -> Optional[MCILProgram]:
     try:
         validate(contents, il_schema, resolver=resolver)
     except exceptions.SchemaError as se:
-        sys.stderr.write(f"Error: json schema invalid {se}\n")
+        logger.error(f"JSON schema invalid {se}")
         return None
     except exceptions.ValidationError as ve:
-        sys.stderr.write(f"Error: json failed validation against schema {ve}\n")
+        logger.error(f"JSON failed validation against schema {ve}")
         return None
     
     program: list[MCILCommand] = []
@@ -178,7 +179,7 @@ def main(
     int_width: int
 ) -> int:
     if not input_path.is_file():
-        sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
+        logger.error(f"{input_path} is not a valid file.")
         return 1
 
     with open(input_path, "r") as file:
@@ -186,13 +187,13 @@ def main(
         program = from_json(contents)
 
     if not program:
-        sys.stderr.write("Failed parsing\n")
+        sys.stderr.write("Failed parsing")
         return 1
 
     if do_sort_check:
         (well_sorted, _) = sort_check(program)
         if not well_sorted:
-            sys.stderr.write("Failed sort check\n")
+            sys.stderr.write("Failed sort check")
             return 2
 
     if do_qfbv:

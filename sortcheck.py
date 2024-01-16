@@ -4,27 +4,26 @@ import sys
 
 from src.util import logger
 from src.mcil import *
-from src.parse_mcil import parse_mcil
+from src.parse_mcil import parse
 
 FILE_NAME = Path(__file__).name
 
 
 def main(input_path: Path, echo: bool) -> int:
     if not input_path.is_file():
-        logger.error(f"'{input_path}' is not a valid file.")
+        logger.error(f"{input_path} is not a valid file.")
         return 1
 
-    with open(input_path, "r") as file:
-        program = parse_mcil(file.read())
+    program = parse(input_path)
 
     if not program:
-        logger.error(f"failed parsing")
+        logger.error(f"Failed parsing")
         return 1
 
     (well_sorted, _) = sort_check(program)
 
     if not well_sorted:
-        logger.error(f"failed sort check")
+        logger.error(f"Failed sort check")
         return 1
 
     if echo:

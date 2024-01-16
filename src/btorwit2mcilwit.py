@@ -284,6 +284,7 @@ def main(
     check_system_responses: list[MCILCheckSystemResponse] = []
 
     for check_system_path in input_path.iterdir():
+        print(check_system_path)
         program_paths = [prog for prog in check_system_path.glob("*.btor2")]
         pickle_paths = [p.with_suffix(".btor2.pickle") for p in program_paths]
 
@@ -311,7 +312,7 @@ def main(
             
             btor_witness = parse_witness(witness_content)
             if not btor_witness:
-                logger.error(f"parse error for BTOR2 witness file {input_path}")
+                logger.error(f"Parse error for BTOR2 witness file {input_path}")
                 return 1
 
             with open(pickle_path, "rb") as f:

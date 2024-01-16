@@ -22,7 +22,7 @@ DEFAULT_TRANSLATE = FILE_DIR / "translate.py"
 
 
 def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
-    logger.info(f"running btormc over {btor_path}")
+    logger.info(f"Running btormc over {btor_path}")
     label = btor_path.stem
 
     command = [str(btormc_path), str(btor_path), "-kmax", str(kmax), "--trace-gen-full"]
@@ -38,10 +38,10 @@ def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int
 
     if proc.returncode:
         logger.error(proc.stderr.decode("utf-8"))
-        logger.error(f"Error: btormc failure for query '{label}'")
+        logger.error(f"btormc failure for query '{label}'")
         return proc.returncode
 
-    logger.info(f"done model checking in {end_mc-start_mc}s")
+    logger.info(f"Done model checking in {end_mc-start_mc}s")
 
     btor_witness_bytes = proc.stdout
 
@@ -57,7 +57,7 @@ def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int
 def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
     absolute_btor_path = btor_path.absolute()
 
-    logger.info(f"running avr over {absolute_btor_path}")
+    logger.info(f"Running avr over {absolute_btor_path}")
     label = absolute_btor_path.stem
 
     avr_output_path = absolute_btor_path.parent
@@ -78,10 +78,10 @@ def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
 
     if proc.returncode:
         logger.error(proc.stderr.decode("utf-8"))
-        logger.error(f"Error: avr failure for query '{label}'")
+        logger.error(f"AVR failure for query '{label}'")
         return proc.returncode
 
-    logger.info(f"done model checking in {end_mc-start_mc}s")
+    logger.info(f"Done model checking in {end_mc-start_mc}s")
 
     avr_witness_path = [c for c in avr_results_path.glob("cex.witness")]
     btor_witness_path = absolute_btor_path.with_suffix(f".btor2.cex")
@@ -97,7 +97,7 @@ def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
     if len(avr_proof_path) > 0:
         avr_proof_path[0].rename(str(btor_witness_path.parent / "inv.txt"))
 
-    logger.info(f"avr witness created at {btor_witness_path}")
+    logger.info(f"AVR witness created at {btor_witness_path}")
 
     return 0
 
@@ -120,7 +120,7 @@ def model_check(
     # does not output valid witness output (header is missing), so we don't use it.
     # NOTE: for a model checker like avr, this might be necessary for full traces
     if not input_path.is_file():
-        logger.error(f"Error: source is not a file ({input_path})")
+        logger.error(f"Source is not a file ({input_path})")
         return 1
 
     rmdir(output_path, False)
@@ -128,6 +128,7 @@ def model_check(
 
     src_path = WORK_DIR / input_path.name
     btor2_output_path = WORK_DIR / "btor2" 
+    mcil_path = WORK_DIR / input_path.with_suffix(".mcil").name
     mcil_witness_path = WORK_DIR / input_path.with_suffix(".mcil.witness").name
     mcil_witness_pickle_path = WORK_DIR / input_path.with_suffix(".mcil.witness.pickle").name
     nuxmv_witness_path = WORK_DIR / input_path.with_suffix(".smv.witness").name
@@ -155,6 +156,7 @@ def model_check(
         command.append(catbtor)
     if copyback:
         command.append("--keep")
+        command.append(str(mcil_path))
     if cpp:
         command.append("--cpp")
     if debug:
@@ -163,7 +165,7 @@ def model_check(
     proc = subprocess.run(command)
 
     if proc.returncode:
-        logger.error(f"Error: translation failure for {input_path}")
+        logger.error(f"Translation failure for {input_path}")
         return proc.returncode
     
     for check_system_path in btor2_output_path.iterdir():
@@ -177,7 +179,7 @@ def model_check(
                 if retcode:
                     return retcode
             else:
-                logger.error(f"Error: unsupported model checker {model_checker}")
+                logger.error(f"Unsupported model checker {model_checker}")
                 return 1
 
     retcode = btorwit2mcilwit(
@@ -198,13 +200,13 @@ def model_check(
         
     end_total = time.perf_counter()
 
-    logger.info(f"end-to-end done in {end_total-start_total}s")
+    logger.info(f"End-to-end done in {end_total-start_total}s")
 
     if copyback:
-        logger.info(f"wrote files to {output_path}")
+        logger.info(f"Wrote files to {output_path}")
     else:
         witness_path.replace(output_path)
-        logger.info(f"wrote MCIL witness to {output_path}")
+        logger.info(f"Wrote witness to {output_path}")
         rmdir(WORK_DIR, True)
 
     return 0

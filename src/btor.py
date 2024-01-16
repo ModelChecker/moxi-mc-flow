@@ -4,8 +4,12 @@ https://fmv.jku.at/papers/NiemetzPreinerWolfBiere-CAV18.pdf
 from __future__ import annotations
 from collections import deque
 from enum import Enum
+import os
 from pathlib import Path
 from typing import Any, Optional
+import pickle
+
+from .util import cleandir, logger
 
 FILE_NAME = Path(__file__).name
 
@@ -413,6 +417,11 @@ class BtorProgram():
         return "\n".join([str(n) for n in self.nodes]) + "\n"
     
 
+# The elements of a BtorProgramSet represent translated check-system commands,
+# where each dict maps the query symbol to the respective program
+BtorProgramSet = list[tuple[str, dict[str, BtorProgram]]]
+
+
 operator_table: dict[BtorOperator, tuple[list[type], type]] = {
     BtorOperator.SEXT: ([BtorBitVec], BtorBitVec)
 }
@@ -472,9 +481,6 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
     btor2_nids: dict[BtorNode, int] = {}
     cur_nid = 1
 
-    # __reduce_btor_1_start = time.perf_counter()
-    # __num_reduced = 0
-
     reduced_program: list[BtorNode] = []
     for node in program:
         if str(node)[0] == ";":
@@ -486,10 +492,37 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
             reduced_program.append(node)
         else:
             node.nid = btor2_nids[node]
-    #         __num_reduced += 1
-
-    # __reduce_btor_1_end = time.perf_counter()
-    # print(f"BTOR2 reduce: {__reduce_btor_1_end - __reduce_btor_1_start}s")
-    # print(f"Num reduced: {__num_reduced}")
 
     return reduced_program
+
+
+def write_btor2_program_set(
+    program_set: BtorProgramSet,
+    output_path: Path,
+    do_pickle: bool
+) -> None:
+    cleandir(output_path, True)
+
+    program_index: dict[str, int] = {}
+    for symbol,programs in program_set:
+        if symbol not in program_index:
+            program_index[symbol] = 1
+
+        program_output_path = (
+            output_path / f"{symbol}.{program_index[symbol]}"
+        )
+
+        program_index[symbol] += 1
+
+        os.mkdir(program_output_path)
+
+        for query_symbol,program in programs.items():
+            output_file_path = program_output_path / f"{query_symbol}.btor2"
+
+            with open(str(output_file_path), "w") as f:
+                f.write(str(program)) 
+
+            if do_pickle:
+                with open(output_file_path.with_suffix(".btor2.pickle"), "wb") as f:
+                    pickle.dump(program, f)
+

@@ -3,15 +3,14 @@ import json
 from pathlib import Path
 
 from .mcil import sort_check
-from .parse_mcil import parse_mcil
+from .parse_mcil import parse
 
 def main(input_path: Path, output_path: Path, do_sort_check: bool, do_pretty: bool) -> int:
     if not input_path.is_file():
         sys.stderr.write(f"Error: `{input_path}` is not a valid file.\n")
         return 1
 
-    with open(input_path,"r") as file:
-        program = parse_mcil(file.read())
+    program = parse(input_path)
 
     if not program:
         sys.stderr.write("Failed parsing\n")

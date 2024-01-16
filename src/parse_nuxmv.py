@@ -1,9 +1,9 @@
 #type: ignore
-import sys
-import argparse
 from typing import Optional
+from pathlib import Path
 
 from .sly import Lexer, Parser
+from .preprocess_nuxmv import preprocess
 from .nuxmv import *
 from .util import logger
 
@@ -646,33 +646,12 @@ class NuXmvParser(Parser):
         return XMVWordConstant(p[0])
 
         
-def parse(input: str) -> Optional[XMVSpecification]:
-    lexer = NuXmvLexer()
-    parser = NuXmvParser()
-
-    result = parser.parse(lexer.tokenize(input))
-
-    return result if parser.status else None
-
-def main():
-    argparser = argparse.ArgumentParser(
-        prog='nuXmv/NuSMV parser',
-        description='Parses a nuXmv/NuSMV (.smv) file into an AST defined in xmv.py'
-   )
-
-    argparser.add_argument('filename')
-    args = argparser.parse_args()
-    file = open(args.filename)
+def parse(input_path: Path, do_cpp: bool) -> Optional[XMVSpecification]:
+    content = preprocess(input_path, do_cpp)
 
     lexer = NuXmvLexer()
     parser = NuXmvParser()
 
-    file_string = file.read()
-    # for tok in lexer.tokenize(file_string):
-    #         print(f"type:{tok.type}, value:{tok.value}")
+    result = parser.parse(lexer.tokenize(content))
 
-    result = parser.parse(lexer.tokenize(file_string))
-
-
-# if __name__ == '__main__':
-#     main()
+    return (result if parser.status else None)
