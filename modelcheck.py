@@ -181,8 +181,6 @@ def model_check(
     logger.info(f"Translating {input_path}")
     proc = subprocess.run(command, capture_output=True)
 
-    logger.info(proc.stdout.decode("utf-8")[:-1]) # [:-1] removes trailing "\n"
-
     if proc.returncode:
         logger.error(proc.stderr.decode("utf-8")[:-1]) # [:-1] removes trailing "\n"
         logger.error(f"Translation failure for {input_path}")

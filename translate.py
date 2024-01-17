@@ -37,7 +37,7 @@ def run_sortcheck(src_path: Path) -> int:
     )
     
     if proc.returncode:
-        logger.error(proc.stderr.decode("utf-8"))
+        print(proc.stderr.decode("utf-8")[:-1])
         return FAIL
 
     logger.info(proc.stdout.decode("utf-8")[:-1])

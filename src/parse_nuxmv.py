@@ -211,8 +211,19 @@ class NuXmvParser(Parser):
 
     
     @_("module_list")
-    def xmv_specification(self, p):
-        return XMVSpecification(modules=p[0])
+    def xmv_program(self, p):
+        main = [m for m in p[0] if m.name == "main"]
+
+        if len(main) < 1:
+            logger.error(f"'main' module undefined.")
+            self.status = False
+        elif len(main) > 1:
+            logger.error(f"Multiple 'main' modules defined.")
+            self.status = False
+
+        main = main[0]
+
+        return XMVProgram(modules=p[0], main=main)
 
 
     @_(
@@ -226,8 +237,8 @@ class NuXmvParser(Parser):
             return p[0] + [p[1]] # recursive case: n+1 modules
 
     @_(
-        "parameter_list COMMA expr", 
-        "expr",
+        "parameter_list COMMA IDENT", 
+        "IDENT",
         ""
     )
     def parameter_list(self, p):
@@ -531,7 +542,7 @@ class NuXmvParser(Parser):
 
     @_("complex_identifier DOT IDENT")
     def complex_identifier(self, p):
-        return XMVModuleAccess(p[0], p[2])
+        return XMVModuleAccess(p[0], XMVIdentifier(p[2]))
 
 
     @_("IDENT")
@@ -561,7 +572,7 @@ class NuXmvParser(Parser):
         "INTEGER DOT DOT INTEGER",
         "XMV_ARRAY OF INTEGER DOT DOT INTEGER OF type_specifier",
         "XMV_ARRAY XMV_WORD LBRACK INTEGER RBRACK OF type_specifier",
-        "IDENT LPAREN parameter_list RPAREN",
+        "IDENT LPAREN cs_expr_list RPAREN",
         "IDENT LPAREN constant_list RPAREN"
     )
     def type_specifier(self, p):
@@ -584,9 +595,9 @@ class NuXmvParser(Parser):
                 return XMVEnumeration(summands=p[1])
             case "array":
                 if p[1] == "word":
-                    return XMVWordArray(word_length=int(p[3]), type=p.type_specifier)
+                    return XMVWordArray(word_length=int(p[3]), subtype=p.type_specifier)
                 else:
-                    return XMVArray(low=p[2], high=int(p[5]), type=int(p[7]))
+                    return XMVArray(low=p[2], high=int(p[5]), subtype=int(p[7]))
             case _:
                 if str.isnumeric(p[0]):
                     return XMVEnumeration(summands=set(range(int(p[0]), int(p[3]))))
@@ -646,7 +657,7 @@ class NuXmvParser(Parser):
         return XMVWordConstant(p[0])
 
         
-def parse(input_path: Path, do_cpp: bool) -> Optional[XMVSpecification]:
+def parse(input_path: Path, do_cpp: bool) -> Optional[XMVProgram]:
     content = preprocess(input_path, do_cpp)
 
     logger.debug(f"Parsing {input_path}")
