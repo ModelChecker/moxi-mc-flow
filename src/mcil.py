@@ -810,9 +810,9 @@ MCIL_ARRAY_CONST = lambda x,y,z: MCILApply(MCIL_ARRAY_SORT(x,y), MCILIdentifier(
 MCIL_INT_CONST = lambda x: MCILConstant(MCIL_INT_SORT, x)
 MCIL_ENUM_CONST = lambda x,y: MCILConstant(MCIL_ENUM_SORT(x), y)
 
-MCIL_EQ_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), [x,y])
-MCIL_AND_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("and", []), [x,y])
-MCIL_OR_EXPR = lambda x,y: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("or", []), [x,y])
+MCIL_EQ_EXPR = lambda x: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("=", []), x)
+MCIL_AND_EXPR = lambda x: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("and", []), x)
+MCIL_OR_EXPR = lambda x: MCILApply(MCIL_BOOL_SORT, MCILIdentifier("or", []), x)
 
 MCIL_INT_NEG_EXPR = lambda x: MCILApply(MCIL_INT_SORT, MCILIdentifier("-", []), [x])
 

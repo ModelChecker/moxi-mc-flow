@@ -1,5 +1,6 @@
 # TODO: IMPLEMENT THIS
 from __future__ import annotations
+from operator import is_
 from typing import Optional, cast
 
 import re
@@ -36,6 +37,10 @@ class XMVBoolean(XMVType):
         return "boolean"
     
 class XMVInteger(XMVType):
+    def __init__(self, values: Optional[set[int]] = None) -> None:
+        super().__init__()
+        self.values = values
+
     def __eq__(self, __o: object) -> bool:
         return isinstance(__o, XMVInteger)
 
@@ -136,8 +141,9 @@ class XMVModuleType(XMVType):
     def __repr__(self) -> str:
         return f"{self.module_name}({self.parameters})"
     
-# def is_integer_type(xmv_type: XMVType) -> bool:
-#     return isinstance(xmv_type, XMVItn)
+def is_integer_type(xmv_type: XMVType) -> bool:
+    return (isinstance(xmv_type, XMVInteger) 
+            or (isinstance(xmv_type, XMVEnumeration) and xmv_type.is_integer()))
     
 # type specifiers -------------------------
 
@@ -945,7 +951,7 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
                 # raise NotImplementedError(f"Unsupported operator {type(expr)}")
             case _:
                 raise NotImplementedError(f"Unsupported operator {type(expr)} ({expr})")
-
+            
         if (expr.type == XMVNoType()):
             raise ValueError(f"NOTYPE: {expr}")
 
