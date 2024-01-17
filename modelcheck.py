@@ -21,7 +21,7 @@ avr_path = FILE_DIR / "avr"
 translate_path = FILE_DIR / "translate.py"
 
 
-def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
+def run_btormc(btormc_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool) -> int:
     logger.info(f"Running btormc over {btor_path}")
     label = btor_path.stem
 
@@ -31,8 +31,12 @@ def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int
         command.append("--kind")
 
     start_mc = time.perf_counter()
-    
-    proc = subprocess.run(command, capture_output=True)
+
+    try:
+        proc = subprocess.run(command, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print("timeout")
+        return 1
     
     end_mc = time.perf_counter()
 
@@ -59,7 +63,7 @@ def run_btormc(btormc_path: Path, btor_path: Path, kmax: int, kind: bool) -> int
     return 0
 
 
-def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
+def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool) -> int:
     absolute_btor_path = btor_path.absolute()
 
     logger.info(f"Running avr over {absolute_btor_path}")
@@ -70,14 +74,18 @@ def run_avr(avr_path: Path, btor_path: Path, kmax: int, kind: bool) -> int:
 
     os.chdir(avr_path)
 
-    command = ["python", "avr.py", str(absolute_btor_path), "--bmc", "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax)]
+    command = ["python", "avr.py", str(absolute_btor_path), "--bmc", "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax), "--timeout", str(timeout)]
     
     if kind:
         command.append("--kind")
 
     start_mc = time.perf_counter()
-    
-    proc = subprocess.run(command, capture_output=True)
+
+    try:
+        proc = subprocess.run(command, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print("timeout")
+        return 1
     
     end_mc = time.perf_counter()
 
@@ -118,6 +126,7 @@ def model_check(
     copyback: bool,
     fulltrace: bool,
     int_width: int,
+    timeout: int,
     kmax: int,
     kind: bool,
     cpp: bool,
@@ -182,11 +191,11 @@ def model_check(
     for check_system_path in btor2_output_path.iterdir():
         for btor_path in check_system_path.glob("*.btor2"):
             if model_checker == "btormc":
-                retcode = run_btormc(btormc_path, btor_path, kmax, kind)
+                retcode = run_btormc(btormc_path, btor_path, timeout, kmax, kind)
                 if retcode:
                     return retcode
             elif model_checker == "avr":
-                retcode = run_avr(avr_path, btor_path, kmax, kind)
+                retcode = run_avr(avr_path, btor_path, timeout, kmax, kind)
                 if retcode:
                     return retcode
             else:
@@ -242,13 +251,15 @@ if __name__ == "__main__":
     parser.add_argument("--copyback",  action="store_true",
         help="copy all intermediate translations and results to output location")
     parser.add_argument("--intwidth", default=32, type=int, 
-        help="bit width to translate Int types to")
+        help="bit width to translate Int types to (default=32)")
     # parser.add_argument("--fulltrace", action="store_true", 
     #     help="return traces with all variable values for every state")
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
     parser.add_argument("--sortcheck", help="path to sortcheck.py for MCIL validation")
     parser.add_argument("--kmax", default=1000, type=int, 
-        help="max bound for BMC")
+        help="max bound for BMC (default=1000)")
+    parser.add_argument("--timeout", default=3600, type=int, 
+        help="timeout in seconds (default=3600)")
     parser.add_argument("--kind", action="store_true", 
         help="enable k-induction")
     parser.add_argument("--cpp", action="store_true", 
@@ -291,6 +302,7 @@ if __name__ == "__main__":
         copyback=args.copyback, 
         fulltrace=True, 
         int_width=args.intwidth, 
+        timeout=args.timeout,
         kmax=args.kmax,
         kind=args.kind,
         cpp=args.cpp,
