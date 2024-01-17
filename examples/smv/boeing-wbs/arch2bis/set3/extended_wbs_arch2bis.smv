@@ -1,0 +1,2658 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        wbs_arch2bis_inst : wbs_arch2bis(mechanical_pedal_pos_L, mechanical_pedal_pos_R, ground_speed, power_1, power_2, pump_power_1, pump_power_2, hydraulic_supply_1, hydraulic_supply_2);
+        _masterCC : MasterCC#;
+    VAR
+        mechanical_pedal_pos_L : boolean;
+        mechanical_pedal_pos_R : boolean;
+        ground_speed : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        power_1 : boolean;
+        power_2 : boolean;
+        pump_power_1 : boolean;
+        pump_power_2 : boolean;
+        hydraulic_supply_1 : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        hydraulic_supply_2 : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        green_pressure_in_selector_valve := wbs_arch2bis_inst.green_pressure_in_selector_valve;
+        control_system_validity := wbs_arch2bis_inst.control_system_validity;
+        wheel_braking_force_8 := wbs_arch2bis_inst.wheel_braking_force_8;
+        wheel_braking_force_7 := wbs_arch2bis_inst.wheel_braking_force_7;
+        wheel_braking_force_6 := wbs_arch2bis_inst.wheel_braking_force_6;
+        wheel_braking_force_5 := wbs_arch2bis_inst.wheel_braking_force_5;
+        wheel_braking_force_4 := wbs_arch2bis_inst.wheel_braking_force_4;
+        wheel_braking_force_3 := wbs_arch2bis_inst.wheel_braking_force_3;
+        wheel_braking_force_2 := wbs_arch2bis_inst.wheel_braking_force_2;
+        wheel_braking_force_1 := wbs_arch2bis_inst.wheel_braking_force_1;
+        wheel_status_8 := wbs_arch2bis_inst.wheel_status_8;
+        wheel_status_7 := wbs_arch2bis_inst.wheel_status_7;
+        wheel_status_6 := wbs_arch2bis_inst.wheel_status_6;
+        wheel_status_5 := wbs_arch2bis_inst.wheel_status_5;
+        wheel_status_4 := wbs_arch2bis_inst.wheel_status_4;
+        wheel_status_3 := wbs_arch2bis_inst.wheel_status_3;
+        wheel_status_2 := wbs_arch2bis_inst.wheel_status_2;
+        wheel_status_1 := wbs_arch2bis_inst.wheel_status_1;
+        accumulator_pressure_display := wbs_arch2bis_inst.accumulator_pressure_display;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE wbs_arch2bis(mechanical_pedal_pos_L, mechanical_pedal_pos_R, ground_speed, power_1, power_2, pump_power_1, pump_power_2, hydraulic_supply_1, hydraulic_supply_2)
+    VAR
+        ctrl_sys : ControlSystem(sensor_pedal_L.electrical_pedal_pos, sensor_pedal_R.electrical_pedal_pos, ground_speed, power_1, power_2, sensor_1.wheel_rolling, sensor_2.wheel_rolling, sensor_3.wheel_rolling, sensor_4.wheel_rolling, sensor_5.wheel_rolling, sensor_6.wheel_rolling, sensor_7.wheel_rolling, sensor_8.wheel_rolling);
+        phys_sys : PhysicalSystem(hydraulic_supply_1, hydraulic_supply_2, pump_power_1, pump_power_2, ctrl_sys.system_validity, ctrl_sys.brake_as_cmd_1, ctrl_sys.brake_as_cmd_2, ctrl_sys.brake_as_cmd_3, ctrl_sys.brake_as_cmd_4, ctrl_sys.brake_as_cmd_5, ctrl_sys.brake_as_cmd_6, ctrl_sys.brake_as_cmd_7, ctrl_sys.brake_as_cmd_8, ctrl_sys.as_cmd_pair_1_5, ctrl_sys.as_cmd_pair_2_6, ctrl_sys.as_cmd_pair_3_7, ctrl_sys.as_cmd_pair_4_8, ground_speed, mechanical_pedal_pos_L, mechanical_pedal_pos_R);
+        sensor_1 : Sensor_#Extended(phys_sys.wheel_status_1);
+        sensor_2 : Sensor_#Extended(phys_sys.wheel_status_2);
+        sensor_3 : Sensor_#Extended(phys_sys.wheel_status_3);
+        sensor_4 : Sensor_#Extended(phys_sys.wheel_status_4);
+        sensor_5 : Sensor_#Extended(phys_sys.wheel_status_5);
+        sensor_6 : Sensor_#Extended(phys_sys.wheel_status_6);
+        sensor_7 : Sensor_#Extended(phys_sys.wheel_status_7);
+        sensor_8 : Sensor_#Extended(phys_sys.wheel_status_8);
+        sensor_pedal_L : SensorPedalPosition_#Extended(mechanical_pedal_pos_L);
+        sensor_pedal_R : SensorPedalPosition_#Extended(mechanical_pedal_pos_R);
+    DEFINE
+        wheel_braking_force_8 := phys_sys.wheel_braking_force_8;
+        wheel_braking_force_7 := phys_sys.wheel_braking_force_7;
+        wheel_braking_force_6 := phys_sys.wheel_braking_force_6;
+        wheel_braking_force_5 := phys_sys.wheel_braking_force_5;
+        wheel_braking_force_4 := phys_sys.wheel_braking_force_4;
+        wheel_braking_force_3 := phys_sys.wheel_braking_force_3;
+        wheel_braking_force_2 := phys_sys.wheel_braking_force_2;
+        wheel_braking_force_1 := phys_sys.wheel_braking_force_1;
+        control_system_validity := ctrl_sys.system_validity;
+        wheel_status_8 := phys_sys.wheel_status_8;
+        wheel_status_7 := phys_sys.wheel_status_7;
+        wheel_status_6 := phys_sys.wheel_status_6;
+        wheel_status_5 := phys_sys.wheel_status_5;
+        wheel_status_4 := phys_sys.wheel_status_4;
+        wheel_status_3 := phys_sys.wheel_status_3;
+        wheel_status_2 := phys_sys.wheel_status_2;
+        wheel_status_1 := phys_sys.wheel_status_1;
+        accumulator_pressure_display := phys_sys.accumulator_pressure_display;
+        green_pressure_in_selector_valve := phys_sys.green_pressure_in_selector_valve;
+
+-- INVAR added to limit the faults that can occurs
+-- The components that can be in faults are : BrakeCommandFacility, AntiskidCommandFacility, NormalCommandCalculator, AlternateCommandCalculator, MonitorSystem.
+INVAR ctrl_sys.switch_gate_brake_as_cmd_1.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_brake_as_cmd_2.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_brake_as_cmd_3.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_brake_as_cmd_4.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_brake_as_cmd_5.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_brake_as_cmd_6.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_brake_as_cmd_7.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_brake_as_cmd_8.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_as_cmd_pair_1_5.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_as_cmd_pair_2_6.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_as_cmd_pair_3_7.SwitchGate_faults.mode=NOMINAL
+& ctrl_sys.switch_gate_as_cmd_pair_4_8.SwitchGate_faults.mode=NOMINAL
+& phys_sys.wheel_brake_1.normal_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_1.normal_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_1.alternate_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_1.alternate_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_1.brake_actuator.BrakeActuator_faults.mode=NOMINAL
+& phys_sys.wheel_brake_2.normal_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_2.normal_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_2.alternate_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_2.alternate_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_2.brake_actuator.BrakeActuator_faults.mode=NOMINAL
+& phys_sys.wheel_brake_3.normal_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_3.normal_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_3.alternate_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_3.alternate_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_3.brake_actuator.BrakeActuator_faults.mode=NOMINAL
+& phys_sys.wheel_brake_4.normal_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_4.normal_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_4.alternate_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_4.alternate_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_4.brake_actuator.BrakeActuator_faults.mode=NOMINAL
+& phys_sys.wheel_brake_5.normal_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_5.normal_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_5.alternate_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_5.alternate_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_5.brake_actuator.BrakeActuator_faults.mode=NOMINAL
+& phys_sys.wheel_brake_6.normal_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_6.normal_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_6.alternate_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_6.alternate_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_6.brake_actuator.BrakeActuator_faults.mode=NOMINAL
+& phys_sys.wheel_brake_7.normal_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_7.normal_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_7.alternate_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_7.alternate_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_7.brake_actuator.BrakeActuator_faults.mode=NOMINAL
+& phys_sys.wheel_brake_8.normal_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_8.normal_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_8.alternate_hydraulic_fuse.HydraulicFuse_faults.mode=NOMINAL
+& phys_sys.wheel_brake_8.alternate_hydraulic_piston.HydraulicPiston_faults.mode=NOMINAL
+& phys_sys.wheel_brake_8.brake_actuator.BrakeActuator_faults.mode=NOMINAL
+& phys_sys.wheel_1.Wheel_faults.mode=NOMINAL
+& phys_sys.wheel_2.Wheel_faults.mode=NOMINAL
+& phys_sys.wheel_3.Wheel_faults.mode=NOMINAL
+& phys_sys.wheel_4.Wheel_faults.mode=NOMINAL
+& phys_sys.wheel_5.Wheel_faults.mode=NOMINAL
+& phys_sys.wheel_6.Wheel_faults.mode=NOMINAL
+& phys_sys.wheel_7.Wheel_faults.mode=NOMINAL
+& phys_sys.wheel_8.Wheel_faults.mode=NOMINAL
+& phys_sys.blue_hydraulic_pump.HydraulicPump_faults.mode=NOMINAL
+& phys_sys.green_hydraulic_pump.HydraulicPump_faults.mode=NOMINAL
+& phys_sys.selector_valve.SelectorValve_faults.mode=NOMINAL
+& phys_sys.shutoff_valve.ShutoffValve_faults.mode=NOMINAL
+& phys_sys.accumulator.Accumulator_faults.mode=NOMINAL
+& sensor_1.Sensor_faults.mode=NOMINAL
+& sensor_2.Sensor_faults.mode=NOMINAL
+& sensor_3.Sensor_faults.mode=NOMINAL
+& sensor_4.Sensor_faults.mode=NOMINAL
+& sensor_5.Sensor_faults.mode=NOMINAL
+& sensor_6.Sensor_faults.mode=NOMINAL
+& sensor_7.Sensor_faults.mode=NOMINAL
+& sensor_8.Sensor_faults.mode=NOMINAL
+& sensor_pedal_R.SensorPedalPosition_faults.mode=NOMINAL
+& sensor_pedal_L.SensorPedalPosition_faults.mode=NOMINAL
+& phys_sys.normal_sys.meter_valve_1.MeterValve_faults.mode=NOMINAL
+& phys_sys.normal_sys.meter_valve_2.MeterValve_faults.mode=NOMINAL
+& phys_sys.normal_sys.meter_valve_3.MeterValve_faults.mode=NOMINAL
+& phys_sys.normal_sys.meter_valve_4.MeterValve_faults.mode=NOMINAL
+& phys_sys.normal_sys.meter_valve_5.MeterValve_faults.mode=NOMINAL
+& phys_sys.normal_sys.meter_valve_6.MeterValve_faults.mode=NOMINAL
+& phys_sys.normal_sys.meter_valve_7.MeterValve_faults.mode=NOMINAL
+& phys_sys.normal_sys.meter_valve_8.MeterValve_faults.mode=NOMINAL
+& phys_sys.alternate_sys.meter_valve_1.MeterValve_faults.mode=NOMINAL
+& phys_sys.alternate_sys.meter_valve_2.MeterValve_faults.mode=NOMINAL
+& phys_sys.alternate_sys.meter_valve_3.MeterValve_faults.mode=NOMINAL
+& phys_sys.alternate_sys.meter_valve_4.MeterValve_faults.mode=NOMINAL
+& phys_sys.alternate_sys.antiskid_shutoff_valve_1.AntiskidShutoffValve_faults.mode=NOMINAL
+& phys_sys.alternate_sys.antiskid_shutoff_valve_2.AntiskidShutoffValve_faults.mode=NOMINAL
+& phys_sys.alternate_sys.antiskid_shutoff_valve_3.AntiskidShutoffValve_faults.mode=NOMINAL
+& phys_sys.alternate_sys.antiskid_shutoff_valve_4.AntiskidShutoffValve_faults.mode=NOMINAL
+;
+
+    LTLSPEC NAME braking_wheel_8_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_8 > 0 -> (mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_7_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_R & ground_speed > 0) & wheel_braking_force_7 > 0) & wheel_status_7 = rolling));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_7_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_4_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_R & ground_speed > 0) & wheel_braking_force_4 > 0) & wheel_status_4 = rolling));
+
+    LTLSPEC NAME braking_wheel_5_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_5 > 0 -> (mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_1_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & ground_speed > 0) & wheel_braking_force_1 > 0) & wheel_status_1 = rolling));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_4_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0));
+
+    LTLSPEC NAME never_asymmetric_loss_of_wheel_braking_left_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & (count(((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0)) = 0 & count(((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0)) = 4)));
+
+    LTLSPEC NAME braking_wheel_2_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_2 > 0 -> (mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_1_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_8_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_R & ground_speed > 0) & wheel_braking_force_8 > 0) & wheel_status_8 = rolling));
+
+    LTLSPEC NAME braking_wheel_7_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_7 > 0 -> (mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_5_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & ground_speed > 0) & wheel_braking_force_5 > 0) & wheel_status_5 = rolling));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_6_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_2_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & ground_speed > 0) & wheel_braking_force_2 > 0) & wheel_status_2 = rolling));
+
+    LTLSPEC NAME braking_wheel_4_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_4 > 0 -> (mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_with_all_wheels_locked_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & (((((((wheel_braking_force_1 > 0 & wheel_braking_force_2 > 0) & wheel_braking_force_3 > 0) & wheel_braking_force_4 > 0) & wheel_braking_force_5 > 0) & wheel_braking_force_6 > 0) & wheel_braking_force_7 > 0) & wheel_braking_force_8 > 0)) & (((((((wheel_status_1 = stopped & wheel_status_2 = stopped) & wheel_status_3 = stopped) & wheel_status_4 = stopped) & wheel_status_5 = stopped) & wheel_status_6 = stopped) & wheel_status_7 = stopped) & wheel_status_8 = stopped)) & ground_speed > 0));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_3_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0));
+
+    LTLSPEC NAME never_loss_of_all_wheel_braking_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & (((((((!((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0) & !((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0)) & !((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0)) & !((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0)) & !((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0)) & !((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0)) & !((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0)) & !((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0))));
+
+    LTLSPEC NAME braking_wheel_1_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_1 > 0 -> (mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME asymmetrical_left_braking_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (((((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0) & ((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0)) & ((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0)) & ((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0)));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_8_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_6_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & ground_speed > 0) & wheel_braking_force_6 > 0) & wheel_status_6 = rolling));
+
+    LTLSPEC NAME braking_wheel_6_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_6 > 0 -> (mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_3_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_R & ground_speed > 0) & wheel_braking_force_3 > 0) & wheel_status_3 = rolling));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_5_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_all_wheels_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & (((((((wheel_braking_force_1 > 0 & wheel_braking_force_2 > 0) & wheel_braking_force_3 > 0) & wheel_braking_force_4 > 0) & wheel_braking_force_5 > 0) & wheel_braking_force_6 > 0) & wheel_braking_force_7 > 0) & wheel_braking_force_8 > 0)) & ground_speed > 0));
+
+    LTLSPEC NAME braking_wheel_3_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_3 > 0 -> (mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_asymmetric_loss_of_wheel_braking_right_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & (count(((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0)) = 4 & count(((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0)) = 0)));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_2_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0));
+
+    LTLSPEC NAME asymmetrical_right_braking_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (((((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0) & ((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0)) & ((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0)) & ((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ControlSystem(electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, power_1, power_2, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8)
+    VAR
+        bscu_1 : BSCU(electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, power_1, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8);
+        bscu_2 : BSCU(electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, power_2, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8);
+        or_gate_system_validity : OrGate(bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_1 : SwitchGate_#Extended(bscu_1.brake_as_cmd_1, bscu_2.brake_as_cmd_1, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_2 : SwitchGate_#Extended(bscu_1.brake_as_cmd_2, bscu_2.brake_as_cmd_2, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_3 : SwitchGate_#Extended(bscu_1.brake_as_cmd_3, bscu_2.brake_as_cmd_3, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_4 : SwitchGate_#Extended(bscu_1.brake_as_cmd_4, bscu_2.brake_as_cmd_4, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_5 : SwitchGate_#Extended(bscu_1.brake_as_cmd_5, bscu_2.brake_as_cmd_5, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_6 : SwitchGate_#Extended(bscu_1.brake_as_cmd_6, bscu_2.brake_as_cmd_6, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_7 : SwitchGate_#Extended(bscu_1.brake_as_cmd_7, bscu_2.brake_as_cmd_7, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_8 : SwitchGate_#Extended(bscu_1.brake_as_cmd_8, bscu_2.brake_as_cmd_8, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_as_cmd_pair_1_5 : SwitchGate_#Extended(bscu_1.as_cmd_pair_1_5, bscu_2.as_cmd_pair_1_5, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_as_cmd_pair_2_6 : SwitchGate_#Extended(bscu_1.as_cmd_pair_2_6, bscu_2.as_cmd_pair_2_6, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_as_cmd_pair_3_7 : SwitchGate_#Extended(bscu_1.as_cmd_pair_3_7, bscu_2.as_cmd_pair_3_7, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_as_cmd_pair_4_8 : SwitchGate_#Extended(bscu_1.as_cmd_pair_4_8, bscu_2.as_cmd_pair_4_8, bscu_1.system_validity, bscu_2.system_validity);
+    DEFINE
+        as_cmd_pair_4_8 := switch_gate_as_cmd_pair_4_8.cmd_out;
+        as_cmd_pair_3_7 := switch_gate_as_cmd_pair_3_7.cmd_out;
+        as_cmd_pair_2_6 := switch_gate_as_cmd_pair_2_6.cmd_out;
+        as_cmd_pair_1_5 := switch_gate_as_cmd_pair_1_5.cmd_out;
+        brake_as_cmd_8 := switch_gate_brake_as_cmd_8.cmd_out;
+        brake_as_cmd_7 := switch_gate_brake_as_cmd_7.cmd_out;
+        brake_as_cmd_6 := switch_gate_brake_as_cmd_6.cmd_out;
+        brake_as_cmd_5 := switch_gate_brake_as_cmd_5.cmd_out;
+        brake_as_cmd_4 := switch_gate_brake_as_cmd_4.cmd_out;
+        brake_as_cmd_3 := switch_gate_brake_as_cmd_3.cmd_out;
+        brake_as_cmd_2 := switch_gate_brake_as_cmd_2.cmd_out;
+        brake_as_cmd_1 := switch_gate_brake_as_cmd_1.cmd_out;
+        system_validity := or_gate_system_validity.out;
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_6_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) -> brake_as_cmd_6) &  G (brake_as_cmd_6 -> ((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_as_cmd_pair_4_8_norm_guarantee := (TRUE -> ( G (((system_validity & ground_speed > 0) & (!wheel_rolling_4 | !wheel_rolling_8)) -> as_cmd_pair_4_8) &  G (as_cmd_pair_4_8 -> ((system_validity & ground_speed > 0) & (!wheel_rolling_4 | !wheel_rolling_8)))));
+
+    LTLSPEC NAME as_cmd_excludes_brake_as_cmd_norm_guarantee := (TRUE -> ((( G ((as_cmd_pair_1_5 & system_validity) -> (!brake_as_cmd_1 | !brake_as_cmd_5)) &  G ((as_cmd_pair_2_6 & system_validity) -> (!brake_as_cmd_2 | !brake_as_cmd_6))) &  G ((as_cmd_pair_3_7 & system_validity) -> (!brake_as_cmd_3 | !brake_as_cmd_7))) &  G ((as_cmd_pair_4_8 & system_validity) -> (!brake_as_cmd_4 | !brake_as_cmd_8))));
+
+    LTLSPEC NAME expected_behavior_as_cmd_pair_2_6_norm_guarantee := (TRUE -> ( G (((system_validity & ground_speed > 0) & (!wheel_rolling_2 | !wheel_rolling_6)) -> as_cmd_pair_2_6) &  G (as_cmd_pair_2_6 -> ((system_validity & ground_speed > 0) & (!wheel_rolling_2 | !wheel_rolling_6)))));
+
+    LTLSPEC NAME system_validity_norm_guarantee := (TRUE ->  G (system_validity <-> (((((((((((((power_1 | power_2) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8)) & ((ground_speed > 0 & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5)) & ((ground_speed > 0 & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6)) & ((ground_speed > 0 & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7)) & ((ground_speed > 0 & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_3_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) -> brake_as_cmd_3) &  G (brake_as_cmd_3 -> ((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_1_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) -> brake_as_cmd_1) &  G (brake_as_cmd_1 -> ((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_7_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) -> brake_as_cmd_7) &  G (brake_as_cmd_7 -> ((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_5_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) -> brake_as_cmd_5) &  G (brake_as_cmd_5 -> ((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_8_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) -> brake_as_cmd_8) &  G (brake_as_cmd_8 -> ((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)))));
+
+    LTLSPEC NAME brake_as_cmd_excludes_as_cmd_norm_guarantee := (TRUE -> ((( G (((brake_as_cmd_1 & brake_as_cmd_5) & system_validity) -> !as_cmd_pair_1_5) &  G (((brake_as_cmd_2 & brake_as_cmd_6) & system_validity) -> !as_cmd_pair_2_6)) &  G (((brake_as_cmd_3 & brake_as_cmd_7) & system_validity) -> !as_cmd_pair_3_7)) &  G (((brake_as_cmd_4 & brake_as_cmd_8) & system_validity) -> !as_cmd_pair_4_8)));
+
+    LTLSPEC NAME expected_behavior_as_cmd_pair_3_7_norm_guarantee := (TRUE -> ( G (((system_validity & ground_speed > 0) & (!wheel_rolling_3 | !wheel_rolling_7)) -> as_cmd_pair_3_7) &  G (as_cmd_pair_3_7 -> ((system_validity & ground_speed > 0) & (!wheel_rolling_3 | !wheel_rolling_7)))));
+
+    LTLSPEC NAME expected_behavior_as_cmd_pair_1_5_norm_guarantee := (TRUE -> ( G (((system_validity & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_5)) -> as_cmd_pair_1_5) &  G (as_cmd_pair_1_5 -> ((system_validity & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_5)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_4_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) -> brake_as_cmd_4) &  G (brake_as_cmd_4 -> ((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_2_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) -> brake_as_cmd_2) &  G (brake_as_cmd_2 -> ((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)))));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BSCU(electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, power, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8)
+    VAR
+        monitor_sys : MonitorSystem_#Extended(power, electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8, command_sys.brake_as_cmd_1, command_sys.brake_as_cmd_2, command_sys.brake_as_cmd_3, command_sys.brake_as_cmd_4, command_sys.brake_as_cmd_5, command_sys.brake_as_cmd_6, command_sys.brake_as_cmd_7, command_sys.brake_as_cmd_8, command_sys.as_cmd_pair_1_5, command_sys.as_cmd_pair_2_6, command_sys.as_cmd_pair_3_7, command_sys.as_cmd_pair_4_8);
+        command_sys : CommandSystem(power, ground_speed, electrical_pedal_pos_L, electrical_pedal_pos_R, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8);
+    DEFINE
+        as_cmd_pair_4_8 := command_sys.as_cmd_pair_4_8;
+        as_cmd_pair_3_7 := command_sys.as_cmd_pair_3_7;
+        as_cmd_pair_2_6 := command_sys.as_cmd_pair_2_6;
+        as_cmd_pair_1_5 := command_sys.as_cmd_pair_1_5;
+        brake_as_cmd_8 := command_sys.brake_as_cmd_8;
+        brake_as_cmd_7 := command_sys.brake_as_cmd_7;
+        brake_as_cmd_6 := command_sys.brake_as_cmd_6;
+        brake_as_cmd_5 := command_sys.brake_as_cmd_5;
+        brake_as_cmd_4 := command_sys.brake_as_cmd_4;
+        brake_as_cmd_3 := command_sys.brake_as_cmd_3;
+        brake_as_cmd_2 := command_sys.brake_as_cmd_2;
+        brake_as_cmd_1 := command_sys.brake_as_cmd_1;
+        system_validity := monitor_sys.bscu_validity;
+
+    LTLSPEC NAME command_creation_alternate_1_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5));
+
+    LTLSPEC NAME system_validity_norm_guarantee := (TRUE ->  G (system_validity <-> ((((((((((((power & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8)) & ((ground_speed > 0 & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5)) & ((ground_speed > 0 & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6)) & ((ground_speed > 0 & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7)) & ((ground_speed > 0 & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8))));
+
+    LTLSPEC NAME command_creation_normal_8_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8));
+
+    LTLSPEC NAME command_creation_normal_7_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7));
+
+    LTLSPEC NAME command_creation_normal_6_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6));
+
+    LTLSPEC NAME command_creation_normal_5_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5));
+
+    LTLSPEC NAME command_creation_normal_4_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4));
+
+    LTLSPEC NAME command_creation_normal_3_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3));
+
+    LTLSPEC NAME command_creation_normal_2_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2));
+
+    LTLSPEC NAME command_creation_normal_1_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1));
+
+    LTLSPEC NAME command_creation_alternate_4_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8));
+
+    LTLSPEC NAME command_creation_alternate_3_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7));
+
+    LTLSPEC NAME command_creation_alternate_2_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MonitorSystem_#Extended(power, electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8, brake_as_cmd_1, brake_as_cmd_2, brake_as_cmd_3, brake_as_cmd_4, brake_as_cmd_5, brake_as_cmd_6, brake_as_cmd_7, brake_as_cmd_8, as_cmd_pair_1_5, as_cmd_pair_2_6, as_cmd_pair_3_7, as_cmd_pair_4_8)
+    VAR
+        MonitorSystem_faults : MonitorSystem_faults_FM_Mod(bscu_validity_#nominal);
+    VAR
+        bscu_validity_#nominal : boolean;
+
+    DEFINE
+        as_cmd_pair_1_5_valid := ((ground_speed > 0 & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5);
+        as_cmd_pair_2_6_valid := ((ground_speed > 0 & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6);
+        as_cmd_pair_3_7_valid := ((ground_speed > 0 & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7);
+        as_cmd_pair_4_8_valid := ((ground_speed > 0 & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8);
+        brake_as_cmd_1_valid := ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1);
+        brake_as_cmd_2_valid := ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2);
+        brake_as_cmd_3_valid := ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3);
+        brake_as_cmd_4_valid := ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4);
+        brake_as_cmd_5_valid := ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5);
+        brake_as_cmd_6_valid := ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6);
+        brake_as_cmd_7_valid := ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7);
+        brake_as_cmd_8_valid := ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8);
+        bscu_validity := MonitorSystem_faults.bscu_validity_#fault;
+
+    ASSIGN
+        bscu_validity_#nominal := ((((((((((((power & as_cmd_pair_1_5_valid) & as_cmd_pair_2_6_valid) & as_cmd_pair_3_7_valid) & as_cmd_pair_4_8_valid) & brake_as_cmd_1_valid) & brake_as_cmd_2_valid) & brake_as_cmd_3_valid) & brake_as_cmd_4_valid) & brake_as_cmd_5_valid) & brake_as_cmd_6_valid) & brake_as_cmd_7_valid) & brake_as_cmd_8_valid);
+    LTLSPEC NAME bscu_validity_norm_guarantee := (TRUE ->  G (bscu_validity <-> ((((((((((((power & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8)) & ((ground_speed > 0 & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5)) & ((ground_speed > 0 & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6)) & ((ground_speed > 0 & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7)) & ((ground_speed > 0 & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8))));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MonitorSystem_faults_FM_Mod(bscu_validity__#read)
+    VAR
+        MonitorSystem_ErroneousData : MonitorSystem_ErroneousData_fm_Mod(mode = NOMINAL, mode_is_MonitorSystem_ErroneousData, bscu_validity__#read, bscu_validity__#write, event = MonitorSystem_ErroneousData#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, MonitorSystem_ErroneousData#FAULT};
+        bscu_validity__#write : boolean;
+
+    IVAR
+        event : {_#NoEvent, MonitorSystem_ErroneousData#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_MonitorSystem_ErroneousData#FAULT := ((mode = NOMINAL & MonitorSystem_ErroneousData.trans_trig_guard_#0) | (mode = MonitorSystem_ErroneousData#FAULT & MonitorSystem_ErroneousData.trans_trig_guard_#1));
+        bscu_validity_#fault := case
+mode = NOMINAL : bscu_validity__#read;
+mode_is_MonitorSystem_ErroneousData : bscu_validity__#write;
+TRUE : bscu_validity__#read;
+esac;
+        mode_is_MonitorSystem_ErroneousData := mode = MonitorSystem_ErroneousData#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = MonitorSystem_ErroneousData#FAULT & MonitorSystem_ErroneousData.trans_trig_guard_#1) | (mode = NOMINAL & MonitorSystem_ErroneousData.trans_trig_guard_#0)) : next(mode) = MonitorSystem_ErroneousData#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MonitorSystem_ErroneousData_fm_Mod(is_nominal, is_fault, input, varout, _failure, ev_#NoEvent)
+    VAR
+        MonitorSystem_ErroneousDataEM : MonitorSystem_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MonitorSystem_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE CommandSystem(power, ground_speed, electrical_pedal_pos_L, electrical_pedal_pos_R, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8)
+    VAR
+        w1_w5_cmd_sys : WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos_L, wheel_rolling_1, wheel_rolling_5);
+        w2_w6_cmd_sys : WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos_L, wheel_rolling_2, wheel_rolling_6);
+        w3_w7_cmd_sys : WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos_R, wheel_rolling_3, wheel_rolling_7);
+        w4_w8_cmd_sys : WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos_R, wheel_rolling_4, wheel_rolling_8);
+    DEFINE
+        as_cmd_pair_4_8 := w4_w8_cmd_sys.as_cmd_out;
+        brake_as_cmd_8 := w4_w8_cmd_sys.brake_as_cmd_out_2;
+        brake_as_cmd_4 := w4_w8_cmd_sys.brake_as_cmd_out_1;
+        as_cmd_pair_3_7 := w3_w7_cmd_sys.as_cmd_out;
+        brake_as_cmd_7 := w3_w7_cmd_sys.brake_as_cmd_out_2;
+        brake_as_cmd_3 := w3_w7_cmd_sys.brake_as_cmd_out_1;
+        as_cmd_pair_2_6 := w2_w6_cmd_sys.as_cmd_out;
+        brake_as_cmd_6 := w2_w6_cmd_sys.brake_as_cmd_out_2;
+        brake_as_cmd_2 := w2_w6_cmd_sys.brake_as_cmd_out_1;
+        as_cmd_pair_1_5 := w1_w5_cmd_sys.as_cmd_out;
+        brake_as_cmd_5 := w1_w5_cmd_sys.brake_as_cmd_out_2;
+        brake_as_cmd_1 := w1_w5_cmd_sys.brake_as_cmd_out_1;
+
+    LTLSPEC NAME command_creation_alternate_1_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5));
+
+    LTLSPEC NAME command_creation_normal_8_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8));
+
+    LTLSPEC NAME command_creation_normal_7_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7));
+
+    LTLSPEC NAME command_creation_normal_6_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6));
+
+    LTLSPEC NAME command_creation_normal_5_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5));
+
+    LTLSPEC NAME command_creation_normal_4_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4));
+
+    LTLSPEC NAME command_creation_normal_3_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3));
+
+    LTLSPEC NAME command_creation_normal_2_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2));
+
+    LTLSPEC NAME command_creation_normal_1_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1));
+
+    LTLSPEC NAME command_creation_alternate_4_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8));
+
+    LTLSPEC NAME command_creation_alternate_3_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7));
+
+    LTLSPEC NAME command_creation_alternate_2_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos, wheel_rolling_1, wheel_rolling_2)
+    VAR
+        alternate_command_calculator : AlternateCommandCalculator_#Extended(power, antiskid_command_facility_1.as_cmd, antiskid_command_facility_2.as_cmd);
+        normal_command_calculator_1 : NormalCommandCalculator_#Extended(power, brake_command_facility.brake_cmd, antiskid_command_facility_1.as_cmd);
+        normal_command_calculator_2 : NormalCommandCalculator_#Extended(power, brake_command_facility.brake_cmd, antiskid_command_facility_2.as_cmd);
+        antiskid_command_facility_1 : AntiSkidCommandFacility_#Extended(power, ground_speed, wheel_rolling_1);
+        antiskid_command_facility_2 : AntiSkidCommandFacility_#Extended(power, ground_speed, wheel_rolling_2);
+        brake_command_facility : BrakeCommandFacility_#Extended(electrical_pedal_pos, power);
+    DEFINE
+        brake_as_cmd_out_2 := normal_command_calculator_2.brake_as_cmd;
+        brake_as_cmd_out_1 := normal_command_calculator_1.brake_as_cmd;
+        as_cmd_out := alternate_command_calculator.as_cmd_out;
+
+    LTLSPEC NAME commands_creation_norm_guarantee := (TRUE ->  G (((((power & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_2)) <-> as_cmd_out) & (((power & electrical_pedal_pos) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_out_1)) & (((power & electrical_pedal_pos) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_out_2)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AlternateCommandCalculator_#Extended(power, as_cmd_in_1, as_cmd_in_2)
+    VAR
+        AlternateCommandCalculator_faults : AlternateCommandCalculator_faults_FM_Mod(as_cmd_out_#nominal);
+    VAR
+        as_cmd_out_#nominal : boolean;
+
+    DEFINE
+        as_cmd_out := AlternateCommandCalculator_faults.as_cmd_out_#fault;
+
+    ASSIGN
+        as_cmd_out_#nominal := (power & (as_cmd_in_1 | as_cmd_in_2));
+    LTLSPEC NAME alternate_command_computation_norm_guarantee := (TRUE ->  G ((power & (as_cmd_in_1 | as_cmd_in_2)) <-> as_cmd_out));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AlternateCommandCalculator_faults_FM_Mod(as_cmd_out__#read)
+    VAR
+        AlternateCommandCalculator_ErroneousData : AlternateCommandCalculator_ErroneousData_fm_Mod(mode = NOMINAL, mode_is_AlternateCommandCalculator_ErroneousData, as_cmd_out__#read, as_cmd_out__#write, event = AlternateCommandCalculator_ErroneousData#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, AlternateCommandCalculator_ErroneousData#FAULT};
+        as_cmd_out__#write : boolean;
+
+    IVAR
+        event : {_#NoEvent, AlternateCommandCalculator_ErroneousData#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_AlternateCommandCalculator_ErroneousData#FAULT := ((mode = NOMINAL & AlternateCommandCalculator_ErroneousData.trans_trig_guard_#0) | (mode = AlternateCommandCalculator_ErroneousData#FAULT & AlternateCommandCalculator_ErroneousData.trans_trig_guard_#1));
+        as_cmd_out_#fault := case
+mode = NOMINAL : as_cmd_out__#read;
+mode_is_AlternateCommandCalculator_ErroneousData : as_cmd_out__#write;
+TRUE : as_cmd_out__#read;
+esac;
+        mode_is_AlternateCommandCalculator_ErroneousData := mode = AlternateCommandCalculator_ErroneousData#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = AlternateCommandCalculator_ErroneousData#FAULT & AlternateCommandCalculator_ErroneousData.trans_trig_guard_#1) | (mode = NOMINAL & AlternateCommandCalculator_ErroneousData.trans_trig_guard_#0)) : next(mode) = AlternateCommandCalculator_ErroneousData#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AlternateCommandCalculator_ErroneousData_fm_Mod(is_nominal, is_fault, input, varout, _failure, ev_#NoEvent)
+    VAR
+        AlternateCommandCalculator_ErroneousDataEM : AlternateCommandCalculator_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AlternateCommandCalculator_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE NormalCommandCalculator_#Extended(power, brake_cmd, as_cmd)
+    VAR
+        NormalCommandCalculator_faults : NormalCommandCalculator_faults_FM_Mod(brake_as_cmd_#nominal);
+    VAR
+        brake_as_cmd_#nominal : boolean;
+
+    DEFINE
+        brake_as_cmd := NormalCommandCalculator_faults.brake_as_cmd_#fault;
+
+    ASSIGN
+        brake_as_cmd_#nominal := ((power & brake_cmd) & !as_cmd);
+    LTLSPEC NAME normal_command_computation_norm_guarantee := (TRUE ->  G (((power & brake_cmd) & !as_cmd) <-> brake_as_cmd));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE NormalCommandCalculator_faults_FM_Mod(brake_as_cmd__#read)
+    VAR
+        NormalCommandCalculator_ErroneousData : NormalCommandCalculator_ErroneousData_fm_Mod(mode = NOMINAL, mode_is_NormalCommandCalculator_ErroneousData, brake_as_cmd__#read, brake_as_cmd__#write, event = NormalCommandCalculator_ErroneousData#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, NormalCommandCalculator_ErroneousData#FAULT};
+        brake_as_cmd__#write : boolean;
+
+    IVAR
+        event : {_#NoEvent, NormalCommandCalculator_ErroneousData#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_NormalCommandCalculator_ErroneousData#FAULT := ((mode = NOMINAL & NormalCommandCalculator_ErroneousData.trans_trig_guard_#0) | (mode = NormalCommandCalculator_ErroneousData#FAULT & NormalCommandCalculator_ErroneousData.trans_trig_guard_#1));
+        brake_as_cmd_#fault := case
+mode = NOMINAL : brake_as_cmd__#read;
+mode_is_NormalCommandCalculator_ErroneousData : brake_as_cmd__#write;
+TRUE : brake_as_cmd__#read;
+esac;
+        mode_is_NormalCommandCalculator_ErroneousData := mode = NormalCommandCalculator_ErroneousData#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = NormalCommandCalculator_ErroneousData#FAULT & NormalCommandCalculator_ErroneousData.trans_trig_guard_#1) | (mode = NOMINAL & NormalCommandCalculator_ErroneousData.trans_trig_guard_#0)) : next(mode) = NormalCommandCalculator_ErroneousData#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE NormalCommandCalculator_ErroneousData_fm_Mod(is_nominal, is_fault, input, varout, _failure, ev_#NoEvent)
+    VAR
+        NormalCommandCalculator_ErroneousDataEM : NormalCommandCalculator_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE NormalCommandCalculator_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiSkidCommandFacility_#Extended(power, ground_speed, wheel_rolling)
+    VAR
+        AntiSkidCommandFacility_faults : AntiSkidCommandFacility_faults_FM_Mod(as_cmd_#nominal);
+    VAR
+        as_cmd_#nominal : boolean;
+
+    DEFINE
+        as_cmd := AntiSkidCommandFacility_faults.as_cmd_#fault;
+
+    ASSIGN
+        as_cmd_#nominal := ((power & !wheel_rolling) & ground_speed > 0);
+    LTLSPEC NAME as_command_creation_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & !wheel_rolling) <-> as_cmd));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiSkidCommandFacility_faults_FM_Mod(as_cmd__#read)
+    VAR
+        AntiSkidCommandFacility_ErroneousData : AntiSkidCommandFacility_ErroneousData_fm_Mod(mode = NOMINAL, mode_is_AntiSkidCommandFacility_ErroneousData, as_cmd__#read, as_cmd__#write, event = AntiSkidCommandFacility_ErroneousData#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, AntiSkidCommandFacility_ErroneousData#FAULT};
+        as_cmd__#write : boolean;
+
+    IVAR
+        event : {_#NoEvent, AntiSkidCommandFacility_ErroneousData#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_AntiSkidCommandFacility_ErroneousData#FAULT := ((mode = NOMINAL & AntiSkidCommandFacility_ErroneousData.trans_trig_guard_#0) | (mode = AntiSkidCommandFacility_ErroneousData#FAULT & AntiSkidCommandFacility_ErroneousData.trans_trig_guard_#1));
+        as_cmd_#fault := case
+mode = NOMINAL : as_cmd__#read;
+mode_is_AntiSkidCommandFacility_ErroneousData : as_cmd__#write;
+TRUE : as_cmd__#read;
+esac;
+        mode_is_AntiSkidCommandFacility_ErroneousData := mode = AntiSkidCommandFacility_ErroneousData#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = AntiSkidCommandFacility_ErroneousData#FAULT & AntiSkidCommandFacility_ErroneousData.trans_trig_guard_#1) | (mode = NOMINAL & AntiSkidCommandFacility_ErroneousData.trans_trig_guard_#0)) : next(mode) = AntiSkidCommandFacility_ErroneousData#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiSkidCommandFacility_ErroneousData_fm_Mod(is_nominal, is_fault, input, varout, _failure, ev_#NoEvent)
+    VAR
+        AntiSkidCommandFacility_ErroneousDataEM : AntiSkidCommandFacility_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiSkidCommandFacility_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeCommandFacility_#Extended(electrical_pedal_pos, power)
+    VAR
+        BrakeCommandFacility_faults : BrakeCommandFacility_faults_FM_Mod(brake_cmd_#nominal);
+    VAR
+        brake_cmd_#nominal : boolean;
+
+    DEFINE
+        brake_cmd := BrakeCommandFacility_faults.brake_cmd_#fault;
+
+    ASSIGN
+        brake_cmd_#nominal := (power & electrical_pedal_pos);
+    LTLSPEC NAME brake_command_creation_norm_guarantee := (TRUE ->  G ((power & electrical_pedal_pos) <-> brake_cmd));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeCommandFacility_faults_FM_Mod(brake_cmd__#read)
+    VAR
+        BrakeCommandFacility_ErroneousData : BrakeCommandFacility_ErroneousData_fm_Mod(mode = NOMINAL, mode_is_BrakeCommandFacility_ErroneousData, brake_cmd__#read, brake_cmd__#write, event = BrakeCommandFacility_ErroneousData#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, BrakeCommandFacility_ErroneousData#FAULT};
+        brake_cmd__#write : boolean;
+
+    IVAR
+        event : {_#NoEvent, BrakeCommandFacility_ErroneousData#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_BrakeCommandFacility_ErroneousData#FAULT := ((mode = NOMINAL & BrakeCommandFacility_ErroneousData.trans_trig_guard_#0) | (mode = BrakeCommandFacility_ErroneousData#FAULT & BrakeCommandFacility_ErroneousData.trans_trig_guard_#1));
+        brake_cmd_#fault := case
+mode = NOMINAL : brake_cmd__#read;
+mode_is_BrakeCommandFacility_ErroneousData : brake_cmd__#write;
+TRUE : brake_cmd__#read;
+esac;
+        mode_is_BrakeCommandFacility_ErroneousData := mode = BrakeCommandFacility_ErroneousData#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = BrakeCommandFacility_ErroneousData#FAULT & BrakeCommandFacility_ErroneousData.trans_trig_guard_#1) | (mode = NOMINAL & BrakeCommandFacility_ErroneousData.trans_trig_guard_#0)) : next(mode) = BrakeCommandFacility_ErroneousData#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeCommandFacility_ErroneousData_fm_Mod(is_nominal, is_fault, input, varout, _failure, ev_#NoEvent)
+    VAR
+        BrakeCommandFacility_ErroneousDataEM : BrakeCommandFacility_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeCommandFacility_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE OrGate(in_1, in_2)
+    VAR
+        out : boolean;
+
+    ASSIGN
+        out := (in_1 | in_2);
+    LTLSPEC NAME or_behavior_norm_guarantee := (TRUE ->  G (out <-> (in_1 | in_2)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SwitchGate_#Extended(cmd_in_1, cmd_in_2, validity_1, validity_2)
+    VAR
+        SwitchGate_faults : SwitchGate_faults_FM_Mod(state_#nominal, no_output);
+    VAR
+        cmd_out : boolean;
+        state_#nominal : {pos1, no_output, pos2};
+
+    DEFINE
+        no_signal_value := FALSE;
+        state := SwitchGate_faults.state_#fault;
+
+    ASSIGN
+        state_#nominal := case
+validity_1 : pos1;
+(!validity_1 & validity_2) : pos2;
+TRUE : no_output;
+esac;
+        cmd_out := case
+state = pos1 : cmd_in_1;
+state = pos2 : cmd_in_2;
+TRUE : no_signal_value;
+esac;
+    LTLSPEC NAME switch_behavior_norm_guarantee := (TRUE -> (( G (validity_1 -> (cmd_out <-> cmd_in_1)) &  G ((!validity_1 & validity_2) -> (cmd_out <-> cmd_in_2))) &  G ((!validity_1 & !validity_2) -> cmd_out = FALSE)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SwitchGate_faults_FM_Mod(state__#read, term_#1)
+    VAR
+        SwitchGate_FailedLastPosition : SwitchGate_FailedLastPosition_fm_Mod(mode = NOMINAL, mode_is_SwitchGate_FailedLastPosition, state__#read, state__#write, event = SwitchGate_FailedLastPosition#failure, event = _#NoEvent);
+        SwitchGate_FailedIntermediatePosition : SwitchGate_FailedIntermediatePosition_fm_Mod(mode = NOMINAL, mode_is_SwitchGate_FailedIntermediatePosition, term_#1, state__#read, state__#write, event = SwitchGate_FailedIntermediatePosition#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, SwitchGate_FailedLastPosition#FAULT, SwitchGate_FailedIntermediatePosition#FAULT};
+        state__#write : {pos1, no_output, pos2};
+
+    IVAR
+        event : {_#NoEvent, SwitchGate_FailedLastPosition#failure, SwitchGate_FailedIntermediatePosition#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_SwitchGate_FailedIntermediatePosition#FAULT := ((mode = NOMINAL & SwitchGate_FailedIntermediatePosition.trans_trig_guard_#0) | (mode = SwitchGate_FailedIntermediatePosition#FAULT & SwitchGate_FailedIntermediatePosition.trans_trig_guard_#1));
+        cando_SwitchGate_FailedLastPosition#FAULT := ((mode = NOMINAL & SwitchGate_FailedLastPosition.trans_trig_guard_#0) | (mode = SwitchGate_FailedLastPosition#FAULT & SwitchGate_FailedLastPosition.trans_trig_guard_#1));
+        state_#fault := case
+mode = NOMINAL : state__#read;
+(mode_is_SwitchGate_FailedIntermediatePosition | mode_is_SwitchGate_FailedLastPosition) : state__#write;
+TRUE : state__#read;
+esac;
+        mode_is_SwitchGate_FailedLastPosition := mode = SwitchGate_FailedLastPosition#FAULT;
+        mode_is_SwitchGate_FailedIntermediatePosition := mode = SwitchGate_FailedIntermediatePosition#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = SwitchGate_FailedIntermediatePosition#FAULT & SwitchGate_FailedIntermediatePosition.trans_trig_guard_#1) | (mode = NOMINAL & SwitchGate_FailedIntermediatePosition.trans_trig_guard_#0)) : next(mode) = SwitchGate_FailedIntermediatePosition#FAULT;
+((mode = SwitchGate_FailedLastPosition#FAULT & SwitchGate_FailedLastPosition.trans_trig_guard_#1) | (mode = NOMINAL & SwitchGate_FailedLastPosition.trans_trig_guard_#0)) : next(mode) = SwitchGate_FailedLastPosition#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SwitchGate_FailedLastPosition_fm_Mod(is_nominal, is_fault, input, varout, _failure, ev_#NoEvent)
+    VAR
+        SwitchGate_FailedLastPositionEM : SwitchGate_FailedLastPosition_fm_EM_Mod(is_nominal, is_fault, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SwitchGate_FailedLastPosition_fm_EM_Mod(is_nominal, is_fault, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = input);
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SwitchGate_FailedIntermediatePosition_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        SwitchGate_FailedIntermediatePositionEM : SwitchGate_FailedIntermediatePosition_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SwitchGate_FailedIntermediatePosition_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE PhysicalSystem(hydraulic_supply_1, hydraulic_supply_2, pump_power_1, pump_power_2, system_validity, brake_as_cmd_1, brake_as_cmd_2, brake_as_cmd_3, brake_as_cmd_4, brake_as_cmd_5, brake_as_cmd_6, brake_as_cmd_7, brake_as_cmd_8, as_cmd_pair_1_5, as_cmd_pair_2_6, as_cmd_pair_3_7, as_cmd_pair_4_8, ground_speed, mechanical_pedal_pos_L, mechanical_pedal_pos_R)
+    VAR
+        green_hydraulic_pump : HydraulicPump_#Extended(pump_power_1, hydraulic_supply_1);
+        blue_hydraulic_pump : HydraulicPump_#Extended(pump_power_2, hydraulic_supply_2);
+        shutoff_valve : ShutoffValve_#Extended(system_validity, green_hydraulic_pump.hyd_pressure_out);
+        accumulator : Accumulator_#Extended(blue_hydraulic_pump.hyd_pressure_out);
+        selector_valve : SelectorValve_#Extended(shutoff_valve.hyd_pressure_out, addition_gate_hyd_pressure.out, system_validity);
+        normal_sys : NormalBrakeSystem(brake_as_cmd_1, brake_as_cmd_2, brake_as_cmd_3, brake_as_cmd_4, brake_as_cmd_5, brake_as_cmd_6, brake_as_cmd_7, brake_as_cmd_8, selector_valve.green_select_out);
+        alternate_sys : AlternateBrakeSystem(selector_valve.blue_select_out, mechanical_pedal_pos_L, mechanical_pedal_pos_R, as_cmd_pair_1_5, as_cmd_pair_2_6, as_cmd_pair_3_7, as_cmd_pair_4_8);
+        wheel_brake_1 : WheelBrake(normal_sys.hyd_pressure_out_1, alternate_sys.hyd_pressure_out_1);
+        wheel_brake_2 : WheelBrake(normal_sys.hyd_pressure_out_2, alternate_sys.hyd_pressure_out_2);
+        wheel_brake_3 : WheelBrake(normal_sys.hyd_pressure_out_3, alternate_sys.hyd_pressure_out_3);
+        wheel_brake_4 : WheelBrake(normal_sys.hyd_pressure_out_4, alternate_sys.hyd_pressure_out_4);
+        wheel_brake_5 : WheelBrake(normal_sys.hyd_pressure_out_5, alternate_sys.hyd_pressure_out_1);
+        wheel_brake_6 : WheelBrake(normal_sys.hyd_pressure_out_6, alternate_sys.hyd_pressure_out_2);
+        wheel_brake_7 : WheelBrake(normal_sys.hyd_pressure_out_7, alternate_sys.hyd_pressure_out_3);
+        wheel_brake_8 : WheelBrake(normal_sys.hyd_pressure_out_8, alternate_sys.hyd_pressure_out_4);
+        wheel_1 : Wheel_#Extended(wheel_brake_1.braking_force, ground_speed);
+        wheel_2 : Wheel_#Extended(wheel_brake_2.braking_force, ground_speed);
+        wheel_3 : Wheel_#Extended(wheel_brake_3.braking_force, ground_speed);
+        wheel_4 : Wheel_#Extended(wheel_brake_4.braking_force, ground_speed);
+        wheel_5 : Wheel_#Extended(wheel_brake_5.braking_force, ground_speed);
+        wheel_6 : Wheel_#Extended(wheel_brake_6.braking_force, ground_speed);
+        wheel_7 : Wheel_#Extended(wheel_brake_7.braking_force, ground_speed);
+        wheel_8 : Wheel_#Extended(wheel_brake_8.braking_force, ground_speed);
+        addition_gate_hyd_pressure : AdditionGate(blue_hydraulic_pump.hyd_pressure_out, accumulator.reserve_out);
+    DEFINE
+        wheel_status_8 := wheel_8.status;
+        wheel_status_7 := wheel_7.status;
+        wheel_status_6 := wheel_6.status;
+        wheel_status_5 := wheel_5.status;
+        wheel_status_4 := wheel_4.status;
+        wheel_status_3 := wheel_3.status;
+        wheel_status_2 := wheel_2.status;
+        wheel_status_1 := wheel_1.status;
+        wheel_braking_force_8 := wheel_brake_8.braking_force;
+        wheel_braking_force_7 := wheel_brake_7.braking_force;
+        wheel_braking_force_6 := wheel_brake_6.braking_force;
+        wheel_braking_force_5 := wheel_brake_5.braking_force;
+        wheel_braking_force_4 := wheel_brake_4.braking_force;
+        wheel_braking_force_3 := wheel_brake_3.braking_force;
+        wheel_braking_force_2 := wheel_brake_2.braking_force;
+        wheel_braking_force_1 := wheel_brake_1.braking_force;
+        accumulator_pressure_display := accumulator.pressure_display;
+        green_pressure_in_selector_valve := shutoff_valve.hyd_pressure_out;
+
+    LTLSPEC NAME braking_wheel_8_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_R & system_validity) & !brake_as_cmd_8) -> as_cmd_pair_4_8) ->  G (wheel_braking_force_8 > 0 -> (((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_7_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0));
+
+    LTLSPEC NAME getting_green_pressure_in_selector_valve_norm_guarantee := (TRUE ->  G (green_pressure_in_selector_valve > 0 <-> ((system_validity & pump_power_1) & hydraulic_supply_1 > 0)));
+
+    LTLSPEC NAME braking_wheel_5_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_L & system_validity) & !brake_as_cmd_5) -> as_cmd_pair_1_5) ->  G (wheel_braking_force_5 > 0 -> (((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_4_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0));
+
+    LTLSPEC NAME never_asymmetric_loss_of_wheel_braking_left_norm_guarantee := (TRUE ->  G !((((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & count(((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0), ((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0), ((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0), ((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0)) = 0) & count(((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0), ((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0), ((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0), ((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0)) = 4));
+
+    LTLSPEC NAME braking_wheel_2_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_L & system_validity) & !brake_as_cmd_2) -> as_cmd_pair_2_6) ->  G (wheel_braking_force_2 > 0 -> (((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_1_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0));
+
+    LTLSPEC NAME braking_wheel_7_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_R & system_validity) & !brake_as_cmd_7) -> as_cmd_pair_3_7) ->  G (wheel_braking_force_7 > 0 -> (((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_6_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0));
+
+    LTLSPEC NAME braking_wheel_4_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_R & system_validity) & !brake_as_cmd_4) -> as_cmd_pair_4_8) ->  G (wheel_braking_force_4 > 0 -> (((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME never_inadvertent_braking_with_all_wheels_locked_norm_guarantee := (TRUE ->  G !((((((((((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & !brake_as_cmd_1) & !brake_as_cmd_2) & !brake_as_cmd_3) & !brake_as_cmd_4) & !brake_as_cmd_5) & !brake_as_cmd_6) & !brake_as_cmd_7) & !brake_as_cmd_8) & (((((((wheel_braking_force_1 > 0 & wheel_braking_force_2 > 0) & wheel_braking_force_3 > 0) & wheel_braking_force_4 > 0) & wheel_braking_force_5 > 0) & wheel_braking_force_6 > 0) & wheel_braking_force_7 > 0) & wheel_braking_force_8 > 0)) & (((((((wheel_status_1 = stopped & wheel_status_2 = stopped) & wheel_status_3 = stopped) & wheel_status_4 = stopped) & wheel_status_5 = stopped) & wheel_status_6 = stopped) & wheel_status_7 = stopped) & wheel_status_8 = stopped)) & ground_speed > 0));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_3_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0));
+
+    LTLSPEC NAME never_loss_of_all_wheel_braking_norm_guarantee := (TRUE ->  G !((((((((((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & !((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0)) & !((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0)) & !((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0)) & !((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0)) & !((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0)) & !((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0)) & !((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0)) & !((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0)));
+
+    LTLSPEC NAME braking_wheel_1_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_L & system_validity) & !brake_as_cmd_1) -> as_cmd_pair_1_5) ->  G (wheel_braking_force_1 > 0 -> (((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME asymmetrical_left_braking_norm_guarantee := (TRUE ->  G (((((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0) & ((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0)) & ((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0)) & ((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0)));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_8_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0));
+
+    LTLSPEC NAME braking_wheel_6_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_L & system_validity) & !brake_as_cmd_6) -> as_cmd_pair_2_6) ->  G (wheel_braking_force_6 > 0 -> (((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_5_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_all_wheels_norm_guarantee := (TRUE ->  G !(((((((((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & !brake_as_cmd_1) & !brake_as_cmd_2) & !brake_as_cmd_3) & !brake_as_cmd_4) & !brake_as_cmd_5) & !brake_as_cmd_6) & !brake_as_cmd_7) & !brake_as_cmd_8) & (((((((wheel_braking_force_1 > 0 & wheel_braking_force_2 > 0) & wheel_braking_force_3 > 0) & wheel_braking_force_4 > 0) & wheel_braking_force_5 > 0) & wheel_braking_force_6 > 0) & wheel_braking_force_7 > 0) & wheel_braking_force_8 > 0)) & ground_speed > 0));
+
+    LTLSPEC NAME braking_wheel_3_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_R & system_validity) & !brake_as_cmd_3) -> as_cmd_pair_3_7) ->  G (wheel_braking_force_3 > 0 -> (((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME never_asymmetric_loss_of_wheel_braking_right_norm_guarantee := (TRUE ->  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & (count(((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0), ((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0), ((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0), ((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0)) = 4 & count(((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0), ((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0), ((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0), ((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0)) = 0)));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_2_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0));
+
+    LTLSPEC NAME asymmetrical_right_braking_norm_guarantee := (TRUE ->  G (((((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0) & ((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0)) & ((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0)) & ((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPump_#Extended(power, hydraulic_supply)
+    VAR
+        HydraulicPump_faults : HydraulicPump_faults_FM_Mod(hyd_pressure_out_#nominal, 0);
+    VAR
+        hyd_pressure_out_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        hyd_pressure_out := HydraulicPump_faults.hyd_pressure_out_#fault;
+
+    ASSIGN
+        hyd_pressure_out_#nominal :=  ((power & hydraulic_supply > 0) ? 1 .. 10 : 0) ;
+    LTLSPEC NAME supply_hydraulic_norm_guarantee := (TRUE -> ( G ((power & hydraulic_supply > 0) -> hyd_pressure_out > 0) &  G ((!power | hydraulic_supply = 0) -> hyd_pressure_out = 0)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPump_faults_FM_Mod(hyd_pressure_out__#read, term_#1)
+    VAR
+        HydPump_FailedOff : HydPump_FailedOff_fm_Mod(mode = NOMINAL, mode_is_HydPump_FailedOff, term_#1, hyd_pressure_out__#read, hyd_pressure_out__#write, event = HydPump_FailedOff#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, HydPump_FailedOff#FAULT};
+        hyd_pressure_out__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    IVAR
+        event : {_#NoEvent, HydPump_FailedOff#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_HydPump_FailedOff#FAULT := ((mode = NOMINAL & HydPump_FailedOff.trans_trig_guard_#0) | (mode = HydPump_FailedOff#FAULT & HydPump_FailedOff.trans_trig_guard_#1));
+        hyd_pressure_out_#fault := case
+mode = NOMINAL : hyd_pressure_out__#read;
+mode_is_HydPump_FailedOff : hyd_pressure_out__#write;
+TRUE : hyd_pressure_out__#read;
+esac;
+        mode_is_HydPump_FailedOff := mode = HydPump_FailedOff#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = HydPump_FailedOff#FAULT & HydPump_FailedOff.trans_trig_guard_#1) | (mode = NOMINAL & HydPump_FailedOff.trans_trig_guard_#0)) : next(mode) = HydPump_FailedOff#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydPump_FailedOff_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        HydPump_FailedOffEM : HydPump_FailedOff_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydPump_FailedOff_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ShutoffValve_#Extended(system_validity_cmd, hyd_pressure_in)
+    VAR
+        ShutoffValve_faults : ShutoffValve_faults_FM_Mod(hyd_pressure_out_#nominal, 0, hyd_pressure_in);
+    VAR
+        hyd_pressure_out_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        hyd_pressure_out := ShutoffValve_faults.hyd_pressure_out_#fault;
+
+    ASSIGN
+        hyd_pressure_out_#nominal :=  (system_validity_cmd ? hyd_pressure_in : 0) ;
+    LTLSPEC NAME apply_command_norm_guarantee := (TRUE -> ( G ((hyd_pressure_in > 0 & system_validity_cmd) -> (hyd_pressure_out > 0 & hyd_pressure_out = hyd_pressure_in)) &  G ((hyd_pressure_in = 0 | !system_validity_cmd) -> hyd_pressure_out = 0)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ShutoffValve_faults_FM_Mod(hyd_pressure_out__#read, term_#1, term_#2)
+    VAR
+        ShutoffValve_FailedClosed : ShutoffValve_FailedClosed_fm_Mod(mode = NOMINAL, mode_is_ShutoffValve_FailedClosed, term_#1, hyd_pressure_out__#read, hyd_pressure_out__#write, event = ShutoffValve_FailedClosed#failure, event = _#NoEvent);
+        ShutoffValve_FailedOpen : ShutoffValve_FailedOpen_fm_Mod(mode = NOMINAL, mode_is_ShutoffValve_FailedOpen, term_#2, hyd_pressure_out__#read, hyd_pressure_out__#write, event = ShutoffValve_FailedOpen#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, ShutoffValve_FailedClosed#FAULT, ShutoffValve_FailedOpen#FAULT};
+        hyd_pressure_out__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    IVAR
+        event : {_#NoEvent, ShutoffValve_FailedClosed#failure, ShutoffValve_FailedOpen#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_ShutoffValve_FailedClosed#FAULT := ((mode = NOMINAL & ShutoffValve_FailedClosed.trans_trig_guard_#0) | (mode = ShutoffValve_FailedClosed#FAULT & ShutoffValve_FailedClosed.trans_trig_guard_#1));
+        cando_ShutoffValve_FailedOpen#FAULT := ((mode = NOMINAL & ShutoffValve_FailedOpen.trans_trig_guard_#0) | (mode = ShutoffValve_FailedOpen#FAULT & ShutoffValve_FailedOpen.trans_trig_guard_#1));
+        hyd_pressure_out_#fault := case
+mode = NOMINAL : hyd_pressure_out__#read;
+(mode_is_ShutoffValve_FailedOpen | mode_is_ShutoffValve_FailedClosed) : hyd_pressure_out__#write;
+TRUE : hyd_pressure_out__#read;
+esac;
+        mode_is_ShutoffValve_FailedClosed := mode = ShutoffValve_FailedClosed#FAULT;
+        mode_is_ShutoffValve_FailedOpen := mode = ShutoffValve_FailedOpen#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = ShutoffValve_FailedOpen#FAULT & ShutoffValve_FailedOpen.trans_trig_guard_#1) | (mode = NOMINAL & ShutoffValve_FailedOpen.trans_trig_guard_#0)) : next(mode) = ShutoffValve_FailedOpen#FAULT;
+((mode = ShutoffValve_FailedClosed#FAULT & ShutoffValve_FailedClosed.trans_trig_guard_#1) | (mode = NOMINAL & ShutoffValve_FailedClosed.trans_trig_guard_#0)) : next(mode) = ShutoffValve_FailedClosed#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ShutoffValve_FailedClosed_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        ShutoffValve_FailedClosedEM : ShutoffValve_FailedClosed_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ShutoffValve_FailedClosed_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ShutoffValve_FailedOpen_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        ShutoffValve_FailedOpenEM : ShutoffValve_FailedOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ShutoffValve_FailedOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Accumulator_#Extended(circuit_pressure_value)
+    VAR
+        Accumulator_faults : Accumulator_faults_FM_Mod(reserve_out_#nominal, 0, 10);
+    VAR
+        reserve_out_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        pressure_display : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        reserve_out := Accumulator_faults.reserve_out_#fault;
+
+    ASSIGN
+        reserve_out_#nominal :=  (circuit_pressure_value = 0 ? 1 .. 10 : 0) ;
+    LTLSPEC NAME supply_reserve_norm_guarantee := (TRUE ->  G (circuit_pressure_value = 0 <-> reserve_out > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Accumulator_faults_FM_Mod(reserve_out__#read, term_#1, term_#2)
+    VAR
+        Accumulator_FailedNoPressure : Accumulator_FailedNoPressure_fm_Mod(mode = NOMINAL, mode_is_Accumulator_FailedNoPressure, term_#1, reserve_out__#read, reserve_out__#write, event = Accumulator_FailedNoPressure#failure, event = _#NoEvent);
+        Accumulator_FailedOpen : Accumulator_FailedOpen_fm_Mod(mode = NOMINAL, mode_is_Accumulator_FailedOpen, term_#2, reserve_out__#read, reserve_out__#write, event = Accumulator_FailedOpen#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, Accumulator_FailedNoPressure#FAULT, Accumulator_FailedOpen#FAULT};
+        reserve_out__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    IVAR
+        event : {_#NoEvent, Accumulator_FailedNoPressure#failure, Accumulator_FailedOpen#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_Accumulator_FailedOpen#FAULT := ((mode = NOMINAL & Accumulator_FailedOpen.trans_trig_guard_#0) | (mode = Accumulator_FailedOpen#FAULT & Accumulator_FailedOpen.trans_trig_guard_#1));
+        cando_Accumulator_FailedNoPressure#FAULT := ((mode = NOMINAL & Accumulator_FailedNoPressure.trans_trig_guard_#0) | (mode = Accumulator_FailedNoPressure#FAULT & Accumulator_FailedNoPressure.trans_trig_guard_#1));
+        reserve_out_#fault := case
+mode = NOMINAL : reserve_out__#read;
+(mode_is_Accumulator_FailedOpen | mode_is_Accumulator_FailedNoPressure) : reserve_out__#write;
+TRUE : reserve_out__#read;
+esac;
+        mode_is_Accumulator_FailedNoPressure := mode = Accumulator_FailedNoPressure#FAULT;
+        mode_is_Accumulator_FailedOpen := mode = Accumulator_FailedOpen#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = Accumulator_FailedOpen#FAULT & Accumulator_FailedOpen.trans_trig_guard_#1) | (mode = NOMINAL & Accumulator_FailedOpen.trans_trig_guard_#0)) : next(mode) = Accumulator_FailedOpen#FAULT;
+((mode = Accumulator_FailedNoPressure#FAULT & Accumulator_FailedNoPressure.trans_trig_guard_#1) | (mode = NOMINAL & Accumulator_FailedNoPressure.trans_trig_guard_#0)) : next(mode) = Accumulator_FailedNoPressure#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Accumulator_FailedNoPressure_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        Accumulator_FailedNoPressureEM : Accumulator_FailedNoPressure_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Accumulator_FailedNoPressure_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Accumulator_FailedOpen_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        Accumulator_FailedOpenEM : Accumulator_FailedOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Accumulator_FailedOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SelectorValve_#Extended(green_select_in, blue_select_in, system_validity)
+    VAR
+        SelectorValve_faults : SelectorValve_faults_FM_Mod(green_select_out_#nominal, blue_select_out_#nominal, (green_select_in = 0 | !system_validity), 0, green_select_in, blue_select_in);
+    VAR
+        mode : {green, blue};
+        green_select_out_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        blue_select_out_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        green_select_out := SelectorValve_faults.green_select_out_#fault;
+        blue_select_out := SelectorValve_faults.blue_select_out_#fault;
+
+    ASSIGN
+        mode :=  ((green_select_in > 0 & system_validity) ? green : blue) ;
+        green_select_out_#nominal :=  (mode = green ? green_select_in : 0) ;
+        blue_select_out_#nominal :=  (mode = blue ? blue_select_in : 0) ;
+    LTLSPEC NAME select_circuit_norm_guarantee := (TRUE -> (( G ((green_select_in > 0 & system_validity) -> (green_select_out > 0 & blue_select_out = 0)) &  G (((green_select_in = 0 | !system_validity) & blue_select_in > 0) -> (green_select_out = 0 & blue_select_out > 0))) &  G (((green_select_in = 0 | !system_validity) & blue_select_in = 0) -> (green_select_out = 0 & blue_select_out = 0))));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SelectorValve_faults_FM_Mod(green_select_out__#read, blue_select_out__#read, condition_#1, then_term_1else_term_2_#2, else_term_1_#3, then_term_2_#4)
+    VAR
+        SelectorValve_FailedLastPosition : SelectorValve_FailedLastPosition_fm_Mod(mode = NOMINAL, mode_is_SelectorValve_FailedLastPosition, condition_#1, then_term_1else_term_2_#2, then_term_1else_term_2_#2, else_term_1_#3, then_term_2_#4, green_select_out__#read, green_select_out__#write, blue_select_out__#read, blue_select_out__#write, event = SelectorValve_FailedLastPosition#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, SelectorValve_FailedLastPosition#FAULT};
+        green_select_out__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        blue_select_out__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    IVAR
+        event : {_#NoEvent, SelectorValve_FailedLastPosition#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_SelectorValve_FailedLastPosition#FAULT := ((mode = NOMINAL & SelectorValve_FailedLastPosition.trans_trig_guard_#0) | (mode = SelectorValve_FailedLastPosition#FAULT & SelectorValve_FailedLastPosition.trans_trig_guard_#1));
+        green_select_out_#fault := case
+mode = NOMINAL : green_select_out__#read;
+mode_is_SelectorValve_FailedLastPosition : green_select_out__#write;
+TRUE : green_select_out__#read;
+esac;
+        blue_select_out_#fault := case
+mode = NOMINAL : blue_select_out__#read;
+mode_is_SelectorValve_FailedLastPosition : blue_select_out__#write;
+TRUE : blue_select_out__#read;
+esac;
+        mode_is_SelectorValve_FailedLastPosition := mode = SelectorValve_FailedLastPosition#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = SelectorValve_FailedLastPosition#FAULT & SelectorValve_FailedLastPosition.trans_trig_guard_#1) | (mode = NOMINAL & SelectorValve_FailedLastPosition.trans_trig_guard_#0)) : next(mode) = SelectorValve_FailedLastPosition#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SelectorValve_FailedLastPosition_fm_Mod(is_nominal, is_fault, condition, then_term_1, else_term_2, else_term_1, then_term_2, input_1, varout_1, input_2, varout_2, _failure, ev_#NoEvent)
+    VAR
+        SelectorValve_FailedLastPositionEM : SelectorValve_FailedLastPosition_fm_EM_Mod(is_nominal, is_fault, condition, then_term_1, else_term_2, else_term_1, then_term_2, input_1, varout_1, input_2, varout_2);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SelectorValve_FailedLastPosition_fm_EM_Mod(is_nominal, is_fault, condition, then_term_1, else_term_2, else_term_1, then_term_2, input_1, varout_1, input_2, varout_2)
+    VAR
+        CONDITION_AT_ENTRANCE : boolean;
+
+    ASSIGN
+        init(CONDITION_AT_ENTRANCE) := condition;
+        next(CONDITION_AT_ENTRANCE) := case
+is_nominal : next(condition);
+is_fault : CONDITION_AT_ENTRANCE;
+TRUE : CONDITION_AT_ENTRANCE;
+esac;
+
+    TRANS (!(!is_fault & next(is_fault)) | (next(varout_1) =  (CONDITION_AT_ENTRANCE ? next(then_term_1) : next(else_term_1))  & next(varout_2) =  (CONDITION_AT_ENTRANCE ? next(then_term_2) : next(else_term_2)) ));
+
+    TRANS (!(is_fault & next(is_fault)) | (next(varout_1) =  (CONDITION_AT_ENTRANCE ? next(then_term_1) : next(else_term_1))  & next(varout_2) =  (CONDITION_AT_ENTRANCE ? next(then_term_2) : next(else_term_2)) ));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout_1) = varout_1);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout_2) = varout_2);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE NormalBrakeSystem(brake_as_cmd_1, brake_as_cmd_2, brake_as_cmd_3, brake_as_cmd_4, brake_as_cmd_5, brake_as_cmd_6, brake_as_cmd_7, brake_as_cmd_8, hyd_pressure_in)
+    VAR
+        meter_valve_1 : MeterValve_#Extended(brake_as_cmd_1, FALSE, hyd_pressure_in);
+        meter_valve_2 : MeterValve_#Extended(brake_as_cmd_2, FALSE, hyd_pressure_in);
+        meter_valve_3 : MeterValve_#Extended(brake_as_cmd_3, FALSE, hyd_pressure_in);
+        meter_valve_4 : MeterValve_#Extended(brake_as_cmd_4, FALSE, hyd_pressure_in);
+        meter_valve_5 : MeterValve_#Extended(brake_as_cmd_5, FALSE, hyd_pressure_in);
+        meter_valve_6 : MeterValve_#Extended(brake_as_cmd_6, FALSE, hyd_pressure_in);
+        meter_valve_7 : MeterValve_#Extended(brake_as_cmd_7, FALSE, hyd_pressure_in);
+        meter_valve_8 : MeterValve_#Extended(brake_as_cmd_8, FALSE, hyd_pressure_in);
+    DEFINE
+        hyd_pressure_out_8 := meter_valve_8.hyd_pressure_out;
+        hyd_pressure_out_7 := meter_valve_7.hyd_pressure_out;
+        hyd_pressure_out_6 := meter_valve_6.hyd_pressure_out;
+        hyd_pressure_out_5 := meter_valve_5.hyd_pressure_out;
+        hyd_pressure_out_4 := meter_valve_4.hyd_pressure_out;
+        hyd_pressure_out_3 := meter_valve_3.hyd_pressure_out;
+        hyd_pressure_out_2 := meter_valve_2.hyd_pressure_out;
+        hyd_pressure_out_1 := meter_valve_1.hyd_pressure_out;
+
+    LTLSPEC NAME apply_command_6_norm_guarantee := (TRUE ->  G ((brake_as_cmd_6 & hyd_pressure_in > 0) <-> hyd_pressure_out_6 > 0));
+
+    LTLSPEC NAME apply_command_5_norm_guarantee := (TRUE ->  G ((brake_as_cmd_5 & hyd_pressure_in > 0) <-> hyd_pressure_out_5 > 0));
+
+    LTLSPEC NAME apply_command_1_norm_guarantee := (TRUE ->  G ((brake_as_cmd_1 & hyd_pressure_in > 0) <-> hyd_pressure_out_1 > 0));
+
+    LTLSPEC NAME apply_command_8_norm_guarantee := (TRUE ->  G ((brake_as_cmd_8 & hyd_pressure_in > 0) <-> hyd_pressure_out_8 > 0));
+
+    LTLSPEC NAME apply_command_7_norm_guarantee := (TRUE ->  G ((brake_as_cmd_7 & hyd_pressure_in > 0) <-> hyd_pressure_out_7 > 0));
+
+    LTLSPEC NAME apply_command_4_norm_guarantee := (TRUE ->  G ((brake_as_cmd_4 & hyd_pressure_in > 0) <-> hyd_pressure_out_4 > 0));
+
+    LTLSPEC NAME apply_command_2_norm_guarantee := (TRUE ->  G ((brake_as_cmd_2 & hyd_pressure_in > 0) <-> hyd_pressure_out_2 > 0));
+
+    LTLSPEC NAME apply_command_3_norm_guarantee := (TRUE ->  G ((brake_as_cmd_3 & hyd_pressure_in > 0) <-> hyd_pressure_out_3 > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_#Extended(elec_cmd, mech_cmd, hyd_pressure_in)
+    VAR
+        MeterValve_faults : MeterValve_faults_FM_Mod(hyd_pressure_out_#nominal, 0, hyd_pressure_in, (elec_cmd | mech_cmd));
+    VAR
+        hyd_pressure_out_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        hyd_pressure_out := MeterValve_faults.hyd_pressure_out_#fault;
+
+    ASSIGN
+        hyd_pressure_out_#nominal :=  ((mech_cmd | elec_cmd) ? hyd_pressure_in : 0) ;
+    LTLSPEC NAME apply_command_norm_guarantee := (TRUE ->  G (((elec_cmd | mech_cmd) & hyd_pressure_in > 0) <-> hyd_pressure_out > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_faults_FM_Mod(hyd_pressure_out__#read, termelse_termmin_bound_#1, termthen_termmax_bound_#2, condition_#3)
+    VAR
+        MeterValve_FailedClosed : MeterValve_FailedClosed_fm_Mod(mode = NOMINAL, mode_is_MeterValve_FailedClosed, termelse_termmin_bound_#1, hyd_pressure_out__#read, hyd_pressure_out__#write, event = MeterValve_FailedClosed#failure, event = _#NoEvent);
+        MeterValve_FailedOpen : MeterValve_FailedOpen_fm_Mod(mode = NOMINAL, mode_is_MeterValve_FailedOpen, termthen_termmax_bound_#2, hyd_pressure_out__#read, hyd_pressure_out__#write, event = MeterValve_FailedOpen#failure, event = _#NoEvent);
+        MeterValve_FailedLastPosition : MeterValve_FailedLastPosition_fm_Mod(mode = NOMINAL, mode_is_MeterValve_FailedLastPosition, termelse_termmin_bound_#1, termthen_termmax_bound_#2, condition_#3, hyd_pressure_out__#read, hyd_pressure_out__#write, event = MeterValve_FailedLastPosition#failure, event = _#NoEvent);
+        MeterValve_FailedRandomPosition : MeterValve_FailedRandomPosition_fm_Mod(mode = NOMINAL, mode_is_MeterValve_FailedRandomPosition, termelse_termmin_bound_#1, termthen_termmax_bound_#2, hyd_pressure_out__#read, hyd_pressure_out__#write, event = MeterValve_FailedRandomPosition#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, MeterValve_FailedClosed#FAULT, MeterValve_FailedOpen#FAULT, MeterValve_FailedLastPosition#FAULT, MeterValve_FailedRandomPosition#FAULT};
+        hyd_pressure_out__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    IVAR
+        event : {_#NoEvent, MeterValve_FailedClosed#failure, MeterValve_FailedOpen#failure, MeterValve_FailedLastPosition#failure, MeterValve_FailedRandomPosition#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_MeterValve_FailedOpen#FAULT := ((mode = NOMINAL & MeterValve_FailedOpen.trans_trig_guard_#0) | (mode = MeterValve_FailedOpen#FAULT & MeterValve_FailedOpen.trans_trig_guard_#1));
+        cando_MeterValve_FailedLastPosition#FAULT := ((mode = NOMINAL & MeterValve_FailedLastPosition.trans_trig_guard_#0) | (mode = MeterValve_FailedLastPosition#FAULT & MeterValve_FailedLastPosition.trans_trig_guard_#1));
+        cando_MeterValve_FailedRandomPosition#FAULT := ((mode = NOMINAL & MeterValve_FailedRandomPosition.trans_trig_guard_#0) | (mode = MeterValve_FailedRandomPosition#FAULT & MeterValve_FailedRandomPosition.trans_trig_guard_#1));
+        cando_MeterValve_FailedClosed#FAULT := ((mode = NOMINAL & MeterValve_FailedClosed.trans_trig_guard_#0) | (mode = MeterValve_FailedClosed#FAULT & MeterValve_FailedClosed.trans_trig_guard_#1));
+        hyd_pressure_out_#fault := case
+mode = NOMINAL : hyd_pressure_out__#read;
+(mode_is_MeterValve_FailedRandomPosition | (mode_is_MeterValve_FailedLastPosition | (mode_is_MeterValve_FailedOpen | mode_is_MeterValve_FailedClosed))) : hyd_pressure_out__#write;
+TRUE : hyd_pressure_out__#read;
+esac;
+        mode_is_MeterValve_FailedClosed := mode = MeterValve_FailedClosed#FAULT;
+        mode_is_MeterValve_FailedOpen := mode = MeterValve_FailedOpen#FAULT;
+        mode_is_MeterValve_FailedLastPosition := mode = MeterValve_FailedLastPosition#FAULT;
+        mode_is_MeterValve_FailedRandomPosition := mode = MeterValve_FailedRandomPosition#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = MeterValve_FailedRandomPosition#FAULT & MeterValve_FailedRandomPosition.trans_trig_guard_#1) | (mode = NOMINAL & MeterValve_FailedRandomPosition.trans_trig_guard_#0)) : next(mode) = MeterValve_FailedRandomPosition#FAULT;
+((mode = MeterValve_FailedLastPosition#FAULT & MeterValve_FailedLastPosition.trans_trig_guard_#1) | (mode = NOMINAL & MeterValve_FailedLastPosition.trans_trig_guard_#0)) : next(mode) = MeterValve_FailedLastPosition#FAULT;
+((mode = MeterValve_FailedOpen#FAULT & MeterValve_FailedOpen.trans_trig_guard_#1) | (mode = NOMINAL & MeterValve_FailedOpen.trans_trig_guard_#0)) : next(mode) = MeterValve_FailedOpen#FAULT;
+((mode = MeterValve_FailedClosed#FAULT & MeterValve_FailedClosed.trans_trig_guard_#1) | (mode = NOMINAL & MeterValve_FailedClosed.trans_trig_guard_#0)) : next(mode) = MeterValve_FailedClosed#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_FailedClosed_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        MeterValve_FailedClosedEM : MeterValve_FailedClosed_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_FailedClosed_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_FailedOpen_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        MeterValve_FailedOpenEM : MeterValve_FailedOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_FailedOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_FailedLastPosition_fm_Mod(is_nominal, is_fault, else_term, then_term, condition, input, varout, _failure, ev_#NoEvent)
+    VAR
+        MeterValve_FailedLastPositionEM : MeterValve_FailedLastPosition_fm_EM_Mod(is_nominal, is_fault, else_term, then_term, condition, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_FailedLastPosition_fm_EM_Mod(is_nominal, is_fault, else_term, then_term, condition, input, varout)
+    VAR
+        CONDITION_AT_ENTRANCE : boolean;
+
+    ASSIGN
+        init(CONDITION_AT_ENTRANCE) := condition;
+        next(CONDITION_AT_ENTRANCE) := case
+is_nominal : next(condition);
+is_fault : CONDITION_AT_ENTRANCE;
+TRUE : CONDITION_AT_ENTRANCE;
+esac;
+
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) =  (CONDITION_AT_ENTRANCE ? next(then_term) : next(else_term)) );
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) =  (CONDITION_AT_ENTRANCE ? next(then_term) : next(else_term)) );
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_FailedRandomPosition_fm_Mod(is_nominal, is_fault, min_bound, max_bound, input, varout, _failure, ev_#NoEvent)
+    VAR
+        MeterValve_FailedRandomPositionEM : MeterValve_FailedRandomPosition_fm_EM_Mod(is_nominal, is_fault, min_bound, max_bound, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve_FailedRandomPosition_fm_EM_Mod(is_nominal, is_fault, min_bound, max_bound, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | (next(varout) >= next(min_bound) & next(varout) <= next(max_bound)));
+
+    TRANS (!(is_fault & next(is_fault)) | (next(varout) >= next(min_bound) & next(varout) <= next(max_bound)));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AlternateBrakeSystem(hyd_pressure_in, mechanical_pedal_pos_L, mechanical_pedal_pos_R, as_cmd_pair_1_5, as_cmd_pair_2_6, as_cmd_pair_3_7, as_cmd_pair_4_8)
+    VAR
+        antiskid_shutoff_valve_1 : AntiskidShutoffValve_#Extended(as_cmd_pair_1_5, hyd_pressure_in);
+        meter_valve_1 : MeterValve_#Extended(FALSE, mechanical_pedal_pos_L, antiskid_shutoff_valve_1.hyd_pressure_out);
+        antiskid_shutoff_valve_2 : AntiskidShutoffValve_#Extended(as_cmd_pair_2_6, hyd_pressure_in);
+        meter_valve_2 : MeterValve_#Extended(FALSE, mechanical_pedal_pos_L, antiskid_shutoff_valve_2.hyd_pressure_out);
+        antiskid_shutoff_valve_3 : AntiskidShutoffValve_#Extended(as_cmd_pair_3_7, hyd_pressure_in);
+        meter_valve_3 : MeterValve_#Extended(FALSE, mechanical_pedal_pos_R, antiskid_shutoff_valve_3.hyd_pressure_out);
+        antiskid_shutoff_valve_4 : AntiskidShutoffValve_#Extended(as_cmd_pair_4_8, hyd_pressure_in);
+        meter_valve_4 : MeterValve_#Extended(FALSE, mechanical_pedal_pos_R, antiskid_shutoff_valve_4.hyd_pressure_out);
+    DEFINE
+        hyd_pressure_out_4 := meter_valve_4.hyd_pressure_out;
+        hyd_pressure_out_3 := meter_valve_3.hyd_pressure_out;
+        hyd_pressure_out_2 := meter_valve_2.hyd_pressure_out;
+        hyd_pressure_out_1 := meter_valve_1.hyd_pressure_out;
+
+    LTLSPEC NAME apply_command_1_norm_guarantee := (TRUE ->  G (((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & hyd_pressure_in > 0) <-> hyd_pressure_out_1 > 0));
+
+    LTLSPEC NAME apply_command_4_norm_guarantee := (TRUE ->  G (((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & hyd_pressure_in > 0) <-> hyd_pressure_out_4 > 0));
+
+    LTLSPEC NAME apply_command_2_norm_guarantee := (TRUE ->  G (((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & hyd_pressure_in > 0) <-> hyd_pressure_out_2 > 0));
+
+    LTLSPEC NAME apply_command_3_norm_guarantee := (TRUE ->  G (((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & hyd_pressure_in > 0) <-> hyd_pressure_out_3 > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_#Extended(as_cmd, hyd_pressure_in)
+    VAR
+        AntiskidShutoffValve_faults : AntiskidShutoffValve_faults_FM_Mod(hyd_pressure_out_#nominal, 0, hyd_pressure_in, as_cmd);
+    VAR
+        hyd_pressure_out_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        hyd_pressure_out := AntiskidShutoffValve_faults.hyd_pressure_out_#fault;
+
+    ASSIGN
+        hyd_pressure_out_#nominal :=  (!as_cmd ? hyd_pressure_in : 0) ;
+    LTLSPEC NAME apply_command_norm_guarantee := (TRUE -> ( G ((hyd_pressure_in = 0 | as_cmd) -> hyd_pressure_out = 0) &  G ((hyd_pressure_in > 0 & !as_cmd) -> (hyd_pressure_out > 0 & hyd_pressure_out = hyd_pressure_in))));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_faults_FM_Mod(hyd_pressure_out__#read, termthen_termmin_bound_#1, termelse_termmax_bound_#2, condition_#3)
+    VAR
+        AntiskidShutoffValve_FailedClosed : AntiskidShutoffValve_FailedClosed_fm_Mod(mode = NOMINAL, mode_is_AntiskidShutoffValve_FailedClosed, termthen_termmin_bound_#1, hyd_pressure_out__#read, hyd_pressure_out__#write, event = AntiskidShutoffValve_FailedClosed#failure, event = _#NoEvent);
+        AntiskidShutoffValve_FailedOpen : AntiskidShutoffValve_FailedOpen_fm_Mod(mode = NOMINAL, mode_is_AntiskidShutoffValve_FailedOpen, termelse_termmax_bound_#2, hyd_pressure_out__#read, hyd_pressure_out__#write, event = AntiskidShutoffValve_FailedOpen#failure, event = _#NoEvent);
+        AntiskidShutoffValve_FailedLastPosition : AntiskidShutoffValve_FailedLastPosition_fm_Mod(mode = NOMINAL, mode_is_AntiskidShutoffValve_FailedLastPosition, termthen_termmin_bound_#1, termelse_termmax_bound_#2, condition_#3, hyd_pressure_out__#read, hyd_pressure_out__#write, event = AntiskidShutoffValve_FailedLastPosition#failure, event = _#NoEvent);
+        AntiskidShutoffValve_FailedRandomPosition : AntiskidShutoffValve_FailedRandomPosition_fm_Mod(mode = NOMINAL, mode_is_AntiskidShutoffValve_FailedRandomPosition, termthen_termmin_bound_#1, termelse_termmax_bound_#2, hyd_pressure_out__#read, hyd_pressure_out__#write, event = AntiskidShutoffValve_FailedRandomPosition#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, AntiskidShutoffValve_FailedClosed#FAULT, AntiskidShutoffValve_FailedOpen#FAULT, AntiskidShutoffValve_FailedLastPosition#FAULT, AntiskidShutoffValve_FailedRandomPosition#FAULT};
+        hyd_pressure_out__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    IVAR
+        event : {_#NoEvent, AntiskidShutoffValve_FailedClosed#failure, AntiskidShutoffValve_FailedOpen#failure, AntiskidShutoffValve_FailedLastPosition#failure, AntiskidShutoffValve_FailedRandomPosition#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_AntiskidShutoffValve_FailedRandomPosition#FAULT := ((mode = NOMINAL & AntiskidShutoffValve_FailedRandomPosition.trans_trig_guard_#0) | (mode = AntiskidShutoffValve_FailedRandomPosition#FAULT & AntiskidShutoffValve_FailedRandomPosition.trans_trig_guard_#1));
+        cando_AntiskidShutoffValve_FailedClosed#FAULT := ((mode = NOMINAL & AntiskidShutoffValve_FailedClosed.trans_trig_guard_#0) | (mode = AntiskidShutoffValve_FailedClosed#FAULT & AntiskidShutoffValve_FailedClosed.trans_trig_guard_#1));
+        cando_AntiskidShutoffValve_FailedOpen#FAULT := ((mode = NOMINAL & AntiskidShutoffValve_FailedOpen.trans_trig_guard_#0) | (mode = AntiskidShutoffValve_FailedOpen#FAULT & AntiskidShutoffValve_FailedOpen.trans_trig_guard_#1));
+        cando_AntiskidShutoffValve_FailedLastPosition#FAULT := ((mode = NOMINAL & AntiskidShutoffValve_FailedLastPosition.trans_trig_guard_#0) | (mode = AntiskidShutoffValve_FailedLastPosition#FAULT & AntiskidShutoffValve_FailedLastPosition.trans_trig_guard_#1));
+        hyd_pressure_out_#fault := case
+mode = NOMINAL : hyd_pressure_out__#read;
+(mode_is_AntiskidShutoffValve_FailedRandomPosition | (mode_is_AntiskidShutoffValve_FailedLastPosition | (mode_is_AntiskidShutoffValve_FailedOpen | mode_is_AntiskidShutoffValve_FailedClosed))) : hyd_pressure_out__#write;
+TRUE : hyd_pressure_out__#read;
+esac;
+        mode_is_AntiskidShutoffValve_FailedClosed := mode = AntiskidShutoffValve_FailedClosed#FAULT;
+        mode_is_AntiskidShutoffValve_FailedOpen := mode = AntiskidShutoffValve_FailedOpen#FAULT;
+        mode_is_AntiskidShutoffValve_FailedLastPosition := mode = AntiskidShutoffValve_FailedLastPosition#FAULT;
+        mode_is_AntiskidShutoffValve_FailedRandomPosition := mode = AntiskidShutoffValve_FailedRandomPosition#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = AntiskidShutoffValve_FailedRandomPosition#FAULT & AntiskidShutoffValve_FailedRandomPosition.trans_trig_guard_#1) | (mode = NOMINAL & AntiskidShutoffValve_FailedRandomPosition.trans_trig_guard_#0)) : next(mode) = AntiskidShutoffValve_FailedRandomPosition#FAULT;
+((mode = AntiskidShutoffValve_FailedLastPosition#FAULT & AntiskidShutoffValve_FailedLastPosition.trans_trig_guard_#1) | (mode = NOMINAL & AntiskidShutoffValve_FailedLastPosition.trans_trig_guard_#0)) : next(mode) = AntiskidShutoffValve_FailedLastPosition#FAULT;
+((mode = AntiskidShutoffValve_FailedOpen#FAULT & AntiskidShutoffValve_FailedOpen.trans_trig_guard_#1) | (mode = NOMINAL & AntiskidShutoffValve_FailedOpen.trans_trig_guard_#0)) : next(mode) = AntiskidShutoffValve_FailedOpen#FAULT;
+((mode = AntiskidShutoffValve_FailedClosed#FAULT & AntiskidShutoffValve_FailedClosed.trans_trig_guard_#1) | (mode = NOMINAL & AntiskidShutoffValve_FailedClosed.trans_trig_guard_#0)) : next(mode) = AntiskidShutoffValve_FailedClosed#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_FailedClosed_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        AntiskidShutoffValve_FailedClosedEM : AntiskidShutoffValve_FailedClosed_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_FailedClosed_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_FailedOpen_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        AntiskidShutoffValve_FailedOpenEM : AntiskidShutoffValve_FailedOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_FailedOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_FailedLastPosition_fm_Mod(is_nominal, is_fault, then_term, else_term, condition, input, varout, _failure, ev_#NoEvent)
+    VAR
+        AntiskidShutoffValve_FailedLastPositionEM : AntiskidShutoffValve_FailedLastPosition_fm_EM_Mod(is_nominal, is_fault, then_term, else_term, condition, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_FailedLastPosition_fm_EM_Mod(is_nominal, is_fault, then_term, else_term, condition, input, varout)
+    VAR
+        CONDITION_AT_ENTRANCE : boolean;
+
+    ASSIGN
+        init(CONDITION_AT_ENTRANCE) := condition;
+        next(CONDITION_AT_ENTRANCE) := case
+is_nominal : next(condition);
+is_fault : CONDITION_AT_ENTRANCE;
+TRUE : CONDITION_AT_ENTRANCE;
+esac;
+
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) =  (CONDITION_AT_ENTRANCE ? next(then_term) : next(else_term)) );
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) =  (CONDITION_AT_ENTRANCE ? next(then_term) : next(else_term)) );
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_FailedRandomPosition_fm_Mod(is_nominal, is_fault, min_bound, max_bound, input, varout, _failure, ev_#NoEvent)
+    VAR
+        AntiskidShutoffValve_FailedRandomPositionEM : AntiskidShutoffValve_FailedRandomPosition_fm_EM_Mod(is_nominal, is_fault, min_bound, max_bound, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve_FailedRandomPosition_fm_EM_Mod(is_nominal, is_fault, min_bound, max_bound, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | (next(varout) >= next(min_bound) & next(varout) <= next(max_bound)));
+
+    TRANS (!(is_fault & next(is_fault)) | (next(varout) >= next(min_bound) & next(varout) <= next(max_bound)));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE WheelBrake(normal_hyd_pressure_in, alternate_hyd_pressure_in)
+    VAR
+        normal_hydraulic_fuse : HydraulicFuse_#Extended(normal_hyd_pressure_in);
+        normal_hydraulic_piston : HydraulicPiston_#Extended(normal_hydraulic_fuse.hyd_pressure_out);
+        alternate_hydraulic_fuse : HydraulicFuse_#Extended(alternate_hyd_pressure_in);
+        alternate_hydraulic_piston : HydraulicPiston_#Extended(alternate_hydraulic_fuse.hyd_pressure_out);
+        brake_actuator : BrakeActuator_#Extended(normal_hydraulic_piston.force_out, alternate_hydraulic_piston.force_out);
+    DEFINE
+        braking_force := brake_actuator.braking_force;
+
+    LTLSPEC NAME supply_braking_force_norm_guarantee := (TRUE ->  G (braking_force > 0 <-> (normal_hyd_pressure_in > 0 | alternate_hyd_pressure_in > 0)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicFuse_#Extended(hyd_pressure_in)
+    VAR
+        HydraulicFuse_faults : HydraulicFuse_faults_FM_Mod(hyd_pressure_out_#nominal, 0);
+    VAR
+        hyd_pressure_out_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        hyd_pressure_out := HydraulicFuse_faults.hyd_pressure_out_#fault;
+
+    ASSIGN
+        hyd_pressure_out_#nominal := hyd_pressure_in;
+    LTLSPEC NAME fuse_behavior_norm_guarantee := (TRUE ->  G hyd_pressure_out = hyd_pressure_in);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicFuse_faults_FM_Mod(hyd_pressure_out__#read, term_#1)
+    VAR
+        HydraulicFuse_FailedClosed : HydraulicFuse_FailedClosed_fm_Mod(mode = NOMINAL, mode_is_HydraulicFuse_FailedClosed, term_#1, hyd_pressure_out__#read, hyd_pressure_out__#write, event = HydraulicFuse_FailedClosed#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, HydraulicFuse_FailedClosed#FAULT};
+        hyd_pressure_out__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    IVAR
+        event : {_#NoEvent, HydraulicFuse_FailedClosed#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_HydraulicFuse_FailedClosed#FAULT := ((mode = NOMINAL & HydraulicFuse_FailedClosed.trans_trig_guard_#0) | (mode = HydraulicFuse_FailedClosed#FAULT & HydraulicFuse_FailedClosed.trans_trig_guard_#1));
+        hyd_pressure_out_#fault := case
+mode = NOMINAL : hyd_pressure_out__#read;
+mode_is_HydraulicFuse_FailedClosed : hyd_pressure_out__#write;
+TRUE : hyd_pressure_out__#read;
+esac;
+        mode_is_HydraulicFuse_FailedClosed := mode = HydraulicFuse_FailedClosed#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = HydraulicFuse_FailedClosed#FAULT & HydraulicFuse_FailedClosed.trans_trig_guard_#1) | (mode = NOMINAL & HydraulicFuse_FailedClosed.trans_trig_guard_#0)) : next(mode) = HydraulicFuse_FailedClosed#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicFuse_FailedClosed_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        HydraulicFuse_FailedClosedEM : HydraulicFuse_FailedClosed_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicFuse_FailedClosed_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPiston_#Extended(hyd_pressure_in)
+    VAR
+        HydraulicPiston_faults : HydraulicPiston_faults_FM_Mod(force_out_#nominal, 0, 10);
+    VAR
+        force_out_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        force_out := HydraulicPiston_faults.force_out_#fault;
+
+    ASSIGN
+        force_out_#nominal := hyd_pressure_in;
+    LTLSPEC NAME create_force_norm_guarantee := (TRUE ->  G hyd_pressure_in = force_out);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPiston_faults_FM_Mod(force_out__#read, term_#1, term_#2)
+    VAR
+        HydraulicPiston_StuckAtLastPosition : HydraulicPiston_StuckAtLastPosition_fm_Mod(mode = NOMINAL, mode_is_HydraulicPiston_StuckAtLastPosition, force_out__#read, force_out__#write, event = HydraulicPiston_StuckAtLastPosition#failure, event = _#NoEvent);
+        HydraulicPiston_FailedFullOff : HydraulicPiston_FailedFullOff_fm_Mod(mode = NOMINAL, mode_is_HydraulicPiston_FailedFullOff, term_#1, force_out__#read, force_out__#write, event = HydraulicPiston_FailedFullOff#failure, event = _#NoEvent);
+        HydraulicPiston_FailedFullOpen : HydraulicPiston_FailedFullOpen_fm_Mod(mode = NOMINAL, mode_is_HydraulicPiston_FailedFullOpen, term_#2, force_out__#read, force_out__#write, event = HydraulicPiston_FailedFullOpen#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, HydraulicPiston_StuckAtLastPosition#FAULT, HydraulicPiston_FailedFullOff#FAULT, HydraulicPiston_FailedFullOpen#FAULT};
+        force_out__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    IVAR
+        event : {_#NoEvent, HydraulicPiston_StuckAtLastPosition#failure, HydraulicPiston_FailedFullOff#failure, HydraulicPiston_FailedFullOpen#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_HydraulicPiston_FailedFullOff#FAULT := ((mode = NOMINAL & HydraulicPiston_FailedFullOff.trans_trig_guard_#0) | (mode = HydraulicPiston_FailedFullOff#FAULT & HydraulicPiston_FailedFullOff.trans_trig_guard_#1));
+        cando_HydraulicPiston_FailedFullOpen#FAULT := ((mode = NOMINAL & HydraulicPiston_FailedFullOpen.trans_trig_guard_#0) | (mode = HydraulicPiston_FailedFullOpen#FAULT & HydraulicPiston_FailedFullOpen.trans_trig_guard_#1));
+        cando_HydraulicPiston_StuckAtLastPosition#FAULT := ((mode = NOMINAL & HydraulicPiston_StuckAtLastPosition.trans_trig_guard_#0) | (mode = HydraulicPiston_StuckAtLastPosition#FAULT & HydraulicPiston_StuckAtLastPosition.trans_trig_guard_#1));
+        force_out_#fault := case
+mode = NOMINAL : force_out__#read;
+(mode_is_HydraulicPiston_FailedFullOpen | (mode_is_HydraulicPiston_FailedFullOff | mode_is_HydraulicPiston_StuckAtLastPosition)) : force_out__#write;
+TRUE : force_out__#read;
+esac;
+        mode_is_HydraulicPiston_StuckAtLastPosition := mode = HydraulicPiston_StuckAtLastPosition#FAULT;
+        mode_is_HydraulicPiston_FailedFullOff := mode = HydraulicPiston_FailedFullOff#FAULT;
+        mode_is_HydraulicPiston_FailedFullOpen := mode = HydraulicPiston_FailedFullOpen#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = HydraulicPiston_FailedFullOpen#FAULT & HydraulicPiston_FailedFullOpen.trans_trig_guard_#1) | (mode = NOMINAL & HydraulicPiston_FailedFullOpen.trans_trig_guard_#0)) : next(mode) = HydraulicPiston_FailedFullOpen#FAULT;
+((mode = HydraulicPiston_FailedFullOff#FAULT & HydraulicPiston_FailedFullOff.trans_trig_guard_#1) | (mode = NOMINAL & HydraulicPiston_FailedFullOff.trans_trig_guard_#0)) : next(mode) = HydraulicPiston_FailedFullOff#FAULT;
+((mode = HydraulicPiston_StuckAtLastPosition#FAULT & HydraulicPiston_StuckAtLastPosition.trans_trig_guard_#1) | (mode = NOMINAL & HydraulicPiston_StuckAtLastPosition.trans_trig_guard_#0)) : next(mode) = HydraulicPiston_StuckAtLastPosition#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPiston_StuckAtLastPosition_fm_Mod(is_nominal, is_fault, input, varout, _failure, ev_#NoEvent)
+    VAR
+        HydraulicPiston_StuckAtLastPositionEM : HydraulicPiston_StuckAtLastPosition_fm_EM_Mod(is_nominal, is_fault, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPiston_StuckAtLastPosition_fm_EM_Mod(is_nominal, is_fault, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = input);
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPiston_FailedFullOff_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        HydraulicPiston_FailedFullOffEM : HydraulicPiston_FailedFullOff_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPiston_FailedFullOff_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPiston_FailedFullOpen_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        HydraulicPiston_FailedFullOpenEM : HydraulicPiston_FailedFullOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPiston_FailedFullOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeActuator_#Extended(normal_force_in, alternate_force_in)
+    VAR
+        BrakeActuator_faults : BrakeActuator_faults_FM_Mod(braking_force_#nominal, 0, 10);
+    VAR
+        braking_force_#nominal : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        braking_force := BrakeActuator_faults.braking_force_#fault;
+
+    ASSIGN
+        braking_force_#nominal :=  (alternate_force_in >= normal_force_in ? alternate_force_in : normal_force_in) ;
+    LTLSPEC NAME transform_force_norm_guarantee := (TRUE ->  G ((normal_force_in > 0 | alternate_force_in > 0) <-> braking_force > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeActuator_faults_FM_Mod(braking_force__#read, term_#1, term_#2)
+    VAR
+        BrakeActuator_StuckAtLastPosition : BrakeActuator_StuckAtLastPosition_fm_Mod(mode = NOMINAL, mode_is_BrakeActuator_StuckAtLastPosition, braking_force__#read, braking_force__#write, event = BrakeActuator_StuckAtLastPosition#failure, event = _#NoEvent);
+        BrakeActuator_FailedFullOff : BrakeActuator_FailedFullOff_fm_Mod(mode = NOMINAL, mode_is_BrakeActuator_FailedFullOff, term_#1, braking_force__#read, braking_force__#write, event = BrakeActuator_FailedFullOff#failure, event = _#NoEvent);
+        BrakeActuator_FailedFullOpen : BrakeActuator_FailedFullOpen_fm_Mod(mode = NOMINAL, mode_is_BrakeActuator_FailedFullOpen, term_#2, braking_force__#read, braking_force__#write, event = BrakeActuator_FailedFullOpen#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, BrakeActuator_StuckAtLastPosition#FAULT, BrakeActuator_FailedFullOff#FAULT, BrakeActuator_FailedFullOpen#FAULT};
+        braking_force__#write : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    IVAR
+        event : {_#NoEvent, BrakeActuator_StuckAtLastPosition#failure, BrakeActuator_FailedFullOff#failure, BrakeActuator_FailedFullOpen#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_BrakeActuator_StuckAtLastPosition#FAULT := ((mode = NOMINAL & BrakeActuator_StuckAtLastPosition.trans_trig_guard_#0) | (mode = BrakeActuator_StuckAtLastPosition#FAULT & BrakeActuator_StuckAtLastPosition.trans_trig_guard_#1));
+        cando_BrakeActuator_FailedFullOff#FAULT := ((mode = NOMINAL & BrakeActuator_FailedFullOff.trans_trig_guard_#0) | (mode = BrakeActuator_FailedFullOff#FAULT & BrakeActuator_FailedFullOff.trans_trig_guard_#1));
+        cando_BrakeActuator_FailedFullOpen#FAULT := ((mode = NOMINAL & BrakeActuator_FailedFullOpen.trans_trig_guard_#0) | (mode = BrakeActuator_FailedFullOpen#FAULT & BrakeActuator_FailedFullOpen.trans_trig_guard_#1));
+        braking_force_#fault := case
+mode = NOMINAL : braking_force__#read;
+(mode_is_BrakeActuator_FailedFullOpen | (mode_is_BrakeActuator_FailedFullOff | mode_is_BrakeActuator_StuckAtLastPosition)) : braking_force__#write;
+TRUE : braking_force__#read;
+esac;
+        mode_is_BrakeActuator_StuckAtLastPosition := mode = BrakeActuator_StuckAtLastPosition#FAULT;
+        mode_is_BrakeActuator_FailedFullOff := mode = BrakeActuator_FailedFullOff#FAULT;
+        mode_is_BrakeActuator_FailedFullOpen := mode = BrakeActuator_FailedFullOpen#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = BrakeActuator_FailedFullOpen#FAULT & BrakeActuator_FailedFullOpen.trans_trig_guard_#1) | (mode = NOMINAL & BrakeActuator_FailedFullOpen.trans_trig_guard_#0)) : next(mode) = BrakeActuator_FailedFullOpen#FAULT;
+((mode = BrakeActuator_FailedFullOff#FAULT & BrakeActuator_FailedFullOff.trans_trig_guard_#1) | (mode = NOMINAL & BrakeActuator_FailedFullOff.trans_trig_guard_#0)) : next(mode) = BrakeActuator_FailedFullOff#FAULT;
+((mode = BrakeActuator_StuckAtLastPosition#FAULT & BrakeActuator_StuckAtLastPosition.trans_trig_guard_#1) | (mode = NOMINAL & BrakeActuator_StuckAtLastPosition.trans_trig_guard_#0)) : next(mode) = BrakeActuator_StuckAtLastPosition#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeActuator_StuckAtLastPosition_fm_Mod(is_nominal, is_fault, input, varout, _failure, ev_#NoEvent)
+    VAR
+        BrakeActuator_StuckAtLastPositionEM : BrakeActuator_StuckAtLastPosition_fm_EM_Mod(is_nominal, is_fault, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeActuator_StuckAtLastPosition_fm_EM_Mod(is_nominal, is_fault, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = input);
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeActuator_FailedFullOff_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        BrakeActuator_FailedFullOffEM : BrakeActuator_FailedFullOff_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeActuator_FailedFullOff_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeActuator_FailedFullOpen_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        BrakeActuator_FailedFullOpenEM : BrakeActuator_FailedFullOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeActuator_FailedFullOpen_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Wheel_#Extended(braking_force, ground_speed)
+    VAR
+        Wheel_faults : Wheel_faults_FM_Mod(status_#nominal, stopped);
+    VAR
+        status_#nominal : {stopped, rolling};
+
+    DEFINE
+        skidding_threshold := 8;
+        ground_speed_threshold := 2;
+        status := Wheel_faults.status_#fault;
+
+    ASSIGN
+        init(status_#nominal) := case
+ground_speed > 0 : rolling;
+ground_speed = 0 : stopped;
+TRUE : stopped;
+esac;
+        next(status_#nominal) := case
+(braking_force > skidding_threshold & ground_speed >= ground_speed_threshold) : stopped;
+(braking_force <= skidding_threshold & ground_speed >= ground_speed_threshold) : rolling;
+ground_speed < ground_speed_threshold : stopped;
+TRUE : status;
+esac;
+
+    LTLSPEC NAME braking_behavior_norm_guarantee := (TRUE -> (( G ((braking_force > 8 & ground_speed > 1) -> next(status) = stopped) &  G ((braking_force <= 8 & ground_speed > 1) -> next(status) = rolling)) &  G (ground_speed < 2 -> next(status) = stopped)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Wheel_faults_FM_Mod(status__#read, term_#1)
+    VAR
+        Wheel_NoRotation : Wheel_NoRotation_fm_Mod(mode = NOMINAL, mode_is_Wheel_NoRotation, term_#1, status__#read, status__#write, event = Wheel_NoRotation#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, Wheel_NoRotation#FAULT};
+        status__#write : {stopped, rolling};
+
+    IVAR
+        event : {_#NoEvent, Wheel_NoRotation#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_Wheel_NoRotation#FAULT := ((mode = NOMINAL & Wheel_NoRotation.trans_trig_guard_#0) | (mode = Wheel_NoRotation#FAULT & Wheel_NoRotation.trans_trig_guard_#1));
+        status_#fault := case
+mode = NOMINAL : status__#read;
+mode_is_Wheel_NoRotation : status__#write;
+TRUE : status__#read;
+esac;
+        mode_is_Wheel_NoRotation := mode = Wheel_NoRotation#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = Wheel_NoRotation#FAULT & Wheel_NoRotation.trans_trig_guard_#1) | (mode = NOMINAL & Wheel_NoRotation.trans_trig_guard_#0)) : next(mode) = Wheel_NoRotation#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Wheel_NoRotation_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        Wheel_NoRotationEM : Wheel_NoRotation_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Wheel_NoRotation_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AdditionGate(in_1, in_2)
+    VAR
+        out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        out :=  (in_1 + in_2 < 10 ? in_1 + in_2 : 10) ;
+    LTLSPEC NAME addition_behavior_norm_guarantee := (TRUE -> ( G (out = 10 <-> in_1 + in_2 >= 10) &  G (out = in_1 + in_2 <-> in_1 + in_2 <= 10)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Sensor_#Extended(wheel_status)
+    VAR
+        Sensor_faults : Sensor_faults_FM_Mod(wheel_rolling_#nominal, FALSE);
+    VAR
+        wheel_rolling_#nominal : boolean;
+
+    DEFINE
+        wheel_rolling := Sensor_faults.wheel_rolling_#fault;
+
+    ASSIGN
+        wheel_rolling_#nominal := wheel_status = rolling;
+    LTLSPEC NAME sensor_translation_norm_guarantee := (TRUE ->  G (wheel_rolling <-> wheel_status = rolling));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Sensor_faults_FM_Mod(wheel_rolling__#read, term_#1)
+    VAR
+        Sensor_ErroneousData : Sensor_ErroneousData_fm_Mod(mode = NOMINAL, mode_is_Sensor_ErroneousData, wheel_rolling__#read, wheel_rolling__#write, event = Sensor_ErroneousData#failure, event = _#NoEvent);
+        Sensor_NoData : Sensor_NoData_fm_Mod(mode = NOMINAL, mode_is_Sensor_NoData, term_#1, wheel_rolling__#read, wheel_rolling__#write, event = Sensor_NoData#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, Sensor_ErroneousData#FAULT, Sensor_NoData#FAULT};
+        wheel_rolling__#write : boolean;
+
+    IVAR
+        event : {_#NoEvent, Sensor_ErroneousData#failure, Sensor_NoData#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_Sensor_ErroneousData#FAULT := ((mode = NOMINAL & Sensor_ErroneousData.trans_trig_guard_#0) | (mode = Sensor_ErroneousData#FAULT & Sensor_ErroneousData.trans_trig_guard_#1));
+        cando_Sensor_NoData#FAULT := ((mode = NOMINAL & Sensor_NoData.trans_trig_guard_#0) | (mode = Sensor_NoData#FAULT & Sensor_NoData.trans_trig_guard_#1));
+        wheel_rolling_#fault := case
+mode = NOMINAL : wheel_rolling__#read;
+(mode_is_Sensor_NoData | mode_is_Sensor_ErroneousData) : wheel_rolling__#write;
+TRUE : wheel_rolling__#read;
+esac;
+        mode_is_Sensor_ErroneousData := mode = Sensor_ErroneousData#FAULT;
+        mode_is_Sensor_NoData := mode = Sensor_NoData#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = Sensor_NoData#FAULT & Sensor_NoData.trans_trig_guard_#1) | (mode = NOMINAL & Sensor_NoData.trans_trig_guard_#0)) : next(mode) = Sensor_NoData#FAULT;
+((mode = Sensor_ErroneousData#FAULT & Sensor_ErroneousData.trans_trig_guard_#1) | (mode = NOMINAL & Sensor_ErroneousData.trans_trig_guard_#0)) : next(mode) = Sensor_ErroneousData#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Sensor_ErroneousData_fm_Mod(is_nominal, is_fault, input, varout, _failure, ev_#NoEvent)
+    VAR
+        Sensor_ErroneousDataEM : Sensor_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Sensor_ErroneousData_fm_EM_Mod(is_nominal, is_fault, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_fault & next(is_fault)) | (next(varout) = FALSE | next(varout) = TRUE));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Sensor_NoData_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        Sensor_NoDataEM : Sensor_NoData_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Sensor_NoData_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SensorPedalPosition_#Extended(mechanical_pedal_pos)
+    VAR
+        SensorPedalPosition_faults : SensorPedalPosition_faults_FM_Mod(electrical_pedal_pos_#nominal, !mechanical_pedal_pos, FALSE);
+    VAR
+        electrical_pedal_pos_#nominal : boolean;
+
+    DEFINE
+        electrical_pedal_pos := SensorPedalPosition_faults.electrical_pedal_pos_#fault;
+
+    ASSIGN
+        electrical_pedal_pos_#nominal := mechanical_pedal_pos;
+    LTLSPEC NAME pedal_position_translation_norm_guarantee := (TRUE ->  G (mechanical_pedal_pos <-> electrical_pedal_pos));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SensorPedalPosition_faults_FM_Mod(electrical_pedal_pos__#read, term_#1, term_#2)
+    VAR
+        SensorPedalPosition_ErroneousData : SensorPedalPosition_ErroneousData_fm_Mod(mode = NOMINAL, mode_is_SensorPedalPosition_ErroneousData, term_#1, electrical_pedal_pos__#read, electrical_pedal_pos__#write, event = SensorPedalPosition_ErroneousData#failure, event = _#NoEvent);
+        SensorPedalPosition_NoData : SensorPedalPosition_NoData_fm_Mod(mode = NOMINAL, mode_is_SensorPedalPosition_NoData, term_#2, electrical_pedal_pos__#read, electrical_pedal_pos__#write, event = SensorPedalPosition_NoData#failure, event = _#NoEvent);
+    VAR
+        mode : {NOMINAL, SensorPedalPosition_ErroneousData#FAULT, SensorPedalPosition_NoData#FAULT};
+        electrical_pedal_pos__#write : boolean;
+
+    IVAR
+        event : {_#NoEvent, SensorPedalPosition_ErroneousData#failure, SensorPedalPosition_NoData#failure};
+
+    DEFINE
+        NoEvent := event = _#NoEvent;
+        cando_SensorPedalPosition_ErroneousData#FAULT := ((mode = NOMINAL & SensorPedalPosition_ErroneousData.trans_trig_guard_#0) | (mode = SensorPedalPosition_ErroneousData#FAULT & SensorPedalPosition_ErroneousData.trans_trig_guard_#1));
+        cando_SensorPedalPosition_NoData#FAULT := ((mode = NOMINAL & SensorPedalPosition_NoData.trans_trig_guard_#0) | (mode = SensorPedalPosition_NoData#FAULT & SensorPedalPosition_NoData.trans_trig_guard_#1));
+        electrical_pedal_pos_#fault := case
+mode = NOMINAL : electrical_pedal_pos__#read;
+(mode_is_SensorPedalPosition_NoData | mode_is_SensorPedalPosition_ErroneousData) : electrical_pedal_pos__#write;
+TRUE : electrical_pedal_pos__#read;
+esac;
+        mode_is_SensorPedalPosition_ErroneousData := mode = SensorPedalPosition_ErroneousData#FAULT;
+        mode_is_SensorPedalPosition_NoData := mode = SensorPedalPosition_NoData#FAULT;
+
+    INIT mode = NOMINAL;
+
+    TRANS case
+((mode = SensorPedalPosition_NoData#FAULT & SensorPedalPosition_NoData.trans_trig_guard_#1) | (mode = NOMINAL & SensorPedalPosition_NoData.trans_trig_guard_#0)) : next(mode) = SensorPedalPosition_NoData#FAULT;
+((mode = SensorPedalPosition_ErroneousData#FAULT & SensorPedalPosition_ErroneousData.trans_trig_guard_#1) | (mode = NOMINAL & SensorPedalPosition_ErroneousData.trans_trig_guard_#0)) : next(mode) = SensorPedalPosition_ErroneousData#FAULT;
+TRUE : (next(mode) = mode & NoEvent);
+esac;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SensorPedalPosition_ErroneousData_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        SensorPedalPosition_ErroneousDataEM : SensorPedalPosition_ErroneousData_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SensorPedalPosition_ErroneousData_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SensorPedalPosition_NoData_fm_Mod(is_nominal, is_fault, term, input, varout, _failure, ev_#NoEvent)
+    VAR
+        SensorPedalPosition_NoDataEM : SensorPedalPosition_NoData_fm_EM_Mod(is_nominal, is_fault, term, input, varout);
+    DEFINE
+        failure := _failure;
+        NoEvent := ev_#NoEvent;
+        trans_trig_guard_#0 := failure;
+        trans_trig_guard_#1 := NoEvent;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SensorPedalPosition_NoData_fm_EM_Mod(is_nominal, is_fault, term, input, varout)
+    TRANS (!(!is_fault & next(is_fault)) | next(varout) = next(term));
+
+    TRANS (!(is_fault & next(is_fault)) | next(varout) = varout);
+
+    TRANS (!(is_nominal & next(is_nominal)) | next(varout) = varout);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MasterCC#
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

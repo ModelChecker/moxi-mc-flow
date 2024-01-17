@@ -1,0 +1,44 @@
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            Wheel_inst : Wheel(braking_force, ground_speed);
+        VAR
+            braking_force : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+            ground_speed : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        DEFINE
+            status := Wheel_inst.status;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE Wheel(braking_force, ground_speed)
+        VAR
+            status : {stopped, rolling};
+            LTLSPEC NAME braking_behavior_norm_guarantee := (TRUE -> (( G ((braking_force > 8 & ground_speed > 1) -> next(status) = stopped) &  G ((braking_force <= 8 & ground_speed > 1) -> next(status) = rolling)) &  G (ground_speed < 2 -> next(status) = stopped)));
+
+	DEFINE
+	skidding_threshold:=8;
+	ground_speed_threshold:=2;
+
+        ASSIGN
+	init(status) :=
+ 	case 
+  		(ground_speed > 0) : rolling;
+  		(ground_speed = 0) : stopped;
+ 		 TRUE : stopped;
+ 	esac;
+
+        next(status) :=
+	case
+		braking_force>skidding_threshold & ground_speed>=ground_speed_threshold :stopped;
+		braking_force<=skidding_threshold & ground_speed>=ground_speed_threshold :rolling;
+		ground_speed<ground_speed_threshold :stopped;
+		TRUE : status;
+	esac;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================

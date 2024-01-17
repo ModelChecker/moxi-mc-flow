@@ -1,0 +1,28 @@
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            AlternateCommandCalculator_inst : AlternateCommandCalculator(power, as_cmd_in_1, as_cmd_in_2);
+        VAR
+            power : boolean;
+            as_cmd_in_1 : boolean;
+            as_cmd_in_2 : boolean;
+        DEFINE
+            as_cmd_out := AlternateCommandCalculator_inst.as_cmd_out;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE AlternateCommandCalculator(power, as_cmd_in_1, as_cmd_in_2)
+        VAR
+            as_cmd_out : boolean;
+            LTLSPEC NAME alternate_command_computation_norm_guarantee := (TRUE ->  G ((power & (as_cmd_in_1 | as_cmd_in_2)) <-> as_cmd_out));
+
+        ASSIGN
+            as_cmd_out := (power & (as_cmd_in_1 | as_cmd_in_2));
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================

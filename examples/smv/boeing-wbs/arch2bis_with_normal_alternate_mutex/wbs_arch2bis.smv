@@ -1,0 +1,851 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        wbs_arch2bis_inst : wbs_arch2bis(mechanical_pedal_pos_L, mechanical_pedal_pos_R, ground_speed, power_1, power_2, pump_power_1, pump_power_2, hydraulic_supply_1, hydraulic_supply_2);
+    VAR
+        mechanical_pedal_pos_L : boolean;
+        mechanical_pedal_pos_R : boolean;
+        ground_speed : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        power_1 : boolean;
+        power_2 : boolean;
+        pump_power_1 : boolean;
+        pump_power_2 : boolean;
+        hydraulic_supply_1 : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        hydraulic_supply_2 : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    DEFINE
+        accumulator_pressure_display := wbs_arch2bis_inst.accumulator_pressure_display;
+        wheel_status_1 := wbs_arch2bis_inst.wheel_status_1;
+        wheel_status_2 := wbs_arch2bis_inst.wheel_status_2;
+        wheel_status_3 := wbs_arch2bis_inst.wheel_status_3;
+        wheel_status_4 := wbs_arch2bis_inst.wheel_status_4;
+        wheel_status_5 := wbs_arch2bis_inst.wheel_status_5;
+        wheel_status_6 := wbs_arch2bis_inst.wheel_status_6;
+        wheel_status_7 := wbs_arch2bis_inst.wheel_status_7;
+        wheel_status_8 := wbs_arch2bis_inst.wheel_status_8;
+        wheel_braking_force_1 := wbs_arch2bis_inst.wheel_braking_force_1;
+        wheel_braking_force_2 := wbs_arch2bis_inst.wheel_braking_force_2;
+        wheel_braking_force_3 := wbs_arch2bis_inst.wheel_braking_force_3;
+        wheel_braking_force_4 := wbs_arch2bis_inst.wheel_braking_force_4;
+        wheel_braking_force_5 := wbs_arch2bis_inst.wheel_braking_force_5;
+        wheel_braking_force_6 := wbs_arch2bis_inst.wheel_braking_force_6;
+        wheel_braking_force_7 := wbs_arch2bis_inst.wheel_braking_force_7;
+        wheel_braking_force_8 := wbs_arch2bis_inst.wheel_braking_force_8;
+        control_system_validity := wbs_arch2bis_inst.control_system_validity;
+        green_pressure_in_selector_valve := wbs_arch2bis_inst.green_pressure_in_selector_valve;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE wbs_arch2bis(mechanical_pedal_pos_L, mechanical_pedal_pos_R, ground_speed, power_1, power_2, pump_power_1, pump_power_2, hydraulic_supply_1, hydraulic_supply_2)
+    VAR
+        ctrl_sys : ControlSystem(sensor_pedal_L.electrical_pedal_pos, sensor_pedal_R.electrical_pedal_pos, ground_speed, power_1, power_2, sensor_1.wheel_rolling, sensor_2.wheel_rolling, sensor_3.wheel_rolling, sensor_4.wheel_rolling, sensor_5.wheel_rolling, sensor_6.wheel_rolling, sensor_7.wheel_rolling, sensor_8.wheel_rolling);
+        phys_sys : PhysicalSystem(hydraulic_supply_1, hydraulic_supply_2, pump_power_1, pump_power_2, ctrl_sys.system_validity, ctrl_sys.brake_as_cmd_1, ctrl_sys.brake_as_cmd_2, ctrl_sys.brake_as_cmd_3, ctrl_sys.brake_as_cmd_4, ctrl_sys.brake_as_cmd_5, ctrl_sys.brake_as_cmd_6, ctrl_sys.brake_as_cmd_7, ctrl_sys.brake_as_cmd_8, ctrl_sys.as_cmd_pair_1_5, ctrl_sys.as_cmd_pair_2_6, ctrl_sys.as_cmd_pair_3_7, ctrl_sys.as_cmd_pair_4_8, ground_speed, mechanical_pedal_pos_L, mechanical_pedal_pos_R);
+        sensor_1 : Sensor(phys_sys.wheel_status_1);
+        sensor_2 : Sensor(phys_sys.wheel_status_2);
+        sensor_3 : Sensor(phys_sys.wheel_status_3);
+        sensor_4 : Sensor(phys_sys.wheel_status_4);
+        sensor_5 : Sensor(phys_sys.wheel_status_5);
+        sensor_6 : Sensor(phys_sys.wheel_status_6);
+        sensor_7 : Sensor(phys_sys.wheel_status_7);
+        sensor_8 : Sensor(phys_sys.wheel_status_8);
+        sensor_pedal_L : SensorPedalPosition(mechanical_pedal_pos_L);
+        sensor_pedal_R : SensorPedalPosition(mechanical_pedal_pos_R);
+    DEFINE
+        green_pressure_in_selector_valve := phys_sys.green_pressure_in_selector_valve;
+        accumulator_pressure_display := phys_sys.accumulator_pressure_display;
+        wheel_status_1 := phys_sys.wheel_status_1;
+        wheel_status_2 := phys_sys.wheel_status_2;
+        wheel_status_3 := phys_sys.wheel_status_3;
+        wheel_status_4 := phys_sys.wheel_status_4;
+        wheel_status_5 := phys_sys.wheel_status_5;
+        wheel_status_6 := phys_sys.wheel_status_6;
+        wheel_status_7 := phys_sys.wheel_status_7;
+        wheel_status_8 := phys_sys.wheel_status_8;
+        control_system_validity := ctrl_sys.system_validity;
+        wheel_braking_force_1 := phys_sys.wheel_braking_force_1;
+        wheel_braking_force_2 := phys_sys.wheel_braking_force_2;
+        wheel_braking_force_3 := phys_sys.wheel_braking_force_3;
+        wheel_braking_force_4 := phys_sys.wheel_braking_force_4;
+        wheel_braking_force_5 := phys_sys.wheel_braking_force_5;
+        wheel_braking_force_6 := phys_sys.wheel_braking_force_6;
+        wheel_braking_force_7 := phys_sys.wheel_braking_force_7;
+        wheel_braking_force_8 := phys_sys.wheel_braking_force_8;
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_8_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_R & ground_speed > 0) & wheel_braking_force_8 > 0) & wheel_status_8 = rolling));
+
+    LTLSPEC NAME braking_wheel_7_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_7 > 0 -> (mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_5_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & ground_speed > 0) & wheel_braking_force_5 > 0) & wheel_status_5 = rolling));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_6_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_2_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & ground_speed > 0) & wheel_braking_force_2 > 0) & wheel_status_2 = rolling));
+
+    LTLSPEC NAME braking_wheel_4_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_4 > 0 -> (mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_with_all_wheels_locked_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & (((((((wheel_braking_force_1 > 0 & wheel_braking_force_2 > 0) & wheel_braking_force_3 > 0) & wheel_braking_force_4 > 0) & wheel_braking_force_5 > 0) & wheel_braking_force_6 > 0) & wheel_braking_force_7 > 0) & wheel_braking_force_8 > 0)) & (((((((wheel_status_1 = stopped & wheel_status_2 = stopped) & wheel_status_3 = stopped) & wheel_status_4 = stopped) & wheel_status_5 = stopped) & wheel_status_6 = stopped) & wheel_status_7 = stopped) & wheel_status_8 = stopped)) & ground_speed > 0));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_3_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0));
+
+    LTLSPEC NAME never_loss_of_all_wheel_braking_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & (((((((!((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0) & !((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0)) & !((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0)) & !((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0)) & !((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0)) & !((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0)) & !((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0)) & !((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0))));
+
+    LTLSPEC NAME braking_wheel_1_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_1 > 0 -> (mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME asymmetrical_left_braking_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (((((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0) & ((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0)) & ((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0)) & ((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0)));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_8_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_6_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & ground_speed > 0) & wheel_braking_force_6 > 0) & wheel_status_6 = rolling));
+
+    LTLSPEC NAME braking_wheel_6_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_6 > 0 -> (mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_3_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_R & ground_speed > 0) & wheel_braking_force_3 > 0) & wheel_status_3 = rolling));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_5_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_all_wheels_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & (((((((wheel_braking_force_1 > 0 & wheel_braking_force_2 > 0) & wheel_braking_force_3 > 0) & wheel_braking_force_4 > 0) & wheel_braking_force_5 > 0) & wheel_braking_force_6 > 0) & wheel_braking_force_7 > 0) & wheel_braking_force_8 > 0)) & ground_speed > 0));
+
+    LTLSPEC NAME braking_wheel_3_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_3 > 0 -> (mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_asymmetric_loss_of_wheel_braking_right_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & (count(((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0)) = 4 & count(((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0)) = 0)));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_2_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0));
+
+    LTLSPEC NAME asymmetrical_right_braking_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (((((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0) & ((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0)) & ((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0)) & ((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0)));
+
+    LTLSPEC NAME braking_wheel_8_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_8 > 0 -> (mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_7_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_R & ground_speed > 0) & wheel_braking_force_7 > 0) & wheel_status_7 = rolling));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_7_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_4_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_R & ground_speed > 0) & wheel_braking_force_4 > 0) & wheel_status_4 = rolling));
+
+    LTLSPEC NAME braking_wheel_5_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_5 > 0 -> (mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME never_inadvertent_braking_of_wheel_1_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((!mechanical_pedal_pos_L & ground_speed > 0) & wheel_braking_force_1 > 0) & wheel_status_1 = rolling));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_4_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0));
+
+    LTLSPEC NAME never_asymmetric_loss_of_wheel_braking_left_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & (count(((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_2 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_5 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_5 = rolling & wheel_status_1 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_5 > 0), ((mechanical_pedal_pos_L & ((((wheel_status_6 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_6 = rolling & wheel_status_2 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_6 > 0)) = 0 & count(((mechanical_pedal_pos_R & ((((wheel_status_3 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_3 = rolling & wheel_status_7 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_3 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_4 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_4 = rolling & wheel_status_8 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_4 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_7 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_7 = rolling & wheel_status_3 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_7 > 0), ((mechanical_pedal_pos_R & ((((wheel_status_8 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_8 = rolling & wheel_status_4 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_8 > 0)) = 4)));
+
+    LTLSPEC NAME braking_wheel_2_implies_cmd_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G (wheel_braking_force_2 > 0 -> (mechanical_pedal_pos_L & ((((wheel_status_2 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_2 = rolling & wheel_status_6 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity))))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_1_norm_guarantee := ( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10) ->  G ((mechanical_pedal_pos_L & ((((wheel_status_1 = rolling | ground_speed = 0) & green_pressure_in_selector_valve > 0) & control_system_validity) | ((((wheel_status_1 = rolling & wheel_status_5 = rolling) | ground_speed = 0) | !control_system_validity) & (green_pressure_in_selector_valve = 0 | !control_system_validity)))) -> wheel_braking_force_1 > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ControlSystem(electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, power_1, power_2, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8)
+    VAR
+        bscu_1 : BSCU(electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, power_1, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8);
+        bscu_2 : BSCU(electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, power_2, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8);
+        or_gate_system_validity : OrGate(bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_1 : SwitchGate(bscu_1.brake_as_cmd_1, bscu_2.brake_as_cmd_1, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_2 : SwitchGate(bscu_1.brake_as_cmd_2, bscu_2.brake_as_cmd_2, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_3 : SwitchGate(bscu_1.brake_as_cmd_3, bscu_2.brake_as_cmd_3, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_4 : SwitchGate(bscu_1.brake_as_cmd_4, bscu_2.brake_as_cmd_4, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_5 : SwitchGate(bscu_1.brake_as_cmd_5, bscu_2.brake_as_cmd_5, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_6 : SwitchGate(bscu_1.brake_as_cmd_6, bscu_2.brake_as_cmd_6, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_7 : SwitchGate(bscu_1.brake_as_cmd_7, bscu_2.brake_as_cmd_7, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_brake_as_cmd_8 : SwitchGate(bscu_1.brake_as_cmd_8, bscu_2.brake_as_cmd_8, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_as_cmd_pair_1_5 : SwitchGate(bscu_1.as_cmd_pair_1_5, bscu_2.as_cmd_pair_1_5, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_as_cmd_pair_2_6 : SwitchGate(bscu_1.as_cmd_pair_2_6, bscu_2.as_cmd_pair_2_6, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_as_cmd_pair_3_7 : SwitchGate(bscu_1.as_cmd_pair_3_7, bscu_2.as_cmd_pair_3_7, bscu_1.system_validity, bscu_2.system_validity);
+        switch_gate_as_cmd_pair_4_8 : SwitchGate(bscu_1.as_cmd_pair_4_8, bscu_2.as_cmd_pair_4_8, bscu_1.system_validity, bscu_2.system_validity);
+    DEFINE
+        system_validity := or_gate_system_validity.out;
+        brake_as_cmd_1 := switch_gate_brake_as_cmd_1.cmd_out;
+        brake_as_cmd_2 := switch_gate_brake_as_cmd_2.cmd_out;
+        brake_as_cmd_3 := switch_gate_brake_as_cmd_3.cmd_out;
+        brake_as_cmd_4 := switch_gate_brake_as_cmd_4.cmd_out;
+        brake_as_cmd_5 := switch_gate_brake_as_cmd_5.cmd_out;
+        brake_as_cmd_6 := switch_gate_brake_as_cmd_6.cmd_out;
+        brake_as_cmd_7 := switch_gate_brake_as_cmd_7.cmd_out;
+        brake_as_cmd_8 := switch_gate_brake_as_cmd_8.cmd_out;
+        as_cmd_pair_1_5 := switch_gate_as_cmd_pair_1_5.cmd_out;
+        as_cmd_pair_2_6 := switch_gate_as_cmd_pair_2_6.cmd_out;
+        as_cmd_pair_3_7 := switch_gate_as_cmd_pair_3_7.cmd_out;
+        as_cmd_pair_4_8 := switch_gate_as_cmd_pair_4_8.cmd_out;
+
+    LTLSPEC NAME expected_behavior_as_cmd_pair_2_6_norm_guarantee := (TRUE -> ( G (((system_validity & ground_speed > 0) & (!wheel_rolling_2 | !wheel_rolling_6)) -> as_cmd_pair_2_6) &  G (as_cmd_pair_2_6 -> ((system_validity & ground_speed > 0) & (!wheel_rolling_2 | !wheel_rolling_6)))));
+
+    LTLSPEC NAME system_validity_norm_guarantee := (TRUE ->  G (system_validity <-> (((((((((((((power_1 | power_2) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8)) & ((ground_speed > 0 & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5)) & ((ground_speed > 0 & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6)) & ((ground_speed > 0 & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7)) & ((ground_speed > 0 & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_3_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) -> brake_as_cmd_3) &  G (brake_as_cmd_3 -> ((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_1_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) -> brake_as_cmd_1) &  G (brake_as_cmd_1 -> ((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_7_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) -> brake_as_cmd_7) &  G (brake_as_cmd_7 -> ((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_5_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) -> brake_as_cmd_5) &  G (brake_as_cmd_5 -> ((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_8_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) -> brake_as_cmd_8) &  G (brake_as_cmd_8 -> ((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)))));
+
+    LTLSPEC NAME brake_as_cmd_excludes_as_cmd_norm_guarantee := (TRUE -> ((( G (((brake_as_cmd_1 & brake_as_cmd_5) & system_validity) -> !as_cmd_pair_1_5) &  G (((brake_as_cmd_2 & brake_as_cmd_6) & system_validity) -> !as_cmd_pair_2_6)) &  G (((brake_as_cmd_3 & brake_as_cmd_7) & system_validity) -> !as_cmd_pair_3_7)) &  G (((brake_as_cmd_4 & brake_as_cmd_8) & system_validity) -> !as_cmd_pair_4_8)));
+
+    LTLSPEC NAME expected_behavior_as_cmd_pair_3_7_norm_guarantee := (TRUE -> ( G (((system_validity & ground_speed > 0) & (!wheel_rolling_3 | !wheel_rolling_7)) -> as_cmd_pair_3_7) &  G (as_cmd_pair_3_7 -> ((system_validity & ground_speed > 0) & (!wheel_rolling_3 | !wheel_rolling_7)))));
+
+    LTLSPEC NAME expected_behavior_as_cmd_pair_1_5_norm_guarantee := (TRUE -> ( G (((system_validity & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_5)) -> as_cmd_pair_1_5) &  G (as_cmd_pair_1_5 -> ((system_validity & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_5)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_4_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) -> brake_as_cmd_4) &  G (brake_as_cmd_4 -> ((system_validity & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_2_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) -> brake_as_cmd_2) &  G (brake_as_cmd_2 -> ((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_brake_as_cmd_6_norm_guarantee := (TRUE -> ( G (((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) -> brake_as_cmd_6) &  G (brake_as_cmd_6 -> ((system_validity & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)))));
+
+    LTLSPEC NAME expected_behavior_as_cmd_pair_4_8_norm_guarantee := (TRUE -> ( G (((system_validity & ground_speed > 0) & (!wheel_rolling_4 | !wheel_rolling_8)) -> as_cmd_pair_4_8) &  G (as_cmd_pair_4_8 -> ((system_validity & ground_speed > 0) & (!wheel_rolling_4 | !wheel_rolling_8)))));
+
+    LTLSPEC NAME as_cmd_excludes_brake_as_cmd_norm_guarantee := (TRUE -> ((( G ((as_cmd_pair_1_5 & system_validity) -> (!brake_as_cmd_1 | !brake_as_cmd_5)) &  G ((as_cmd_pair_2_6 & system_validity) -> (!brake_as_cmd_2 | !brake_as_cmd_6))) &  G ((as_cmd_pair_3_7 & system_validity) -> (!brake_as_cmd_3 | !brake_as_cmd_7))) &  G ((as_cmd_pair_4_8 & system_validity) -> (!brake_as_cmd_4 | !brake_as_cmd_8))));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BSCU(electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, power, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8)
+    VAR
+        monitor_sys : MonitorSystem(power, electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8, command_sys.brake_as_cmd_1, command_sys.brake_as_cmd_2, command_sys.brake_as_cmd_3, command_sys.brake_as_cmd_4, command_sys.brake_as_cmd_5, command_sys.brake_as_cmd_6, command_sys.brake_as_cmd_7, command_sys.brake_as_cmd_8, command_sys.as_cmd_pair_1_5, command_sys.as_cmd_pair_2_6, command_sys.as_cmd_pair_3_7, command_sys.as_cmd_pair_4_8);
+        command_sys : CommandSystem(power, ground_speed, electrical_pedal_pos_L, electrical_pedal_pos_R, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8);
+    DEFINE
+        system_validity := monitor_sys.bscu_validity;
+        brake_as_cmd_1 := command_sys.brake_as_cmd_1;
+        brake_as_cmd_2 := command_sys.brake_as_cmd_2;
+        brake_as_cmd_3 := command_sys.brake_as_cmd_3;
+        brake_as_cmd_4 := command_sys.brake_as_cmd_4;
+        brake_as_cmd_5 := command_sys.brake_as_cmd_5;
+        brake_as_cmd_6 := command_sys.brake_as_cmd_6;
+        brake_as_cmd_7 := command_sys.brake_as_cmd_7;
+        brake_as_cmd_8 := command_sys.brake_as_cmd_8;
+        as_cmd_pair_1_5 := command_sys.as_cmd_pair_1_5;
+        as_cmd_pair_2_6 := command_sys.as_cmd_pair_2_6;
+        as_cmd_pair_3_7 := command_sys.as_cmd_pair_3_7;
+        as_cmd_pair_4_8 := command_sys.as_cmd_pair_4_8;
+
+    LTLSPEC NAME system_validity_norm_guarantee := (TRUE ->  G (system_validity <-> ((((((((((((power & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8)) & ((ground_speed > 0 & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5)) & ((ground_speed > 0 & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6)) & ((ground_speed > 0 & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7)) & ((ground_speed > 0 & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8))));
+
+    LTLSPEC NAME command_creation_normal_8_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8));
+
+    LTLSPEC NAME command_creation_normal_7_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7));
+
+    LTLSPEC NAME command_creation_normal_6_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6));
+
+    LTLSPEC NAME command_creation_normal_5_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5));
+
+    LTLSPEC NAME command_creation_normal_4_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4));
+
+    LTLSPEC NAME command_creation_normal_3_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3));
+
+    LTLSPEC NAME command_creation_normal_2_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2));
+
+    LTLSPEC NAME command_creation_normal_1_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1));
+
+    LTLSPEC NAME command_creation_alternate_4_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8));
+
+    LTLSPEC NAME command_creation_alternate_3_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7));
+
+    LTLSPEC NAME command_creation_alternate_2_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6));
+
+    LTLSPEC NAME command_creation_alternate_1_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MonitorSystem(power, electrical_pedal_pos_L, electrical_pedal_pos_R, ground_speed, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8, brake_as_cmd_1, brake_as_cmd_2, brake_as_cmd_3, brake_as_cmd_4, brake_as_cmd_5, brake_as_cmd_6, brake_as_cmd_7, brake_as_cmd_8, as_cmd_pair_1_5, as_cmd_pair_2_6, as_cmd_pair_3_7, as_cmd_pair_4_8)
+    VAR
+        bscu_validity : boolean;
+
+    DEFINE
+        brake_as_cmd_8_valid := ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8);
+        brake_as_cmd_7_valid := ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7);
+        brake_as_cmd_6_valid := ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6);
+        brake_as_cmd_5_valid := ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5);
+        brake_as_cmd_4_valid := ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4);
+        brake_as_cmd_3_valid := ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3);
+        brake_as_cmd_2_valid := ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2);
+        brake_as_cmd_1_valid := ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1);
+        as_cmd_pair_4_8_valid := ((ground_speed > 0 & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8);
+        as_cmd_pair_3_7_valid := ((ground_speed > 0 & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7);
+        as_cmd_pair_2_6_valid := ((ground_speed > 0 & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6);
+        as_cmd_pair_1_5_valid := ((ground_speed > 0 & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5);
+
+    ASSIGN
+        bscu_validity := ((((((((((((power & as_cmd_pair_1_5_valid) & as_cmd_pair_2_6_valid) & as_cmd_pair_3_7_valid) & as_cmd_pair_4_8_valid) & brake_as_cmd_1_valid) & brake_as_cmd_2_valid) & brake_as_cmd_3_valid) & brake_as_cmd_4_valid) & brake_as_cmd_5_valid) & brake_as_cmd_6_valid) & brake_as_cmd_7_valid) & brake_as_cmd_8_valid);
+    LTLSPEC NAME bscu_validity_norm_guarantee := (TRUE ->  G (bscu_validity <-> ((((((((((((power & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5)) & ((electrical_pedal_pos_L & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7)) & ((electrical_pedal_pos_R & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8)) & ((ground_speed > 0 & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5)) & ((ground_speed > 0 & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6)) & ((ground_speed > 0 & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7)) & ((ground_speed > 0 & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8))));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE CommandSystem(power, ground_speed, electrical_pedal_pos_L, electrical_pedal_pos_R, wheel_rolling_1, wheel_rolling_2, wheel_rolling_3, wheel_rolling_4, wheel_rolling_5, wheel_rolling_6, wheel_rolling_7, wheel_rolling_8)
+    VAR
+        w1_w5_cmd_sys : WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos_L, wheel_rolling_1, wheel_rolling_5);
+        w2_w6_cmd_sys : WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos_L, wheel_rolling_2, wheel_rolling_6);
+        w3_w7_cmd_sys : WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos_R, wheel_rolling_3, wheel_rolling_7);
+        w4_w8_cmd_sys : WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos_R, wheel_rolling_4, wheel_rolling_8);
+    DEFINE
+        brake_as_cmd_1 := w1_w5_cmd_sys.brake_as_cmd_out_1;
+        brake_as_cmd_5 := w1_w5_cmd_sys.brake_as_cmd_out_2;
+        as_cmd_pair_1_5 := w1_w5_cmd_sys.as_cmd_out;
+        brake_as_cmd_2 := w2_w6_cmd_sys.brake_as_cmd_out_1;
+        brake_as_cmd_6 := w2_w6_cmd_sys.brake_as_cmd_out_2;
+        as_cmd_pair_2_6 := w2_w6_cmd_sys.as_cmd_out;
+        brake_as_cmd_3 := w3_w7_cmd_sys.brake_as_cmd_out_1;
+        brake_as_cmd_7 := w3_w7_cmd_sys.brake_as_cmd_out_2;
+        as_cmd_pair_3_7 := w3_w7_cmd_sys.as_cmd_out;
+        brake_as_cmd_4 := w4_w8_cmd_sys.brake_as_cmd_out_1;
+        brake_as_cmd_8 := w4_w8_cmd_sys.brake_as_cmd_out_2;
+        as_cmd_pair_4_8 := w4_w8_cmd_sys.as_cmd_out;
+
+    LTLSPEC NAME command_creation_normal_8_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_8) | ground_speed = 0)) <-> brake_as_cmd_8));
+
+    LTLSPEC NAME command_creation_normal_7_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_7) | ground_speed = 0)) <-> brake_as_cmd_7));
+
+    LTLSPEC NAME command_creation_normal_6_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_6) | ground_speed = 0)) <-> brake_as_cmd_6));
+
+    LTLSPEC NAME command_creation_normal_5_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_5) | ground_speed = 0)) <-> brake_as_cmd_5));
+
+    LTLSPEC NAME command_creation_normal_4_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_4) | ground_speed = 0)) <-> brake_as_cmd_4));
+
+    LTLSPEC NAME command_creation_normal_3_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_R) & ((ground_speed > 0 & wheel_rolling_3) | ground_speed = 0)) <-> brake_as_cmd_3));
+
+    LTLSPEC NAME command_creation_normal_2_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_2));
+
+    LTLSPEC NAME command_creation_normal_1_norm_guarantee := (TRUE ->  G (((power & electrical_pedal_pos_L) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_1));
+
+    LTLSPEC NAME command_creation_alternate_4_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_4 | !wheel_rolling_8)) <-> as_cmd_pair_4_8));
+
+    LTLSPEC NAME command_creation_alternate_3_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_3 | !wheel_rolling_7)) <-> as_cmd_pair_3_7));
+
+    LTLSPEC NAME command_creation_alternate_2_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_2 | !wheel_rolling_6)) <-> as_cmd_pair_2_6));
+
+    LTLSPEC NAME command_creation_alternate_1_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_5)) <-> as_cmd_pair_1_5));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE WheelPairCommandSystem(power, ground_speed, electrical_pedal_pos, wheel_rolling_1, wheel_rolling_2)
+    VAR
+        alternate_command_calculator : AlternateCommandCalculator(power, antiskid_command_facility_1.as_cmd, antiskid_command_facility_2.as_cmd);
+        normal_command_calculator_1 : NormalCommandCalculator(power, brake_command_facility.brake_cmd, antiskid_command_facility_1.as_cmd);
+        normal_command_calculator_2 : NormalCommandCalculator(power, brake_command_facility.brake_cmd, antiskid_command_facility_2.as_cmd);
+        antiskid_command_facility_1 : AntiSkidCommandFacility(power, ground_speed, wheel_rolling_1);
+        antiskid_command_facility_2 : AntiSkidCommandFacility(power, ground_speed, wheel_rolling_2);
+        brake_command_facility : BrakeCommandFacility(electrical_pedal_pos, power);
+    DEFINE
+        as_cmd_out := alternate_command_calculator.as_cmd_out;
+        brake_as_cmd_out_1 := normal_command_calculator_1.brake_as_cmd;
+        brake_as_cmd_out_2 := normal_command_calculator_2.brake_as_cmd;
+
+    LTLSPEC NAME commands_creation_norm_guarantee := (TRUE ->  G (((((power & ground_speed > 0) & (!wheel_rolling_1 | !wheel_rolling_2)) <-> as_cmd_out) & (((power & electrical_pedal_pos) & ((ground_speed > 0 & wheel_rolling_1) | ground_speed = 0)) <-> brake_as_cmd_out_1)) & (((power & electrical_pedal_pos) & ((ground_speed > 0 & wheel_rolling_2) | ground_speed = 0)) <-> brake_as_cmd_out_2)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AlternateCommandCalculator(power, as_cmd_in_1, as_cmd_in_2)
+    VAR
+        as_cmd_out : boolean;
+
+    ASSIGN
+        as_cmd_out := (power & (as_cmd_in_1 | as_cmd_in_2));
+    LTLSPEC NAME alternate_command_computation_norm_guarantee := (TRUE ->  G ((power & (as_cmd_in_1 | as_cmd_in_2)) <-> as_cmd_out));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE NormalCommandCalculator(power, brake_cmd, as_cmd)
+    VAR
+        brake_as_cmd : boolean;
+
+    ASSIGN
+        brake_as_cmd := ((power & brake_cmd) & !as_cmd);
+    LTLSPEC NAME normal_command_computation_norm_guarantee := (TRUE ->  G (((power & brake_cmd) & !as_cmd) <-> brake_as_cmd));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiSkidCommandFacility(power, ground_speed, wheel_rolling)
+    VAR
+        as_cmd : boolean;
+
+    ASSIGN
+        as_cmd := ((power & !wheel_rolling) & ground_speed > 0);
+    LTLSPEC NAME as_command_creation_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & !wheel_rolling) <-> as_cmd));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeCommandFacility(electrical_pedal_pos, power)
+    VAR
+        brake_cmd : boolean;
+
+    ASSIGN
+        brake_cmd := (power & electrical_pedal_pos);
+    LTLSPEC NAME brake_command_creation_norm_guarantee := (TRUE ->  G ((power & electrical_pedal_pos) <-> brake_cmd));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE OrGate(in_1, in_2)
+    VAR
+        out : boolean;
+
+    ASSIGN
+        out := (in_1 | in_2);
+    LTLSPEC NAME or_behavior_norm_guarantee := (TRUE ->  G (out <-> (in_1 | in_2)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SwitchGate(cmd_in_1, cmd_in_2, validity_1, validity_2)
+    VAR
+        cmd_out : boolean;
+        state : {pos1, no_output, pos2};
+
+    DEFINE
+        no_signal_value := FALSE;
+
+    ASSIGN
+        state := case
+validity_1 : pos1;
+(!validity_1 & validity_2) : pos2;
+TRUE : no_output;
+esac;
+        cmd_out := case
+state = pos1 : cmd_in_1;
+state = pos2 : cmd_in_2;
+TRUE : no_signal_value;
+esac;
+    LTLSPEC NAME switch_behavior_norm_guarantee := (TRUE -> (( G (validity_1 -> (cmd_out <-> cmd_in_1)) &  G ((!validity_1 & validity_2) -> (cmd_out <-> cmd_in_2))) &  G ((!validity_1 & !validity_2) -> cmd_out = FALSE)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE PhysicalSystem(hydraulic_supply_1, hydraulic_supply_2, pump_power_1, pump_power_2, system_validity, brake_as_cmd_1, brake_as_cmd_2, brake_as_cmd_3, brake_as_cmd_4, brake_as_cmd_5, brake_as_cmd_6, brake_as_cmd_7, brake_as_cmd_8, as_cmd_pair_1_5, as_cmd_pair_2_6, as_cmd_pair_3_7, as_cmd_pair_4_8, ground_speed, mechanical_pedal_pos_L, mechanical_pedal_pos_R)
+    VAR
+        green_hydraulic_pump : HydraulicPump(pump_power_1, hydraulic_supply_1);
+        blue_hydraulic_pump : HydraulicPump(pump_power_2, hydraulic_supply_2);
+        shutoff_valve : ShutoffValve(system_validity, green_hydraulic_pump.hyd_pressure_out);
+        accumulator : Accumulator(blue_hydraulic_pump.hyd_pressure_out);
+        selector_valve : SelectorValve(shutoff_valve.hyd_pressure_out, addition_gate_hyd_pressure.out, system_validity);
+        normal_sys : NormalBrakeSystem(brake_as_cmd_1, brake_as_cmd_2, brake_as_cmd_3, brake_as_cmd_4, brake_as_cmd_5, brake_as_cmd_6, brake_as_cmd_7, brake_as_cmd_8, selector_valve.green_select_out);
+        alternate_sys : AlternateBrakeSystem(selector_valve.blue_select_out, mechanical_pedal_pos_L, mechanical_pedal_pos_R, as_cmd_pair_1_5, as_cmd_pair_2_6, as_cmd_pair_3_7, as_cmd_pair_4_8);
+        wheel_brake_1 : WheelBrake(normal_sys.hyd_pressure_out_1, alternate_sys.hyd_pressure_out_1);
+        wheel_brake_2 : WheelBrake(normal_sys.hyd_pressure_out_2, alternate_sys.hyd_pressure_out_2);
+        wheel_brake_3 : WheelBrake(normal_sys.hyd_pressure_out_3, alternate_sys.hyd_pressure_out_3);
+        wheel_brake_4 : WheelBrake(normal_sys.hyd_pressure_out_4, alternate_sys.hyd_pressure_out_4);
+        wheel_brake_5 : WheelBrake(normal_sys.hyd_pressure_out_5, alternate_sys.hyd_pressure_out_1);
+        wheel_brake_6 : WheelBrake(normal_sys.hyd_pressure_out_6, alternate_sys.hyd_pressure_out_2);
+        wheel_brake_7 : WheelBrake(normal_sys.hyd_pressure_out_7, alternate_sys.hyd_pressure_out_3);
+        wheel_brake_8 : WheelBrake(normal_sys.hyd_pressure_out_8, alternate_sys.hyd_pressure_out_4);
+        wheel_1 : Wheel(wheel_brake_1.braking_force, ground_speed);
+        wheel_2 : Wheel(wheel_brake_2.braking_force, ground_speed);
+        wheel_3 : Wheel(wheel_brake_3.braking_force, ground_speed);
+        wheel_4 : Wheel(wheel_brake_4.braking_force, ground_speed);
+        wheel_5 : Wheel(wheel_brake_5.braking_force, ground_speed);
+        wheel_6 : Wheel(wheel_brake_6.braking_force, ground_speed);
+        wheel_7 : Wheel(wheel_brake_7.braking_force, ground_speed);
+        wheel_8 : Wheel(wheel_brake_8.braking_force, ground_speed);
+        addition_gate_hyd_pressure : AdditionGate(blue_hydraulic_pump.hyd_pressure_out, accumulator.reserve_out);
+    DEFINE
+        green_pressure_in_selector_valve := shutoff_valve.hyd_pressure_out;
+        accumulator_pressure_display := accumulator.pressure_display;
+        wheel_braking_force_1 := wheel_brake_1.braking_force;
+        wheel_braking_force_2 := wheel_brake_2.braking_force;
+        wheel_braking_force_3 := wheel_brake_3.braking_force;
+        wheel_braking_force_4 := wheel_brake_4.braking_force;
+        wheel_braking_force_5 := wheel_brake_5.braking_force;
+        wheel_braking_force_6 := wheel_brake_6.braking_force;
+        wheel_braking_force_7 := wheel_brake_7.braking_force;
+        wheel_braking_force_8 := wheel_brake_8.braking_force;
+        wheel_status_1 := wheel_1.status;
+        wheel_status_2 := wheel_2.status;
+        wheel_status_3 := wheel_3.status;
+        wheel_status_4 := wheel_4.status;
+        wheel_status_5 := wheel_5.status;
+        wheel_status_6 := wheel_6.status;
+        wheel_status_7 := wheel_7.status;
+        wheel_status_8 := wheel_8.status;
+
+    LTLSPEC NAME braking_wheel_7_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_R & system_validity) & !brake_as_cmd_7) -> as_cmd_pair_3_7) ->  G (wheel_braking_force_7 > 0 -> (((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_6_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0));
+
+    LTLSPEC NAME braking_wheel_4_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_R & system_validity) & !brake_as_cmd_4) -> as_cmd_pair_4_8) ->  G (wheel_braking_force_4 > 0 -> (((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME never_inadvertent_braking_with_all_wheels_locked_norm_guarantee := (TRUE ->  G !((((((((((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & !brake_as_cmd_1) & !brake_as_cmd_2) & !brake_as_cmd_3) & !brake_as_cmd_4) & !brake_as_cmd_5) & !brake_as_cmd_6) & !brake_as_cmd_7) & !brake_as_cmd_8) & (((((((wheel_braking_force_1 > 0 & wheel_braking_force_2 > 0) & wheel_braking_force_3 > 0) & wheel_braking_force_4 > 0) & wheel_braking_force_5 > 0) & wheel_braking_force_6 > 0) & wheel_braking_force_7 > 0) & wheel_braking_force_8 > 0)) & (((((((wheel_status_1 = stopped & wheel_status_2 = stopped) & wheel_status_3 = stopped) & wheel_status_4 = stopped) & wheel_status_5 = stopped) & wheel_status_6 = stopped) & wheel_status_7 = stopped) & wheel_status_8 = stopped)) & ground_speed > 0));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_3_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0));
+
+    LTLSPEC NAME never_loss_of_all_wheel_braking_norm_guarantee := (TRUE ->  G !((((((((((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & !((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0)) & !((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0)) & !((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0)) & !((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0)) & !((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0)) & !((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0)) & !((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0)) & !((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0)));
+
+    LTLSPEC NAME braking_wheel_1_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_L & system_validity) & !brake_as_cmd_1) -> as_cmd_pair_1_5) ->  G (wheel_braking_force_1 > 0 -> (((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME asymmetrical_left_braking_norm_guarantee := (TRUE ->  G (((((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0) & ((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0)) & ((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0)) & ((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0)));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_8_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0));
+
+    LTLSPEC NAME braking_wheel_6_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_L & system_validity) & !brake_as_cmd_6) -> as_cmd_pair_2_6) ->  G (wheel_braking_force_6 > 0 -> (((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_5_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0));
+
+    LTLSPEC NAME never_inadvertent_braking_of_all_wheels_norm_guarantee := (TRUE ->  G !(((((((((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & !brake_as_cmd_1) & !brake_as_cmd_2) & !brake_as_cmd_3) & !brake_as_cmd_4) & !brake_as_cmd_5) & !brake_as_cmd_6) & !brake_as_cmd_7) & !brake_as_cmd_8) & (((((((wheel_braking_force_1 > 0 & wheel_braking_force_2 > 0) & wheel_braking_force_3 > 0) & wheel_braking_force_4 > 0) & wheel_braking_force_5 > 0) & wheel_braking_force_6 > 0) & wheel_braking_force_7 > 0) & wheel_braking_force_8 > 0)) & ground_speed > 0));
+
+    LTLSPEC NAME braking_wheel_3_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_R & system_validity) & !brake_as_cmd_3) -> as_cmd_pair_3_7) ->  G (wheel_braking_force_3 > 0 -> (((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME never_asymmetric_loss_of_wheel_braking_right_norm_guarantee := (TRUE ->  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & (count(((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0), ((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0), ((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0), ((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0)) = 4 & count(((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0), ((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0), ((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0), ((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0)) = 0)));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_2_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0));
+
+    LTLSPEC NAME asymmetrical_right_braking_norm_guarantee := (TRUE ->  G (((((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0) & ((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0)) & ((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0)) & ((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0)));
+
+    LTLSPEC NAME braking_wheel_8_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_R & system_validity) & !brake_as_cmd_8) -> as_cmd_pair_4_8) ->  G (wheel_braking_force_8 > 0 -> (((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_7_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0));
+
+    LTLSPEC NAME getting_green_pressure_in_selector_valve_norm_guarantee := (TRUE ->  G (green_pressure_in_selector_valve > 0 <-> ((system_validity & pump_power_1) & hydraulic_supply_1 > 0)));
+
+    LTLSPEC NAME braking_wheel_5_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_L & system_validity) & !brake_as_cmd_5) -> as_cmd_pair_1_5) ->  G (wheel_braking_force_5 > 0 -> (((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_4_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0));
+
+    LTLSPEC NAME never_asymmetric_loss_of_wheel_braking_left_norm_guarantee := (TRUE ->  G !((((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & ground_speed > 0) & count(((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0), ((((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_2 > 0), ((((brake_as_cmd_5 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_5 > 0), ((((brake_as_cmd_6 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_6 > 0)) = 0) & count(((((brake_as_cmd_3 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_3 > 0), ((((brake_as_cmd_4 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_4 > 0), ((((brake_as_cmd_7 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_7 > 0), ((((brake_as_cmd_8 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_8 > 0)) = 4));
+
+    LTLSPEC NAME braking_wheel_2_implies_cmd_norm_guarantee := ( G (((mechanical_pedal_pos_L & system_validity) & !brake_as_cmd_2) -> as_cmd_pair_2_6) ->  G (wheel_braking_force_2 > 0 -> (((brake_as_cmd_2 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & (green_pressure_in_selector_valve = 0 | !system_validity)))));
+
+    LTLSPEC NAME cmd_implies_braking_wheel_1_norm_guarantee := (TRUE ->  G ((((brake_as_cmd_1 & green_pressure_in_selector_valve > 0) & system_validity) | ((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & (green_pressure_in_selector_valve = 0 | !system_validity))) -> wheel_braking_force_1 > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPump(power, hydraulic_supply)
+    VAR
+        hyd_pressure_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        hyd_pressure_out :=  ((power & hydraulic_supply > 0) ? 1 .. 10 : 0) ;
+    LTLSPEC NAME supply_hydraulic_norm_guarantee := (TRUE -> ( G ((power & hydraulic_supply > 0) -> hyd_pressure_out > 0) &  G ((!power | hydraulic_supply = 0) -> hyd_pressure_out = 0)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE ShutoffValve(system_validity_cmd, hyd_pressure_in)
+    VAR
+        hyd_pressure_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        hyd_pressure_out :=  (system_validity_cmd ? hyd_pressure_in : 0) ;
+    LTLSPEC NAME apply_command_norm_guarantee := (TRUE -> ( G ((hyd_pressure_in > 0 & system_validity_cmd) -> (hyd_pressure_out > 0 & hyd_pressure_out = hyd_pressure_in)) &  G ((hyd_pressure_in = 0 | !system_validity_cmd) -> hyd_pressure_out = 0)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Accumulator(circuit_pressure_value)
+    VAR
+        reserve_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        pressure_display : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        reserve_out :=  (circuit_pressure_value = 0 ? 1 .. 10 : 0) ;
+    LTLSPEC NAME supply_reserve_norm_guarantee := (TRUE ->  G (circuit_pressure_value = 0 <-> reserve_out > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SelectorValve(green_select_in, blue_select_in, system_validity)
+    VAR
+        mode : {green, blue};
+        green_select_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        blue_select_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        mode :=  ((green_select_in > 0 & system_validity) ? green : blue) ;
+        green_select_out :=  (mode = green ? green_select_in : 0) ;
+        blue_select_out :=  (mode = blue ? blue_select_in : 0) ;
+    LTLSPEC NAME select_circuit_norm_guarantee := (TRUE -> (( G ((green_select_in > 0 & system_validity) -> (green_select_out > 0 & blue_select_out = 0)) &  G (((green_select_in = 0 | !system_validity) & blue_select_in > 0) -> (green_select_out = 0 & blue_select_out > 0))) &  G (((green_select_in = 0 | !system_validity) & blue_select_in = 0) -> (green_select_out = 0 & blue_select_out = 0))));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE NormalBrakeSystem(brake_as_cmd_1, brake_as_cmd_2, brake_as_cmd_3, brake_as_cmd_4, brake_as_cmd_5, brake_as_cmd_6, brake_as_cmd_7, brake_as_cmd_8, hyd_pressure_in)
+    VAR
+        meter_valve_1 : MeterValve(brake_as_cmd_1, FALSE, hyd_pressure_in);
+        meter_valve_2 : MeterValve(brake_as_cmd_2, FALSE, hyd_pressure_in);
+        meter_valve_3 : MeterValve(brake_as_cmd_3, FALSE, hyd_pressure_in);
+        meter_valve_4 : MeterValve(brake_as_cmd_4, FALSE, hyd_pressure_in);
+        meter_valve_5 : MeterValve(brake_as_cmd_5, FALSE, hyd_pressure_in);
+        meter_valve_6 : MeterValve(brake_as_cmd_6, FALSE, hyd_pressure_in);
+        meter_valve_7 : MeterValve(brake_as_cmd_7, FALSE, hyd_pressure_in);
+        meter_valve_8 : MeterValve(brake_as_cmd_8, FALSE, hyd_pressure_in);
+    DEFINE
+        hyd_pressure_out_1 := meter_valve_1.hyd_pressure_out;
+        hyd_pressure_out_2 := meter_valve_2.hyd_pressure_out;
+        hyd_pressure_out_3 := meter_valve_3.hyd_pressure_out;
+        hyd_pressure_out_4 := meter_valve_4.hyd_pressure_out;
+        hyd_pressure_out_5 := meter_valve_5.hyd_pressure_out;
+        hyd_pressure_out_6 := meter_valve_6.hyd_pressure_out;
+        hyd_pressure_out_7 := meter_valve_7.hyd_pressure_out;
+        hyd_pressure_out_8 := meter_valve_8.hyd_pressure_out;
+
+    LTLSPEC NAME apply_command_8_norm_guarantee := (TRUE ->  G ((brake_as_cmd_8 & hyd_pressure_in > 0) <-> hyd_pressure_out_8 > 0));
+
+    LTLSPEC NAME apply_command_7_norm_guarantee := (TRUE ->  G ((brake_as_cmd_7 & hyd_pressure_in > 0) <-> hyd_pressure_out_7 > 0));
+
+    LTLSPEC NAME apply_command_4_norm_guarantee := (TRUE ->  G ((brake_as_cmd_4 & hyd_pressure_in > 0) <-> hyd_pressure_out_4 > 0));
+
+    LTLSPEC NAME apply_command_2_norm_guarantee := (TRUE ->  G ((brake_as_cmd_2 & hyd_pressure_in > 0) <-> hyd_pressure_out_2 > 0));
+
+    LTLSPEC NAME apply_command_3_norm_guarantee := (TRUE ->  G ((brake_as_cmd_3 & hyd_pressure_in > 0) <-> hyd_pressure_out_3 > 0));
+
+    LTLSPEC NAME apply_command_6_norm_guarantee := (TRUE ->  G ((brake_as_cmd_6 & hyd_pressure_in > 0) <-> hyd_pressure_out_6 > 0));
+
+    LTLSPEC NAME apply_command_5_norm_guarantee := (TRUE ->  G ((brake_as_cmd_5 & hyd_pressure_in > 0) <-> hyd_pressure_out_5 > 0));
+
+    LTLSPEC NAME apply_command_1_norm_guarantee := (TRUE ->  G ((brake_as_cmd_1 & hyd_pressure_in > 0) <-> hyd_pressure_out_1 > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE MeterValve(elec_cmd, mech_cmd, hyd_pressure_in)
+    VAR
+        hyd_pressure_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        hyd_pressure_out :=  ((mech_cmd | elec_cmd) ? hyd_pressure_in : 0) ;
+    LTLSPEC NAME apply_command_norm_guarantee := (TRUE ->  G (((elec_cmd | mech_cmd) & hyd_pressure_in > 0) <-> hyd_pressure_out > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AlternateBrakeSystem(hyd_pressure_in, mechanical_pedal_pos_L, mechanical_pedal_pos_R, as_cmd_pair_1_5, as_cmd_pair_2_6, as_cmd_pair_3_7, as_cmd_pair_4_8)
+    VAR
+        antiskid_shutoff_valve_1 : AntiskidShutoffValve(as_cmd_pair_1_5, hyd_pressure_in);
+        meter_valve_1 : MeterValve(FALSE, mechanical_pedal_pos_L, antiskid_shutoff_valve_1.hyd_pressure_out);
+        antiskid_shutoff_valve_2 : AntiskidShutoffValve(as_cmd_pair_2_6, hyd_pressure_in);
+        meter_valve_2 : MeterValve(FALSE, mechanical_pedal_pos_L, antiskid_shutoff_valve_2.hyd_pressure_out);
+        antiskid_shutoff_valve_3 : AntiskidShutoffValve(as_cmd_pair_3_7, hyd_pressure_in);
+        meter_valve_3 : MeterValve(FALSE, mechanical_pedal_pos_R, antiskid_shutoff_valve_3.hyd_pressure_out);
+        antiskid_shutoff_valve_4 : AntiskidShutoffValve(as_cmd_pair_4_8, hyd_pressure_in);
+        meter_valve_4 : MeterValve(FALSE, mechanical_pedal_pos_R, antiskid_shutoff_valve_4.hyd_pressure_out);
+    DEFINE
+        hyd_pressure_out_1 := meter_valve_1.hyd_pressure_out;
+        hyd_pressure_out_2 := meter_valve_2.hyd_pressure_out;
+        hyd_pressure_out_3 := meter_valve_3.hyd_pressure_out;
+        hyd_pressure_out_4 := meter_valve_4.hyd_pressure_out;
+
+    LTLSPEC NAME apply_command_4_norm_guarantee := (TRUE ->  G (((mechanical_pedal_pos_R & !as_cmd_pair_4_8) & hyd_pressure_in > 0) <-> hyd_pressure_out_4 > 0));
+
+    LTLSPEC NAME apply_command_2_norm_guarantee := (TRUE ->  G (((mechanical_pedal_pos_L & !as_cmd_pair_2_6) & hyd_pressure_in > 0) <-> hyd_pressure_out_2 > 0));
+
+    LTLSPEC NAME apply_command_3_norm_guarantee := (TRUE ->  G (((mechanical_pedal_pos_R & !as_cmd_pair_3_7) & hyd_pressure_in > 0) <-> hyd_pressure_out_3 > 0));
+
+    LTLSPEC NAME apply_command_1_norm_guarantee := (TRUE ->  G (((mechanical_pedal_pos_L & !as_cmd_pair_1_5) & hyd_pressure_in > 0) <-> hyd_pressure_out_1 > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AntiskidShutoffValve(as_cmd, hyd_pressure_in)
+    VAR
+        hyd_pressure_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        hyd_pressure_out :=  (!as_cmd ? hyd_pressure_in : 0) ;
+    LTLSPEC NAME apply_command_norm_guarantee := (TRUE -> ( G ((hyd_pressure_in = 0 | as_cmd) -> hyd_pressure_out = 0) &  G ((hyd_pressure_in > 0 & !as_cmd) -> (hyd_pressure_out > 0 & hyd_pressure_out = hyd_pressure_in))));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE WheelBrake(normal_hyd_pressure_in, alternate_hyd_pressure_in)
+    VAR
+        normal_hydraulic_fuse : HydraulicFuse(normal_hyd_pressure_in);
+        normal_hydraulic_piston : HydraulicPiston(normal_hydraulic_fuse.hyd_pressure_out);
+        alternate_hydraulic_fuse : HydraulicFuse(alternate_hyd_pressure_in);
+        alternate_hydraulic_piston : HydraulicPiston(alternate_hydraulic_fuse.hyd_pressure_out);
+        brake_actuator : BrakeActuator(normal_hydraulic_piston.force_out, alternate_hydraulic_piston.force_out);
+    DEFINE
+        braking_force := brake_actuator.braking_force;
+
+    LTLSPEC NAME supply_braking_force_norm_guarantee := ( G ((normal_hyd_pressure_in > 0 -> alternate_hyd_pressure_in = 0) & (alternate_hyd_pressure_in > 0 -> normal_hyd_pressure_in = 0)) ->  G (braking_force > 0 <-> (normal_hyd_pressure_in > 0 | alternate_hyd_pressure_in > 0)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicFuse(hyd_pressure_in)
+    VAR
+        hyd_pressure_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        hyd_pressure_out := hyd_pressure_in;
+    LTLSPEC NAME fuse_behavior_norm_guarantee := (TRUE ->  G hyd_pressure_out = hyd_pressure_in);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE HydraulicPiston(hyd_pressure_in)
+    VAR
+        force_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        force_out := hyd_pressure_in;
+    LTLSPEC NAME create_force_norm_guarantee := (TRUE ->  G hyd_pressure_in = force_out);
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE BrakeActuator(normal_force_in, alternate_force_in)
+    VAR
+        braking_force : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        braking_force :=  (alternate_force_in >= normal_force_in ? alternate_force_in : normal_force_in) ;
+    LTLSPEC NAME transform_force_norm_guarantee := ( G ((normal_force_in > 0 -> alternate_force_in = 0) & (alternate_force_in > 0 -> normal_force_in = 0)) ->  G ((normal_force_in > 0 | alternate_force_in > 0) <-> braking_force > 0));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Wheel(braking_force, ground_speed)
+    VAR
+        status : {stopped, rolling};
+
+    DEFINE
+        ground_speed_threshold := 2;
+        skidding_threshold := 8;
+
+    ASSIGN
+        init(status) := case
+ground_speed > 0 : rolling;
+ground_speed = 0 : stopped;
+TRUE : stopped;
+esac;
+        next(status) := case
+(braking_force > skidding_threshold & ground_speed >= ground_speed_threshold) : stopped;
+(braking_force <= skidding_threshold & ground_speed >= ground_speed_threshold) : rolling;
+ground_speed < ground_speed_threshold : stopped;
+TRUE : status;
+esac;
+
+    LTLSPEC NAME braking_behavior_norm_guarantee := (TRUE -> (( G ((braking_force > 8 & ground_speed > 1) -> next(status) = stopped) &  G ((braking_force <= 8 & ground_speed > 1) -> next(status) = rolling)) &  G (ground_speed < 2 -> next(status) = stopped)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE AdditionGate(in_1, in_2)
+    VAR
+        out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    ASSIGN
+        out :=  (in_1 + in_2 < 10 ? in_1 + in_2 : 10) ;
+    LTLSPEC NAME addition_behavior_norm_guarantee := (TRUE -> ( G (out = 10 <-> in_1 + in_2 >= 10) &  G (out = in_1 + in_2 <-> in_1 + in_2 <= 10)));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE Sensor(wheel_status)
+    VAR
+        wheel_rolling : boolean;
+
+    ASSIGN
+        wheel_rolling := wheel_status = rolling;
+    LTLSPEC NAME sensor_translation_norm_guarantee := (TRUE ->  G (wheel_rolling <-> wheel_status = rolling));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SensorPedalPosition(mechanical_pedal_pos)
+    VAR
+        electrical_pedal_pos : boolean;
+
+    ASSIGN
+        electrical_pedal_pos := mechanical_pedal_pos;
+    LTLSPEC NAME pedal_position_translation_norm_guarantee := (TRUE ->  G (mechanical_pedal_pos <-> electrical_pedal_pos));
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

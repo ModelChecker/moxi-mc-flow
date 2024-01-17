@@ -1,0 +1,48 @@
+
+-- ===============================================================================
+MODULE main
+    VAR
+        SwitchGate_inst : SwitchGate(cmd_in_1, cmd_in_2, validity_1, validity_2);
+    VAR
+        cmd_in_1 : boolean;
+        cmd_in_2 : boolean;
+        validity_1 : boolean;
+        validity_2 : boolean;
+
+    DEFINE
+        cmd_out := SwitchGate_inst.cmd_out;
+
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================
+
+-- ===============================================================================
+MODULE SwitchGate(cmd_in_1, cmd_in_2, validity_1, validity_2)
+    VAR
+        cmd_out : boolean;
+
+    LTLSPEC NAME switch_behavior_norm_guarantee := (TRUE -> (( G (validity_1 -> (cmd_out <-> cmd_in_1)) &  G ((!validity_1 & validity_2) -> (cmd_out <-> cmd_in_2))) &  G ((!validity_1 & !validity_2) -> cmd_out = FALSE)));
+
+	VAR state : { pos1, no_output, pos2 };
+
+	DEFINE no_signal_value := FALSE;
+
+	ASSIGN
+ 	 state :=
+  	  case
+   	   validity_1 : pos1;
+   	   !validity_1 & validity_2 : pos2;
+   	   TRUE : no_output;
+  	  esac;
+
+	cmd_out := 
+ 	 case
+   	  state = pos1 : cmd_in_1;
+   	  state = pos2 : cmd_in_2;
+   	  TRUE :  no_signal_value;
+ 	 esac;
+
+-- ===============================================================================
+--                               End of module
+-- ===============================================================================

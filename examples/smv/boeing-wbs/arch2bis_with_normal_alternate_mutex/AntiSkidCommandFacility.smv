@@ -1,0 +1,28 @@
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            AntiSkidCommandFacility_inst : AntiSkidCommandFacility(power, ground_speed, wheel_rolling);
+        VAR
+            power : boolean;
+            ground_speed : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+            wheel_rolling : boolean;
+        DEFINE
+            as_cmd := AntiSkidCommandFacility_inst.as_cmd;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE AntiSkidCommandFacility(power, ground_speed, wheel_rolling)
+        VAR
+            as_cmd : boolean;
+            LTLSPEC NAME as_command_creation_norm_guarantee := (TRUE ->  G (((power & ground_speed > 0) & !wheel_rolling) <-> as_cmd));
+
+        ASSIGN
+            as_cmd := ((power & !wheel_rolling) & ground_speed > 0);
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================

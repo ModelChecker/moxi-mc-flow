@@ -1,0 +1,27 @@
+
+    -- ===============================================================================
+    MODULE main
+        VAR
+            HydraulicPump_inst : HydraulicPump(power, hydraulic_supply);
+        VAR
+            power : boolean;
+            hydraulic_supply : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+        DEFINE
+            hyd_pressure_out := HydraulicPump_inst.hyd_pressure_out;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================
+
+    -- ===============================================================================
+    MODULE HydraulicPump(power, hydraulic_supply)
+        VAR
+            hyd_pressure_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+            LTLSPEC NAME supply_hydraulic_norm_guarantee := (TRUE -> ( G ((power & hydraulic_supply > 0) -> hyd_pressure_out > 0) &  G ((!power | hydraulic_supply = 0) -> hyd_pressure_out = 0)));
+
+       ASSIGN
+            hyd_pressure_out :=  ((power & hydraulic_supply>0) ? 1..10 : 0) ;
+
+    -- ===============================================================================
+    --                               End of module
+    -- ===============================================================================

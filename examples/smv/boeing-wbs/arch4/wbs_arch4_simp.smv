@@ -1,0 +1,2243 @@
+-- Flattened FSM model generated from wbs_arch4.smv
+-- Dumped layers are: model 
+
+MODULE main
+-- Input variables from layer 'model'
+-- State variables from layer 'model'
+VAR
+wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+wbs_arch4_inst.phys_sys.accumulator.reserve_out : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+wbs_arch4_inst.phys_sys.accumulator.pressure_display : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+wbs_arch4_inst.phys_sys.wheel_1.status : {stopped, rolling};
+wbs_arch4_inst.phys_sys.wheel_2.status : {stopped, rolling};
+wbs_arch4_inst.phys_sys.wheel_3.status : {stopped, rolling};
+wbs_arch4_inst.phys_sys.wheel_4.status : {stopped, rolling};
+wbs_arch4_inst.phys_sys.wheel_5.status : {stopped, rolling};
+wbs_arch4_inst.phys_sys.wheel_6.status : {stopped, rolling};
+wbs_arch4_inst.phys_sys.wheel_7.status : {stopped, rolling};
+wbs_arch4_inst.phys_sys.wheel_8.status : {stopped, rolling};
+mechanical_pedal_pos_L : boolean;
+mechanical_pedal_pos_R : boolean;
+ground_speed : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+power_1 : boolean;
+power_2 : boolean;
+pump_power_1 : boolean;
+pump_power_2 : boolean;
+hydraulic_supply_1 : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+hydraulic_supply_2 : {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+-- Frozen variables from layer 'model'
+-- Functions from layer 'model'
+-- Defines from layer 'model'
+DEFINE
+green_pressure_in_selector_valve := __expr105;
+control_system_validity := __expr104;
+wheel_braking_force_8 := __expr118;
+wheel_braking_force_7 := __expr124;
+wheel_braking_force_6 := __expr130;
+wheel_braking_force_5 := __expr136;
+wheel_braking_force_4 := __expr139;
+wheel_braking_force_3 := __expr142;
+wheel_braking_force_2 := __expr145;
+wheel_braking_force_1 := __expr148;
+wheel_status_8 := wbs_arch4_inst.phys_sys.wheel_8.status;
+wheel_status_7 := wbs_arch4_inst.phys_sys.wheel_7.status;
+wheel_status_6 := wbs_arch4_inst.phys_sys.wheel_6.status;
+wheel_status_5 := wbs_arch4_inst.phys_sys.wheel_5.status;
+wheel_status_4 := wbs_arch4_inst.phys_sys.wheel_4.status;
+wheel_status_3 := wbs_arch4_inst.phys_sys.wheel_3.status;
+wheel_status_2 := wbs_arch4_inst.phys_sys.wheel_2.status;
+wheel_status_1 := wbs_arch4_inst.phys_sys.wheel_1.status;
+accumulator_pressure_display := wbs_arch4_inst.phys_sys.accumulator.pressure_display;
+wbs_arch4_inst.wheel_braking_force_8 := __expr118;
+wbs_arch4_inst.wheel_braking_force_7 := __expr124;
+wbs_arch4_inst.wheel_braking_force_6 := __expr130;
+wbs_arch4_inst.wheel_braking_force_5 := __expr136;
+wbs_arch4_inst.wheel_braking_force_4 := __expr139;
+wbs_arch4_inst.wheel_braking_force_3 := __expr142;
+wbs_arch4_inst.wheel_braking_force_2 := __expr145;
+wbs_arch4_inst.wheel_braking_force_1 := __expr148;
+wbs_arch4_inst.control_system_validity := __expr104;
+wbs_arch4_inst.wheel_status_8 := wbs_arch4_inst.phys_sys.wheel_8.status;
+wbs_arch4_inst.wheel_status_7 := wbs_arch4_inst.phys_sys.wheel_7.status;
+wbs_arch4_inst.wheel_status_6 := wbs_arch4_inst.phys_sys.wheel_6.status;
+wbs_arch4_inst.wheel_status_5 := wbs_arch4_inst.phys_sys.wheel_5.status;
+wbs_arch4_inst.wheel_status_4 := wbs_arch4_inst.phys_sys.wheel_4.status;
+wbs_arch4_inst.wheel_status_3 := wbs_arch4_inst.phys_sys.wheel_3.status;
+wbs_arch4_inst.wheel_status_2 := wbs_arch4_inst.phys_sys.wheel_2.status;
+wbs_arch4_inst.wheel_status_1 := wbs_arch4_inst.phys_sys.wheel_1.status;
+wbs_arch4_inst.accumulator_pressure_display := wbs_arch4_inst.phys_sys.accumulator.pressure_display;
+wbs_arch4_inst.green_pressure_in_selector_valve := __expr105;
+wbs_arch4_inst.ctrl_sys.as_cmd_pair_4_8 := __expr109;
+wbs_arch4_inst.ctrl_sys.as_cmd_pair_3_7 := __expr119;
+wbs_arch4_inst.ctrl_sys.as_cmd_pair_2_6 := __expr125;
+wbs_arch4_inst.ctrl_sys.as_cmd_pair_1_5 := __expr131;
+wbs_arch4_inst.ctrl_sys.brake_as_cmd_8 := __expr115;
+wbs_arch4_inst.ctrl_sys.brake_as_cmd_7 := __expr122;
+wbs_arch4_inst.ctrl_sys.brake_as_cmd_6 := __expr128;
+wbs_arch4_inst.ctrl_sys.brake_as_cmd_5 := __expr134;
+wbs_arch4_inst.ctrl_sys.brake_as_cmd_4 := __expr137;
+wbs_arch4_inst.ctrl_sys.brake_as_cmd_3 := __expr140;
+wbs_arch4_inst.ctrl_sys.brake_as_cmd_2 := __expr143;
+wbs_arch4_inst.ctrl_sys.brake_as_cmd_1 := __expr146;
+wbs_arch4_inst.ctrl_sys.system_validity := __expr104;
+wbs_arch4_inst.ctrl_sys.bscu.as_cmd_pair_4_8 := __expr109;
+wbs_arch4_inst.ctrl_sys.bscu.as_cmd_pair_3_7 := __expr119;
+wbs_arch4_inst.ctrl_sys.bscu.as_cmd_pair_2_6 := __expr125;
+wbs_arch4_inst.ctrl_sys.bscu.as_cmd_pair_1_5 := __expr131;
+wbs_arch4_inst.ctrl_sys.bscu.brake_as_cmd_8 := __expr115;
+wbs_arch4_inst.ctrl_sys.bscu.brake_as_cmd_7 := __expr122;
+wbs_arch4_inst.ctrl_sys.bscu.brake_as_cmd_6 := __expr128;
+wbs_arch4_inst.ctrl_sys.bscu.brake_as_cmd_5 := __expr134;
+wbs_arch4_inst.ctrl_sys.bscu.brake_as_cmd_4 := __expr137;
+wbs_arch4_inst.ctrl_sys.bscu.brake_as_cmd_3 := __expr140;
+wbs_arch4_inst.ctrl_sys.bscu.brake_as_cmd_2 := __expr143;
+wbs_arch4_inst.ctrl_sys.bscu.brake_as_cmd_1 := __expr146;
+wbs_arch4_inst.ctrl_sys.bscu.system_validity := __expr104;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.as_cmd_pair_4_8 := __expr35;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.as_cmd_pair_3_7 := __expr26;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.as_cmd_pair_2_6 := __expr17;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.as_cmd_pair_1_5 := __expr8;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.brake_as_cmd_8 := __expr64;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.brake_as_cmd_7 := __expr61;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.brake_as_cmd_6 := __expr58;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.brake_as_cmd_5 := __expr55;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.brake_as_cmd_4 := __expr52;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.brake_as_cmd_3 := __expr49;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.brake_as_cmd_2 := __expr44;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.brake_as_cmd_1 := __expr41;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.system_validity := __expr66;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.as_cmd_pair_1_5_valid := __expr9;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.as_cmd_pair_2_6_valid := __expr18;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.as_cmd_pair_3_7_valid := __expr27;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.as_cmd_pair_4_8_valid := __expr36;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.brake_as_cmd_1_valid := __expr42;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.brake_as_cmd_2_valid := __expr45;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.brake_as_cmd_3_valid := __expr50;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.brake_as_cmd_4_valid := __expr53;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.brake_as_cmd_5_valid := __expr56;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.brake_as_cmd_6_valid := __expr59;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.brake_as_cmd_7_valid := __expr62;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.brake_as_cmd_8_valid := __expr65;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.as_cmd_pair_4_8 := __expr35;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.brake_as_cmd_8 := __expr64;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.brake_as_cmd_4 := __expr52;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.as_cmd_pair_3_7 := __expr26;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.brake_as_cmd_7 := __expr61;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.brake_as_cmd_3 := __expr49;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.as_cmd_pair_2_6 := __expr17;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.brake_as_cmd_6 := __expr58;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.brake_as_cmd_2 := __expr44;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.as_cmd_pair_1_5 := __expr8;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.brake_as_cmd_5 := __expr55;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.brake_as_cmd_1 := __expr41;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_as_cmd_out_2 := __expr55;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_as_cmd_out_1 := __expr41;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.as_cmd_out := __expr8;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_as_cmd_out_2 := __expr58;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_as_cmd_out_1 := __expr44;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.as_cmd_out := __expr17;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_as_cmd_out_2 := __expr61;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_as_cmd_out_1 := __expr49;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.as_cmd_out := __expr26;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_as_cmd_out_2 := __expr64;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_as_cmd_out_1 := __expr52;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.as_cmd_out := __expr35;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.as_cmd_pair_4_8 := __expr81;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.as_cmd_pair_3_7 := __expr77;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.as_cmd_pair_2_6 := __expr73;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.as_cmd_pair_1_5 := __expr69;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.brake_as_cmd_8 := __expr101;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.brake_as_cmd_7 := __expr99;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.brake_as_cmd_6 := __expr97;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.brake_as_cmd_5 := __expr95;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.brake_as_cmd_4 := __expr93;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.brake_as_cmd_3 := __expr91;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.brake_as_cmd_2 := __expr87;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.brake_as_cmd_1 := __expr85;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.system_validity := __expr103;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.as_cmd_pair_1_5_valid := __expr70;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.as_cmd_pair_2_6_valid := __expr74;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.as_cmd_pair_3_7_valid := __expr78;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.as_cmd_pair_4_8_valid := __expr82;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.brake_as_cmd_1_valid := __expr86;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.brake_as_cmd_2_valid := __expr88;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.brake_as_cmd_3_valid := __expr92;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.brake_as_cmd_4_valid := __expr94;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.brake_as_cmd_5_valid := __expr96;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.brake_as_cmd_6_valid := __expr98;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.brake_as_cmd_7_valid := __expr100;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.brake_as_cmd_8_valid := __expr102;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.as_cmd_pair_4_8 := __expr81;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.brake_as_cmd_8 := __expr101;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.brake_as_cmd_4 := __expr93;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.as_cmd_pair_3_7 := __expr77;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.brake_as_cmd_7 := __expr99;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.brake_as_cmd_3 := __expr91;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.as_cmd_pair_2_6 := __expr73;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.brake_as_cmd_6 := __expr97;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.brake_as_cmd_2 := __expr87;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.as_cmd_pair_1_5 := __expr69;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.brake_as_cmd_5 := __expr95;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.brake_as_cmd_1 := __expr85;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_as_cmd_out_2 := __expr95;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_as_cmd_out_1 := __expr85;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.as_cmd_out := __expr69;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_as_cmd_out_2 := __expr97;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_as_cmd_out_1 := __expr87;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.as_cmd_out := __expr73;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_as_cmd_out_2 := __expr99;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_as_cmd_out_1 := __expr91;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.as_cmd_out := __expr77;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_as_cmd_out_2 := __expr101;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_as_cmd_out_1 := __expr93;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.as_cmd_out := __expr81;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.no_signal_value := FALSE;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.no_signal_value := FALSE;
+wbs_arch4_inst.phys_sys.wheel_status_8 := wbs_arch4_inst.phys_sys.wheel_8.status;
+wbs_arch4_inst.phys_sys.wheel_status_7 := wbs_arch4_inst.phys_sys.wheel_7.status;
+wbs_arch4_inst.phys_sys.wheel_status_6 := wbs_arch4_inst.phys_sys.wheel_6.status;
+wbs_arch4_inst.phys_sys.wheel_status_5 := wbs_arch4_inst.phys_sys.wheel_5.status;
+wbs_arch4_inst.phys_sys.wheel_status_4 := wbs_arch4_inst.phys_sys.wheel_4.status;
+wbs_arch4_inst.phys_sys.wheel_status_3 := wbs_arch4_inst.phys_sys.wheel_3.status;
+wbs_arch4_inst.phys_sys.wheel_status_2 := wbs_arch4_inst.phys_sys.wheel_2.status;
+wbs_arch4_inst.phys_sys.wheel_status_1 := wbs_arch4_inst.phys_sys.wheel_1.status;
+wbs_arch4_inst.phys_sys.wheel_braking_force_8 := __expr118;
+wbs_arch4_inst.phys_sys.wheel_braking_force_7 := __expr124;
+wbs_arch4_inst.phys_sys.wheel_braking_force_6 := __expr130;
+wbs_arch4_inst.phys_sys.wheel_braking_force_5 := __expr136;
+wbs_arch4_inst.phys_sys.wheel_braking_force_4 := __expr139;
+wbs_arch4_inst.phys_sys.wheel_braking_force_3 := __expr142;
+wbs_arch4_inst.phys_sys.wheel_braking_force_2 := __expr145;
+wbs_arch4_inst.phys_sys.wheel_braking_force_1 := __expr148;
+wbs_arch4_inst.phys_sys.accumulator_pressure_display := wbs_arch4_inst.phys_sys.accumulator.pressure_display;
+wbs_arch4_inst.phys_sys.green_pressure_in_selector_valve := __expr105;
+wbs_arch4_inst.phys_sys.normal_sys.hyd_pressure_out_8 := __expr117;
+wbs_arch4_inst.phys_sys.normal_sys.hyd_pressure_out_7 := __expr123;
+wbs_arch4_inst.phys_sys.normal_sys.hyd_pressure_out_6 := __expr129;
+wbs_arch4_inst.phys_sys.normal_sys.hyd_pressure_out_5 := __expr135;
+wbs_arch4_inst.phys_sys.normal_sys.hyd_pressure_out_4 := __expr138;
+wbs_arch4_inst.phys_sys.normal_sys.hyd_pressure_out_3 := __expr141;
+wbs_arch4_inst.phys_sys.normal_sys.hyd_pressure_out_2 := __expr144;
+wbs_arch4_inst.phys_sys.normal_sys.hyd_pressure_out_1 := __expr147;
+wbs_arch4_inst.phys_sys.alternate_sys.hyd_pressure_out_4 := __expr114;
+wbs_arch4_inst.phys_sys.alternate_sys.hyd_pressure_out_3 := __expr121;
+wbs_arch4_inst.phys_sys.alternate_sys.hyd_pressure_out_2 := __expr127;
+wbs_arch4_inst.phys_sys.alternate_sys.hyd_pressure_out_1 := __expr133;
+wbs_arch4_inst.phys_sys.wheel_brake_1.braking_force := __expr148;
+wbs_arch4_inst.phys_sys.wheel_brake_2.braking_force := __expr145;
+wbs_arch4_inst.phys_sys.wheel_brake_3.braking_force := __expr142;
+wbs_arch4_inst.phys_sys.wheel_brake_4.braking_force := __expr139;
+wbs_arch4_inst.phys_sys.wheel_brake_5.braking_force := __expr136;
+wbs_arch4_inst.phys_sys.wheel_brake_6.braking_force := __expr130;
+wbs_arch4_inst.phys_sys.wheel_brake_7.braking_force := __expr124;
+wbs_arch4_inst.phys_sys.wheel_brake_8.braking_force := __expr118;
+wbs_arch4_inst.phys_sys.wheel_1.skidding_threshold := 8;
+wbs_arch4_inst.phys_sys.wheel_1.ground_speed_threshold := 2;
+wbs_arch4_inst.phys_sys.wheel_2.skidding_threshold := 8;
+wbs_arch4_inst.phys_sys.wheel_2.ground_speed_threshold := 2;
+wbs_arch4_inst.phys_sys.wheel_3.skidding_threshold := 8;
+wbs_arch4_inst.phys_sys.wheel_3.ground_speed_threshold := 2;
+wbs_arch4_inst.phys_sys.wheel_4.skidding_threshold := 8;
+wbs_arch4_inst.phys_sys.wheel_4.ground_speed_threshold := 2;
+wbs_arch4_inst.phys_sys.wheel_5.skidding_threshold := 8;
+wbs_arch4_inst.phys_sys.wheel_5.ground_speed_threshold := 2;
+wbs_arch4_inst.phys_sys.wheel_6.skidding_threshold := 8;
+wbs_arch4_inst.phys_sys.wheel_6.ground_speed_threshold := 2;
+wbs_arch4_inst.phys_sys.wheel_7.skidding_threshold := 8;
+wbs_arch4_inst.phys_sys.wheel_7.ground_speed_threshold := 2;
+wbs_arch4_inst.phys_sys.wheel_8.skidding_threshold := 8;
+wbs_arch4_inst.phys_sys.wheel_8.ground_speed_threshold := 2;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd := __expr72;
+wbs_arch4_inst.phys_sys.wheel_brake_7.normal_hydraulic_piston.force_out := __expr123;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd := __expr33;
+wbs_arch4_inst.phys_sys.wheel_brake_1.alternate_hydraulic_piston.force_out := __expr133;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.cmd_out := __expr128;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd := __expr16;
+wbs_arch4_inst.phys_sys.wheel_brake_4.alternate_hydraulic_fuse.hyd_pressure_out := __expr114;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd := __expr49;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state := __expr106;
+wbs_arch4_inst.phys_sys.addition_gate_hyd_pressure.out := __expr111;
+wbs_arch4_inst.phys_sys.normal_sys.meter_valve_7.hyd_pressure_out := __expr123;
+wbs_arch4_inst.phys_sys.wheel_brake_8.alternate_hydraulic_piston.force_out := __expr114;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd := __expr75;
+wbs_arch4_inst.phys_sys.shutoff_valve.hyd_pressure_out := __expr105;
+wbs_arch4_inst.phys_sys.alternate_sys.meter_valve_4.hyd_pressure_out := __expr114;
+wbs_arch4_inst.phys_sys.wheel_brake_8.brake_actuator.braking_force := __expr118;
+wbs_arch4_inst.phys_sys.alternate_sys.meter_valve_3.hyd_pressure_out := __expr121;
+wbs_arch4_inst.phys_sys.wheel_brake_1.normal_hydraulic_fuse.hyd_pressure_out := __expr147;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.cmd_out := __expr143;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state := __expr106;
+wbs_arch4_inst.phys_sys.alternate_sys.meter_valve_2.hyd_pressure_out := __expr127;
+wbs_arch4_inst.phys_sys.alternate_sys.meter_valve_1.hyd_pressure_out := __expr133;
+wbs_arch4_inst.phys_sys.wheel_brake_2.alternate_hydraulic_piston.force_out := __expr127;
+wbs_arch4_inst.phys_sys.wheel_brake_4.normal_hydraulic_fuse.hyd_pressure_out := __expr138;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity := __expr103;
+wbs_arch4_inst.phys_sys.wheel_brake_2.brake_actuator.braking_force := __expr145;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd := __expr85;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.cmd_out := __expr119;
+wbs_arch4_inst.phys_sys.wheel_brake_1.normal_hydraulic_piston.force_out := __expr147;
+wbs_arch4_inst.phys_sys.wheel_brake_8.normal_hydraulic_piston.force_out := __expr117;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd := __expr55;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity := __expr66;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd := __expr34;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.state := __expr106;
+wbs_arch4_inst.sensor_pedal_L.electrical_pedal_pos := mechanical_pedal_pos_L;
+wbs_arch4_inst.phys_sys.wheel_brake_5.alternate_hydraulic_fuse.hyd_pressure_out := __expr133;
+wbs_arch4_inst.sensor_8.wheel_rolling := __expr30;
+wbs_arch4_inst.phys_sys.normal_sys.meter_valve_4.hyd_pressure_out := __expr138;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out := __expr8;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd := __expr47;
+wbs_arch4_inst.sensor_7.wheel_rolling := __expr21;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd := __expr61;
+wbs_arch4_inst.phys_sys.wheel_brake_2.normal_hydraulic_piston.force_out := __expr144;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out := __expr73;
+wbs_arch4_inst.sensor_6.wheel_rolling := __expr12;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.cmd_out := __expr146;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.cmd_out := __expr122;
+wbs_arch4_inst.phys_sys.wheel_brake_1.alternate_hydraulic_fuse.hyd_pressure_out := __expr133;
+wbs_arch4_inst.sensor_5.wheel_rolling := __expr3;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd := __expr76;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out := __expr17;
+wbs_arch4_inst.sensor_4.wheel_rolling := __expr28;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state := __expr106;
+wbs_arch4_inst.sensor_3.wheel_rolling := __expr19;
+wbs_arch4_inst.phys_sys.wheel_brake_3.alternate_hydraulic_piston.force_out := __expr121;
+wbs_arch4_inst.phys_sys.wheel_brake_5.normal_hydraulic_fuse.hyd_pressure_out := __expr135;
+wbs_arch4_inst.sensor_2.wheel_rolling := __expr10;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd := __expr89;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd := __expr101;
+wbs_arch4_inst.phys_sys.wheel_brake_3.brake_actuator.braking_force := __expr142;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.cmd_out := __expr140;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state := __expr106;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd := __expr83;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd := __expr95;
+wbs_arch4_inst.phys_sys.normal_sys.meter_valve_8.hyd_pressure_out := __expr117;
+wbs_arch4_inst.phys_sys.wheel_brake_1.brake_actuator.braking_force := __expr148;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd := __expr41;
+wbs_arch4_inst.phys_sys.normal_sys.meter_valve_1.hyd_pressure_out := __expr147;
+wbs_arch4_inst.phys_sys.wheel_brake_6.alternate_hydraulic_fuse.hyd_pressure_out := __expr127;
+wbs_arch4_inst.phys_sys.selector_valve.mode := __expr110;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.cmd_out := __expr109;
+wbs_arch4_inst.phys_sys.wheel_brake_3.normal_hydraulic_piston.force_out := __expr141;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd := __expr24;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state := __expr106;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd := __expr39;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd := __expr87;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out := __expr35;
+wbs_arch4_inst.phys_sys.wheel_brake_7.alternate_hydraulic_fuse.hyd_pressure_out := __expr121;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd := __expr44;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.cmd_out := __expr115;
+wbs_arch4_inst.phys_sys.wheel_brake_4.alternate_hydraulic_piston.force_out := __expr114;
+wbs_arch4_inst.phys_sys.wheel_brake_6.normal_hydraulic_fuse.hyd_pressure_out := __expr129;
+wbs_arch4_inst.sensor_pedal_R.electrical_pedal_pos := mechanical_pedal_pos_R;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd := __expr7;
+wbs_arch4_inst.phys_sys.normal_sys.meter_valve_5.hyd_pressure_out := __expr135;
+wbs_arch4_inst.phys_sys.wheel_brake_4.brake_actuator.braking_force := __expr139;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out := __expr77;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state := __expr106;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.state := __expr106;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd := __expr79;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd := __expr67;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.cmd_out := __expr137;
+wbs_arch4_inst.phys_sys.wheel_brake_4.normal_hydraulic_piston.force_out := __expr138;
+wbs_arch4_inst.phys_sys.selector_valve.green_select_out := __expr116;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd := __expr25;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd := __expr83;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd := __expr97;
+wbs_arch4_inst.phys_sys.wheel_brake_8.alternate_hydraulic_fuse.hyd_pressure_out := __expr114;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd := __expr52;
+wbs_arch4_inst.phys_sys.selector_valve.blue_select_out := __expr112;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd := __expr39;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd := __expr58;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state := __expr106;
+wbs_arch4_inst.phys_sys.normal_sys.meter_valve_2.hyd_pressure_out := __expr144;
+wbs_arch4_inst.phys_sys.wheel_brake_5.alternate_hydraulic_piston.force_out := __expr133;
+wbs_arch4_inst.phys_sys.wheel_brake_7.normal_hydraulic_fuse.hyd_pressure_out := __expr123;
+wbs_arch4_inst.phys_sys.wheel_brake_5.brake_actuator.braking_force := __expr136;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd := __expr6;
+wbs_arch4_inst.phys_sys.wheel_brake_2.alternate_hydraulic_fuse.hyd_pressure_out := __expr127;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd := __expr91;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd := __expr80;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.cmd_out := __expr131;
+wbs_arch4_inst.phys_sys.wheel_brake_8.normal_hydraulic_fuse.hyd_pressure_out := __expr117;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd := __expr68;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.state := __expr106;
+wbs_arch4_inst.phys_sys.wheel_brake_5.normal_hydraulic_piston.force_out := __expr135;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out := __expr81;
+wbs_arch4_inst.phys_sys.normal_sys.meter_valve_6.hyd_pressure_out := __expr129;
+wbs_arch4_inst.phys_sys.wheel_brake_2.normal_hydraulic_fuse.hyd_pressure_out := __expr144;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.cmd_out := __expr134;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd := __expr47;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd := __expr71;
+wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_4.hyd_pressure_out := __expr113;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd := __expr64;
+wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_3.hyd_pressure_out := __expr120;
+wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_2.hyd_pressure_out := __expr126;
+wbs_arch4_inst.phys_sys.wheel_brake_6.alternate_hydraulic_piston.force_out := __expr127;
+wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_1.hyd_pressure_out := __expr132;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd := __expr15;
+wbs_arch4_inst.sensor_1.wheel_rolling := __expr1;
+wbs_arch4_inst.phys_sys.wheel_brake_6.brake_actuator.braking_force := __expr130;
+wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out := __expr26;
+wbs_arch4_inst.phys_sys.wheel_brake_3.alternate_hydraulic_fuse.hyd_pressure_out := __expr121;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd := __expr89;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state := __expr106;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd := __expr99;
+wbs_arch4_inst.phys_sys.wheel_brake_7.alternate_hydraulic_piston.force_out := __expr121;
+wbs_arch4_inst.phys_sys.wheel_brake_7.brake_actuator.braking_force := __expr124;
+wbs_arch4_inst.phys_sys.wheel_brake_6.normal_hydraulic_piston.force_out := __expr129;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.cmd_out := __expr125;
+wbs_arch4_inst.phys_sys.normal_sys.meter_valve_3.hyd_pressure_out := __expr141;
+wbs_arch4_inst.phys_sys.wheel_brake_3.normal_hydraulic_fuse.hyd_pressure_out := __expr141;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd := __expr93;
+wbs_arch4_inst.ctrl_sys.bscu.or_gate_system_validity.out := __expr104;
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state := __expr106;
+wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out := __expr69;
+
+CONSTANTS
+ pos1, no_output, pos2, green, blue, stopped, rolling ;
+
+-- Assignments from layer 'model'
+ASSIGN
+wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out := case
+(pump_power_1 & hydraulic_supply_1 > 0) : __expr149;
+TRUE : 0;
+esac;
+
+ASSIGN
+wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out := case
+(pump_power_2 & hydraulic_supply_2 > 0) : __expr149;
+TRUE : 0;
+esac;
+
+ASSIGN
+wbs_arch4_inst.phys_sys.accumulator.reserve_out := case
+wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out = 0 : __expr149;
+TRUE : 0;
+esac;
+
+ASSIGN
+init(wbs_arch4_inst.phys_sys.wheel_1.status) := __expr150;
+next(wbs_arch4_inst.phys_sys.wheel_1.status) := case
+(__expr148 > 8 & __expr151) : stopped;
+(__expr148 <= 8 & __expr151) : rolling;
+__expr152 : stopped;
+TRUE : wbs_arch4_inst.phys_sys.wheel_1.status;
+esac;
+
+ASSIGN
+init(wbs_arch4_inst.phys_sys.wheel_2.status) := __expr150;
+next(wbs_arch4_inst.phys_sys.wheel_2.status) := case
+(__expr145 > 8 & __expr151) : stopped;
+(__expr145 <= 8 & __expr151) : rolling;
+__expr152 : stopped;
+TRUE : wbs_arch4_inst.phys_sys.wheel_2.status;
+esac;
+
+ASSIGN
+init(wbs_arch4_inst.phys_sys.wheel_3.status) := __expr150;
+next(wbs_arch4_inst.phys_sys.wheel_3.status) := case
+(__expr142 > 8 & __expr151) : stopped;
+(__expr142 <= 8 & __expr151) : rolling;
+__expr152 : stopped;
+TRUE : wbs_arch4_inst.phys_sys.wheel_3.status;
+esac;
+
+ASSIGN
+init(wbs_arch4_inst.phys_sys.wheel_4.status) := __expr150;
+next(wbs_arch4_inst.phys_sys.wheel_4.status) := case
+(__expr139 > 8 & __expr151) : stopped;
+(__expr139 <= 8 & __expr151) : rolling;
+__expr152 : stopped;
+TRUE : wbs_arch4_inst.phys_sys.wheel_4.status;
+esac;
+
+ASSIGN
+init(wbs_arch4_inst.phys_sys.wheel_5.status) := __expr150;
+next(wbs_arch4_inst.phys_sys.wheel_5.status) := case
+(__expr136 > 8 & __expr151) : stopped;
+(__expr136 <= 8 & __expr151) : rolling;
+__expr152 : stopped;
+TRUE : wbs_arch4_inst.phys_sys.wheel_5.status;
+esac;
+
+ASSIGN
+init(wbs_arch4_inst.phys_sys.wheel_6.status) := __expr150;
+next(wbs_arch4_inst.phys_sys.wheel_6.status) := case
+(__expr130 > 8 & __expr151) : stopped;
+(__expr130 <= 8 & __expr151) : rolling;
+__expr152 : stopped;
+TRUE : wbs_arch4_inst.phys_sys.wheel_6.status;
+esac;
+
+ASSIGN
+init(wbs_arch4_inst.phys_sys.wheel_7.status) := __expr150;
+next(wbs_arch4_inst.phys_sys.wheel_7.status) := case
+(__expr124 > 8 & __expr151) : stopped;
+(__expr124 <= 8 & __expr151) : rolling;
+__expr152 : stopped;
+TRUE : wbs_arch4_inst.phys_sys.wheel_7.status;
+esac;
+
+ASSIGN
+init(wbs_arch4_inst.phys_sys.wheel_8.status) := __expr150;
+next(wbs_arch4_inst.phys_sys.wheel_8.status) := case
+(__expr118 > 8 & __expr151) : stopped;
+(__expr118 <= 8 & __expr151) : rolling;
+__expr152 : stopped;
+TRUE : wbs_arch4_inst.phys_sys.wheel_8.status;
+esac;
+
+
+
+
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_of_wheel_7_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((!mechanical_pedal_pos_R & __expr0) & __expr124 > 0) & __expr21));
+
+LTLSPEC
+ NAME wbs_arch4_inst.braking_wheel_8_implies_cmd_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(__expr118 > 0) | (mechanical_pedal_pos_R & ((((__expr30 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr30 & __expr28) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104))))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.asymmetrical_right_braking_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G ((((!(mechanical_pedal_pos_R & ((((__expr19 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr19 & __expr21) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr142 > 0) & (!(mechanical_pedal_pos_R & ((((__expr28 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr28 & __expr30) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr139 > 0)) & (!(mechanical_pedal_pos_R & ((((__expr21 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr21 & __expr19) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr124 > 0)) & (!(mechanical_pedal_pos_R & ((((__expr30 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr30 & __expr28) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr118 > 0)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.cmd_implies_braking_wheel_2_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(mechanical_pedal_pos_L & ((((__expr10 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr10 & __expr12) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr145 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_asymmetric_loss_of_wheel_braking_right_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & __expr0) & (case
+(!(mechanical_pedal_pos_L & ((((__expr12 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr12 & __expr10) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr130 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!(mechanical_pedal_pos_L & ((((__expr3 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr3 & __expr1) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr136 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!(mechanical_pedal_pos_L & ((((__expr10 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr10 & __expr12) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr145 > 0) : 1;
+TRUE : 0;
+esac + case
+(!(mechanical_pedal_pos_L & ((((__expr1 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr1 & __expr3) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr148 > 0) : 1;
+TRUE : 0;
+esac)) = 4 & case
+(!(mechanical_pedal_pos_R & ((((__expr30 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr30 & __expr28) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr118 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!(mechanical_pedal_pos_R & ((((__expr21 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr21 & __expr19) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr124 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!(mechanical_pedal_pos_R & ((((__expr28 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr28 & __expr30) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr139 > 0) : 1;
+TRUE : 0;
+esac + case
+(!(mechanical_pedal_pos_R & ((((__expr19 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr19 & __expr21) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr142 > 0) : 1;
+TRUE : 0;
+esac)) = 0)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.braking_wheel_3_implies_cmd_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(__expr142 > 0) | (mechanical_pedal_pos_R & ((((__expr19 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr19 & __expr21) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104))))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_of_all_wheels_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & (((((((__expr148 > 0 & __expr145 > 0) & __expr142 > 0) & __expr139 > 0) & __expr136 > 0) & __expr130 > 0) & __expr124 > 0) & __expr118 > 0)) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.cmd_implies_braking_wheel_5_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(mechanical_pedal_pos_L & ((((__expr3 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr3 & __expr1) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr136 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_of_wheel_3_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((!mechanical_pedal_pos_R & __expr0) & __expr142 > 0) & __expr19));
+
+LTLSPEC
+ NAME wbs_arch4_inst.braking_wheel_6_implies_cmd_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(__expr130 > 0) | (mechanical_pedal_pos_L & ((((__expr12 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr12 & __expr10) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104))))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_of_wheel_6_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((!mechanical_pedal_pos_L & __expr0) & __expr130 > 0) & __expr12));
+
+LTLSPEC
+ NAME wbs_arch4_inst.cmd_implies_braking_wheel_8_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(mechanical_pedal_pos_R & ((((__expr30 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr30 & __expr28) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr118 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.asymmetrical_left_braking_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G ((((!(mechanical_pedal_pos_L & ((((__expr1 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr1 & __expr3) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr148 > 0) & (!(mechanical_pedal_pos_L & ((((__expr10 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr10 & __expr12) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr145 > 0)) & (!(mechanical_pedal_pos_L & ((((__expr3 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr3 & __expr1) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr136 > 0)) & (!(mechanical_pedal_pos_L & ((((__expr12 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr12 & __expr10) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr130 > 0)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.braking_wheel_1_implies_cmd_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(__expr148 > 0) | (mechanical_pedal_pos_L & ((((__expr1 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr1 & __expr3) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104))))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_loss_of_all_wheel_braking_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & __expr0) & (((((((!(!(mechanical_pedal_pos_L & ((((__expr1 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr1 & __expr3) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr148 > 0) & !(!(mechanical_pedal_pos_L & ((((__expr10 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr10 & __expr12) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr145 > 0)) & !(!(mechanical_pedal_pos_L & ((((__expr3 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr3 & __expr1) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr136 > 0)) & !(!(mechanical_pedal_pos_L & ((((__expr12 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr12 & __expr10) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr130 > 0)) & !(!(mechanical_pedal_pos_R & ((((__expr19 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr19 & __expr21) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr142 > 0)) & !(!(mechanical_pedal_pos_R & ((((__expr28 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr28 & __expr30) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr139 > 0)) & !(!(mechanical_pedal_pos_R & ((((__expr21 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr21 & __expr19) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr124 > 0)) & !(!(mechanical_pedal_pos_R & ((((__expr30 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr30 & __expr28) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr118 > 0))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.cmd_implies_braking_wheel_3_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(mechanical_pedal_pos_R & ((((__expr19 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr19 & __expr21) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr142 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_with_all_wheels_locked_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & (((((((__expr148 > 0 & __expr145 > 0) & __expr142 > 0) & __expr139 > 0) & __expr136 > 0) & __expr130 > 0) & __expr124 > 0) & __expr118 > 0)) & (((((((wbs_arch4_inst.phys_sys.wheel_1.status = stopped & wbs_arch4_inst.phys_sys.wheel_2.status = stopped) & wbs_arch4_inst.phys_sys.wheel_3.status = stopped) & wbs_arch4_inst.phys_sys.wheel_4.status = stopped) & wbs_arch4_inst.phys_sys.wheel_5.status = stopped) & wbs_arch4_inst.phys_sys.wheel_6.status = stopped) & wbs_arch4_inst.phys_sys.wheel_7.status = stopped) & wbs_arch4_inst.phys_sys.wheel_8.status = stopped)) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.braking_wheel_4_implies_cmd_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(__expr139 > 0) | (mechanical_pedal_pos_R & ((((__expr28 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr28 & __expr30) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104))))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_of_wheel_2_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((!mechanical_pedal_pos_L & __expr0) & __expr145 > 0) & __expr10));
+
+LTLSPEC
+ NAME wbs_arch4_inst.cmd_implies_braking_wheel_6_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(mechanical_pedal_pos_L & ((((__expr12 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr12 & __expr10) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr130 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_of_wheel_5_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((!mechanical_pedal_pos_L & __expr0) & __expr136 > 0) & __expr3));
+
+LTLSPEC
+ NAME wbs_arch4_inst.braking_wheel_7_implies_cmd_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(__expr124 > 0) | (mechanical_pedal_pos_R & ((((__expr21 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr21 & __expr19) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104))))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_of_wheel_8_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((!mechanical_pedal_pos_R & __expr0) & __expr118 > 0) & __expr30));
+
+LTLSPEC
+ NAME wbs_arch4_inst.cmd_implies_braking_wheel_1_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(mechanical_pedal_pos_L & ((((__expr1 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr1 & __expr3) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr148 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.braking_wheel_2_implies_cmd_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(__expr145 > 0) | (mechanical_pedal_pos_L & ((((__expr10 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr10 & __expr12) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104))))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_asymmetric_loss_of_wheel_braking_left_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & __expr0) & (case
+(!(mechanical_pedal_pos_L & ((((__expr12 | __expr37) & __expr105 > 0) & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | ((((__expr12 & __expr10) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr130 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!(mechanical_pedal_pos_L & ((((__expr3 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr3 & __expr1) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr136 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!(mechanical_pedal_pos_L & ((((__expr10 | __expr37) & __expr105 > 0) & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | ((((__expr10 & __expr12) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr145 > 0) : 1;
+TRUE : 0;
+esac + case
+(!(mechanical_pedal_pos_L & ((((__expr1 | __expr37) & __expr105 > 0) & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | ((((__expr1 & __expr3) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr148 > 0) : 1;
+TRUE : 0;
+esac)) = 0 & case
+(!(mechanical_pedal_pos_R & ((((__expr30 | __expr37) & __expr105 > 0) & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | ((((__expr30 & __expr28) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr118 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!(mechanical_pedal_pos_R & ((((__expr21 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr21 & __expr19) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr124 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!(mechanical_pedal_pos_R & ((((__expr28 | __expr37) & __expr105 > 0) & __expr104) | ((((__expr28 & __expr30) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr139 > 0) : 1;
+TRUE : 0;
+esac + case
+(!(mechanical_pedal_pos_R & ((((__expr19 | __expr37) & __expr105 > 0) & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | ((((__expr19 & __expr21) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr142 > 0) : 1;
+TRUE : 0;
+esac)) = 4)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.cmd_implies_braking_wheel_4_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(mechanical_pedal_pos_R & ((((__expr28 | __expr37) & __expr105 > 0) & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | ((((__expr28 & __expr30) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr139 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_of_wheel_1_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((!mechanical_pedal_pos_L & __expr0) & __expr148 > 0) & __expr1));
+
+LTLSPEC
+ NAME wbs_arch4_inst.braking_wheel_5_implies_cmd_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(__expr136 > 0) | (mechanical_pedal_pos_L & ((((__expr3 | __expr37) & __expr105 > 0) & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | ((((__expr3 & __expr1) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104))))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.never_inadvertent_braking_of_wheel_4_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G !(((!mechanical_pedal_pos_R & __expr0) & __expr139 > 0) & __expr28));
+
+LTLSPEC
+ NAME wbs_arch4_inst.cmd_implies_braking_wheel_7_norm_guarantee := (!( G (((((power_1 & power_2) & pump_power_1) & pump_power_2) & hydraulic_supply_1 = 10) & hydraulic_supply_2 = 10)) |  G (!(mechanical_pedal_pos_R & ((((__expr21 | __expr37) & __expr105 > 0) & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | ((((__expr21 & __expr19) | __expr37) | !__expr104) & (__expr105 = 0 | !__expr104)))) | __expr124 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_pedal_R.pedal_position_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_pedal_L.pedal_position_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_8.sensor_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_7.sensor_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_6.sensor_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_5.sensor_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_4.sensor_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_3.sensor_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_2.sensor_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.sensor_1.sensor_translation_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.braking_wheel_8_implies_cmd_norm_guarantee := (!( G (!((mechanical_pedal_pos_R & __expr104) & !__expr115) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac)) |  G (!(__expr118 > 0) | ((__expr115 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104)))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.asymmetrical_right_braking_norm_guarantee :=  G ((((!((__expr140 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr142 > 0) & (!((__expr137 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr139 > 0)) & (!((__expr122 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr124 > 0)) & (!((__expr115 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr118 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.cmd_implies_braking_wheel_2_norm_guarantee :=  G (!((__expr143 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr145 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.never_asymmetric_loss_of_wheel_braking_right_norm_guarantee :=  G !(((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & __expr0) & (case
+(!((__expr128 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr130 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!((__expr134 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr136 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!((__expr143 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr145 > 0) : 1;
+TRUE : 0;
+esac + case
+(!((__expr146 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr148 > 0) : 1;
+TRUE : 0;
+esac)) = 4 & case
+(!((__expr115 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr118 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!((__expr122 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr124 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!((__expr137 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr139 > 0) : 1;
+TRUE : 0;
+esac + case
+(!((__expr140 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr142 > 0) : 1;
+TRUE : 0;
+esac)) = 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.braking_wheel_3_implies_cmd_norm_guarantee := (!( G (!((mechanical_pedal_pos_R & __expr104) & !__expr140) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac)) |  G (!(__expr142 > 0) | ((__expr140 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104)))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.never_inadvertent_braking_of_all_wheels_norm_guarantee :=  G !(((((((((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & !__expr146) & !__expr143) & !__expr140) & !__expr137) & !__expr134) & !__expr128) & !__expr122) & !__expr115) & (((((((__expr148 > 0 & __expr145 > 0) & __expr142 > 0) & __expr139 > 0) & __expr136 > 0) & __expr130 > 0) & __expr124 > 0) & __expr118 > 0)) & __expr0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.cmd_implies_braking_wheel_5_norm_guarantee :=  G (!((__expr134 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr136 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.braking_wheel_6_implies_cmd_norm_guarantee := (!( G (!((mechanical_pedal_pos_L & __expr104) & !__expr128) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac)) |  G (!(__expr130 > 0) | ((__expr128 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104)))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.cmd_implies_braking_wheel_8_norm_guarantee :=  G (!((__expr115 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr118 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.asymmetrical_left_braking_norm_guarantee :=  G ((((!((__expr146 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr148 > 0) & (!((__expr143 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr145 > 0)) & (!((__expr134 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr136 > 0)) & (!((__expr128 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr130 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.braking_wheel_1_implies_cmd_norm_guarantee := (!( G (!((mechanical_pedal_pos_L & __expr104) & !__expr146) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac)) |  G (!(__expr148 > 0) | ((__expr146 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104)))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.never_loss_of_all_wheel_braking_norm_guarantee :=  G !((((((((((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & __expr0) & !(!((__expr146 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr148 > 0)) & !(!((__expr143 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr145 > 0)) & !(!((__expr134 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr136 > 0)) & !(!((__expr128 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr130 > 0)) & !(!((__expr140 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr142 > 0)) & !(!((__expr137 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr139 > 0)) & !(!((__expr122 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr124 > 0)) & !(!((__expr115 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr118 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.cmd_implies_braking_wheel_3_norm_guarantee :=  G (!((__expr140 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr142 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.never_inadvertent_braking_with_all_wheels_locked_norm_guarantee :=  G !((((((((((((!mechanical_pedal_pos_L & !mechanical_pedal_pos_R) & !__expr146) & !__expr143) & !__expr140) & !__expr137) & !__expr134) & !__expr128) & !__expr122) & !__expr115) & (((((((__expr148 > 0 & __expr145 > 0) & __expr142 > 0) & __expr139 > 0) & __expr136 > 0) & __expr130 > 0) & __expr124 > 0) & __expr118 > 0)) & (((((((wbs_arch4_inst.phys_sys.wheel_1.status = stopped & wbs_arch4_inst.phys_sys.wheel_2.status = stopped) & wbs_arch4_inst.phys_sys.wheel_3.status = stopped) & wbs_arch4_inst.phys_sys.wheel_4.status = stopped) & wbs_arch4_inst.phys_sys.wheel_5.status = stopped) & wbs_arch4_inst.phys_sys.wheel_6.status = stopped) & wbs_arch4_inst.phys_sys.wheel_7.status = stopped) & wbs_arch4_inst.phys_sys.wheel_8.status = stopped)) & __expr0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.braking_wheel_4_implies_cmd_norm_guarantee := (!( G (!((mechanical_pedal_pos_R & __expr104) & !__expr137) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac)) |  G (!(__expr139 > 0) | ((__expr137 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104)))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.cmd_implies_braking_wheel_6_norm_guarantee :=  G (!((__expr128 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr130 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.braking_wheel_7_implies_cmd_norm_guarantee := (!( G (!((mechanical_pedal_pos_R & __expr104) & !__expr122) | __expr119)) |  G (!(__expr124 > 0) | ((__expr122 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104)))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.cmd_implies_braking_wheel_1_norm_guarantee :=  G (!((__expr146 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr148 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.braking_wheel_2_implies_cmd_norm_guarantee := (!( G (!((mechanical_pedal_pos_L & __expr104) & !__expr143) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac)) |  G (!(__expr145 > 0) | ((__expr143 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104)))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.never_asymmetric_loss_of_wheel_braking_left_norm_guarantee :=  G !((((mechanical_pedal_pos_L & mechanical_pedal_pos_R) & __expr0) & case
+(!((case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr130 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!((__expr134 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr136 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!((case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr125) & (__expr105 = 0 | !__expr104))) | __expr145 > 0) : 1;
+TRUE : 0;
+esac + case
+(!((case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104))) | __expr148 > 0) : 1;
+TRUE : 0;
+esac)) = 0) & case
+(!((case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr118 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!((__expr122 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr124 > 0) : 1;
+TRUE : 0;
+esac + (case
+(!((__expr137 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr139 > 0) : 1;
+TRUE : 0;
+esac + case
+(!((case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr142 > 0) : 1;
+TRUE : 0;
+esac)) = 4);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.cmd_implies_braking_wheel_4_norm_guarantee :=  G (!((__expr137 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr109) & (__expr105 = 0 | !__expr104))) | __expr139 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.braking_wheel_5_implies_cmd_norm_guarantee := (!( G (!((mechanical_pedal_pos_L & __expr104) & !__expr134) | __expr131)) |  G (!(__expr136 > 0) | ((__expr134 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_L & !__expr131) & (__expr105 = 0 | !__expr104)))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.getting_green_pressure_in_selector_valve_norm_guarantee :=  G (__expr105 > 0 <-> (((wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity) & pump_power_1) & hydraulic_supply_1 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.cmd_implies_braking_wheel_7_norm_guarantee :=  G (!((__expr122 & (__expr105 > 0 & __expr104)) | ((mechanical_pedal_pos_R & !__expr119) & (__expr105 = 0 | !__expr104))) | __expr124 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.addition_gate_hyd_pressure.addition_behavior_norm_guarantee := ( G (__expr111 = 10 <-> wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out + wbs_arch4_inst.phys_sys.accumulator.reserve_out >= 10) &  G (__expr111 = wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out + wbs_arch4_inst.phys_sys.accumulator.reserve_out <-> wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out + wbs_arch4_inst.phys_sys.accumulator.reserve_out <= 10));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_8.braking_behavior_norm_guarantee := (( G (!(__expr118 > 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_8.status) = stopped) &  G (!(__expr118 <= 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_8.status) = rolling)) &  G (!__expr152 | next(wbs_arch4_inst.phys_sys.wheel_8.status) = stopped));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_7.braking_behavior_norm_guarantee := (( G (!(__expr124 > 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_7.status) = stopped) &  G (!(__expr124 <= 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_7.status) = rolling)) &  G (!__expr152 | next(wbs_arch4_inst.phys_sys.wheel_7.status) = stopped));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_6.braking_behavior_norm_guarantee := (( G (!(__expr130 > 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_6.status) = stopped) &  G (!(__expr130 <= 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_6.status) = rolling)) &  G (!__expr152 | next(wbs_arch4_inst.phys_sys.wheel_6.status) = stopped));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_5.braking_behavior_norm_guarantee := (( G (!(__expr136 > 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_5.status) = stopped) &  G (!(__expr136 <= 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_5.status) = rolling)) &  G (!__expr152 | next(wbs_arch4_inst.phys_sys.wheel_5.status) = stopped));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_4.braking_behavior_norm_guarantee := (( G (!(__expr139 > 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_4.status) = stopped) &  G (!(__expr139 <= 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_4.status) = rolling)) &  G (!__expr152 | next(wbs_arch4_inst.phys_sys.wheel_4.status) = stopped));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_3.braking_behavior_norm_guarantee := (( G (!(__expr142 > 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_3.status) = stopped) &  G (!(__expr142 <= 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_3.status) = rolling)) &  G (!__expr152 | next(wbs_arch4_inst.phys_sys.wheel_3.status) = stopped));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_2.braking_behavior_norm_guarantee := (( G (!(__expr145 > 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_2.status) = stopped) &  G (!(__expr145 <= 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_2.status) = rolling)) &  G (!__expr152 | next(wbs_arch4_inst.phys_sys.wheel_2.status) = stopped));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_1.braking_behavior_norm_guarantee := (( G (!(__expr148 > 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_1.status) = stopped) &  G (!(__expr148 <= 8 & ground_speed > 1) | next(wbs_arch4_inst.phys_sys.wheel_1.status) = rolling)) &  G (!__expr152 | next(wbs_arch4_inst.phys_sys.wheel_1.status) = stopped));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_8.supply_braking_force_norm_guarantee :=  G (__expr118 > 0 <-> (__expr117 > 0 | __expr114 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_8.brake_actuator.transform_force_norm_guarantee :=  G ((__expr117 > 0 | __expr114 > 0) <-> __expr118 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_8.alternate_hydraulic_piston.create_force_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_8.alternate_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_8.normal_hydraulic_piston.create_force_norm_guarantee :=  G __expr117 = case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.green_select_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_8.normal_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_7.supply_braking_force_norm_guarantee :=  G (__expr124 > 0 <-> (__expr123 > 0 | __expr121 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_7.brake_actuator.transform_force_norm_guarantee :=  G ((__expr123 > 0 | __expr121 > 0) <-> __expr124 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_7.alternate_hydraulic_piston.create_force_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_7.alternate_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_7.normal_hydraulic_piston.create_force_norm_guarantee :=  G __expr123 = case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.green_select_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_7.normal_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_6.supply_braking_force_norm_guarantee :=  G (__expr130 > 0 <-> (__expr129 > 0 | __expr127 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_6.brake_actuator.transform_force_norm_guarantee :=  G ((__expr129 > 0 | __expr127 > 0) <-> __expr130 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_6.alternate_hydraulic_piston.create_force_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_6.alternate_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_6.normal_hydraulic_piston.create_force_norm_guarantee :=  G __expr129 = case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.green_select_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_6.normal_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_5.supply_braking_force_norm_guarantee :=  G (__expr136 > 0 <-> (__expr135 > 0 | __expr133 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_5.brake_actuator.transform_force_norm_guarantee :=  G ((__expr135 > 0 | __expr133 > 0) <-> __expr136 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_5.alternate_hydraulic_piston.create_force_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_5.alternate_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_5.normal_hydraulic_piston.create_force_norm_guarantee :=  G __expr135 = case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.green_select_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_5.normal_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_4.supply_braking_force_norm_guarantee :=  G (__expr139 > 0 <-> (__expr138 > 0 | __expr114 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_4.brake_actuator.transform_force_norm_guarantee :=  G ((__expr138 > 0 | __expr114 > 0) <-> __expr139 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_4.alternate_hydraulic_piston.create_force_norm_guarantee :=  G __expr114 = case
+mechanical_pedal_pos_R : wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_4.hyd_pressure_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_4.alternate_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_4.normal_hydraulic_piston.create_force_norm_guarantee :=  G __expr138 = case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.green_select_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_4.normal_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_3.supply_braking_force_norm_guarantee :=  G (__expr142 > 0 <-> (__expr141 > 0 | __expr121 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_3.brake_actuator.transform_force_norm_guarantee :=  G ((__expr141 > 0 | __expr121 > 0) <-> __expr142 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_3.alternate_hydraulic_piston.create_force_norm_guarantee :=  G __expr121 = case
+mechanical_pedal_pos_R : wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_3.hyd_pressure_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_3.alternate_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_3.normal_hydraulic_piston.create_force_norm_guarantee :=  G __expr141 = case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.green_select_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_3.normal_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_2.supply_braking_force_norm_guarantee :=  G (__expr145 > 0 <-> (__expr144 > 0 | __expr127 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_2.brake_actuator.transform_force_norm_guarantee :=  G ((__expr144 > 0 | __expr127 > 0) <-> __expr145 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_2.alternate_hydraulic_piston.create_force_norm_guarantee :=  G __expr127 = case
+mechanical_pedal_pos_L : wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_2.hyd_pressure_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_2.alternate_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_2.normal_hydraulic_piston.create_force_norm_guarantee :=  G __expr144 = case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.green_select_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_2.normal_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_1.supply_braking_force_norm_guarantee :=  G (__expr148 > 0 <-> (__expr147 > 0 | __expr133 > 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_1.brake_actuator.transform_force_norm_guarantee :=  G ((__expr147 > 0 | __expr133 > 0) <-> __expr148 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_1.alternate_hydraulic_piston.create_force_norm_guarantee :=  G __expr133 = case
+mechanical_pedal_pos_L : wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_1.hyd_pressure_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_1.alternate_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_1.normal_hydraulic_piston.create_force_norm_guarantee :=  G __expr147 = case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.green_select_out;
+TRUE : 0;
+esac;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.wheel_brake_1.normal_hydraulic_fuse.fuse_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.apply_command_2_norm_guarantee :=  G (((mechanical_pedal_pos_L & !__expr125) & __expr112 > 0) <-> __expr127 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.apply_command_4_norm_guarantee :=  G (((mechanical_pedal_pos_R & !__expr109) & __expr112 > 0) <-> __expr114 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.apply_command_1_norm_guarantee :=  G (((mechanical_pedal_pos_L & !__expr131) & __expr112 > 0) <-> __expr133 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.apply_command_3_norm_guarantee :=  G (((mechanical_pedal_pos_R & !__expr119) & __expr112 > 0) <-> __expr121 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.meter_valve_4.apply_command_norm_guarantee :=  G ((mechanical_pedal_pos_R & __expr113 > 0) <-> case
+mechanical_pedal_pos_R : wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_4.hyd_pressure_out;
+TRUE : 0;
+esac > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_4.apply_command_norm_guarantee := ( G (!(__expr112 = 0 | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac) | case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac = 0) &  G (!(__expr112 > 0 & !__expr109) | (case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac > 0 & case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac = case
+wbs_arch4_inst.phys_sys.selector_valve.mode = blue : wbs_arch4_inst.phys_sys.addition_gate_hyd_pressure.out;
+TRUE : 0;
+esac)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.meter_valve_3.apply_command_norm_guarantee :=  G ((mechanical_pedal_pos_R & __expr120 > 0) <-> case
+mechanical_pedal_pos_R : wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_3.hyd_pressure_out;
+TRUE : 0;
+esac > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_3.apply_command_norm_guarantee := ( G (!(__expr112 = 0 | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac) | case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac = 0) &  G (!(__expr112 > 0 & !__expr119) | (case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac > 0 & case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac = case
+wbs_arch4_inst.phys_sys.selector_valve.mode = blue : wbs_arch4_inst.phys_sys.addition_gate_hyd_pressure.out;
+TRUE : 0;
+esac)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.meter_valve_2.apply_command_norm_guarantee :=  G ((mechanical_pedal_pos_L & __expr126 > 0) <-> case
+mechanical_pedal_pos_L : wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_2.hyd_pressure_out;
+TRUE : 0;
+esac > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_2.apply_command_norm_guarantee := ( G (!(__expr112 = 0 | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac) | case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac = 0) &  G (!(__expr112 > 0 & !__expr125) | (case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac > 0 & case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac = case
+wbs_arch4_inst.phys_sys.selector_valve.mode = blue : wbs_arch4_inst.phys_sys.addition_gate_hyd_pressure.out;
+TRUE : 0;
+esac)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.meter_valve_1.apply_command_norm_guarantee :=  G ((mechanical_pedal_pos_L & __expr132 > 0) <-> case
+mechanical_pedal_pos_L : wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_1.hyd_pressure_out;
+TRUE : 0;
+esac > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.alternate_sys.antiskid_shutoff_valve_1.apply_command_norm_guarantee := ( G (!(__expr112 = 0 | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac) | case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac = 0) &  G (!(__expr112 > 0 & !__expr131) | (case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac > 0 & case
+!wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.cmd_out : wbs_arch4_inst.phys_sys.selector_valve.blue_select_out;
+TRUE : 0;
+esac = case
+wbs_arch4_inst.phys_sys.selector_valve.mode = blue : wbs_arch4_inst.phys_sys.addition_gate_hyd_pressure.out;
+TRUE : 0;
+esac)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.apply_command_2_norm_guarantee :=  G ((__expr143 & __expr116 > 0) <-> __expr144 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.apply_command_4_norm_guarantee :=  G ((__expr137 & __expr116 > 0) <-> __expr138 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.apply_command_7_norm_guarantee :=  G ((__expr122 & __expr116 > 0) <-> __expr123 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.apply_command_8_norm_guarantee :=  G ((__expr115 & __expr116 > 0) <-> __expr117 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.apply_command_1_norm_guarantee :=  G ((__expr146 & __expr116 > 0) <-> __expr147 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.apply_command_5_norm_guarantee :=  G ((__expr134 & __expr116 > 0) <-> __expr135 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.apply_command_6_norm_guarantee :=  G ((__expr128 & __expr116 > 0) <-> __expr129 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.apply_command_3_norm_guarantee :=  G ((__expr140 & __expr116 > 0) <-> __expr141 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.meter_valve_8.apply_command_norm_guarantee :=  G ((__expr115 & __expr116 > 0) <-> __expr117 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.meter_valve_7.apply_command_norm_guarantee :=  G ((__expr122 & __expr116 > 0) <-> __expr123 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.meter_valve_6.apply_command_norm_guarantee :=  G ((__expr128 & __expr116 > 0) <-> __expr129 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.meter_valve_5.apply_command_norm_guarantee :=  G ((__expr134 & __expr116 > 0) <-> __expr135 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.meter_valve_4.apply_command_norm_guarantee :=  G ((__expr137 & __expr116 > 0) <-> __expr138 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.meter_valve_3.apply_command_norm_guarantee :=  G ((__expr140 & __expr116 > 0) <-> __expr141 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.meter_valve_2.apply_command_norm_guarantee :=  G ((__expr143 & __expr116 > 0) <-> __expr144 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.normal_sys.meter_valve_1.apply_command_norm_guarantee :=  G ((__expr146 & __expr116 > 0) <-> __expr147 > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.selector_valve.select_circuit_norm_guarantee := (( G (!(__expr105 > 0 & __expr104) | (case
+wbs_arch4_inst.phys_sys.selector_valve.mode = green : wbs_arch4_inst.phys_sys.shutoff_valve.hyd_pressure_out;
+TRUE : 0;
+esac > 0 & __expr112 = 0)) &  G (!((__expr105 = 0 | !__expr104) & __expr111 > 0) | (__expr116 = 0 & case
+wbs_arch4_inst.phys_sys.selector_valve.mode = blue : wbs_arch4_inst.phys_sys.addition_gate_hyd_pressure.out;
+TRUE : 0;
+esac > 0))) &  G (!((__expr105 = 0 | !__expr104) & __expr111 = 0) | (case
+wbs_arch4_inst.phys_sys.selector_valve.mode = green : wbs_arch4_inst.phys_sys.shutoff_valve.hyd_pressure_out;
+TRUE : 0;
+esac = 0 & case
+wbs_arch4_inst.phys_sys.selector_valve.mode = blue : wbs_arch4_inst.phys_sys.addition_gate_hyd_pressure.out;
+TRUE : 0;
+esac = 0)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.accumulator.supply_reserve_norm_guarantee :=  G (wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out = 0 <-> wbs_arch4_inst.phys_sys.accumulator.reserve_out > 0);
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.shutoff_valve.apply_command_norm_guarantee := ( G (!(wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out > 0 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | (__expr105 > 0 & case
+wbs_arch4_inst.ctrl_sys.bscu.or_gate_system_validity.out : wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out;
+TRUE : 0;
+esac = wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out)) &  G (!(wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out = 0 | !(wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity)) | case
+wbs_arch4_inst.ctrl_sys.bscu.or_gate_system_validity.out : wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out;
+TRUE : 0;
+esac = 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.blue_hydraulic_pump.supply_hydraulic_norm_guarantee := ( G (!(pump_power_2 & hydraulic_supply_2 > 0) | wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out > 0) &  G (!(!pump_power_2 | hydraulic_supply_2 = 0) | wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out = 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.phys_sys.green_hydraulic_pump.supply_hydraulic_norm_guarantee := ( G (!(pump_power_1 & hydraulic_supply_1 > 0) | wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out > 0) &  G (!(!pump_power_1 | hydraulic_supply_1 = 0) | wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out = 0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_brake_as_cmd_6_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr12) | __expr37)) | __expr128) &  G (!__expr128 | ((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr12) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_brake_as_cmd_2_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr10) | __expr37)) | __expr143) &  G (!__expr143 | ((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr10) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_brake_as_cmd_4_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr28) | __expr37)) | __expr137) &  G (!__expr137 | ((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr28) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_as_cmd_pair_1_5_norm_guarantee := ( G (!((__expr104 & __expr0) & (__expr2 | __expr4)) | __expr131) &  G (!__expr131 | ((__expr104 & __expr0) & (__expr2 | __expr4))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_as_cmd_pair_3_7_norm_guarantee := ( G (!((__expr104 & __expr0) & (__expr20 | __expr22)) | __expr119) &  G (!__expr119 | ((__expr104 & __expr0) & (__expr20 | __expr22))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.brake_as_cmd_excludes_as_cmd_norm_guarantee := ((( G (!((__expr146 & __expr134) & __expr104) | !__expr131) &  G (!((__expr143 & __expr128) & __expr104) | !__expr125)) &  G (!((__expr140 & __expr122) & __expr104) | !__expr119)) &  G (!((__expr137 & __expr115) & __expr104) | !__expr109));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_brake_as_cmd_8_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr30) | __expr37)) | __expr115) &  G (!__expr115 | ((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr30) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_brake_as_cmd_5_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr3) | __expr37)) | __expr134) &  G (!__expr134 | ((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr3) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_brake_as_cmd_7_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr21) | __expr37)) | __expr122) &  G (!__expr122 | ((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr21) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_brake_as_cmd_1_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr1) | __expr37)) | __expr146) &  G (!__expr146 | ((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr1) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_brake_as_cmd_3_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr19) | __expr37)) | __expr140) &  G (!__expr140 | ((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr19) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.system_validity_norm_guarantee :=  G (__expr104 <-> (((((((((((((power_1 | power_2) & (__expr38 <-> __expr146)) & (__expr43 <-> __expr143)) & (__expr46 <-> __expr140)) & (__expr51 <-> __expr137)) & (__expr54 <-> __expr134)) & (__expr57 <-> __expr128)) & (__expr60 <-> __expr122)) & (__expr63 <-> __expr115)) & (__expr5 <-> __expr131)) & (__expr14 <-> __expr125)) & (__expr23 <-> __expr119)) & (__expr32 <-> __expr109)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_as_cmd_pair_2_6_norm_guarantee := ( G (!((__expr104 & __expr0) & (__expr11 | __expr13)) | __expr125) &  G (!__expr125 | ((__expr104 & __expr0) & (__expr11 | __expr13))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.as_cmd_excludes_brake_as_cmd_norm_guarantee := ((( G (!(__expr131 & __expr104) | (!__expr146 | !__expr134)) &  G (!(__expr125 & __expr104) | (!__expr143 | !__expr128))) &  G (!(__expr119 & __expr104) | (!__expr140 | !__expr122))) &  G (!(__expr109 & __expr104) | (!__expr137 | !__expr115)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.expected_behavior_as_cmd_pair_4_8_norm_guarantee := ( G (!((__expr104 & __expr0) & (__expr29 | __expr31)) | __expr109) &  G (!__expr109 | ((__expr104 & __expr0) & (__expr29 | __expr31))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_brake_as_cmd_6_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr12) | __expr37)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac) &  G (!__expr128 | ((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr12) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_brake_as_cmd_2_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr10) | __expr37)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac) &  G (!__expr143 | ((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr10) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_brake_as_cmd_4_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr28) | __expr37)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac) &  G (!__expr137 | ((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr28) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_as_cmd_pair_1_5_norm_guarantee := ( G (!((__expr104 & __expr0) & (__expr2 | __expr4)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac) &  G (!__expr131 | ((__expr104 & __expr0) & (__expr2 | __expr4))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_as_cmd_pair_3_7_norm_guarantee := ( G (!((__expr104 & __expr0) & (__expr20 | __expr22)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac) &  G (!__expr119 | ((__expr104 & __expr0) & (__expr20 | __expr22))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_brake_as_cmd_8_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr30) | __expr37)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac) &  G (!__expr115 | ((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr30) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_brake_as_cmd_5_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr3) | __expr37)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac) &  G (!__expr134 | ((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr3) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_brake_as_cmd_7_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr21) | __expr37)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac) &  G (!__expr122 | ((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr21) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_brake_as_cmd_1_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_L) & ((__expr0 & __expr1) | __expr37)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac) &  G (!__expr146 | (((wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity) & mechanical_pedal_pos_L) & ((__expr0 & __expr1) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_brake_as_cmd_3_norm_guarantee := ( G (!((__expr104 & mechanical_pedal_pos_R) & ((__expr0 & __expr19) | __expr37)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac) &  G (!__expr140 | (((wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity) & mechanical_pedal_pos_R) & ((__expr0 & __expr19) | __expr37))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.system_validity_norm_guarantee :=  G (__expr104 <-> (((((((((((((power_1 | power_2) & (__expr38 <-> __expr146)) & (__expr43 <-> __expr143)) & (__expr46 <-> __expr140)) & (__expr51 <-> __expr137)) & (__expr54 <-> __expr134)) & (__expr57 <-> __expr128)) & (__expr60 <-> __expr122)) & (__expr63 <-> __expr115)) & (__expr5 <-> __expr131)) & (__expr14 <-> __expr125)) & (__expr23 <-> __expr119)) & (__expr32 <-> __expr109)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_as_cmd_pair_2_6_norm_guarantee := ( G (!((__expr104 & __expr0) & (__expr11 | __expr13)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac) &  G (!__expr125 | ((__expr104 & __expr0) & (__expr11 | __expr13))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.expected_behavior_as_cmd_pair_4_8_norm_guarantee := ( G (!((__expr104 & __expr0) & (__expr29 | __expr31)) | case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac) &  G (!__expr109 | (((wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity | wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity) & __expr0) & (__expr29 | __expr31))));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd)))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_4_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd))))) &  G (!(!__expr66 & !__expr103) | !__expr109));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd)))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_3_7.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd))))) &  G (!(!__expr66 & !__expr103) | !__expr119));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd)))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_2_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd))))) &  G (!(!__expr66 & !__expr103) | !__expr125));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd)))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_as_cmd_pair_1_5.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out);
+esac <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd))))) &  G (!(!__expr66 & !__expr103) | !__expr131));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd)))) &  G (!(!__expr66 & !__expr103) | !case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_8.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd)))) &  G (!(!__expr66 & !__expr103) | !case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_7.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd)))) &  G (!(!__expr66 & !__expr103) | !case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_6.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd)))) &  G (!(!__expr66 & !__expr103) | !case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_5.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd);
+esac));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd)))) &  G (!(!__expr66 & !__expr103) | !case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_4.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd)))) &  G (!(!__expr66 & !__expr103) | !case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_3.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd)))) &  G (!(!__expr66 & !__expr103) | !case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_2.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.switch_behavior_norm_guarantee := (( G (!__expr66 | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd))) &  G (!(!__expr66 & __expr103) | (case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd)))) &  G (!(!__expr66 & !((((((((((((power_2 & ((__expr0 & (!wbs_arch4_inst.sensor_1.wheel_rolling | !wbs_arch4_inst.sensor_5.wheel_rolling)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.alternate_command_calculator.as_cmd_out)) & ((__expr0 & (!wbs_arch4_inst.sensor_2.wheel_rolling | !wbs_arch4_inst.sensor_6.wheel_rolling)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.alternate_command_calculator.as_cmd_out)) & ((__expr0 & (!wbs_arch4_inst.sensor_3.wheel_rolling | !wbs_arch4_inst.sensor_7.wheel_rolling)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.alternate_command_calculator.as_cmd_out)) & ((__expr0 & (!wbs_arch4_inst.sensor_4.wheel_rolling | !wbs_arch4_inst.sensor_8.wheel_rolling)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.alternate_command_calculator.as_cmd_out)) & ((wbs_arch4_inst.sensor_pedal_L.electrical_pedal_pos & ((__expr0 & wbs_arch4_inst.sensor_1.wheel_rolling) | __expr37)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd)) & ((wbs_arch4_inst.sensor_pedal_L.electrical_pedal_pos & ((__expr0 & wbs_arch4_inst.sensor_2.wheel_rolling) | __expr37)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.brake_as_cmd)) & ((wbs_arch4_inst.sensor_pedal_R.electrical_pedal_pos & ((__expr0 & wbs_arch4_inst.sensor_3.wheel_rolling) | __expr37)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.brake_as_cmd)) & ((wbs_arch4_inst.sensor_pedal_R.electrical_pedal_pos & ((__expr0 & wbs_arch4_inst.sensor_4.wheel_rolling) | __expr37)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.brake_as_cmd)) & ((wbs_arch4_inst.sensor_pedal_L.electrical_pedal_pos & ((__expr0 & wbs_arch4_inst.sensor_5.wheel_rolling) | __expr37)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.brake_as_cmd)) & ((wbs_arch4_inst.sensor_pedal_L.electrical_pedal_pos & ((__expr0 & wbs_arch4_inst.sensor_6.wheel_rolling) | __expr37)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.brake_as_cmd)) & ((wbs_arch4_inst.sensor_pedal_R.electrical_pedal_pos & ((__expr0 & wbs_arch4_inst.sensor_7.wheel_rolling) | __expr37)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.brake_as_cmd)) & ((wbs_arch4_inst.sensor_pedal_R.electrical_pedal_pos & ((__expr0 & wbs_arch4_inst.sensor_8.wheel_rolling) | __expr37)) <-> wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.brake_as_cmd))) | !case
+wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos1 : wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd;
+TRUE : (wbs_arch4_inst.ctrl_sys.bscu.switch_gate_brake_as_cmd_1.state = pos2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.brake_as_cmd);
+esac));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.or_gate_system_validity.or_behavior_norm_guarantee :=  G TRUE;
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_alternate_4_norm_guarantee :=  G (((power_2 & __expr0) & (__expr29 | __expr31)) <-> __expr81);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_normal_1_norm_guarantee :=  G ((__expr83 & ((__expr0 & __expr1) | __expr37)) <-> __expr85);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_normal_2_norm_guarantee :=  G ((__expr83 & ((__expr0 & __expr10) | __expr37)) <-> __expr87);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_normal_3_norm_guarantee :=  G ((__expr89 & ((__expr0 & __expr19) | __expr37)) <-> __expr91);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_normal_4_norm_guarantee :=  G ((__expr89 & ((__expr0 & __expr28) | __expr37)) <-> __expr93);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_normal_5_norm_guarantee :=  G ((__expr83 & ((__expr0 & __expr3) | __expr37)) <-> __expr95);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_normal_6_norm_guarantee :=  G ((__expr83 & ((__expr0 & __expr12) | __expr37)) <-> __expr97);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_normal_7_norm_guarantee :=  G ((__expr89 & ((__expr0 & __expr21) | __expr37)) <-> __expr99);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_normal_8_norm_guarantee :=  G ((__expr89 & ((__expr0 & __expr30) | __expr37)) <-> __expr101);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.system_validity_norm_guarantee :=  G (__expr103 <-> ((((((((((((power_2 & __expr86) & __expr88) & __expr92) & __expr94) & __expr96) & __expr98) & __expr100) & __expr102) & __expr70) & __expr74) & __expr78) & __expr82));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_alternate_1_norm_guarantee :=  G (((power_2 & __expr0) & (__expr2 | __expr4)) <-> __expr69);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_alternate_2_norm_guarantee :=  G (((power_2 & __expr0) & (__expr11 | __expr13)) <-> __expr73);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_creation_alternate_3_norm_guarantee :=  G (((power_2 & __expr0) & (__expr20 | __expr22)) <-> __expr77);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_alternate_4_norm_guarantee :=  G (((power_2 & __expr0) & (__expr29 | __expr31)) <-> __expr81);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_normal_1_norm_guarantee :=  G ((__expr83 & ((__expr0 & __expr1) | __expr37)) <-> __expr85);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_normal_2_norm_guarantee :=  G ((__expr83 & ((__expr0 & __expr10) | __expr37)) <-> __expr87);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_normal_3_norm_guarantee :=  G ((__expr89 & ((__expr0 & __expr19) | __expr37)) <-> __expr91);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_normal_4_norm_guarantee :=  G ((__expr89 & ((__expr0 & __expr28) | __expr37)) <-> __expr93);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_normal_5_norm_guarantee :=  G ((__expr83 & ((__expr0 & __expr3) | __expr37)) <-> __expr95);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_normal_6_norm_guarantee :=  G ((__expr83 & ((__expr0 & __expr12) | __expr37)) <-> __expr97);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_normal_7_norm_guarantee :=  G ((__expr89 & ((__expr0 & __expr21) | __expr37)) <-> __expr99);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_normal_8_norm_guarantee :=  G ((__expr89 & ((__expr0 & __expr30) | __expr37)) <-> __expr101);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_alternate_1_norm_guarantee :=  G (((power_2 & __expr0) & (__expr2 | __expr4)) <-> __expr69);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_alternate_2_norm_guarantee :=  G (((power_2 & __expr0) & (__expr11 | __expr13)) <-> __expr73);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.command_creation_alternate_3_norm_guarantee :=  G (((power_2 & __expr0) & (__expr20 | __expr22)) <-> __expr77);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.commands_creation_norm_guarantee :=  G (((((power_2 & __expr0) & (__expr29 | __expr31)) <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd))) & ((__expr89 & ((__expr0 & __expr28) | __expr37)) <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd))) & ((__expr89 & ((__expr0 & __expr30) | __expr37)) <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee :=  G (__expr89 <-> (power_2 & wbs_arch4_inst.sensor_pedal_R.electrical_pedal_pos));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_command_creation_norm_guarantee :=  G (((power_2 & __expr0) & __expr31) <-> ((power_2 & !wbs_arch4_inst.sensor_8.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_command_creation_norm_guarantee :=  G (((power_2 & __expr0) & __expr29) <-> ((power_2 & !wbs_arch4_inst.sensor_4.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.normal_command_computation_norm_guarantee :=  G (__expr101 <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.normal_command_computation_norm_guarantee :=  G (__expr93 <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.alternate_command_calculator.alternate_command_computation_norm_guarantee :=  G (__expr81 <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.commands_creation_norm_guarantee :=  G (((((power_2 & __expr0) & (__expr20 | __expr22)) <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd))) & ((__expr89 & ((__expr0 & __expr19) | __expr37)) <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd))) & ((__expr89 & ((__expr0 & __expr21) | __expr37)) <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee :=  G (__expr89 <-> (power_2 & wbs_arch4_inst.sensor_pedal_R.electrical_pedal_pos));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_command_creation_norm_guarantee :=  G (((power_2 & __expr0) & __expr22) <-> ((power_2 & !wbs_arch4_inst.sensor_7.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_command_creation_norm_guarantee :=  G (((power_2 & __expr0) & __expr20) <-> ((power_2 & !wbs_arch4_inst.sensor_3.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.normal_command_computation_norm_guarantee :=  G (__expr99 <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.normal_command_computation_norm_guarantee :=  G (__expr91 <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.alternate_command_calculator.alternate_command_computation_norm_guarantee :=  G (__expr77 <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.commands_creation_norm_guarantee :=  G (((((power_2 & __expr0) & (__expr11 | __expr13)) <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd))) & ((__expr83 & ((__expr0 & __expr10) | __expr37)) <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd))) & ((__expr83 & ((__expr0 & __expr12) | __expr37)) <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee :=  G (__expr83 <-> (power_2 & wbs_arch4_inst.sensor_pedal_L.electrical_pedal_pos));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_command_creation_norm_guarantee :=  G (((power_2 & __expr0) & __expr13) <-> ((power_2 & !wbs_arch4_inst.sensor_6.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_command_creation_norm_guarantee :=  G (((power_2 & __expr0) & __expr11) <-> ((power_2 & !wbs_arch4_inst.sensor_2.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.normal_command_computation_norm_guarantee :=  G (__expr97 <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.normal_command_computation_norm_guarantee :=  G (__expr87 <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.alternate_command_calculator.alternate_command_computation_norm_guarantee :=  G (__expr73 <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.commands_creation_norm_guarantee :=  G (((((power_2 & __expr0) & (__expr2 | __expr4)) <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd))) & ((__expr83 & ((__expr0 & __expr1) | __expr37)) <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd))) & ((__expr83 & ((__expr0 & __expr3) | __expr37)) <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee :=  G (__expr83 <-> (power_2 & wbs_arch4_inst.sensor_pedal_L.electrical_pedal_pos));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_command_creation_norm_guarantee :=  G (((power_2 & __expr0) & __expr4) <-> ((power_2 & !wbs_arch4_inst.sensor_5.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_command_creation_norm_guarantee :=  G (((power_2 & __expr0) & __expr2) <-> ((power_2 & !wbs_arch4_inst.sensor_1.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.normal_command_computation_norm_guarantee :=  G (__expr95 <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.normal_command_computation_norm_guarantee :=  G (__expr85 <-> ((power_2 & wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.alternate_command_calculator.alternate_command_computation_norm_guarantee :=  G (__expr69 <-> (power_2 & (wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_2.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_2.monitor_sys.bscu_validity_norm_guarantee :=  G (__expr103 <-> ((((((((((((power_2 & __expr86) & __expr88) & __expr92) & __expr94) & __expr96) & __expr98) & __expr100) & __expr102) & __expr70) & __expr74) & __expr78) & __expr82));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_alternate_4_norm_guarantee :=  G (((power_1 & __expr0) & (__expr29 | __expr31)) <-> __expr35);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_normal_1_norm_guarantee :=  G ((__expr39 & ((__expr0 & __expr1) | __expr37)) <-> __expr41);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_normal_2_norm_guarantee :=  G ((__expr39 & ((__expr0 & __expr10) | __expr37)) <-> __expr44);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_normal_3_norm_guarantee :=  G ((__expr47 & ((__expr0 & __expr19) | __expr37)) <-> __expr49);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_normal_4_norm_guarantee :=  G ((__expr47 & ((__expr0 & __expr28) | __expr37)) <-> __expr52);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_normal_5_norm_guarantee :=  G ((__expr39 & ((__expr0 & __expr3) | __expr37)) <-> __expr55);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_normal_6_norm_guarantee :=  G ((__expr39 & ((__expr0 & __expr12) | __expr37)) <-> __expr58);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_normal_7_norm_guarantee :=  G ((__expr47 & ((__expr0 & __expr21) | __expr37)) <-> __expr61);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_normal_8_norm_guarantee :=  G ((__expr47 & ((__expr0 & __expr30) | __expr37)) <-> __expr64);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.system_validity_norm_guarantee :=  G (__expr66 <-> ((((((((((((power_1 & __expr42) & __expr45) & __expr50) & __expr53) & __expr56) & __expr59) & __expr62) & __expr65) & __expr9) & __expr18) & __expr27) & __expr36));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_alternate_1_norm_guarantee :=  G (((power_1 & __expr0) & (__expr2 | __expr4)) <-> __expr8);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_alternate_2_norm_guarantee :=  G (((power_1 & __expr0) & (__expr11 | __expr13)) <-> __expr17);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_creation_alternate_3_norm_guarantee :=  G (((power_1 & __expr0) & (__expr20 | __expr22)) <-> __expr26);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_alternate_4_norm_guarantee :=  G (((power_1 & __expr0) & (__expr29 | __expr31)) <-> __expr35);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_normal_1_norm_guarantee :=  G ((__expr39 & ((__expr0 & __expr1) | __expr37)) <-> __expr41);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_normal_2_norm_guarantee :=  G ((__expr39 & ((__expr0 & __expr10) | __expr37)) <-> __expr44);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_normal_3_norm_guarantee :=  G ((__expr47 & ((__expr0 & __expr19) | __expr37)) <-> __expr49);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_normal_4_norm_guarantee :=  G ((__expr47 & ((__expr0 & __expr28) | __expr37)) <-> __expr52);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_normal_5_norm_guarantee :=  G ((__expr39 & ((__expr0 & __expr3) | __expr37)) <-> __expr55);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_normal_6_norm_guarantee :=  G ((__expr39 & ((__expr0 & __expr12) | __expr37)) <-> __expr58);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_normal_7_norm_guarantee :=  G ((__expr47 & ((__expr0 & __expr21) | __expr37)) <-> __expr61);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_normal_8_norm_guarantee :=  G ((__expr47 & ((__expr0 & __expr30) | __expr37)) <-> __expr64);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_alternate_1_norm_guarantee :=  G (((power_1 & __expr0) & (__expr2 | __expr4)) <-> __expr8);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_alternate_2_norm_guarantee :=  G (((power_1 & __expr0) & (__expr11 | __expr13)) <-> __expr17);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.command_creation_alternate_3_norm_guarantee :=  G (((power_1 & __expr0) & (__expr20 | __expr22)) <-> __expr26);
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.commands_creation_norm_guarantee :=  G (((((power_1 & __expr0) & (__expr29 | __expr31)) <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd))) & ((__expr47 & ((__expr0 & __expr28) | __expr37)) <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd))) & ((__expr47 & ((__expr0 & __expr30) | __expr37)) <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee :=  G (__expr47 <-> (power_1 & wbs_arch4_inst.sensor_pedal_R.electrical_pedal_pos));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_command_creation_norm_guarantee :=  G (((power_1 & __expr0) & __expr31) <-> ((power_1 & !wbs_arch4_inst.sensor_8.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_command_creation_norm_guarantee :=  G (((power_1 & __expr0) & __expr29) <-> ((power_1 & !wbs_arch4_inst.sensor_4.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_2.normal_command_computation_norm_guarantee :=  G (__expr64 <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.normal_command_calculator_1.normal_command_computation_norm_guarantee :=  G (__expr52 <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.alternate_command_calculator.alternate_command_computation_norm_guarantee :=  G (__expr35 <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w4_w8_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.commands_creation_norm_guarantee :=  G (((((power_1 & __expr0) & (__expr20 | __expr22)) <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd))) & ((__expr47 & ((__expr0 & __expr19) | __expr37)) <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd))) & ((__expr47 & ((__expr0 & __expr21) | __expr37)) <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee :=  G (__expr47 <-> (power_1 & wbs_arch4_inst.sensor_pedal_R.electrical_pedal_pos));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_command_creation_norm_guarantee :=  G (((power_1 & __expr0) & __expr22) <-> ((power_1 & !wbs_arch4_inst.sensor_7.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_command_creation_norm_guarantee :=  G (((power_1 & __expr0) & __expr20) <-> ((power_1 & !wbs_arch4_inst.sensor_3.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_2.normal_command_computation_norm_guarantee :=  G (__expr61 <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.normal_command_calculator_1.normal_command_computation_norm_guarantee :=  G (__expr49 <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.alternate_command_calculator.alternate_command_computation_norm_guarantee :=  G (__expr26 <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w3_w7_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.commands_creation_norm_guarantee :=  G (((((power_1 & __expr0) & (__expr11 | __expr13)) <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd))) & ((__expr39 & ((__expr0 & __expr10) | __expr37)) <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd))) & ((__expr39 & ((__expr0 & __expr12) | __expr37)) <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee :=  G (__expr39 <-> (power_1 & wbs_arch4_inst.sensor_pedal_L.electrical_pedal_pos));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_command_creation_norm_guarantee :=  G (((power_1 & __expr0) & __expr13) <-> ((power_1 & !wbs_arch4_inst.sensor_6.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_command_creation_norm_guarantee :=  G (((power_1 & __expr0) & __expr11) <-> ((power_1 & !wbs_arch4_inst.sensor_2.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_2.normal_command_computation_norm_guarantee :=  G (__expr58 <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.normal_command_calculator_1.normal_command_computation_norm_guarantee :=  G (__expr44 <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.alternate_command_calculator.alternate_command_computation_norm_guarantee :=  G (__expr17 <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w2_w6_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.commands_creation_norm_guarantee :=  G (((((power_1 & __expr0) & (__expr2 | __expr4)) <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd))) & ((__expr39 & ((__expr0 & __expr1) | __expr37)) <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd))) & ((__expr39 & ((__expr0 & __expr3) | __expr37)) <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_command_creation_norm_guarantee :=  G (__expr39 <-> (power_1 & wbs_arch4_inst.sensor_pedal_L.electrical_pedal_pos));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_command_creation_norm_guarantee :=  G (((power_1 & __expr0) & __expr4) <-> ((power_1 & !wbs_arch4_inst.sensor_5.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_command_creation_norm_guarantee :=  G (((power_1 & __expr0) & __expr2) <-> ((power_1 & !wbs_arch4_inst.sensor_1.wheel_rolling) & __expr0));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_2.normal_command_computation_norm_guarantee :=  G (__expr55 <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.normal_command_calculator_1.normal_command_computation_norm_guarantee :=  G (__expr41 <-> ((power_1 & wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.brake_command_facility.brake_cmd) & !wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.alternate_command_calculator.alternate_command_computation_norm_guarantee :=  G (__expr8 <-> (power_1 & (wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_1.as_cmd | wbs_arch4_inst.ctrl_sys.bscu.channel_1.command_sys.w1_w5_cmd_sys.antiskid_command_facility_2.as_cmd)));
+
+LTLSPEC
+ NAME wbs_arch4_inst.ctrl_sys.bscu.channel_1.monitor_sys.bscu_validity_norm_guarantee :=  G (__expr66 <-> ((((((((((((power_1 & __expr42) & __expr45) & __expr50) & __expr53) & __expr56) & __expr59) & __expr62) & __expr65) & __expr9) & __expr18) & __expr27) & __expr36));
+
+
+-- Symbols introduced by the dumper:
+DEFINE __expr102 := (__expr63 <-> __expr101) ;
+
+DEFINE __expr38 := (mechanical_pedal_pos_L & ((__expr0 & __expr1) | __expr37)) ;
+
+DEFINE __expr71 := ((power_2 & __expr11) & __expr0) ;
+
+DEFINE __expr112 := case
+__expr110 = blue : __expr111;
+TRUE : 0;
+esac ;
+
+DEFINE __expr117 := case
+__expr115 : __expr116;
+TRUE : 0;
+esac ;
+
+DEFINE __expr33 := ((power_1 & __expr29) & __expr0) ;
+
+DEFINE __expr130 := case
+__expr127 >= __expr129 : __expr127;
+TRUE : __expr129;
+esac ;
+
+DEFINE __expr18 := (__expr14 <-> __expr17) ;
+
+DEFINE __expr20 := !__expr19 ;
+
+DEFINE __expr86 := (__expr38 <-> __expr85) ;
+
+DEFINE __expr132 := case
+!__expr131 : __expr112;
+TRUE : 0;
+esac ;
+
+DEFINE __expr90 := (power_2 & __expr89) ;
+
+DEFINE __expr50 := (__expr46 <-> __expr49) ;
+
+DEFINE __expr30 := wbs_arch4_inst.phys_sys.wheel_8.status = rolling ;
+
+DEFINE __expr73 := (power_2 & (__expr71 | __expr72)) ;
+
+DEFINE __expr47 := (power_1 & mechanical_pedal_pos_R) ;
+
+DEFINE __expr19 := wbs_arch4_inst.phys_sys.wheel_3.status = rolling ;
+
+DEFINE __expr142 := case
+__expr121 >= __expr141 : __expr121;
+TRUE : __expr141;
+esac ;
+
+DEFINE __expr83 := (power_2 & mechanical_pedal_pos_L) ;
+
+DEFINE __expr104 := (__expr66 | __expr103) ;
+
+DEFINE __expr80 := ((power_2 & __expr31) & __expr0) ;
+
+DEFINE __expr126 := case
+!__expr125 : __expr112;
+TRUE : 0;
+esac ;
+
+DEFINE __expr91 := (__expr90 & !__expr75) ;
+
+DEFINE __expr55 := (__expr40 & !__expr7) ;
+
+DEFINE __expr129 := case
+__expr128 : __expr116;
+TRUE : 0;
+esac ;
+
+DEFINE __expr27 := (__expr23 <-> __expr26) ;
+
+DEFINE __expr100 := (__expr60 <-> __expr99) ;
+
+DEFINE __expr32 := (__expr0 & (__expr29 | __expr31)) ;
+
+DEFINE __expr67 := ((power_2 & __expr2) & __expr0) ;
+
+DEFINE __expr131 := case
+__expr107 : __expr8;
+TRUE : (__expr108 & __expr69);
+esac ;
+
+DEFINE __expr103 := ((((((((((((power_2 & __expr70) & __expr74) & __expr78) & __expr82) & __expr86) & __expr88) & __expr92) & __expr94) & __expr96) & __expr98) & __expr100) & __expr102) ;
+
+DEFINE __expr113 := case
+!__expr109 : __expr112;
+TRUE : 0;
+esac ;
+
+DEFINE __expr24 := ((power_1 & __expr20) & __expr0) ;
+
+DEFINE __expr120 := case
+!__expr119 : __expr112;
+TRUE : 0;
+esac ;
+
+DEFINE __expr11 := !__expr10 ;
+
+DEFINE __expr77 := (power_2 & (__expr75 | __expr76)) ;
+
+DEFINE __expr141 := case
+__expr140 : __expr116;
+TRUE : 0;
+esac ;
+
+DEFINE __expr45 := (__expr43 <-> __expr44) ;
+
+DEFINE __expr125 := case
+__expr107 : __expr17;
+TRUE : (__expr108 & __expr73);
+esac ;
+
+DEFINE __expr134 := case
+__expr107 : __expr55;
+TRUE : (__expr108 & __expr95);
+esac ;
+
+DEFINE __expr36 := (__expr32 <-> __expr35) ;
+
+DEFINE __expr149 := 1 .. 10 ;
+
+DEFINE __expr76 := ((power_2 & __expr22) & __expr0) ;
+
+DEFINE __expr31 := !__expr30 ;
+
+DEFINE __expr87 := (__expr84 & !__expr71) ;
+
+DEFINE __expr21 := wbs_arch4_inst.phys_sys.wheel_7.status = rolling ;
+
+DEFINE __expr111 := case
+wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out + wbs_arch4_inst.phys_sys.accumulator.reserve_out < 10 : wbs_arch4_inst.phys_sys.blue_hydraulic_pump.hyd_pressure_out + wbs_arch4_inst.phys_sys.accumulator.reserve_out;
+TRUE : 10;
+esac ;
+
+DEFINE __expr109 := case
+__expr107 : __expr35;
+TRUE : (__expr108 & __expr81);
+esac ;
+
+DEFINE __expr52 := (__expr48 & !__expr33) ;
+
+DEFINE __expr119 := case
+__expr107 : __expr26;
+TRUE : (__expr108 & __expr77);
+esac ;
+
+DEFINE __expr10 := wbs_arch4_inst.phys_sys.wheel_2.status = rolling ;
+
+DEFINE __expr8 := (power_1 & (__expr6 | __expr7)) ;
+
+DEFINE __expr143 := case
+__expr107 : __expr44;
+TRUE : (__expr108 & __expr87);
+esac ;
+
+DEFINE __expr98 := (__expr57 <-> __expr97) ;
+
+DEFINE __expr23 := (__expr0 & (__expr20 | __expr22)) ;
+
+DEFINE __expr81 := (power_2 & (__expr79 | __expr80)) ;
+
+DEFINE __expr133 := case
+mechanical_pedal_pos_L : __expr132;
+TRUE : 0;
+esac ;
+
+DEFINE __expr65 := (__expr63 <-> __expr64) ;
+
+DEFINE __expr118 := case
+__expr114 >= __expr117 : __expr114;
+TRUE : __expr117;
+esac ;
+
+DEFINE __expr15 := ((power_1 & __expr11) & __expr0) ;
+
+DEFINE __expr0 := ground_speed > 0 ;
+
+DEFINE __expr2 := !__expr1 ;
+
+DEFINE __expr150 := case
+__expr0 : rolling;
+TRUE : stopped;
+esac ;
+
+DEFINE __expr63 := (mechanical_pedal_pos_R & ((__expr0 & __expr30) | __expr37)) ;
+
+DEFINE __expr42 := (__expr38 <-> __expr41) ;
+
+DEFINE __expr151 := ground_speed >= 2 ;
+
+DEFINE __expr105 := case
+__expr104 : wbs_arch4_inst.phys_sys.green_hydraulic_pump.hyd_pressure_out;
+TRUE : 0;
+esac ;
+
+DEFINE __expr101 := (__expr90 & !__expr80) ;
+
+DEFINE __expr127 := case
+mechanical_pedal_pos_L : __expr126;
+TRUE : 0;
+esac ;
+
+DEFINE __expr37 := ground_speed = 0 ;
+
+DEFINE __expr136 := case
+__expr133 >= __expr135 : __expr133;
+TRUE : __expr135;
+esac ;
+
+DEFINE __expr115 := case
+__expr107 : __expr64;
+TRUE : (__expr108 & __expr101);
+esac ;
+
+DEFINE __expr40 := (power_1 & __expr39) ;
+
+DEFINE __expr108 := __expr106 = pos2 ;
+
+DEFINE __expr57 := (mechanical_pedal_pos_L & ((__expr0 & __expr12) | __expr37)) ;
+
+DEFINE __expr17 := (power_1 & (__expr15 | __expr16)) ;
+
+DEFINE __expr72 := ((power_2 & __expr13) & __expr0) ;
+
+DEFINE __expr22 := !__expr21 ;
+
+DEFINE __expr85 := (__expr84 & !__expr67) ;
+
+DEFINE __expr34 := ((power_1 & __expr31) & __expr0) ;
+
+DEFINE __expr114 := case
+mechanical_pedal_pos_R : __expr113;
+TRUE : 0;
+esac ;
+
+DEFINE __expr89 := (power_2 & mechanical_pedal_pos_R) ;
+
+DEFINE __expr49 := (__expr48 & !__expr24) ;
+
+DEFINE __expr121 := case
+mechanical_pedal_pos_R : __expr120;
+TRUE : 0;
+esac ;
+
+DEFINE __expr51 := (mechanical_pedal_pos_R & ((__expr0 & __expr28) | __expr37)) ;
+
+DEFINE __expr145 := case
+__expr127 >= __expr144 : __expr127;
+TRUE : __expr144;
+esac ;
+
+DEFINE __expr96 := (__expr54 <-> __expr95) ;
+
+DEFINE __expr14 := (__expr0 & (__expr11 | __expr13)) ;
+
+DEFINE __expr107 := __expr106 = pos1 ;
+
+DEFINE __expr62 := (__expr60 <-> __expr61) ;
+
+DEFINE __expr12 := wbs_arch4_inst.phys_sys.wheel_6.status = rolling ;
+
+DEFINE __expr6 := ((power_1 & __expr2) & __expr0) ;
+
+DEFINE __expr152 := ground_speed < 2 ;
+
+DEFINE __expr66 := ((((((((((((power_1 & __expr9) & __expr18) & __expr27) & __expr36) & __expr42) & __expr45) & __expr50) & __expr53) & __expr56) & __expr59) & __expr62) & __expr65) ;
+
+DEFINE __expr43 := (mechanical_pedal_pos_L & ((__expr0 & __expr10) | __expr37)) ;
+
+DEFINE __expr135 := case
+__expr134 : __expr116;
+TRUE : 0;
+esac ;
+
+DEFINE __expr1 := wbs_arch4_inst.phys_sys.wheel_1.status = rolling ;
+
+DEFINE __expr26 := (power_1 & (__expr24 | __expr25)) ;
+
+DEFINE __expr99 := (__expr90 & !__expr76) ;
+
+DEFINE __expr122 := case
+__expr107 : __expr61;
+TRUE : (__expr108 & __expr99);
+esac ;
+
+DEFINE __expr144 := case
+__expr143 : __expr116;
+TRUE : 0;
+esac ;
+
+DEFINE __expr68 := ((power_2 & __expr4) & __expr0) ;
+
+DEFINE __expr13 := !__expr12 ;
+
+DEFINE __expr25 := ((power_1 & __expr22) & __expr0) ;
+
+DEFINE __expr44 := (__expr40 & !__expr15) ;
+
+DEFINE __expr137 := case
+__expr107 : __expr52;
+TRUE : (__expr108 & __expr93);
+esac ;
+
+DEFINE __expr94 := (__expr51 <-> __expr93) ;
+
+DEFINE __expr5 := (__expr0 & (__expr2 | __expr4)) ;
+
+DEFINE __expr70 := (__expr5 <-> __expr69) ;
+
+DEFINE __expr59 := (__expr57 <-> __expr58) ;
+
+DEFINE __expr35 := (power_1 & (__expr33 | __expr34)) ;
+
+DEFINE __expr146 := case
+__expr107 : __expr41;
+TRUE : (__expr108 & __expr85);
+esac ;
+
+DEFINE __expr97 := (__expr84 & !__expr72) ;
+
+DEFINE __expr124 := case
+__expr121 >= __expr123 : __expr121;
+TRUE : __expr123;
+esac ;
+
+DEFINE __expr3 := wbs_arch4_inst.phys_sys.wheel_5.status = rolling ;
+
+DEFINE __expr64 := (__expr48 & !__expr34) ;
+
+DEFINE __expr79 := ((power_2 & __expr29) & __expr0) ;
+
+DEFINE __expr4 := !__expr3 ;
+
+DEFINE __expr74 := (__expr14 <-> __expr73) ;
+
+DEFINE __expr48 := (power_1 & __expr47) ;
+
+DEFINE __expr16 := ((power_1 & __expr13) & __expr0) ;
+
+DEFINE __expr84 := (power_2 & __expr83) ;
+
+DEFINE __expr41 := (__expr40 & !__expr6) ;
+
+DEFINE __expr139 := case
+__expr114 >= __expr138 : __expr114;
+TRUE : __expr138;
+esac ;
+
+DEFINE __expr92 := (__expr46 <-> __expr91) ;
+
+DEFINE __expr39 := (power_1 & mechanical_pedal_pos_L) ;
+
+DEFINE __expr56 := (__expr54 <-> __expr55) ;
+
+DEFINE __expr116 := case
+__expr110 = green : __expr105;
+TRUE : 0;
+esac ;
+
+DEFINE __expr123 := case
+__expr122 : __expr116;
+TRUE : 0;
+esac ;
+
+DEFINE __expr148 := case
+__expr133 >= __expr147 : __expr133;
+TRUE : __expr147;
+esac ;
+
+DEFINE __expr95 := (__expr84 & !__expr68) ;
+
+DEFINE __expr78 := (__expr23 <-> __expr77) ;
+
+DEFINE __expr106 := case
+__expr66 : pos1;
+(!__expr66 & __expr103) : pos2;
+TRUE : no_output;
+esac ;
+
+DEFINE __expr61 := (__expr48 & !__expr25) ;
+
+DEFINE __expr138 := case
+__expr137 : __expr116;
+TRUE : 0;
+esac ;
+
+DEFINE __expr75 := ((power_2 & __expr20) & __expr0) ;
+
+DEFINE __expr7 := ((power_1 & __expr4) & __expr0) ;
+
+DEFINE __expr128 := case
+__expr107 : __expr58;
+TRUE : (__expr108 & __expr97);
+esac ;
+
+DEFINE __expr60 := (mechanical_pedal_pos_R & ((__expr0 & __expr21) | __expr37)) ;
+
+DEFINE __expr28 := wbs_arch4_inst.phys_sys.wheel_4.status = rolling ;
+
+DEFINE __expr110 := case
+(__expr105 > 0 & __expr104) : green;
+TRUE : blue;
+esac ;
+
+DEFINE __expr29 := !__expr28 ;
+
+DEFINE __expr88 := (__expr43 <-> __expr87) ;
+
+DEFINE __expr147 := case
+__expr146 : __expr116;
+TRUE : 0;
+esac ;
+
+DEFINE __expr53 := (__expr51 <-> __expr52) ;
+
+DEFINE __expr54 := (mechanical_pedal_pos_L & ((__expr0 & __expr3) | __expr37)) ;
+
+DEFINE __expr9 := (__expr5 <-> __expr8) ;
+
+DEFINE __expr82 := (__expr32 <-> __expr81) ;
+
+DEFINE __expr140 := case
+__expr107 : __expr49;
+TRUE : (__expr108 & __expr91);
+esac ;
+
+DEFINE __expr46 := (mechanical_pedal_pos_R & ((__expr0 & __expr19) | __expr37)) ;
+
+DEFINE __expr93 := (__expr90 & !__expr79) ;
+
+DEFINE __expr69 := (power_2 & (__expr67 | __expr68)) ;
+
+DEFINE __expr58 := (__expr40 & !__expr16) ;
+
