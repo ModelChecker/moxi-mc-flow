@@ -74,7 +74,7 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
 
     os.chdir(avr_path)
 
-    command = ["python", "avr.py", str(absolute_btor_path), "--bmc", "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax)]
+    command = ["python", "avr.py", str(absolute_btor_path), "--bmc", "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax), "--timeout", str(timeout)]
     
     if kind:
         command.append("--kind")
