@@ -78,6 +78,8 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
     
     if kind:
         command.append("--kind")
+    else:
+        command.append("--bmc")
 
     start_mc = time.perf_counter()
 
@@ -179,7 +181,7 @@ def model_check(
         command.append("--debug")
 
     logger.info(f"Translating {input_path}")
-    proc = subprocess.run(command, capture_output=True)
+    proc = subprocess.run(command, capture_output=not debug)
 
     if proc.returncode:
         logger.error(proc.stderr.decode("utf-8")[:-1]) # [:-1] removes trailing "\n"
