@@ -600,7 +600,16 @@ class NuXmvParser(Parser):
                 else:
                     return XMVArray(low=p[2], high=int(p[5]), subtype=int(p[7]))
             case _:
-                if str.isnumeric(p[0]):
+                def is_int(n : str):
+                    try:
+                        int(n)
+                    except ValueError:
+                        return False
+                    else:
+                        return True
+
+
+                if is_int(p[0]):
                     return XMVEnumeration(summands=set(range(int(p[0]), int(p[3]))))
                 elif len(p) == 3:
                     return XMVModuleType(module_name=p[0], parameters=[])
