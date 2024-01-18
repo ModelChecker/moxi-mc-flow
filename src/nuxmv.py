@@ -1,6 +1,4 @@
-# TODO: IMPLEMENT THIS
 from __future__ import annotations
-from operator import is_
 from typing import Optional, cast
 
 import re
