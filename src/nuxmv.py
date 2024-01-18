@@ -42,7 +42,8 @@ class XMVInteger(XMVType):
         self.values = values
 
     def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, XMVInteger)
+        return (isinstance(__o, XMVInteger) 
+                or (isinstance(__o, XMVEnumeration) and __o.is_integer()))
 
     def __repr__(self) -> str:
         return "integer"
@@ -100,7 +101,8 @@ class XMVEnumeration(XMVType):
                 and any([isinstance(s, str) for s in self.summands]))
 
     def __eq__(self, __o: object) -> bool:
-        return isinstance(__o, XMVEnumeration)
+        return (isinstance(__o, XMVEnumeration) 
+                or (self.is_integer() and isinstance(__o, XMVInteger)))
 
     def __repr__(self) -> str:
         return f"enum({self.summands})"
@@ -823,13 +825,13 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
                                 if w1 != w2 or s1 != s2:
                                     raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
                                 expr.type = XMVBoolean()
-                            case (XMVArray(low=low1, high=high1, type=type1), 
-                                  XMVArray(low=low2, high=high2, type=type2)):
+                            case (XMVArray(low=low1, high=high1, subtype=type1), 
+                                  XMVArray(low=low2, high=high2, subtype=type2)):
                                 if low1 != low2 and high1 != high2 and type1 != type2:
                                     raise ValueError("Different array types")
                                 expr.type = XMVBoolean()
-                            case (XMVWordArray(word_length=wl1, type=type1),
-                                  XMVWordArray(word_length=wl2, type=type2)):
+                            case (XMVWordArray(word_length=wl1, subtype=type1),
+                                  XMVWordArray(word_length=wl2, subtype=type2)):
                                 if wl1 != wl2 and type1 != type2:
                                     raise ValueError("Different word array types")
                                 expr.type = XMVBoolean()
@@ -887,8 +889,15 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
                     raise ValueError(f"High value for bit select must be greater than low value [{low}:{high}] ({expr})")
             case XMVSetBodyExpression():
                 raise NotImplementedError(f"Unsupported operator {type(expr)}")
-            case XMVTernary():
-                raise NotImplementedError(f"Unsupported operator {type(expr)}")
+            case XMVTernary(cond=cond, then_expr=then_expr, else_expr=else_expr):
+                if cond.type != XMVBoolean():
+                    raise NotImplementedError(f"Condition of ternary must be boolean, found '{cond.type}'")
+
+                if then_expr.type != else_expr.type:
+                    raise NotImplementedError(f"Branches of ternary not the same."
+                                            f"\n\tFound '{then_expr.type}' and '{else_expr.type}")
+                
+                expr.type = then_expr.type
             case XMVCaseExpr(branches=branches):
                 for (cond, branch) in branches:
                     if (not isinstance(cond.type, XMVBoolean) and 

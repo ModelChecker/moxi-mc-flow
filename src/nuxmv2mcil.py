@@ -37,9 +37,9 @@ def translate_type(xmv_type: XMVType, xmv_context: XMVContext) -> MCILSort:
             raise ValueError("nuXmv `clock` type not supported in the IL (yet?)")
         case XMVWord(width=w):
             return MCIL_BITVEC_SORT(int(w))
-        case XMVArray(type=t):
+        case XMVArray(subtype=t):
             return MCIL_ARRAY_SORT(MCIL_INT_SORT, translate_type(t, xmv_context))
-        case XMVWordArray(word_length=wl, type=t):
+        case XMVWordArray(word_length=wl, subtype=t):
             return MCIL_ARRAY_SORT(MCIL_BITVEC_SORT(int(wl)), translate_type(t, xmv_context))
         case XMVModuleType():
             raise ValueError(f"Cannot translate type {xmv_type}")
@@ -392,7 +392,10 @@ def translate_expr(
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                     case 'mod':
-                        il_op = "bvsmod"
+                        if isinstance(lhs.type, XMVWord) and lhs.type.signed:
+                            il_op = "bvsrem"
+                        else:
+                            il_op = "bvurem"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                     case "=" | "<->":
@@ -885,10 +888,10 @@ def infer_logic(commands: list[MCILCommand]) -> Optional[MCILSetLogic]:
             if is_int_sort(sort):
                 return MCILSetLogic(logic="QF_LIA")
             
-            if is_bitvec_sort(sort):
-                return MCILSetLogic(logic="QF_ABV")
+            # if is_bitvec_sort(sort):
+            #     return MCILSetLogic(logic="QF_ABV")
         
-    return
+    return MCILSetLogic(logic="QF_ABV")
 
 
 def translate(xmv_program: XMVProgram) -> Optional[MCILProgram]:
