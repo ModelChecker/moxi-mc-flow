@@ -381,7 +381,10 @@ def translate_expr(
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                     case ">>":
-                        il_op = "bvashr"
+                        if isinstance(lhs.type, XMVWord) and lhs.type.signed:
+                            il_op = "bvashr"
+                        else:
+                            il_op = "bvlshr"
                         il_lhs = expr_map[lhs]
                         il_rhs = expr_map[rhs]
                     case "<<":
