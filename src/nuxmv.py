@@ -153,8 +153,8 @@ class XMVExpr():
     def __init__(self) -> None:
         self.type: XMVType = XMVNoType()
 
-    def __hash__(self) -> int:
-        return hash(repr(self))
+    # def __hash__(self) -> int:
+    #     return hash(repr(self))
             
 class XMVComplexIdentifier(XMVExpr):
     def __init__(self, ident: str) -> None:
@@ -325,6 +325,7 @@ class XMVCaseExpr(XMVExpr):
     def __repr__(self) -> str:
         branches = "\n".join(f"{cond} : {branch}" for (cond, branch) in self.branches)
         return f"case {branches} esac ;"
+
 
 class XMVIdentifier(XMVComplexIdentifier):
     def __init__(self, ident: str):
@@ -549,7 +550,7 @@ class XMVContext():
         # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
         self.reverse_enums: dict[str, list[str]] = {}
         # maps {module_name |-> list of parameters (p1, t1), ...}, where pi is the variable and ti is its XMVType
-        self.module_params: dict[str, dict[str, XMVType]] = {m.name:{} for m in modules}
+        self.module_params: dict[str, dict[str, XMVType]] = {"main":{}}
         # maps {module_name |-> list of IL output variables} for use in submodule/local variable construction
         self.outputs: dict[str, list[tuple[str, MCILSort]]] = {}
         # maps {module_name |-> list of IL local variables} for use in submodule construction
@@ -619,7 +620,7 @@ class XMVContext():
 #                 pass
 
 
-def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
+def postorder_nuxmv(expr: XMVExpr, context: XMVContext, traverse_defs: bool):
     """Perform an iterative postorder traversal of 'expr'."""
     stack: list[tuple[bool, XMVExpr]] = []
     visited: set[int] = set()
@@ -639,7 +640,7 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
         stack.append((True, cur))
         
         match cur:
-            case XMVIdentifier(ident=ident) if ident in context.get_cur_defs():
+            case XMVIdentifier(ident=ident) if traverse_defs and ident in context.get_cur_defs():
                 stack.append((False, context.get_cur_defs()[ident]))
             case XMVFunCall(args=args):
                 [stack.append((False, arg)) for arg in args]
@@ -670,7 +671,7 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
     # see starting on p16 of nuxmv user manual
     # print(f"type_check_expr({expr})")
 
-    for expr in postorder_nuxmv(top_expr, context):
+    for expr in postorder_nuxmv(top_expr, context, True):
         match expr:
             case XMVIntegerConstant():
                 pass
@@ -1043,6 +1044,8 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
                     in zip(target_module.parameters, signature)
                 }
 
+                logger.debug(f"{xmv_type.module_name} : params={len(target_module.parameters)}")
+
                 # we only type check modules if they are instantiated -- this is how nuXmv works too
                 type_check_module(target_module, context)
                 context.cur_module = module
@@ -1077,12 +1080,12 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
     for element in module.elements:
         match element:
             case XMVDefineDeclaration(define_list=define_list):
-                for define in define_list:
+                for define in reversed(define_list):
                     # TODO: is the check below helpful?
-                    # if define.expr.type == XMVNoType():
-                    logger.debug(f"Type checking DEFINE {define.name}")
+                    if define.expr.type == XMVNoType():
+                        logger.debug(f"Type checking DEFINE {define.name}")
 
-                    type_check_expr(define.expr, context, module)
+                        type_check_expr(define.expr, context, module)
             case XMVAssignDeclaration(assign_list=assign_list):
                 for assign in assign_list:
                     type_check_expr(assign.rhs, context, module)
