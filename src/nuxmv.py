@@ -547,7 +547,7 @@ class XMVContext():
         # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
         self.reverse_enums: dict[str, list[str]] = {}
         # maps {module_name |-> list of parameters (p1, t1), ...}, where pi is the variable and ti is its XMVType
-        self.module_params: dict[str, dict[str, XMVType]] = {"main":{}}
+        self.module_params: dict[str, dict[str, XMVType]] = {m.name:{} for m in modules}
         # maps {module_name |-> list of IL output variables} for use in submodule/local variable construction
         self.outputs: dict[str, list[tuple[str, MCILSort]]] = {}
         # maps {module_name |-> list of IL local variables} for use in submodule construction

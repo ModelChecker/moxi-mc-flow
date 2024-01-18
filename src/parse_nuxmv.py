@@ -573,6 +573,7 @@ class NuXmvParser(Parser):
         "XMV_ARRAY OF INTEGER DOT DOT INTEGER OF type_specifier",
         "XMV_ARRAY XMV_WORD LBRACK INTEGER RBRACK OF type_specifier",
         "IDENT LPAREN cs_expr_list RPAREN",
+        "IDENT LPAREN RPAREN",
         "IDENT LPAREN constant_list RPAREN"
     )
     def type_specifier(self, p):
@@ -601,6 +602,8 @@ class NuXmvParser(Parser):
             case _:
                 if str.isnumeric(p[0]):
                     return XMVEnumeration(summands=set(range(int(p[0]), int(p[3]))))
+                elif len(p) == 3:
+                    return XMVModuleType(module_name=p[0], parameters=[])
                 else:
                     return XMVModuleType(module_name=p[0], parameters=p[2])
     
