@@ -975,6 +975,8 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
 
 def type_check_module(module: XMVModule, context: XMVContext) -> bool:
     logger.debug(f"Type checking module '{module.name}'")
+
+    status = True
     
     context.cur_module = module
 
@@ -1005,7 +1007,6 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
                     if isinstance(xmv_type, XMVEnumeration):
                         if xmv_type.is_integers_and_symbolic():
                             return error(f"integers-and-symbolic enums unsupported")
-                            return False
 
                         new_sym: str = fresh_symbol("enum")
                         context.enums[new_sym] = xmv_type
@@ -1035,7 +1036,7 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
             signature: list[XMVType] = []
 
             for param in xmv_type.parameters:
-                type_check_expr(top_expr=param, context=context, cur_module=module)
+                status = status and type_check_expr(top_expr=param, context=context, cur_module=module)
                 signature.append(param.type)
 
             if xmv_type.module_name not in context.module_params:
@@ -1056,7 +1057,7 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
                 logger.debug(f"{xmv_type.module_name} : params={len(target_module.parameters)}")
 
                 # we only type check modules if they are instantiated -- this is how nuXmv works too
-                type_check_module(target_module, context)
+                status = status and type_check_module(target_module, context)
                 context.cur_module = module
 
                 logger.debug(f"Done with module {module.name}")
@@ -1091,28 +1092,27 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
                     # TODO: is the check below helpful?
                     if define.expr.type == XMVAnyType():
                         logger.debug(f"Type checking DEFINE {define.name}")
-
-                        type_check_expr(define.expr, context, module)
+                        status = status and type_check_expr(define.expr, context, module)
             case XMVAssignDeclaration(assign_list=assign_list):
                 for assign in assign_list:
-                    type_check_expr(assign.rhs, context, module)
+                    status = status and type_check_expr(assign.rhs, context, module)
             case XMVTransDeclaration(formula=formula):
-                type_check_expr(formula, context, module)
+                status = status and type_check_expr(formula, context, module)
                 context.trans.append(formula)
             case XMVInitDeclaration(formula=formula):
-                type_check_expr(formula, context, module)
+                status = status and type_check_expr(formula, context, module)
                 context.init.append(formula)
             case XMVInvarDeclaration(formula=formula):
-                type_check_expr(formula, context, module)
+                status = status and type_check_expr(formula, context, module)
                 context.invar.append(formula)
             case XMVInvarspecDeclaration(formula=formula):
-                type_check_expr(formula, context, module)
+                status = status and type_check_expr(formula, context, module)
                 context.invarspecs.append(formula)
             case XMVLTLSpecDeclaration(formula=formula):
-                type_check_expr(formula, context, module)
+                status = status and type_check_expr(formula, context, module)
             case _:
                 pass
 
-    return True
+    return status
 
 
