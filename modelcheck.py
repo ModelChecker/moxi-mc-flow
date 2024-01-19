@@ -74,7 +74,7 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
 
     os.chdir(avr_path)
 
-    command = ["python", "avr.py", str(absolute_btor_path), "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax), "--timeout", str(timeout)]
+    command = ["python3", "avr.py", str(absolute_btor_path), "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax), "--timeout", str(timeout)]
     
     if kind:
         command.append("--kind")
@@ -98,6 +98,17 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
 
     logger.info(f"Done model checking in {end_mc-start_mc}s")
 
+    with open(str(avr_results_path / "result.pr"), "r") as f:
+        result_str = f.read()
+
+    if result_str == "avr-v":
+        print("sat")
+    elif result_str == "avr-h":
+        print("unsat")
+    else:
+        print("crash")
+        return 1
+
     avr_witness_path = [c for c in avr_results_path.glob("cex.witness")]
     btor_witness_path = absolute_btor_path.with_suffix(f".btor2.cex")
     
@@ -106,10 +117,8 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
     os.chdir("..")
     if len(avr_witness_path) > 0:
         avr_witness_path[0].rename(str(btor_witness_path))
-        print("sat")
     else:
         btor_witness_path.touch()
-        print("unsat")
 
     if len(avr_proof_path) > 0:
         avr_proof_path[0].rename(str(btor_witness_path.parent / "inv.txt"))
