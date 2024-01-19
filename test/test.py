@@ -122,6 +122,10 @@ def run_test(
         return False
     else:
         print_pass(f"{output_dir} ({test_end - test_start:.5f}s)", test_dir)
+        if proc.stdout.decode("utf-8").find("sat"):
+            print("sat")
+        elif proc.stdout.decode("utf-8").find("unsat"):
+            print("unsat")
 
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
@@ -216,7 +220,7 @@ def test_modelcheck(
 
     modelcheck_command: Callable[[Path,Path],list[str]] = (
         lambda file, output_dir: 
-            ["python3", str(modelcheck_path), str(file), "btormc", 
+            ["python3", str(modelcheck_path), str(file), "avr", "--kind",
             "--output", str(results_path /output_dir), "--copyback"]
     )
 

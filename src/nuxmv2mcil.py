@@ -47,6 +47,22 @@ def translate_type(xmv_type: XMVType, xmv_context: XMVContext) -> MCILSort:
             if xmv_type.is_integer():
                 return MCIL_INT_SORT
             
+            """
+            As for enums, we'll have to handle those a bit differently than we are right now (at least symbolic ones). Because right now, in SMV, you may have two variables like:
+
+            v1: {s0, s1};
+            v2: {s0, s1, s2};
+
+            And something like: (v1 = v2) is a totally valid expression. But in the translation, they are both translated to different enum types entirely, which won't be well-sorted. Instead, we need all symbolic enum type to be translated to the same MCIL enum sort, then constrain them like:
+
+            (declare-enum-sort enums (s0 s1 s2))
+            (define-system ...
+            :local ((v1 enums) (v2 enums))
+            :inv (and (or (= v1 s0) (= v1 s1)) (or (= v2 s0) (= v2 s1) (=v2 s2))
+
+            I'm not sure any of the benchmarks exhibit this, but it's something to keep in mind.
+            """
+
             sums = xmv_type.summands
             lsums = list(sums)
             slsums = [str(s) for s in lsums]

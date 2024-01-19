@@ -25,7 +25,12 @@ def run_btormc(btormc_path: Path, btor_path: Path, timeout: int, kmax: int, kind
     logger.info(f"Running btormc over {btor_path}")
     label = btor_path.stem
 
-    command = [str(btormc_path), str(btor_path), "-kmax", str(kmax), "--trace-gen-full"]
+    command = [
+        str(btormc_path), 
+        str(btor_path), 
+        "-kmax", str(kmax), 
+        "--trace-gen-full",
+    ]
     
     if kind:
         command.append("--kind")
@@ -44,7 +49,7 @@ def run_btormc(btormc_path: Path, btor_path: Path, timeout: int, kmax: int, kind
         logger.error(proc.stderr.decode("utf-8"))
         logger.error(f"btormc failure for query '{label}'")
         return proc.returncode
-
+    
     logger.info(f"Done model checking in {end_mc-start_mc}s")
 
     btor_witness_bytes = proc.stdout
@@ -74,7 +79,14 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
 
     os.chdir(avr_path)
 
-    command = ["python3", "avr.py", str(absolute_btor_path), "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax), "--timeout", str(timeout)]
+    command = [
+        "python3", 
+        "avr.py", str(absolute_btor_path), 
+        "--witness", 
+        "-o", str(avr_output_path),  
+        "--kmax", str(kmax), 
+        "--timeout", str(timeout + 10)
+    ]
     
     if kind:
         command.append("--kind")

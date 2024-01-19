@@ -57,3 +57,8 @@ def cleandir(dir: Path, quiet: bool):
     """Remove and create fresh `dir`, print a warning if quiet is False"""
     rmdir(dir, quiet)
     os.mkdir(dir)
+
+
+def error(msg: str) -> bool:
+    logger.error(msg)
+    return False

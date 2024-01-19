@@ -41,7 +41,7 @@ class BtorWitnessLexer(Lexer):
         return t
 
     def error(self, t):
-        sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}")
+        sys.stderr.write(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}\n")
         self.index += 1
 
 
