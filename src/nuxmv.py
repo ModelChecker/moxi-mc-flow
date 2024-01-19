@@ -150,8 +150,8 @@ class XMVExpr():
     def __init__(self) -> None:
         self.type: XMVType = XMVAnyType()
 
-    def __hash__(self) -> int:
-        return hash(repr(self))
+    # def __hash__(self) -> int:
+    #     return hash(repr(self))
             
 class XMVComplexIdentifier(XMVExpr):
     def __init__(self, ident: str) -> None:
@@ -322,6 +322,7 @@ class XMVCaseExpr(XMVExpr):
     def __repr__(self) -> str:
         branches = "\n".join(f"{cond} : {branch}" for (cond, branch) in self.branches)
         return f"case {branches} esac ;"
+
 
 class XMVIdentifier(XMVComplexIdentifier):
     def __init__(self, ident: str):
@@ -546,8 +547,6 @@ class XMVContext():
         # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
         self.reverse_enums: dict[str, list[str]] = {}
         # maps {module_name |-> list of parameters (p1, t1), ...}, where pi is the variable and ti is its XMVType
-        # we set this is type_check_module and check whether the module is in this dict to determine whether to add it --
-        # so we don't initialize the full dict here
         self.module_params: dict[str, dict[str, XMVType]] = {"main":{}}
         # maps {module_name |-> list of IL output variables} for use in submodule/local variable construction
         self.outputs: dict[str, list[tuple[str, MCILSort]]] = {}
@@ -618,7 +617,7 @@ class XMVContext():
 #                 pass
 
 
-def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
+def postorder_nuxmv(expr: XMVExpr, context: XMVContext, traverse_defs: bool):
     """Perform an iterative postorder traversal of 'expr'."""
     stack: list[tuple[bool, XMVExpr]] = []
     visited: set[int] = set()
@@ -638,7 +637,7 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
         stack.append((True, cur))
         
         match cur:
-            case XMVIdentifier(ident=ident) if ident in context.get_cur_defs():
+            case XMVIdentifier(ident=ident) if traverse_defs and ident in context.get_cur_defs():
                 stack.append((False, context.get_cur_defs()[ident]))
             case XMVFunCall(args=args):
                 [stack.append((False, arg)) for arg in args]
@@ -662,14 +661,16 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext):
                 for (cond, then_expr) in branches:
                     stack.append((False, cond))
                     stack.append((False, then_expr))
+            case XMVModuleAccess(module=module):
+                stack.append((False, module))
             case _:
                 pass
 
 def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModule) -> None:
     # see starting on p16 of nuxmv user manual
-    # print(f"type_check_expr({expr})")
+    print(f"type_check_expr({top_expr}), class = {top_expr.__class__.__name__}")
 
-    for expr in postorder_nuxmv(top_expr, context):
+    for expr in postorder_nuxmv(top_expr, context, True):
         match expr:
             case XMVIntegerConstant():
                 pass
@@ -777,7 +778,7 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
                     raise ValueError(f"Unsupported type for {arg}, {arg.type}")
 
                 match (op, arg.type):
-                    case ("!", XMVBoolean()) | ("!", XMVWord()):
+                    case ("!", XMVBoolean()) | ("!", XMVWord()) | ("!", XMVAnyType()):
                         expr.type = arg.type
                     case ("-", XMVBoolean()) | ("-", XMVWord()) | ("-", XMVInteger()):
                         expr.type = arg.type
@@ -795,12 +796,16 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
                     
                 if op in {"&", "|", "xor", "xnor", "->", "<->"}:
                     match (lhs.type, rhs.type):
-                            case (XMVBoolean(), XMVBoolean()):
+                            case (XMVBoolean(), XMVBoolean()) | (XMVAnyType(), XMVBoolean()) | (XMVBoolean(), XMVAnyType()):
                                 expr.type = XMVBoolean()
                             case (XMVWord(width=w1, signed=s1), XMVWord(width=w2, signed=s2)):
                                 if w1 != w2 or s1 != s2:
                                     raise ValueError(f"Words not of same width and sign {expr}, {lhs.type} {rhs.type}")
                                 expr.type = XMVWord(w1,s1)
+                            case (XMVAnyType(), XMVWord(width=w1, signed=s1)) | (XMVWord(width=w1, signed=s1), XMVAnyType()):
+                                expr.type = XMVWord(w1, s1)
+                            case (XMVAnyType(), XMVAnyType()):
+                                expr.type = XMVAnyType()
                             case _:
                                 raise ValueError(f"Type checking error for {op} ({lhs.type}, {rhs.type})")
                 elif op in {"=", "!=", ">", "<", ">=", "<="}:
@@ -840,6 +845,8 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
                             elif not lhs_type.is_integer() or not rhs_type.is_integer():
                                 raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
 
+                            expr.type = XMVBoolean()
+                        case (XMVAnyType(), t) | (t, XMVAnyType()):
                             expr.type = XMVBoolean()
                         case _:
                             raise ValueError(f"Type check error for {expr} ({lhs.type}, {rhs.type})")
@@ -905,8 +912,9 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
             case XMVCaseExpr(branches=branches):
                 for (cond, branch) in branches:
                     if (not isinstance(cond.type, XMVBoolean) and 
-                        not (isinstance(cond.type, XMVWord) and cond.type.width == 1)):
-                        raise ValueError(f"Case condition must be Boolean {expr}, {cond}")
+                        not (isinstance(cond.type, XMVWord) and cond.type.width == 1) and
+                        not (isinstance(cond.type, XMVAnyType))):
+                        raise ValueError(f"Case condition must be Boolean {expr}, {cond}, {cond.type}")
                     
                     # TODO: check that branches all have same type
                     expr.type = branch.type
@@ -940,28 +948,22 @@ def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModul
 
                 var_lists = [vd.var_list for vd in cur_module.elements if isinstance(vd, XMVVarDeclaration)]
                 
-                module_w_elem: str = ""
-                for var_list in var_lists:
-                    for (var_name, var_type) in var_list:
-                        match var_type:
-                            case XMVModuleType(module_name=found_name):
-                                if var_name.ident == id_w_elem:
-                                    module_w_elem = found_name
-                                    break
-                            case _:
-                                pass
+                module_w_elem = module.type.module_name
                 if (module_w_elem == ""):
                     raise ValueError(f"module {id_w_elem} not instantiated in current context")
                 
-                if element.ident in context.vars[module_w_elem]:
-                    expr.type = context.vars[module_w_elem][element.ident]
-                elif element.ident in context.module_params[module_w_elem]:
-                    expr.type = context.module_params[module_w_elem][element.ident]
-                elif element.ident in context.defs[module_w_elem]:
-                    expr.type = context.defs[module_w_elem][element.ident].type
-                    context.referenced_defs[module_w_elem].add(element.ident)
-                else:
-                    raise ValueError(f"{module}.{element}: {element} not a variable or parameter")
+                try:
+                    if element.ident in context.vars[module_w_elem]:
+                        expr.type = context.vars[module_w_elem][element.ident]
+                    elif element.ident in context.module_params[module_w_elem]:
+                        expr.type = context.module_params[module_w_elem][element.ident]
+                    elif element.ident in context.defs[module_w_elem]:
+                        expr.type = context.defs[module_w_elem][element.ident].type
+                        context.referenced_defs[module_w_elem].add(element.ident)
+                    else:
+                        raise ValueError(f"{module}.{element}: {element} not a variable or parameter")
+                except KeyError:
+                    expr.type = XMVAnyType()
                 # raise NotImplementedError(f"Unsupported operator {type(expr)}")
             case _:
                 raise NotImplementedError(f"Unsupported operator {type(expr)} ({expr})")
@@ -1022,12 +1024,14 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
                 pass
 
     for var_decl in [vd for vd in module.elements if isinstance(vd, XMVVarDeclaration)]:
-        for var_name,xmv_type in [
+        module_instantiations = [
             (var_name,xmv_type) 
             for var_name,xmv_type 
             in var_decl.var_list 
             if isinstance(xmv_type, XMVModuleType)
-        ]:
+        ]
+        for var_name,xmv_type in module_instantiations:
+            print(f"XMV_TYPE: {xmv_type}")
             logger.debug(f"Module instantiation of '{xmv_type.module_name}'")
             signature: list[XMVType] = []
 
@@ -1049,6 +1053,8 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
                     for param,xmv_type 
                     in zip(target_module.parameters, signature)
                 }
+
+                logger.debug(f"{xmv_type.module_name} : params={len(target_module.parameters)}")
 
                 # we only type check modules if they are instantiated -- this is how nuXmv works too
                 type_check_module(target_module, context)
@@ -1073,23 +1079,23 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
 
             # MUST report if user is trying to dynamically type the module instantiations
             # since nuXmv won't yell at them for it and we don't support it
-            for p1,p2 in zip(signature, module_signature):
-                if p1 != p2:
-                    logger.error(f"Parameter types for module instantiation disagree, modules must be statically typed."
-                                f"\n\tExpected {' '.join(repr(module_signature))}"
-                                f"\n\tGot {' '.join(repr(signature))}")
-                    return False
+            # for p1,p2 in zip(signature, module_signature):
+            #     if p1 != p2:
+            #         logger.error(f"Parameter types for module instantiation disagree, modules must be statically typed."
+            #                     f"\n\tExpected {''.join(repr(module_signature))}"
+            #                     f"\n\tGot {''.join(repr(signature))}")
+            #         return False
 
     # Now type check each expression
     for element in module.elements:
         match element:
             case XMVDefineDeclaration(define_list=define_list):
-                for define in define_list:
+                for define in reversed(define_list):
                     # TODO: is the check below helpful?
-                    # if define.expr.type == XMVNoType():
-                    logger.debug(f"Type checking DEFINE {define.name}")
+                    if define.expr.type == XMVAnyType():
+                        logger.debug(f"Type checking DEFINE {define.name}")
 
-                    type_check_expr(define.expr, context, module)
+                        type_check_expr(define.expr, context, module)
             case XMVAssignDeclaration(assign_list=assign_list):
                 for assign in assign_list:
                     type_check_expr(assign.rhs, context, module)

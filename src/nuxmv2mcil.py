@@ -92,6 +92,8 @@ def build_define_expr(
     context: XMVContext, 
     module: XMVModule
 ) -> MCILExpr:
+    
+    logger.debug(f"building define expr {expr}")
 
     def dependent_defines(ident: str, context: XMVContext) -> list[XMVIdentifier]:
         stack: list[tuple[bool, XMVExpr]] = []
@@ -153,6 +155,7 @@ def build_define_expr(
     )
 
     for d in reversed(dependent_defines(expr.ident, context)):
+        logger.debug(d)
         translate_expr(context.defs[module.name][d.ident], context, emap, in_let_expr=True, module=module)
         ret = MCILLetExpr(
             MCIL_NO_SORT, 
@@ -171,11 +174,8 @@ def translate_expr(
     module: XMVModule
 ) -> None:
     """Updates `expr_map` to map all sub-expressions of `xmv_expr` to translated MCIL expressions."""
-    for expr in postorder_nuxmv(xmv_expr, context):
-        # logger.debug(f"TRANSLATING {expr} : {expr.type}", expr.__class__.__name__)
-
+    for expr in postorder_nuxmv(xmv_expr, context, False):
         if expr in expr_map:
-            # print(f"{expr} in expr_map, {expr.type}, {expr_map[expr].sort}")
             continue
 
         match expr:
@@ -622,6 +622,7 @@ def gather_trans(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVE
     trans_list: list[MCILExpr] = []
     
     for trans_decl in [e for e in xmv_module.elements if isinstance(e, XMVTransDeclaration)]:
+        logger.debug("translating transition relation")
         translate_expr(trans_decl.formula, context, expr_map, in_let_expr=False, module=xmv_module)
         trans_list.append(expr_map[trans_decl.formula])
 
