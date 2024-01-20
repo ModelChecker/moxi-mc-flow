@@ -178,8 +178,8 @@ class NuXmvLexer(Lexer):
     IDENT["T"] = XMV_T
 
     # Extra action for newlines
-    def ignore_newline(self, t):
-        self.lineno += t.value.count("\n")
+    # def ignore_newline(self, t):
+    #     self.lineno += t.value.count("\n")
 
 
 class NuXmvParser(Parser):
@@ -407,45 +407,45 @@ class NuXmvParser(Parser):
         if len(p) == 1: # TODO: constants/whatever
             return p[0]
         if len(p) == 2: # unop
-            return XMVUnOp(op=p[0], arg=p[1])
+            return XMVUnOp(p.lineno, op=p[0], arg=p[1])
         if p[0] == "(":
             return p[1]
         if len(p) == 3: # binop
-            return XMVBinOp(op=p[1], lhs=p[0], rhs=p[2]) 
+            return XMVBinOp(p.lineno, op=p[1], lhs=p[0], rhs=p[2]) 
         if len(p) == 4: # function call
-            return XMVFunCall(name=p[0], args=p.cs_expr_list)
+            return XMVFunCall(p.lineno, name=p[0], args=p.cs_expr_list)
         
     @_("NEXT LPAREN expr RPAREN")
     def expr(self, p):
-        return XMVFunCall(name="next", args=[p[2]])
+        return XMVFunCall(p.lineno, name="next", args=[p[2]])
     
     @_("XMV_SIGNED LPAREN expr RPAREN")
     def expr(self, p):
-        return XMVFunCall(name="signed", args=[p[2]])
+        return XMVFunCall(p.lineno, name="signed", args=[p[2]])
     
     @_("XMV_UNSIGNED LPAREN expr RPAREN")
     def expr(self, p):
-        return XMVFunCall(name="unsigned", args=[p[2]])
+        return XMVFunCall(p.lineno, name="unsigned", args=[p[2]])
 
     @_("expr LBRACK expr RBRACK")
     def expr(self, p):
-        return XMVIndexSubscript(array=p[0], index=p[2])
+        return XMVIndexSubscript(p.lineno, array=p[0], index=p[2])
 
     @_("expr LBRACK INTEGER COLON INTEGER RBRACK")
     def expr(self, p):
-        return XMVWordBitSelection(word=p[0], high=int(p[2]), low=int(p[4]))
+        return XMVWordBitSelection(p.lineno, word=p[0], high=int(p[2]), low=int(p[4]))
 
     @_("expr CONCAT expr")
     def expr(self, p):
-        return XMVBinOp(op="concat", lhs=p[0], rhs=p[2])
+        return XMVBinOp(p.lineno, op="concat", lhs=p[0], rhs=p[2])
     
     @_("LBRACE cs_expr_list RBRACE")
     def expr(self, p):
-        return XMVSetBodyExpression(members=p.cs_expr_list)
+        return XMVSetBodyExpression(p.lineno, members=p.cs_expr_list)
     
     @_("expr QUESTIONMARK expr COLON expr")
     def expr(self, p):
-        return XMVTernary(cond=p[0], then_expr=p[2], else_expr=p[4])
+        return XMVTernary(p.lineno, cond=p[0], then_expr=p[2], else_expr=p[4])
     
     @_("case_expr")
     def expr(self, p):
@@ -479,17 +479,17 @@ class NuXmvParser(Parser):
         if len(p) == 1: # TODO: constants/whatever
             return p[0]
         if len(p) == 2: # unop
-            return XMVUnOp(op=p[0], arg=p[1])
+            return XMVUnOp(p.lineno, op=p[0], arg=p[1])
         if p[0] == "(":
             return p[1]
         if len(p) == 3: # binop
-            return XMVBinOp(op=p[1], lhs=p[0], rhs=p[2]) 
+            return XMVBinOp(p.lineno, op=p[1], lhs=p[0], rhs=p[2]) 
         if len(p) == 4: # function call
-            return XMVFunCall(name=p[0], args=p.cs_expr_list)
+            return XMVFunCall(p.lineno, name=p[0], args=p.cs_expr_list)
     
     @_("XMV_CASE case_body XMV_ESAC")
     def case_expr(self, p):
-        return XMVCaseExpr(branches=p[1])
+        return XMVCaseExpr(p.lineno, branches=p[1])
     
     @_("expr COLON expr SEMICOLON", "case_body expr COLON expr SEMICOLON")
     def case_body(self, p):
@@ -542,12 +542,12 @@ class NuXmvParser(Parser):
 
     @_("complex_identifier DOT IDENT")
     def complex_identifier(self, p):
-        return XMVModuleAccess(p[0], XMVIdentifier(p[2]))
+        return XMVModuleAccess(p.lineno, p[0], XMVIdentifier(p[2]))
 
 
     @_("IDENT")
     def complex_identifier(self, p):
-        return XMVIdentifier(p[0])
+        return XMVIdentifier(p.lineno, p[0])
     
     # type specifier rules
 
@@ -648,25 +648,25 @@ class NuXmvParser(Parser):
     def boolean_constant(self, p):
         match p[0]:
             case "FALSE":
-                return XMVBooleanConstant(boolean=False)
+                return XMVBooleanConstant(p.lineno, boolean=False)
             case "TRUE":
-                return XMVBooleanConstant(boolean=True)
+                return XMVBooleanConstant(p.lineno, boolean=True)
             
     @_("INTEGER")
     def integer_constant(self, p):
-        return XMVIntegerConstant(integer=int(p[0]))
+        return XMVIntegerConstant(p.lineno, integer=int(p[0]))
     
     @_("complex_identifier")
     def symbolic_constant(self, p):
-        return XMVSymbolicConstant(symbol=p[0])
+        return XMVSymbolicConstant(p.lineno, symbol=p[0])
     
     @_("INTEGER DOT DOT INTEGER")
     def range_constant(self, p):
-        return XMVRangeConstant(low=int(p[0]), high=int(p[3]))
+        return XMVRangeConstant(p.lineno, low=int(p[0]), high=int(p[3]))
     
     @_("WORDCONSTANT")
     def word_constant(self, p):
-        return XMVWordConstant(p[0])
+        return XMVWordConstant(p.lineno, p[0])
 
         
 def parse(input_path: Path, do_cpp: bool) -> Optional[XMVProgram]:

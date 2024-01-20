@@ -3,7 +3,7 @@ from typing import Optional, cast
 
 import re
 
-from .util import logger, error
+from .util import logger
 from .mcil import MCILVar, MCILSort
 
 symbol_counter = 0
@@ -147,24 +147,25 @@ def is_integer_type(xmv_type: XMVType) -> bool:
 # type specifiers -------------------------
 
 class XMVExpr():
-    def __init__(self) -> None:
+    def __init__(self, lineno: int) -> None:
+        self.lineno = lineno
         self.type: XMVType = XMVAnyType()
 
     # def __hash__(self) -> int:
     #     return hash(repr(self))
             
 class XMVComplexIdentifier(XMVExpr):
-    def __init__(self, ident: str) -> None:
-        super().__init__()
+    def __init__(self, lineno: int, ident: str) -> None:
+        super().__init__(lineno)
         self.ident = ident
 
 class XMVConstant(XMVExpr):
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, lineno: int) -> None:
+        super().__init__(lineno)
 
 class XMVIntegerConstant(XMVConstant):
-    def __init__(self, integer: int):
-        super().__init__()
+    def __init__(self, lineno: int, integer: int):
+        super().__init__(lineno)
         self.integer = integer
         self.type = XMVInteger()
 
@@ -172,8 +173,8 @@ class XMVIntegerConstant(XMVConstant):
         return f"{self.integer}"
     
 class XMVBooleanConstant(XMVConstant):
-    def __init__(self, boolean: bool):
-        super().__init__()
+    def __init__(self, lineno: int, boolean: bool):
+        super().__init__(lineno)
         self.boolean = boolean
         self.type = XMVBoolean()
 
@@ -181,8 +182,8 @@ class XMVBooleanConstant(XMVConstant):
         return f"{self.boolean}"
     
 class XMVWordConstant(XMVConstant):
-    def __init__(self, wconstant: str):
-        super().__init__()
+    def __init__(self, lineno: int, wconstant: str):
+        super().__init__(lineno)
 
         if wconstant.find("s") != -1:
             self.signed = True
@@ -236,8 +237,8 @@ class XMVWordConstant(XMVConstant):
         return f"0{signed}{base}{self.width}_{self.value}"
 
 class XMVRangeConstant(XMVConstant):
-    def __init__(self, low: int, high: int):
-        super().__init__()
+    def __init__(self, lineno: int, low: int, high: int):
+        super().__init__(lineno)
         self.low = low
         self.high = high
         self.type = XMVEnumeration(set(range(low,high+1)))
@@ -246,8 +247,8 @@ class XMVRangeConstant(XMVConstant):
         return f"{self.low} .. {self.high}"
 
 class XMVFunCall(XMVExpr):
-    def __init__(self, name: str, args: list[XMVExpr]):
-        super().__init__()
+    def __init__(self, lineno: int, name: str, args: list[XMVExpr]):
+        super().__init__(lineno)
         self.name = name
         self.args = args
 
@@ -255,8 +256,8 @@ class XMVFunCall(XMVExpr):
         return f"{self.name}({', '.join(str(a) for a in self.args)})"
 
 class XMVBinOp(XMVExpr):
-    def __init__(self, op: str, lhs: XMVExpr, rhs: XMVExpr):
-        super().__init__()
+    def __init__(self, lineno: int, op: str, lhs: XMVExpr, rhs: XMVExpr):
+        super().__init__(lineno)
         self.op = op
         self.lhs = lhs
         self.rhs = rhs
@@ -265,8 +266,8 @@ class XMVBinOp(XMVExpr):
         return f"{self.lhs} {self.op} {self.rhs}"
 
 class XMVUnOp(XMVExpr):
-    def __init__(self, op: str, arg: XMVExpr):
-        super().__init__()
+    def __init__(self, lineno: int, op: str, arg: XMVExpr):
+        super().__init__(lineno)
         self.op = op
         self.arg = arg
 
@@ -274,8 +275,8 @@ class XMVUnOp(XMVExpr):
         return f"{self.op}{self.arg}"
     
 class XMVIndexSubscript(XMVExpr):
-    def __init__(self, array: XMVExpr, index: XMVExpr):
-        super().__init__()
+    def __init__(self, lineno: int, array: XMVExpr, index: XMVExpr):
+        super().__init__(lineno)
         self.array = array
         self.index = index
 
@@ -283,8 +284,8 @@ class XMVIndexSubscript(XMVExpr):
         return f"{self.array}[{self.index}]"
 
 class XMVWordBitSelection(XMVExpr):
-    def __init__(self, word: XMVExpr, low: int, high: int):
-        super().__init__()
+    def __init__(self, lineno: int, word: XMVExpr, low: int, high: int):
+        super().__init__(lineno)
         self.word = word
         self.low = low
         self.high = high
@@ -296,16 +297,16 @@ class XMVWordBitSelection(XMVExpr):
         return f"{self.word}[{self.low} : {self.high}]"
 
 class XMVSetBodyExpression(XMVExpr):
-    def __init__(self, members: list[XMVExpr]):
-        super().__init__()
+    def __init__(self, lineno: int, members: list[XMVExpr]):
+        super().__init__(lineno)
         self.members = members
 
     def __repr__(self) -> str:
         return f"set({self.members})"
 
 class XMVTernary(XMVExpr):
-    def __init__(self, cond: XMVExpr, then_expr: XMVExpr, else_expr: XMVExpr):
-        super().__init__()
+    def __init__(self, lineno: int, cond: XMVExpr, then_expr: XMVExpr, else_expr: XMVExpr):
+        super().__init__(lineno)
         self.cond = cond
         self.then_expr = then_expr
         self.else_expr = else_expr
@@ -315,8 +316,8 @@ class XMVTernary(XMVExpr):
     
 
 class XMVCaseExpr(XMVExpr):
-    def __init__(self, branches: list[tuple[XMVExpr, XMVExpr]]):
-        super().__init__()
+    def __init__(self, lineno: int, branches: list[tuple[XMVExpr, XMVExpr]]):
+        super().__init__(lineno)
         self.branches = branches
 
     def __repr__(self) -> str:
@@ -325,8 +326,8 @@ class XMVCaseExpr(XMVExpr):
 
 
 class XMVIdentifier(XMVComplexIdentifier):
-    def __init__(self, ident: str):
-        super().__init__(ident)
+    def __init__(self, lineno: int, ident: str):
+        super().__init__(lineno, ident)
 
     def __repr__(self) -> str:
         return f"{self.ident}"
@@ -338,8 +339,8 @@ class XMVIdentifier(XMVComplexIdentifier):
         return hash(self.ident)
     
 class XMVSymbolicConstant(XMVConstant):
-    def __init__(self, symbol: XMVComplexIdentifier):
-        super().__init__()
+    def __init__(self, lineno: int, symbol: XMVComplexIdentifier):
+        super().__init__(lineno)
         self.symbol = symbol
 
     def __repr__(self) -> str:
@@ -347,8 +348,8 @@ class XMVSymbolicConstant(XMVConstant):
 
 
 class XMVModuleAccess(XMVComplexIdentifier):
-    def __init__(self, module: XMVComplexIdentifier, element: XMVIdentifier):
-        super().__init__(module.ident)
+    def __init__(self, lineno: int, module: XMVComplexIdentifier, element: XMVIdentifier):
+        super().__init__(lineno, module.ident)
         self.module = module
         self.element = element
 
@@ -669,7 +670,10 @@ def postorder_nuxmv(expr: XMVExpr, context: XMVContext, traverse_defs: bool):
 def type_check_expr(top_expr: XMVExpr, context: XMVContext, cur_module: XMVModule) -> bool:
     # see starting on p16 of nuxmv user manual
     # print(f"type_check_expr({expr})")
-
+    def error(msg: str) -> bool:
+        logger.error(msg)
+        return False
+    
     for expr in postorder_nuxmv(top_expr, context, True):
         match expr:
             case XMVIntegerConstant():
@@ -1006,7 +1010,8 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
                     
                     if isinstance(xmv_type, XMVEnumeration):
                         if xmv_type.is_integers_and_symbolic():
-                            return error(f"integers-and-symbolic enums unsupported")
+                            logger.error(f"integers-and-symbolic enums unsupported")
+                            status = False
 
                         new_sym: str = fresh_symbol("enum")
                         context.enums[new_sym] = xmv_type
@@ -1044,7 +1049,7 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
                 target_module = context.modules[xmv_type.module_name]
 
                 if len(target_module.parameters) != len(signature):
-                    return error(f"Invalid number of parameters provided in module instantiation '{var_name}'." 
+                    logger.error(f"Invalid number of parameters provided in module instantiation '{var_name}'." 
                                 f"\n\tExpected {len(target_module.parameters)}, got {len(signature)}")
                     return False
 
@@ -1073,16 +1078,18 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
             module_signature = context.module_params[xmv_type.module_name].values()
 
             if len(signature) != len(module_signature):
-                return error(f"Invalid number of parameters provided in module instantiation '{var_name}'." 
+                logger.error(f"Invalid number of parameters provided in module instantiation '{var_name}'." 
                             f"\n\tExpected {len(module_signature)}, got {len(signature)}")
+                status = False
 
             # MUST report if user is trying to dynamically type the module instantiations
             # since nuXmv won't yell at them for it and we don't support it
             for p1,p2 in zip(signature, module_signature):
                 if p1 != p2:
-                    return error(f"Parameter types for module instantiation disagree, modules must be statically typed."
+                    logger.error(f"Parameter types for module instantiation disagree, modules must be statically typed."
                                 f"\n\tExpected {' '.join(repr(module_signature))}"
                                 f"\n\tGot {' '.join(repr(signature))}")
+                    status = False
 
     # Now type check each expression
     for element in module.elements:

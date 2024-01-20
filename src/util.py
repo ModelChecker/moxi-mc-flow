@@ -12,8 +12,8 @@ class StandardFormatter(logging.Formatter):
     FORMATS = {
         logging.DEBUG: '[%(filename)s:%(lineno)d] %(message)s',
         logging.INFO: '[%(module)s] %(message)s',
-        logging.WARNING: '[%(filename)s:%(lineno)d] ' + format_str + ': %(message)s',
-        logging.ERROR: '[%(filename)s:%(lineno)d] ' + format_str + ': %(message)s',
+        logging.WARNING: '[%(module)s] ' + format_str + ': %(message)s',
+        logging.ERROR: '[%(module)s] ' + format_str + ': %(message)s',
         logging.CRITICAL: '[%(filename)s:%(lineno)d] ' + format_str + ': %(message)s',
     }
 
@@ -57,8 +57,3 @@ def cleandir(dir: Path, quiet: bool):
     """Remove and create fresh `dir`, print a warning if quiet is False"""
     rmdir(dir, quiet)
     os.mkdir(dir)
-
-
-def error(msg: str) -> bool:
-    logger.error(msg)
-    return False
