@@ -5,6 +5,7 @@ from pathlib import Path
 import logging
 
 FILE_NAME = Path(__file__).name
+DEFAULT_ERR_MSG_INFO = {"ifilename": "", "ilineno": 0}
 
 class StandardFormatter(logging.Formatter):
     format_str = '%(levelname)s'
@@ -12,8 +13,8 @@ class StandardFormatter(logging.Formatter):
     FORMATS = {
         logging.DEBUG: '[%(filename)s:%(lineno)d] %(message)s',
         logging.INFO: '[%(module)s] %(message)s',
-        logging.WARNING: '[%(module)s] ' + format_str + ': %(message)s',
-        logging.ERROR: '[%(module)s] ' + format_str + ': %(message)s',
+        logging.WARNING: '[%(module)s:%(ifilename)s:%(ilineno)s] ' + format_str + ': %(message)s',
+        logging.ERROR: '[%(module)s:%(ifilename)s:%(ilineno)s] ' + format_str + ': %(message)s',
         logging.CRITICAL: '[%(filename)s:%(lineno)d] ' + format_str + ': %(message)s',
     }
 

@@ -178,8 +178,8 @@ class NuXmvLexer(Lexer):
     IDENT["T"] = XMV_T
 
     # Extra action for newlines
-    # def ignore_newline(self, t):
-    #     self.lineno += t.value.count("\n")
+    def ignore_newline(self, t):
+        self.lineno += t.value.count("\n")
 
 
 class NuXmvParser(Parser):
@@ -255,9 +255,9 @@ class NuXmvParser(Parser):
     )
     def module(self, p):
         if len(p) == 6:
-            return XMVModule(name=p[1], parameters=p.parameter_list, elements=p.module_body)
+            return XMVModuleDeclaration(name=p[1], parameters=p.parameter_list, elements=p.module_body)
         else:
-            return XMVModule(name=p[1], parameters=[], elements=p.module_body)
+            return XMVModuleDeclaration(name=p[1], parameters=[], elements=p.module_body)
     
 
     @_(
@@ -542,8 +542,7 @@ class NuXmvParser(Parser):
 
     @_("complex_identifier DOT IDENT")
     def complex_identifier(self, p):
-        return XMVModuleAccess(p.lineno, p[0], XMVIdentifier(p[2]))
-
+        return XMVModuleAccess(p.lineno, p[0], XMVIdentifier(p.lineno, p[2]))
 
     @_("IDENT")
     def complex_identifier(self, p):

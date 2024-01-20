@@ -1,8 +1,7 @@
 from pathlib import Path
 from typing import Tuple, cast
 
-from .util import logger
-from .preprocess_nuxmv import preprocess
+from .util import logger, DEFAULT_ERR_MSG_INFO
 from .parse_nuxmv import parse, parse
 from .nuxmv import *
 from .mcil import *
@@ -106,7 +105,7 @@ DEFINE_LET_VAR = lambda e: MCILVar(MCIL_NO_SORT, e, False)
 def build_define_expr(
     expr: XMVIdentifier,
     context: XMVContext, 
-    module: XMVModule
+    module: XMVModuleDeclaration
 ) -> MCILExpr:
     
     logger.debug(f"building define expr {expr}")
@@ -187,7 +186,7 @@ def translate_expr(
     context: XMVContext, 
     expr_map: dict[XMVExpr, MCILExpr],
     in_let_expr: bool,
-    module: XMVModule
+    module: XMVModuleDeclaration
 ) -> None:
     """Updates `expr_map` to map all sub-expressions of `xmv_expr` to translated MCIL expressions."""
     for expr in postorder_nuxmv(xmv_expr, context, False):
@@ -204,6 +203,12 @@ def translate_expr(
                 elif ident in context.defs[module.name]:
                     # print(f"{ident}: def case")
                     expr_map[expr] = DEFINE_LET_VAR(expr.ident)
+                elif (ident in context.vars[module.name] 
+                      and isinstance(context.vars[module.name][ident], XMVModuleType)
+                ):
+                    # Skip over any module variables that come up in traversal
+                    # These are all module accesses -- relevant for type checking but not here 
+                    pass
                 elif ident in context.vars[module.name]:
                     # print(f"{ident}: var case")
                     expr_map[expr] = MCILVar(
@@ -488,7 +493,7 @@ def conjoin_list(expr_list: list[MCILExpr]) -> MCILExpr:
         return MCIL_AND_EXPR(expr_list)
 
 
-def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, MCILSort]]:
+def gather_input(xmv_module: XMVModuleDeclaration, context: XMVContext) -> list[tuple[str, MCILSort]]:
     result: list[tuple[str, MCILSort]] = []
 
     for param in xmv_module.parameters:
@@ -513,7 +518,7 @@ def gather_input(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, 
     return result
 
 
-def gather_local(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, MCILSort]]:
+def gather_local(xmv_module: XMVModuleDeclaration, context: XMVContext) -> list[tuple[str, MCILSort]]:
     result: list[tuple[str, MCILSort]] = []
     for e in [e for e in xmv_module.elements if isinstance(e, XMVVarDeclaration)]:
         for (var_name, xmv_var_type) in e.var_list: 
@@ -544,7 +549,7 @@ def gather_local(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, 
     return result
 
 
-def gather_output(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str, MCILSort]]:
+def gather_output(xmv_module: XMVModuleDeclaration, context: XMVContext) -> list[tuple[str, MCILSort]]:
     result: list[tuple[str, MCILSort]] = []
     
     for module_element in xmv_module.elements:
@@ -581,7 +586,7 @@ def gather_output(xmv_module: XMVModule, context: XMVContext) -> list[tuple[str,
                     result.append((define.name.ident, il_type))
             case _:
                pass
-    
+
     context.outputs[xmv_module.name] = result
 
     return result
@@ -609,7 +614,7 @@ def specialize_vars_in_expr(module_name: str, expr: MCILExpr) -> MCILExpr:
             # print("CATCH ALL CASE:", expr, expr.__class__.__name__)
 
 
-def gather_init(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
+def gather_init(xmv_module: XMVModuleDeclaration, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
     init_list: list[MCILExpr] = []
     
     for init_decl in [e for e in xmv_module.elements if isinstance(e, XMVInitDeclaration)]:
@@ -634,7 +639,7 @@ def gather_init(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVEx
     return conjoin_list(init_list)
 
 
-def gather_trans(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
+def gather_trans(xmv_module: XMVModuleDeclaration, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
     trans_list: list[MCILExpr] = []
     
     for trans_decl in [e for e in xmv_module.elements if isinstance(e, XMVTransDeclaration)]:
@@ -668,7 +673,7 @@ def gather_trans(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVE
     return conjoin_list(trans_list) if len(trans_list) > 0 else MCIL_BOOL_CONST(True)
 
 
-def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
+def gather_inv(xmv_module: XMVModuleDeclaration, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> MCILExpr:
     inv_list: list[MCILExpr] = []
     
     # things marked explicitly as INVAR
@@ -798,7 +803,7 @@ def gather_inv(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExp
     # print("inv - done")
     return conjoin_list(inv_list) if len(inv_list) > 0 else MCIL_BOOL_CONST(True)
 
-def gather_subsystems(xmv_module: XMVModule, xmv_context: XMVContext) -> dict[str, tuple[str, list[str]]]:
+def gather_subsystems(xmv_module: XMVModuleDeclaration, xmv_context: XMVContext) -> dict[str, tuple[str, list[str]]]:
     subsystems: dict[str, tuple[str, list[str]]] = {}
 
     for e in [e for e in xmv_module.elements if isinstance(e, XMVVarDeclaration)]:
@@ -810,11 +815,11 @@ def gather_subsystems(xmv_module: XMVModule, xmv_context: XMVContext) -> dict[st
     return subsystems
 
 
-def gather_consts(xmv_module: XMVModule) -> list[MCILCommand]:
+def gather_consts(xmv_module: XMVModuleDeclaration) -> list[MCILCommand]:
     return []
 
 
-def gather_invarspecs(xmv_module: XMVModule, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> dict[str, MCILExpr]:
+def gather_invarspecs(xmv_module: XMVModuleDeclaration, context: XMVContext, expr_map: dict[XMVExpr, MCILExpr]) -> dict[str, MCILExpr]:
     invarspec_dict: dict[str, MCILExpr] = {}
 
     spec_num = 1
@@ -834,7 +839,7 @@ def gather_invarspecs(xmv_module: XMVModule, context: XMVContext, expr_map: dict
     return invarspec_dict
 
 
-def translate_module(xmv_module: XMVModule, context: XMVContext) -> list[MCILCommand]:
+def translate_module(xmv_module: XMVModuleDeclaration, context: XMVContext) -> list[MCILCommand]:
     module_name = xmv_module.name
 
     logger.debug(f"Translating module {module_name}")
@@ -911,14 +916,14 @@ def infer_logic(commands: list[MCILCommand]) -> Optional[MCILSetLogic]:
     return MCILSetLogic(logic="QF_ABV")
 
 
-def translate(xmv_program: XMVProgram) -> Optional[MCILProgram]:
+def translate(filename: str, xmv_program: XMVProgram) -> Optional[MCILProgram]:
 
     logger.info(f"Type checking")
-    context = XMVContext(xmv_program.modules)
+    context = XMVContext(filename, xmv_program.modules)
     well_typed = type_check_module(xmv_program.main, context)
 
     if not well_typed:
-        logger.error(f"Failed type checking")
+        logger.error(f"Failed type checking", extra=context.err_msg_info)
         return None
 
     commands: list[MCILCommand] = []
@@ -946,16 +951,16 @@ def translate_file(
     do_cpp: bool
 ) -> int:
     """Parses, type checks, translates, and writes the translation result of `input_path` to `output_path`. Runs C preprocessor if `do_cpp` is True. Returns 0 on success, 1 otherwise."""
-    logger.info(f"Parsing specification in {input_path}")
+    logger.info(f"Parsing")
     parse_tree = parse(input_path, do_cpp)
     if not parse_tree:
-        logger.error(f"Failed parsing specification in {input_path}")
+        logger.info(f"Failed parsing specification {input_path}")
         return 1
 
-    logger.info(f"Translating specification in {input_path}")
-    result = translate(parse_tree)
+    logger.info(f"Translating")
+    result = translate(input_path.name, parse_tree)
     if not result:
-        logger.error(f"Failed translating specification in {input_path}")
+        logger.info(f"Failed translating specification {input_path}")
         return 1
 
     logger.info(f"Writing output to {output_path}")

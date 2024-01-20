@@ -7,7 +7,7 @@ import logging
 import cProfile
 from pstats import SortKey
 
-from src.util import cleandir, logger
+from src.util import cleandir, rmdir, logger
 from src.btor import write_btor2_program_set as write_btor2
 from src.parse_nuxmv import parse as parse_nuxmv
 from src.nuxmv2mcil import translate as nuxmv2mcil
@@ -71,6 +71,11 @@ def main(
     if not input_path.is_file():
         logger.error(f"Source is not a file ({input_path})\n")
         return 1
+    
+    if target_lang == "btor2":
+        cleandir(output_path, False)
+    else:
+        rmdir(output_path, False)
 
     match (input_path.suffix, target_lang):
         case (".smv", "mcil"):
@@ -95,7 +100,7 @@ def main(
                 logger.error(f"Failed parsing specification in {input_path}")
                 return 1
 
-            mcil_program = nuxmv2mcil(xmv_program)
+            mcil_program = nuxmv2mcil(input_path.name, xmv_program)
             if not mcil_program:
                 logger.error(f"Failed translating specification in {input_path}")
                 return 1
@@ -189,7 +194,6 @@ if __name__ == "__main__":
                 output_path = input_path.with_suffix(".json")
             case "btor2":
                 output_path = input_path.with_suffix("")
-                cleandir(output_path, False)
             case _:
                 logger.error(f"Invalid target language")
                 sys.exit(1)
