@@ -62,7 +62,8 @@ back-serstep.btor.smv.witness
 Refer to the usage for more information:
 ```bash
 usage: modelcheck.py [-h] [--output OUTPUT] [--avr-path AVR_PATH]
-                     [--btormc-path BTORMC_PATH] [--translate-path TRANSLATE_PATH]
+                     [--btormc-path BTORMC_PATH] [--pono-path PONO_PATH]
+                     [--translate-path TRANSLATE_PATH]
                      [--copyback] [--intwidth INTWIDTH] [--catbtor CATBTOR]
                      [--sortcheck SORTCHECK] [--kmax KMAX] [--timeout TIMEOUT] [--kind]
                      [--cpp] [--debug] [--quiet]
