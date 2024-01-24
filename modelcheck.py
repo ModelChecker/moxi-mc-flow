@@ -290,7 +290,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input", 
         help="input program to model check via translation to btor2")
-    parser.add_argument("modelchecker", choices=["btormc", "avr"], 
+    parser.add_argument("modelchecker", choices=["btormc", "avr", "pono"], 
         help="model checker to use")
     parser.add_argument("--output",  
         help="location of output check-system response")
