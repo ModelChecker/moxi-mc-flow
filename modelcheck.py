@@ -18,6 +18,7 @@ WORK_DIR = FILE_DIR / "__workdir__"
 
 btormc_path = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
 avr_path = FILE_DIR / "avr"
+pono_path = FILE_DIR / "pono" / "build" / "pono"
 translate_path = FILE_DIR / "translate.py"
 
 
@@ -128,6 +129,43 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
 
     return 0
 
+def run_pono(pono_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool) -> int:
+    logger.info(f"Running pono over {btor_path}")
+    label = btor_path.stem
+
+    command = [str(pono_path), "-k", str(kmax), "-e"]
+    if kind:
+        command.append("ind")
+    else:
+        command.append("bmc")
+    command.append(str(btor_path))
+
+    start_mc = time.perf_counter()
+
+    try:
+        proc = subprocess.run(command, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print("timeout")
+        return 1
+
+    end_mc = time.perf_counter()
+
+    logger.info(f"Done model checking in {end_mc-start_mc}s")
+
+    btor_witness_bytes = proc.stdout
+    btor_witness_path = btor_path.with_suffix(f".btor2.cex")
+    with open(btor_witness_path, "wb") as f:
+        f.write(btor_witness_bytes)
+
+    if btor_witness_bytes.startswith(b'sat'):
+        print("sat")
+    elif btor_witness_bytes.startswith(b'unsat'):
+        print("unsat")
+    else:
+        print("unknown")
+
+    return 0
+
 
 def model_check(
     input_path: Path, 
@@ -208,6 +246,10 @@ def model_check(
                 retcode = run_avr(avr_path, btor_path, timeout, kmax, kind)
                 if retcode:
                     return retcode
+            elif model_checker == "pono":
+                retcode = run_pono(pono_path, btor_path, timeout, kmax, kind)
+                if retcode:
+                    return retcode
             else:
                 logger.error(f"Unsupported model checker {model_checker}")
                 return 1
@@ -256,6 +298,8 @@ if __name__ == "__main__":
         help=f"path to avr directory")
     parser.add_argument("--btormc-path",  
         help=f"path to btormc binary")
+    parser.add_argument("--pono-path",
+        help=f"path to pono binary")
     parser.add_argument("--translate-path",  
         help=f"path to translate.py script")
     parser.add_argument("--copyback",  action="store_true",
@@ -291,6 +335,9 @@ if __name__ == "__main__":
 
     if args.btormc_path:
         btormc_path = Path(args.btormc_path)
+
+    if args.pono_path:
+        pono_path = Path(args.pono_path)
 
     if args.translate_path:
         translate_path = Path(args.translate_path)
