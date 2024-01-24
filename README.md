@@ -70,13 +70,15 @@ usage: modelcheck.py [-h] [--output OUTPUT] [--avr-path AVR_PATH]
 
 positional arguments:
   input                 input program to model check via translation to btor2
-  {btormc,avr}          model checker to use
+  {btormc,avr, pono}    model checker to use
 
 options:
   -h, --help            show this help message and exit
   --output OUTPUT       location of output check-system response
   --avr-path AVR_PATH   path to avr directory
   --btormc-path BTORMC_PATH
+                        path to btormc binary
+  --pono-path PONO_PATH
                         path to btormc binary
   --translate-path TRANSLATE_PATH
                         path to translate.py script
