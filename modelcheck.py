@@ -53,12 +53,13 @@ def run_btormc(btormc_path: Path, btor_path: Path, timeout: int, kmax: int, kind
     with open(btor_witness_path, "wb") as f:
         f.write(btor_witness_bytes)
 
-    if btor_witness_bytes:
+    if btor_witness_bytes.startswith(b'sat'):
         print("sat")
-    else:
+        logger.info(f"btormc witness created at {btor_witness_path}")
+    elif btor_witness_bytes.startswith(b'unsat'):
         print("unsat")
-
-    logger.info(f"btormc witness created at {btor_witness_path}")
+    else:
+        print("unknown")
 
     return 0
 
