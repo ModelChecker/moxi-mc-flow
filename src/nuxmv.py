@@ -1089,7 +1089,7 @@ def type_check_module(module: XMVModule, context: XMVContext) -> bool:
             case XMVDefineDeclaration(define_list=define_list):
                 for define in reversed(define_list):
                     # TODO: is the check below helpful?
-                    if define.expr.type == XMVNoType():
+                    if define.expr.type == XMVAnyType():
                         logger.debug(f"Type checking DEFINE {define.name}")
 
                         type_check_expr(define.expr, context, module)
