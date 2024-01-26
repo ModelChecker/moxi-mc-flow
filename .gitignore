@@ -149,3 +149,6 @@ kind2/
 objs/
 *~
 output/
+
+# ruff config
+pyproject.toml

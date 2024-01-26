@@ -1,60 +1,30 @@
-import sys
+import pathlib
 import os
 import shutil
-from pathlib import Path
-import logging
 
-FILE_NAME = Path(__file__).name
-DEFAULT_ERR_MSG_INFO = {"ifilename": "", "ilineno": 0}
+from src import log
 
-class StandardFormatter(logging.Formatter):
-    format_str = '%(levelname)s'
-
-    FORMATS = {
-        logging.DEBUG: '[%(filename)s:%(lineno)d] %(message)s',
-        logging.INFO: '[%(module)s] %(message)s',
-        logging.WARNING: '[%(module)s:%(ifilename)s:%(ilineno)s] ' + format_str + ': %(message)s',
-        logging.ERROR: '[%(module)s:%(ifilename)s:%(ilineno)s] ' + format_str + ': %(message)s',
-        logging.CRITICAL: '[%(filename)s:%(lineno)d] ' + format_str + ': %(message)s',
-    }
-
-    def format(self, record) -> str:
-        log_fmt = self.FORMATS.get(record.levelno)
-        formatter = logging.Formatter(log_fmt)
-        return formatter.format(record)
-
-LOGGER_NAME = __name__
-
-logger = logging.getLogger(LOGGER_NAME)
-logger.setLevel(logging.INFO)
-
-stdout_handler = logging.StreamHandler(sys.stdout)
-stdout_handler.setLevel(logging.DEBUG)
-# filter out everything that is above INFO level (WARN, ERROR, ...)
-stdout_handler.addFilter(lambda record: record.levelno <= logging.INFO)
-stdout_handler.setFormatter(StandardFormatter())
-logger.addHandler(stdout_handler)
-
-stderr_handler = logging.StreamHandler(sys.stderr)
-# take only warnings and error logs
-stderr_handler.setLevel(logging.WARNING)
-stderr_handler.setFormatter(StandardFormatter())
-logger.addHandler(stderr_handler)
+FILE_NAME = pathlib.Path(__file__).name
 
 
-def rmdir(dir: Path, quiet: bool):
-    """Remove `dir`, print a warning if quiet is False"""
+def rmdir(dir: pathlib.Path):
+    """Remove `dir`"""
     if dir.is_file():
-        if not quiet:
-            logger.info(f"Overwriting {dir}")
+        log.warning(f"Overwriting {dir}", FILE_NAME)
         os.remove(dir)
     elif dir.is_dir():
-        if not quiet:
-            logger.info(f"Overwriting {dir}")
+        log.warning(f"Overwriting {dir}", FILE_NAME)
         shutil.rmtree(dir)
 
 
-def cleandir(dir: Path, quiet: bool):
-    """Remove and create fresh `dir`, print a warning if quiet is False"""
-    rmdir(dir, quiet)
+def cleandir(dir: pathlib.Path, overwrite: bool) -> bool:
+    """Remove and create fresh `dir`"""
+    if not overwrite and dir.exists():
+        log.error(f"Already exists: {dir}\n\t"
+                  "Did you mean to enable the '--overwrite' option?", FILE_NAME)
+        return False
+
+    rmdir(dir)
     os.mkdir(dir)
+
+    return True

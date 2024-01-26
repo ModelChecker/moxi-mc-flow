@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Optional
 import pickle
 
-from .util import cleandir, logger
+from src import util
 
 FILE_NAME = Path(__file__).name
 
@@ -499,9 +499,12 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
 def write_btor2_program_set(
     program_set: BtorProgramSet,
     output_path: Path,
-    do_pickle: bool
-) -> None:
-    cleandir(output_path, True)
+    do_pickle: bool,
+    do_overwrite: bool
+) -> bool:
+    status = util.cleandir(output_path, do_overwrite)
+    if not status:
+        return False
 
     program_index: dict[str, int] = {}
     for symbol,programs in program_set:
@@ -525,4 +528,5 @@ def write_btor2_program_set(
             if do_pickle:
                 with open(output_file_path.with_suffix(".btor2.pickle"), "wb") as f:
                     pickle.dump(program, f)
-
+                    
+    return True

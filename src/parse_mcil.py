@@ -1,15 +1,19 @@
 #type: ignore
-from pathlib import Path
+import pathlib
+from typing import Optional
 
-from .sly import Lexer, Parser
-from .util import logger
-from .mcil import *
+from src import sly
+from src import log
+from src import mcil
 
-FILE_NAME = Path(__file__).name
+FILE_NAME = pathlib.Path(__file__).name
 
-class MCILLexer(Lexer):
+class MCILLexer(sly.Lexer):
 
-    tokens = { NUMERAL, BINARY, HEXADECIMAL,
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
+
+    tokens = { NUMERAL, BINARY, HEXADECIMAL, DECIMAL,
                SYMBOL, KEYWORD,
                LPAREN, RPAREN,
                RW_UNDERSCORE, RW_LET, RW_AS,
@@ -23,9 +27,8 @@ class MCILLexer(Lexer):
     ignore_comment = r";.*"
     ignore_newline = r"\n+"
 
+    DECIMAL     = r"(0|[1-9]\d*)\.0*(0|[1-9]\d*)"
     NUMERAL     = r"0|[1-9]\d*"
-
-    # DECIMAL     = r"-?\d*\.\d+"
     HEXADECIMAL = r"#x[A-F0-9]+"
     BINARY      = r"#b[01]+"
 
@@ -85,21 +88,26 @@ class MCILLexer(Lexer):
         self.lineno += t.value.count("\n")
 
     def error(self, t):
-        logger.error(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}")
+        loc = log.FileLocation(self.filename, self.lineno)
+        log.error(f"{self.lineno}: Illegal character \"%s\" {t.value[0]}", FILE_NAME, loc)
         self.index += 1
 
 
-class MCILParser(Parser):
+class MCILParser(sly.Parser):
     tokens = MCILLexer.tokens
 
-    def __init__(self) :
+    def __init__(self, filename: str) :
         super().__init__()
+        self.filename = filename
         self.status = True
         self.enums = {}
 
+    def loc(self, token) -> log.FileLocation:
+        return log.FileLocation(self.filename, token.lineno)
+
     def error(self, token):
         self.status = False
-        logger.error(f"Error:{token.lineno}: Unexpected token ({token})")
+        log.error(f"Unexpected token ({token})", FILE_NAME, self.loc(token))
 
     @_("command_list command")
     def command_list(self, p):
@@ -113,24 +121,24 @@ class MCILParser(Parser):
 
     @_("LPAREN CMD_SET_LOGIC SYMBOL RPAREN")
     def command(self, p):
-        return MCILSetLogic(p[2])
+        return mcil.MCILSetLogic(p[2], self.loc(p))
 
     @_("LPAREN CMD_DECLARE_SORT SYMBOL NUMERAL RPAREN")
     def command(self, p):
-        return MCILDeclareSort(p[2], p[3])
+        return mcil.MCILDeclareSort(p[2], p[3], self.loc(p))
     
     @_("LPAREN CMD_DEFINE_SORT labeled_symbol_list sort RPAREN")
     def command(self, p):
         label, symbol_list = p[2]
-        return MCILDefineSort(label, symbol_list, p[3])
+        return mcil.MCILDefineSort(label, symbol_list, p[3], self.loc(p))
     
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
-        return MCILDeclareConst(p[2], p[3])
+        return mcil.MCILDeclareConst(p[2], p[3], self.loc(p))
     
     @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sorted_var_list RPAREN sort term RPAREN")
     def command(self, p):
-        return MCILDefineFun(p[2], p[4], p[6], p[7])
+        return mcil.MCILDefineFun(p[2], p[4], p[6], p[7], self.loc(p))
     
     @_("LPAREN CMD_DECLARE_ENUM_SORT labeled_symbol_list RPAREN")
     def command(self, p):
@@ -141,76 +149,76 @@ class MCILParser(Parser):
             values.append(value)
             self.enums[value] = label
 
-        return MCILDeclareEnumSort(label, values)
+        return mcil.MCILDeclareEnumSort(label, values, self.loc(p))
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
         input, output, local = [], [], []
-        init_expr = MCILConstant(MCIL_BOOL_SORT, True)
-        trans_expr = MCILConstant(MCIL_BOOL_SORT, True)
-        inv_expr = MCILConstant(MCIL_BOOL_SORT, True)
+        init_expr = mcil.MCILConstant(mcil.MCIL_BOOL_SORT, True, self.loc(p))
+        trans_expr = mcil.MCILConstant(mcil.MCIL_BOOL_SORT, True, self.loc(p))
+        inv_expr = mcil.MCILConstant(mcil.MCIL_BOOL_SORT, True, self.loc(p))
         subsystems = {}
 
-        if MCILAttribute.INPUT in p[3]:
-            input = p[3][MCILAttribute.INPUT]
+        if mcil.MCILAttribute.INPUT in p[3]:
+            input = p[3][mcil.MCILAttribute.INPUT]
             
-        if MCILAttribute.OUTPUT in p[3]:
-            output = p[3][MCILAttribute.OUTPUT]
+        if mcil.MCILAttribute.OUTPUT in p[3]:
+            output = p[3][mcil.MCILAttribute.OUTPUT]
 
-        if MCILAttribute.LOCAL in p[3]:
-            local = p[3][MCILAttribute.LOCAL]
+        if mcil.MCILAttribute.LOCAL in p[3]:
+            local = p[3][mcil.MCILAttribute.LOCAL]
             
-        if MCILAttribute.INIT in p[3]:
-            init_expr = p[3][MCILAttribute.INIT]
+        if mcil.MCILAttribute.INIT in p[3]:
+            init_expr = p[3][mcil.MCILAttribute.INIT]
             
-        if MCILAttribute.TRANS in p[3]:
-            trans_expr = p[3][MCILAttribute.TRANS]
+        if mcil.MCILAttribute.TRANS in p[3]:
+            trans_expr = p[3][mcil.MCILAttribute.TRANS]
             
-        if MCILAttribute.INV in p[3]:
-            inv_expr = p[3][MCILAttribute.INV]
+        if mcil.MCILAttribute.INV in p[3]:
+            inv_expr = p[3][mcil.MCILAttribute.INV]
 
-        if MCILAttribute.SUBSYS in p[3]:
-            subsystems = p[3][MCILAttribute.SUBSYS]
+        if mcil.MCILAttribute.SUBSYS in p[3]:
+            subsystems = p[3][mcil.MCILAttribute.SUBSYS]
 
-        return MCILDefineSystem(str(p[2]), input, output, local, init_expr, trans_expr, inv_expr, subsystems)
+        return mcil.MCILDefineSystem(str(p[2]), input, output, local, init_expr, trans_expr, inv_expr, subsystems, self.loc(p))
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
         input, output, local, queries = [], [], [], []
         assume, fair, reach, current, query = {}, {}, {}, {}, {}
 
-        if MCILAttribute.INPUT in p[3]:
-            input = p[3][MCILAttribute.INPUT]
+        if mcil.MCILAttribute.INPUT in p[3]:
+            input = p[3][mcil.MCILAttribute.INPUT]
             
-        if MCILAttribute.OUTPUT in p[3]:
-            output = p[3][MCILAttribute.OUTPUT]
+        if mcil.MCILAttribute.OUTPUT in p[3]:
+            output = p[3][mcil.MCILAttribute.OUTPUT]
 
-        if MCILAttribute.LOCAL in p[3]:
-            local = p[3][MCILAttribute.LOCAL]
+        if mcil.MCILAttribute.LOCAL in p[3]:
+            local = p[3][mcil.MCILAttribute.LOCAL]
 
-        if MCILAttribute.ASSUMPTION in p[3]:
-            assume = p[3][MCILAttribute.ASSUMPTION]
+        if mcil.MCILAttribute.ASSUMPTION in p[3]:
+            assume = p[3][mcil.MCILAttribute.ASSUMPTION]
             
-        if MCILAttribute.FAIRNESS in p[3]:
-            fair = p[3][MCILAttribute.FAIRNESS]
+        if mcil.MCILAttribute.FAIRNESS in p[3]:
+            fair = p[3][mcil.MCILAttribute.FAIRNESS]
             
-        if MCILAttribute.REACHABLE in p[3]:
-            reach = p[3][MCILAttribute.REACHABLE]
+        if mcil.MCILAttribute.REACHABLE in p[3]:
+            reach = p[3][mcil.MCILAttribute.REACHABLE]
             
-        if MCILAttribute.CURRENT in p[3]:
-            current = p[3][MCILAttribute.CURRENT]
+        if mcil.MCILAttribute.CURRENT in p[3]:
+            current = p[3][mcil.MCILAttribute.CURRENT]
             
-        if MCILAttribute.QUERY in p[3]:
-            query = p[3][MCILAttribute.QUERY]
+        if mcil.MCILAttribute.QUERY in p[3]:
+            query = p[3][mcil.MCILAttribute.QUERY]
             
-        if MCILAttribute.QUERIES in p[3]:
-            queries = p[3][MCILAttribute.QUERIES]
+        if mcil.MCILAttribute.QUERIES in p[3]:
+            queries = p[3][mcil.MCILAttribute.QUERIES]
 
-        return MCILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query, queries)
+        return mcil.MCILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query, queries, self.loc(p))
 
     @_("LPAREN CMD_EXIT RPAREN")
     def command(self, p):
-        return MCILExit()
+        return mcil.MCILExit()
 
     @_("define_system_attribute_list define_system_attribute")
     def define_system_attribute_list(self, p):
@@ -219,23 +227,23 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            logger.error(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
+            log.error(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.", FILE_NAME, self.loc(p))
             self.status = False
         elif attr.get_value_type() == dict:
             # check for duplicate symbols
             for v in value.keys():
                 if v in p[0][attr]:
-                    logger.error(f"Error:{p.lineno}: repeat symbol for attribute {attr.value} ({v})")
+                    log.error(f"Error:{p.lineno}: repeat symbol for attribute {attr.value} ({v})", FILE_NAME, self.loc(p))
                     self.status = False
             p[0][attr].update(value)
         elif attr.get_value_type() == list:
             p[0][attr] += value
-        elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.TRANS):
-            p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("or", []), [p[0][attr], value])
-        elif attr.get_value_type() == MCILExpr and isinstance(attr, MCILAttribute.INV):
-            p[0][attr] = MCILApply(MCIL_NO_SORT, MCILIdentifier("and", []), [p[0][attr], value])
+        elif attr.get_value_type() == mcil.MCILExpr and isinstance(attr, mcil.MCILAttribute.TRANS):
+            p[0][attr] = mcil.MCILApply(mcil.MCIL_NO_SORT, mcil.MCILIdentifier("or", []), [p[0][attr], value], self.loc(p))
+        elif attr.get_value_type() == mcil.MCILExpr and isinstance(attr, mcil.MCILAttribute.INV):
+            p[0][attr] = mcil.MCILApply(mcil.MCIL_NO_SORT, mcil.MCILIdentifier("and", []), [p[0][attr], value], self.loc(p))
         else:
-            logger.error(f"Error:{p.lineno}: parser error ({attr.value}).")
+            log.error(f"Error:{p.lineno}: parser error ({attr.value}).", FILE_NAME, self.loc(p))
             self.status = False
 
         return p[0]
@@ -246,31 +254,31 @@ class MCILParser(Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        return (MCILAttribute.INPUT, p[2])
+        return (mcil.MCILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        return (MCILAttribute.OUTPUT, p[2])
+        return (mcil.MCILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        return (MCILAttribute.LOCAL, p[2])
+        return (mcil.MCILAttribute.LOCAL, p[2])
 
     @_("PK_INIT term")
     def define_system_attribute(self, p):
-        return (MCILAttribute.INIT, p[1])
+        return (mcil.MCILAttribute.INIT, p[1])
 
     @_("PK_TRANS term")
     def define_system_attribute(self, p):
-        return (MCILAttribute.TRANS, p[1])
+        return (mcil.MCILAttribute.TRANS, p[1])
 
     @_("PK_INV term")
     def define_system_attribute(self, p):
-        return (MCILAttribute.INV, p[1])
+        return (mcil.MCILAttribute.INV, p[1])
 
     @_("PK_SUBSYS LPAREN SYMBOL LPAREN SYMBOL symbol_list RPAREN RPAREN")
     def define_system_attribute(self, p):
-        return (MCILAttribute.SUBSYS, {p[2] : (p[4], p[5])})
+        return (mcil.MCILAttribute.SUBSYS, {p[2] : (p[4], p[5])})
 
     @_("check_system_attribute_list check_system_attribute")
     def check_system_attribute_list(self, p):
@@ -279,18 +287,18 @@ class MCILParser(Parser):
         if attr not in p[0]:
             p[0][attr] = value
         elif attr.is_definable_once():
-            logger.error(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.\n")
+            log.error(f"Error:{p.lineno}: multiple instances of attribute '{attr.value}'.", FILE_NAME, self.loc(p))
             self.status = False
         elif attr.get_value_type() == dict:
             # check for duplicate symbols
             if [v for v in value.keys() if v in p[0][attr]]:
-                logger.error(f"Error:{p.lineno}: repeat symbol for attribute '{attr.value}'.\n")
+                log.error(f"Error:{p.lineno}: repeat symbol for attribute '{attr.value}'.", FILE_NAME, self.loc(p))
                 self.status = False
             p[0][attr].update(value)
         elif attr.get_value_type() == list:
             p[0][attr] += value
         else:
-            logger.error(f"Error:{p.lineno}: parser error ({attr.value}).\n")
+            log.error(f"Error:{p.lineno}: parser error ({attr.value}).", FILE_NAME, self.loc(p))
             self.status = False
 
         return p[0]
@@ -301,40 +309,40 @@ class MCILParser(Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        return (MCILAttribute.INPUT, p[2])
+        return (mcil.MCILAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        return (MCILAttribute.OUTPUT, p[2])
+        return (mcil.MCILAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        return (MCILAttribute.LOCAL, p[2])
+        return (mcil.MCILAttribute.LOCAL, p[2])
 
     @_("PK_ASSUMPTION LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (MCILAttribute.ASSUMPTION, {p[2]: p[3]})
+        return (mcil.MCILAttribute.ASSUMPTION, {p[2]: p[3]})
 
     @_("PK_FAIRNESS LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (MCILAttribute.FAIRNESS, {p[2]: p[3]})
+        return (mcil.MCILAttribute.FAIRNESS, {p[2]: p[3]})
 
     @_("PK_REACHABLE LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (MCILAttribute.REACHABLE, {p[2]: p[3]})
+        return (mcil.MCILAttribute.REACHABLE, {p[2]: p[3]})
 
     @_("PK_CURRENT LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (MCILAttribute.CURRENT, {p[2]: p[3]})
+        return (mcil.MCILAttribute.CURRENT, {p[2]: p[3]})
 
     @_("PK_QUERY LPAREN labeled_symbol_list RPAREN")
     def check_system_attribute(self, p):
         label,symbol_list = p[2]
-        return (MCILAttribute.QUERY, {label: symbol_list})
+        return (mcil.MCILAttribute.QUERY, {label: symbol_list})
 
     @_("PK_QUERIES LPAREN labeled_symbol_list_list RPAREN")
     def check_system_attribute(self, p):
-        return (MCILAttribute.QUERIES, [p[2]])
+        return (mcil.MCILAttribute.QUERIES, [p[2]])
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
@@ -371,7 +379,7 @@ class MCILParser(Parser):
     def labeled_symbol_list_list(self, p):
         label, symbol_list = p[2]
         if label in p[0]:
-            logger.error(f"Error:{p.lineno}: repeat label in queries attribute '{label}'.\n")
+            log.error(f"Error:{p.lineno}: repeat label in queries attribute '{label}'.", FILE_NAME, self.loc(p))
             self.status = False
         p[0][label] = symbol_list
         return p[0]
@@ -400,49 +408,53 @@ class MCILParser(Parser):
     @_("identifier")
     def term(self, p):
         if len(p[0].indices) > 0:
-            logger.error(f"Error, simple term identifiers cannot be indexed ({p[0]}).")
+            log.error(f"Error, simple term identifiers cannot be indexed ({p[0]}).", FILE_NAME, self.loc(p))
             self.status = False
 
         symbol: str = p[0].symbol
         if symbol == "true":
-            return MCIL_BOOL_CONST(True)
+            return mcil.MCIL_BOOL_CONST(True)
         elif symbol == "false":
-            return MCIL_BOOL_CONST(False)
+            return mcil.MCIL_BOOL_CONST(False)
         elif symbol in self.enums:
-            return MCIL_ENUM_CONST(self.enums[symbol], symbol)
+            return mcil.MCIL_ENUM_CONST(self.enums[symbol], symbol)
 
         prime: bool = False
         if symbol[len(symbol)-1] == "'":
             prime = True
             symbol = symbol[:-1]
 
-        return MCILVar(MCIL_NO_SORT, symbol, prime)
+        return mcil.MCILVar(mcil.MCIL_NO_SORT, symbol, prime, self.loc(p))
 
     @_("NUMERAL")
     def term(self, p):
-        return MCIL_INT_CONST(int(p[0]))
+        return mcil.MCIL_INT_CONST(int(p[0]))
+
+    @_("DECIMAL")
+    def term(self, p):
+        return mcil.MCIL_REAL_CONST(float(p[0]))
 
     @_("HEXADECIMAL") # example: "#x123"
     def term(self, p):
-        return MCIL_BITVEC_CONST(len(p[0][2:])*4, int(p[0][2:], base=16))
+        return mcil.MCIL_BITVEC_CONST(len(p[0][2:])*4, int(p[0][2:], base=16))
 
     @_("BINARY") # example: "#b101"
     def term(self, p):
-        return MCIL_BITVEC_CONST(len(p[0][2:]), int(p[0][2:], base=2))
+        return mcil.MCIL_BITVEC_CONST(len(p[0][2:]), int(p[0][2:], base=2))
 
     @_("LPAREN identifier term_list term RPAREN")
     def term(self, p):
         p[2].append(p[3])
-        return MCILApply(MCIL_NO_SORT, p[1], p[2])
+        return mcil.MCILApply(mcil.MCIL_NO_SORT, p[1], p[2], self.loc(p))
 
     @_("LPAREN RW_LET LPAREN bound_var_list RPAREN term RPAREN")
     def term(self, p):
-        return MCILLetExpr(MCIL_NO_SORT, p[3], p[5])
+        return mcil.MCILLetExpr(mcil.MCIL_NO_SORT, p[3], p[5], self.loc(p))
 
     @_("LPAREN qualified_identifier term RPAREN")
     def term(self, p):
         ident, sort = p[1]
-        return MCILApply(sort, ident, [p[2]])
+        return mcil.MCILApply(sort, ident, [p[2]], self.loc(p))
 
     @_("LPAREN term RPAREN")
     def term(self, p):
@@ -450,12 +462,12 @@ class MCILParser(Parser):
 
     @_("identifier")
     def sort(self, p):
-        return MCILSort(p[0], [])
+        return mcil.MCILSort(p[0], [])
 
     @_("LPAREN identifier sort_list sort RPAREN")
     def sort(self, p):
         p[2].append(p[3])
-        return MCILSort(p[1], p[2])
+        return mcil.MCILSort(p[1], p[2])
 
     @_("sort_list sort")
     def sort_list(self, p):
@@ -473,12 +485,12 @@ class MCILParser(Parser):
     # Identifiers
     @_("SYMBOL")
     def identifier(self, p):
-        return MCILIdentifier(p[0], [])
+        return mcil.MCILIdentifier(p[0], [])
 
     @_("LPAREN RW_UNDERSCORE SYMBOL index_list index RPAREN")
     def identifier(self, p):
         p[3].append(p[4])
-        return MCILIdentifier(p[2], p[3])
+        return mcil.MCILIdentifier(p[2], p[3])
 
     # Indices
     @_("index_list index")
@@ -495,18 +507,18 @@ class MCILParser(Parser):
         return int(p[0])
 
 
-def parse(input_path: Path) -> Optional[MCILProgram]:
+def parse(input_path: pathlib.Path) -> Optional[mcil.MCILProgram]:
     """Parse contents of `input_path` and returns corresponding program on success, else returns None."""
     with open(str(input_path), "r") as f:
         content = f.read()
 
-    lexer: MCILLexer = MCILLexer()
-    parser: MCILParser = MCILParser()
+    lexer: MCILLexer = MCILLexer(input_path.name)
+    parser: MCILParser = MCILParser(input_path.name)
 
     cmds = parser.parse(lexer.tokenize(content))
 
     if parser.status and cmds:
-        return MCILProgram(cmds)
+        return mcil.MCILProgram(cmds)
     
     return None
 

@@ -1,13 +1,12 @@
 #type: ignore
 from typing import Optional
-from pathlib import Path
+import pathlib
 
-from .sly import Lexer, Parser
-from .preprocess_nuxmv import preprocess
-from .nuxmv import *
-from .util import logger
+from src import sly, preprocess_nuxmv, nuxmv, log
 
-class NuXmvLexer(Lexer):
+FILE_NAME = pathlib.Path(__file__).name
+
+class NuXmvLexer(sly.Lexer):
     tokens = { 
         # punctuation
         COMMA, DOT, STAR,
@@ -182,7 +181,7 @@ class NuXmvLexer(Lexer):
         self.lineno += t.value.count("\n")
 
 
-class NuXmvParser(Parser):
+class NuXmvParser(sly.Parser):
     tokens = NuXmvLexer.tokens
 
     def __init__(self):
@@ -192,7 +191,7 @@ class NuXmvParser(Parser):
 
     def error(self, token):
         self.status = False
-        logger.error(f"Unexpected token ({token})") 
+        log.error(f"Unexpected token ({token})", FILE_NAME) 
 
     precedence = (
         ("left", RIGHTARROW, LEFTRIGHTARROW),
@@ -215,15 +214,15 @@ class NuXmvParser(Parser):
         main = [m for m in p[0] if m.name == "main"]
 
         if len(main) < 1:
-            logger.error(f"'main' module undefined.")
+            log.error(f"'main' module undefined.", FILE_NAME)
             self.status = False
         elif len(main) > 1:
-            logger.error(f"Multiple 'main' modules defined.")
+            log.error(f"Multiple 'main' modules defined.", FILE_NAME)
             self.status = False
 
         main = main[0]
 
-        return XMVProgram(modules=p[0], main=main)
+        return nuxmv.XMVProgram(modules=p[0], main=main)
 
 
     @_(
@@ -255,9 +254,9 @@ class NuXmvParser(Parser):
     )
     def module(self, p):
         if len(p) == 6:
-            return XMVModuleDeclaration(name=p[1], parameters=p.parameter_list, elements=p.module_body)
+            return nuxmv.XMVModuleDeclaration(name=p[1], parameters=p.parameter_list, elements=p.module_body)
         else:
-            return XMVModuleDeclaration(name=p[1], parameters=[], elements=p.module_body)
+            return nuxmv.XMVModuleDeclaration(name=p[1], parameters=[], elements=p.module_body)
     
 
     @_(
@@ -297,29 +296,29 @@ class NuXmvParser(Parser):
     def module_element(self, p):
         match p[0]:
             case "VAR":
-                return XMVVarDeclaration(p[1], "VAR")
+                return nuxmv.XMVVarDeclaration(p[1], "VAR")
             case "IVAR":
-                return XMVVarDeclaration(p[1], "IVAR")
+                return nuxmv.XMVVarDeclaration(p[1], "IVAR")
             case "FROZENVAR":
-                return XMVVarDeclaration(p[1], "FROZENVAR")
+                return nuxmv.XMVVarDeclaration(p[1], "FROZENVAR")
             case "FUN":
-                return XMVFunctionDeclaration(function_list=p[1])
+                return nuxmv.XMVFunctionDeclaration(function_list=p[1])
             case "DEFINE":
-                return XMVDefineDeclaration(define_list=p[1])
+                return nuxmv.XMVDefineDeclaration(define_list=p[1])
             case "CONSTANTS":
-                return XMVConstantsDeclaration(constants_list=p[1])
+                return nuxmv.XMVConstantsDeclaration(constants_list=p[1])
             case "ASSIGN":
-                return XMVAssignDeclaration(assign_list=p[1])
+                return nuxmv.XMVAssignDeclaration(assign_list=p[1])
             case "TRANS":
-                return XMVTransDeclaration(formula=p[1])
+                return nuxmv.XMVTransDeclaration(formula=p[1])
             case "INIT":
-                return XMVInitDeclaration(formula=p[1])
+                return nuxmv.XMVInitDeclaration(formula=p[1])
             case "INVAR":
-                return XMVInvarDeclaration(formula=p[1])
+                return nuxmv.XMVInvarDeclaration(formula=p[1])
             case "INVARSPEC":
-                return XMVInvarspecDeclaration(formula=p.expr)
+                return nuxmv.XMVInvarspecDeclaration(formula=p.expr)
             case "LTLSPEC":
-                return XMVLTLSpecDeclaration(formula=p.expr)
+                return nuxmv.XMVLTLSpecDeclaration(formula=p.expr)
 
     @_(
             "assign_list assign SEMICOLON",
@@ -339,19 +338,19 @@ class NuXmvParser(Parser):
     def assign(self, p):
         match p[0]:
             case "init":
-                return XMVAssign(lhs=p.complex_identifier, rhs=p.expr, modifier="init")
+                return nuxmv.XMVAssign(lhs=p.complex_identifier, rhs=p.expr, modifier="init")
             case "next":
-                return XMVAssign(lhs=p.complex_identifier, rhs=p.expr, modifier="next")
+                return nuxmv.XMVAssign(lhs=p.complex_identifier, rhs=p.expr, modifier="next")
             case _:
-                return XMVAssign(lhs=p.complex_identifier, rhs=p.expr, modifier="none")
+                return nuxmv.XMVAssign(lhs=p.complex_identifier, rhs=p.expr, modifier="none")
 
             
     @_("constants_body COMMA complex_identifier", "complex_identifier")
     def constants_body(self, p):
         if len(p) == 1:
-            return [XMVConstants(identifier=p[0])]
+            return [nuxmv.XMVConstants(identifier=p[0])]
         else:
-            return p[0] + [XMVConstants(identifier=p[2])]
+            return p[0] + [nuxmv.XMVConstants(identifier=p[2])]
 
     @_(
         "define_body complex_identifier COLONEQ expr SEMICOLON",
@@ -359,9 +358,9 @@ class NuXmvParser(Parser):
     )    
     def define_body(self, p):
         if len(p) == 4:
-            return [XMVDefine(name=p.complex_identifier, expr=p.expr)]
+            return [nuxmv.XMVDefine(name=p.complex_identifier, expr=p.expr)]
         else:
-            return p.define_body + [XMVDefine(name=p.complex_identifier, expr=p.expr)]
+            return p.define_body + [nuxmv.XMVDefine(name=p.complex_identifier, expr=p.expr)]
         
     @_(
         "constant",
@@ -407,45 +406,45 @@ class NuXmvParser(Parser):
         if len(p) == 1: # TODO: constants/whatever
             return p[0]
         if len(p) == 2: # unop
-            return XMVUnOp(p.lineno, op=p[0], arg=p[1])
+            return nuxmv.XMVUnOp(op=p[0], arg=p[1])
         if p[0] == "(":
             return p[1]
         if len(p) == 3: # binop
-            return XMVBinOp(p.lineno, op=p[1], lhs=p[0], rhs=p[2]) 
+            return nuxmv.XMVBinOp(op=p[1], lhs=p[0], rhs=p[2]) 
         if len(p) == 4: # function call
-            return XMVFunCall(p.lineno, name=p[0], args=p.cs_expr_list)
+            return nuxmv.XMVFunCall(name=p[0], args=p.cs_expr_list)
         
     @_("NEXT LPAREN expr RPAREN")
     def expr(self, p):
-        return XMVFunCall(p.lineno, name="next", args=[p[2]])
+        return nuxmv.XMVFunCall(name="next", args=[p[2]])
     
     @_("XMV_SIGNED LPAREN expr RPAREN")
     def expr(self, p):
-        return XMVFunCall(p.lineno, name="signed", args=[p[2]])
+        return nuxmv.XMVFunCall(name="signed", args=[p[2]])
     
     @_("XMV_UNSIGNED LPAREN expr RPAREN")
     def expr(self, p):
-        return XMVFunCall(p.lineno, name="unsigned", args=[p[2]])
+        return nuxmv.XMVFunCall(name="unsigned", args=[p[2]])
 
     @_("expr LBRACK expr RBRACK")
     def expr(self, p):
-        return XMVIndexSubscript(p.lineno, array=p[0], index=p[2])
+        return nuxmv.XMVIndexSubscript(array=p[0], index=p[2])
 
     @_("expr LBRACK INTEGER COLON INTEGER RBRACK")
     def expr(self, p):
-        return XMVWordBitSelection(p.lineno, word=p[0], high=int(p[2]), low=int(p[4]))
+        return nuxmv.XMVWordBitSelection(word=p[0], high=int(p[2]), low=int(p[4]))
 
     @_("expr CONCAT expr")
     def expr(self, p):
-        return XMVBinOp(p.lineno, op="concat", lhs=p[0], rhs=p[2])
+        return nuxmv.XMVBinOp(op="concat", lhs=p[0], rhs=p[2])
     
     @_("LBRACE cs_expr_list RBRACE")
     def expr(self, p):
-        return XMVSetBodyExpression(p.lineno, members=p.cs_expr_list)
+        return nuxmv.XMVSetBodyExpression(members=p.cs_expr_list)
     
     @_("expr QUESTIONMARK expr COLON expr")
     def expr(self, p):
-        return XMVTernary(p.lineno, cond=p[0], then_expr=p[2], else_expr=p[4])
+        return nuxmv.XMVTernary(cond=p[0], then_expr=p[2], else_expr=p[4])
     
     @_("case_expr")
     def expr(self, p):
@@ -479,17 +478,17 @@ class NuXmvParser(Parser):
         if len(p) == 1: # TODO: constants/whatever
             return p[0]
         if len(p) == 2: # unop
-            return XMVUnOp(p.lineno, op=p[0], arg=p[1])
+            return nuxmv.XMVUnOp(op=p[0], arg=p[1])
         if p[0] == "(":
             return p[1]
         if len(p) == 3: # binop
-            return XMVBinOp(p.lineno, op=p[1], lhs=p[0], rhs=p[2]) 
+            return nuxmv.XMVBinOp(op=p[1], lhs=p[0], rhs=p[2]) 
         if len(p) == 4: # function call
-            return XMVFunCall(p.lineno, name=p[0], args=p.cs_expr_list)
+            return nuxmv.XMVFunCall(name=p[0], args=p.cs_expr_list)
     
     @_("XMV_CASE case_body XMV_ESAC")
     def case_expr(self, p):
-        return XMVCaseExpr(p.lineno, branches=p[1])
+        return nuxmv.XMVCaseExpr(branches=p[1])
     
     @_("expr COLON expr SEMICOLON", "case_body expr COLON expr SEMICOLON")
     def case_body(self, p):
@@ -516,7 +515,7 @@ class NuXmvParser(Parser):
 
     @_("IDENT COLON function_domain RIGHTARROW type_specifier")
     def function_declaration(self, p):
-        return XMVFunction(name=p[0], type=(p.function_domain, p.type_specifier))
+        return nuxmv.XMVFunction(name=p[0], type=(p.function_domain, p.type_specifier))
     
     @_("function_domain STAR type_specifier", "type_specifier")
     def function_domain(self, p):
@@ -542,11 +541,11 @@ class NuXmvParser(Parser):
 
     @_("complex_identifier DOT IDENT")
     def complex_identifier(self, p):
-        return XMVModuleAccess(p.lineno, p[0], XMVIdentifier(p.lineno, p[2]))
+        return nuxmv.XMVModuleAccess(p[0], nuxmv.XMVIdentifier(p[2]))
 
     @_("IDENT")
     def complex_identifier(self, p):
-        return XMVIdentifier(p.lineno, p[0])
+        return nuxmv.XMVIdentifier(p[0])
     
     # type specifier rules
 
@@ -578,26 +577,26 @@ class NuXmvParser(Parser):
     def type_specifier(self, p):
         match p[0]:
             case "boolean":
-                return XMVBoolean()
+                return nuxmv.XMVBoolean()
             case "integer":
-                return XMVInteger()
+                return nuxmv.XMVInteger()
             case "word":
-                return XMVWord(width=int(p[2]), signed=False)
+                return nuxmv.XMVWord(width=int(p[2]), signed=False)
             case "unsigned":
-                return XMVWord(width=int(p[3]), signed=False)
+                return nuxmv.XMVWord(width=int(p[3]), signed=False)
             case "signed":
-                return XMVWord(width=int(p[3]), signed=True)
+                return nuxmv.XMVWord(width=int(p[3]), signed=True)
             case "real":
-                return XMVReal()
+                return nuxmv.XMVReal()
             # case "clock":
-            #     return XMVClock()
+            #     return nuxmv.XMVClock()
             case "{":
-                return XMVEnumeration(summands=p[1])
+                return nuxmv.XMVEnumeration(summands=p[1])
             case "array":
                 if p[1] == "word":
-                    return XMVWordArray(word_length=int(p[3]), subtype=p.type_specifier)
+                    return nuxmv.XMVWordArray(word_length=int(p[3]), subtype=p.type_specifier)
                 else:
-                    return XMVArray(low=p[2], high=int(p[5]), subtype=int(p[7]))
+                    return nuxmv.XMVArray(low=p[2], high=int(p[5]), subtype=int(p[7]))
             case _:
                 def is_int(n : str):
                     try:
@@ -609,11 +608,11 @@ class NuXmvParser(Parser):
 
 
                 if is_int(p[0]):
-                    return XMVEnumeration(summands=set(range(int(p[0]), int(p[3]))))
+                    return nuxmv.XMVEnumeration(summands=set(range(int(p[0]), int(p[3]))))
                 elif len(p) == 3:
-                    return XMVModuleType(module_name=p[0], parameters=[])
+                    return nuxmv.XMVModuleType(module_name=p[0], parameters=[])
                 else:
-                    return XMVModuleType(module_name=p[0], parameters=p[2])
+                    return nuxmv.XMVModuleType(module_name=p[0], parameters=p[2])
     
     @_(
         "enumeration_type_body COMMA enumeration_type_value", 
@@ -647,31 +646,31 @@ class NuXmvParser(Parser):
     def boolean_constant(self, p):
         match p[0]:
             case "FALSE":
-                return XMVBooleanConstant(p.lineno, boolean=False)
+                return nuxmv.XMVBooleanConstant(boolean=False)
             case "TRUE":
-                return XMVBooleanConstant(p.lineno, boolean=True)
+                return nuxmv.XMVBooleanConstant(boolean=True)
             
     @_("INTEGER")
     def integer_constant(self, p):
-        return XMVIntegerConstant(p.lineno, integer=int(p[0]))
+        return nuxmv.XMVIntegerConstant(integer=int(p[0]))
     
     @_("complex_identifier")
     def symbolic_constant(self, p):
-        return XMVSymbolicConstant(p.lineno, symbol=p[0])
+        return nuxmv.XMVSymbolicConstant(symbol=p[0])
     
     @_("INTEGER DOT DOT INTEGER")
     def range_constant(self, p):
-        return XMVRangeConstant(p.lineno, low=int(p[0]), high=int(p[3]))
+        return nuxmv.XMVRangeConstant(low=int(p[0]), high=int(p[3]))
     
     @_("WORDCONSTANT")
     def word_constant(self, p):
-        return XMVWordConstant(p.lineno, p[0])
+        return nuxmv.XMVWordConstant(p[0])
 
         
-def parse(input_path: Path, do_cpp: bool) -> Optional[XMVProgram]:
-    content = preprocess(input_path, do_cpp)
+def parse(input_path: pathlib.Path, do_cpp: bool) -> Optional[nuxmv.XMVProgram]:
+    content = preprocess_nuxmv.preprocess(input_path, do_cpp)
 
-    logger.debug(f"Parsing {input_path}")
+    log.debug(f"Parsing {input_path}", FILE_NAME)
 
     lexer = NuXmvLexer()
     parser = NuXmvParser()

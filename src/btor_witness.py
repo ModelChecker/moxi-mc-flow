@@ -1,6 +1,6 @@
 from typing import Optional, cast
 
-from .bitvec import BitVec
+from src import bitvec
 
 class BtorAssignment():
 
@@ -12,7 +12,7 @@ class BtorAssignment():
 
 class BtorBitVecAssignment(BtorAssignment):
 
-    def __init__(self, id: int, value: BitVec, symbol: Optional[str]) -> None:
+    def __init__(self, id: int, value: bitvec.BitVec, symbol: Optional[str]) -> None:
         super().__init__(id, symbol)
         self.value = value
     
@@ -23,7 +23,7 @@ class BtorBitVecAssignment(BtorAssignment):
 
 class BtorArrayAssignment(BtorAssignment):
 
-    def __init__(self, id: int, value: tuple[Optional[BitVec], BitVec], symbol: Optional[str]) -> None:
+    def __init__(self, id: int, value: tuple[Optional[bitvec.BitVec], bitvec.BitVec], symbol: Optional[str]) -> None:
         super().__init__(id, symbol)
         (index, element) = value
         self.index = index

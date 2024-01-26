@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Optional
 
-from .mcil import *
+from src import mcil
 
 
 class MCILQueryResult(Enum):
@@ -26,7 +26,7 @@ class MCILModel():
 
 class MCILAssignment():
 
-    def __init__(self, symbol: str, value: MCILExpr) -> None:
+    def __init__(self, symbol: str, value: mcil.MCILExpr) -> None:
         self.symbol = symbol
         self.value = value
 

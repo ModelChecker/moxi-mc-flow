@@ -1,10 +1,9 @@
 #type: ignore
 import sys
 
-from .sly import Lexer, Parser
-from .btor_witness import *
+from src import sly, btor_witness, bitvec
 
-class BtorWitnessLexer(Lexer):
+class BtorWitnessLexer(sly.Lexer):
 
     tokens = { NEWLINE, NUMBER, SYMBOL, LBRACK, RBRACK, STAR,
                STATE_HEADER, INPUT_HEADER, BAD_PROP, JUSTICE_PROP, 
@@ -45,7 +44,7 @@ class BtorWitnessLexer(Lexer):
         self.index += 1
 
 
-class BtorWitnessParser(Parser):
+class BtorWitnessParser(sly.Parser):
     tokens = BtorWitnessLexer.tokens
 
     def __init__(self):
@@ -70,7 +69,7 @@ class BtorWitnessParser(Parser):
 
         frames = [p[1]] + p[2]
 
-        return BtorWitness(bad_props, justice_props, frames)
+        return btor_witness.BtorWitness(bad_props, justice_props, frames)
 
     @_("RW_SAT NEWLINE prop_list NEWLINE")
     def header(self, p):
@@ -103,12 +102,12 @@ class BtorWitnessParser(Parser):
     def frame(self, p):
         idx, state_part = p[0]
         _, input_part = p[1]
-        return BtorFrame(idx, state_part, input_part)
+        return btor_witness.BtorFrame(idx, state_part, input_part)
 
     @_("input_part")
     def frame(self, p):
         idx, input_part = p[0]
-        return BtorFrame(idx, [], input_part)
+        return btor_witness.BtorFrame(idx, [], input_part)
 
     @_("STATE_HEADER NEWLINE model")
     def state_part(self, p):
@@ -129,31 +128,31 @@ class BtorWitnessParser(Parser):
 
     @_("NUMBER binary_string SYMBOL")
     def assignment(self, p):
-        return BtorBitVecAssignment(int(p[0]), p[1], p[2])
+        return btor_witness.BtorBitVecAssignment(int(p[0]), p[1], p[2])
 
     @_("NUMBER binary_string")
     def assignment(self, p):
-        return BtorBitVecAssignment(int(p[0]), p[1], None)
+        return btor_witness.BtorBitVecAssignment(int(p[0]), p[1], None)
 
     @_("NUMBER LBRACK binary_string RBRACK binary_string SYMBOL")
     def assignment(self, p):
-        return BtorArrayAssignment(int(p[0]), (p[2], p[4]), p[5])
+        return btor_witness.BtorArrayAssignment(int(p[0]), (p[2], p[4]), p[5])
 
     @_("NUMBER LBRACK binary_string RBRACK binary_string")
     def assignment(self, p):
-        return BtorArrayAssignment(int(p[0]), (p[2], p[4]), None)
+        return btor_witness.BtorArrayAssignment(int(p[0]), (p[2], p[4]), None)
 
     @_("NUMBER LBRACK STAR RBRACK binary_string SYMBOL")
     def assignment(self, p):
-        return BtorArrayAssignment(int(p[0]), (None, p[4]), p[5])
+        return btor_witness.BtorArrayAssignment(int(p[0]), (None, p[4]), p[5])
 
     @_("NUMBER LBRACK STAR RBRACK binary_string")
     def assignment(self, p):
-        return BtorArrayAssignment(int(p[0]), (None, p[4]), None)
+        return btor_witness.BtorArrayAssignment(int(p[0]), (None, p[4]), None)
 
     @_("NUMBER")
     def binary_string(self, p):
-        return BitVec(len(p[0]), int(p[0], base=2))
+        return bitvec.BitVec(len(p[0]), int(p[0], base=2))
 
 
 def parse_witness(input: str) -> Optional[BtorWitness]:

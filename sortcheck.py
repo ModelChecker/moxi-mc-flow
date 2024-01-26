@@ -2,28 +2,27 @@ from pathlib import Path
 import argparse
 import sys
 
-from src.util import logger
-from src.mcil import *
-from src.parse_mcil import parse
+from src import log
+from src import mcil
+from src import parse_mcil
 
 FILE_NAME = Path(__file__).name
 
-
 def main(input_path: Path, echo: bool) -> int:
     if not input_path.is_file():
-        logger.error(f"{input_path} is not a valid file.")
+        log.error(f"{input_path} is not a valid file.", FILE_NAME)
         return 1
 
-    program = parse(input_path)
+    program = parse_mcil.parse(input_path)
 
     if not program:
-        logger.error(f"Failed parsing")
+        log.error("Failed parsing", FILE_NAME)
         return 1
 
-    (well_sorted, _) = sort_check(program)
+    (well_sorted, _) = mcil.sort_check(program)
 
     if not well_sorted:
-        logger.error(f"Failed sort check")
+        log.error("Failed sort check", FILE_NAME)
         return 1
 
     if echo:

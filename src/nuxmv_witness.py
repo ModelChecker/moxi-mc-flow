@@ -4,7 +4,7 @@ Representation of nuXmv witnesses (mostly traces). See Section 4.7 (p97) of http
 from enum import Enum
 from typing import Optional
 
-from .nuxmv import *
+from src import nuxmv
 
 
 class XMVSpecResult(Enum):
@@ -26,7 +26,7 @@ def post_process_xmv_identifier(xmv_identifier: str) -> str:
 
 class XMVAssignment():
 
-    def __init__(self, symbol: str, value: XMVExpr) -> None:
+    def __init__(self, symbol: str, value: nuxmv.XMVExpr) -> None:
         self.symbol = post_process_xmv_identifier(symbol)
         self.value = value
 
@@ -85,7 +85,7 @@ class XMVTrace():
         s += "Trace Type: Counterexample\n"
         s += str(self.prefix)
         if self.lasso:
-            s += f"  -- Loop starts here\n"
+            s += "  -- Loop starts here\n"
             s += str(self.lasso)
         return s[:-1] # remove trailing \n
 
@@ -100,7 +100,7 @@ class XMVSpecResponse():
     def __str__(self) -> str:
         s = f"-- specification {self.spec} is {self.result.value}\n"
         if self.trace:
-            s += f"-- as demonstrated by the following execution sequence\n"
+            s += "-- as demonstrated by the following execution sequence\n"
             s += str(self.trace)
         return s
 
