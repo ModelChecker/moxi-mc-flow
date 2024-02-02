@@ -1,9 +1,10 @@
 #type: ignore
 import sys
+from typing import Optional
 
 from src import sly, btor_witness, bitvec
 
-class BtorWitnessLexer(sly.Lexer):
+class Lexer(sly.Lexer):
 
     tokens = { NEWLINE, NUMBER, SYMBOL, LBRACK, RBRACK, STAR,
                STATE_HEADER, INPUT_HEADER, BAD_PROP, JUSTICE_PROP, 
@@ -44,8 +45,8 @@ class BtorWitnessLexer(sly.Lexer):
         self.index += 1
 
 
-class BtorWitnessParser(sly.Parser):
-    tokens = BtorWitnessLexer.tokens
+class Parser(sly.Parser):
+    tokens = Lexer.tokens
 
     def __init__(self):
         super().__init__()
@@ -155,10 +156,10 @@ class BtorWitnessParser(sly.Parser):
         return bitvec.BitVec(len(p[0]), int(p[0], base=2))
 
 
-def parse_witness(input: str) -> Optional[BtorWitness]:
+def parse_witness(input: str) -> Optional[btor_witness.BtorWitness]:
     """Parse contents of input and returns corresponding program on success, else returns None."""
-    lexer: BtorWitnessLexer = BtorWitnessLexer()
-    parser: BtorWitnessParser = BtorWitnessParser()
+    lexer: Lexer = Lexer()
+    parser: Parser = Parser()
     witness = parser.parse(lexer.tokenize(input))
 
     return witness if parser.status else None

@@ -7,7 +7,7 @@ import shutil
 import time
 from typing import Optional
 
-from src import util, log, btorwit2mcilwit, mcilwit2nuxmvwit
+from src import btorwit2moxiwit, moxiwit2nuxmvwit, util, log
 
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
@@ -167,15 +167,15 @@ def model_check(
 
     src_path = WORK_DIR / input_path.name
     btor2_output_path = WORK_DIR / "btor2" 
-    mcil_path = WORK_DIR / input_path.with_suffix(".mcil").name
-    mcil_witness_path = WORK_DIR / input_path.with_suffix(".mcil.witness").name
-    mcil_witness_pickle_path = WORK_DIR / input_path.with_suffix(".mcil.witness.pickle").name
+    moxi_path = WORK_DIR / input_path.with_suffix(".moxi").name
+    moxi_witness_path = WORK_DIR / input_path.with_suffix(".moxi.witness").name
+    moxi_witness_pickle_path = WORK_DIR / input_path.with_suffix(".moxi.witness.pickle").name
     nuxmv_witness_path = WORK_DIR / input_path.with_suffix(".smv.witness").name
 
     if input_path.suffix == ".smv":
         witness_path = nuxmv_witness_path
     else:
-        witness_path = mcil_witness_path
+        witness_path = moxi_witness_path
 
     shutil.copy(str(input_path), str(src_path))
 
@@ -195,7 +195,7 @@ def model_check(
         command.append(catbtor)
     if copyback:
         command.append("--keep")
-        command.append(str(mcil_path))
+        command.append(str(moxi_path))
     if cpp:
         command.append("--cpp")
     if debug:
@@ -223,8 +223,8 @@ def model_check(
                 log.error(f"Unsupported model checker {model_checker}", FILE_NAME)
                 return 1
 
-    retcode = btorwit2mcilwit.main(
-        btor2_output_path, mcil_witness_path, 
+    retcode = btorwit2moxiwit.main(
+        btor2_output_path, moxi_witness_path, 
         verbose=True, do_pickle=(input_path.suffix == ".smv"),
         overwrite=overwrite
     )
@@ -233,8 +233,8 @@ def model_check(
         return retcode
 
     if input_path.suffix == ".smv":
-        retcode = mcilwit2nuxmvwit.main(
-            mcil_witness_pickle_path, nuxmv_witness_path,
+        retcode = moxiwit2nuxmvwit.main(
+            moxi_witness_pickle_path, nuxmv_witness_path,
             overwrite=overwrite
         )
 

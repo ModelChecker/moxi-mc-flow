@@ -7,29 +7,32 @@ FILE_NAME = pathlib.Path(__file__).name
 
 var_kws = ["IVAR", "VAR", "FROZENVAR"]
 
-section_kws = ["VAR", 
-               "IVAR", 
-               "FROZENVAR", 
-               "FUN", 
-               "DEFINE", 
-               "CONSTANTS", 
-               "ASSIGN", 
-               "TRANS", 
-               "INIT", 
-               "INVAR",
-               "FAIRNESS",
-               "JUSTICE",
-               "COMPASSION",
-               "MODULE",
-               "PRED",
-               "MIRROR",
-               "ISA",
-               "CTLSPEC",
-               "SPEC",
-               "LTLSPEC",
-               "INVARSPEC",
-               "COMPUTE",
-               "PSLSPEC"]
+section_kws = [
+    "VAR",
+    "IVAR",
+    "FROZENVAR",
+    "FUN",
+    "DEFINE",
+    "CONSTANTS",
+    "ASSIGN",
+    "TRANS",
+    "INIT",
+    "INVAR",
+    "FAIRNESS",
+    "JUSTICE",
+    "COMPASSION",
+    "MODULE",
+    "PRED",
+    "MIRROR",
+    "ISA",
+    "CTLSPEC",
+    "SPEC",
+    "LTLSPEC",
+    "INVARSPEC",
+    "COMPUTE",
+    "PSLSPEC",
+]
+
 
 def get_module_names(content: str) -> list[str]:
     names: list[str] = []
@@ -41,6 +44,7 @@ def get_module_names(content: str) -> list[str]:
 
     return names
 
+
 def handle_variables(content: str, module_names: list[str]):
     var_decl = False
 
@@ -50,10 +54,10 @@ def handle_variables(content: str, module_names: list[str]):
         line_no += 1
         if line.rstrip() in section_kws:
             var_decl = False
-        if line.rstrip() in var_kws: # at variable declaration site!
+        if line.rstrip() in var_kws:  # at variable declaration site!
             var_decl = True
             continue
-        
+
         if var_decl:
             spl = line.rstrip().split(": ")
             if len(spl) == 1:
@@ -63,13 +67,15 @@ def handle_variables(content: str, module_names: list[str]):
             if vspl[0] in module_names:
                 pass
             else:
-                cleaned_var_name = (var_name.replace('.', '_dot_')
-                    .replace(':', '_colon_')
-                    .replace("\"","_dquote_")
-                    .replace('$', '_dollar_')
-                    .replace('[', '_lbrack_')
-                    .replace(']', '_rbrack_')
-                    .replace(r'\\', '_dbs_'))
+                cleaned_var_name = (
+                    var_name.replace(".", "_dot_")
+                    .replace(":", "_colon_")
+                    .replace('"', "_dquote_")
+                    .replace("$", "_dollar_")
+                    .replace("[", "_lbrack_")
+                    .replace("]", "_rbrack_")
+                    .replace(r"\\", "_dbs_")
+                )
                 if cleaned_var_name == var_name:
                     continue
                 else:
@@ -98,12 +104,15 @@ def preprocess(input_path: pathlib.Path, do_cpp: bool) -> str:
         proc = subprocess.run(["cpp", "-P", str(input_path)], capture_output=True)
 
         if proc.returncode:
-            log.error("C preprocessor failed. Check that 'cpp' is installed and working.", FILE_NAME)
+            log.error(
+                "C preprocessor failed. Check that 'cpp' is installed and working.",
+                FILE_NAME,
+            )
             return ""
-        
+
         content = proc.stdout.decode("utf-8")
     else:
-        with open(str(input_path), 'r') as file:
+        with open(str(input_path), "r") as file:
             content = file.read()
 
     module_names = get_module_names(content)

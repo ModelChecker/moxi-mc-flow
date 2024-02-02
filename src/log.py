@@ -51,7 +51,9 @@ def format(
 
     formatted_message += f"{module}:"
 
-    if color:
+    if level == "INFO":
+        pass
+    elif color:
         formatted_message += f" {color.value}{level}{Color.ENDC.value}:"
     else:
         formatted_message += f" {level}:"

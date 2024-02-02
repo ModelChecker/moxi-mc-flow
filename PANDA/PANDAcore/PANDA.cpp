@@ -5435,6 +5435,9 @@ int main(int argc, char **argv) {
 	fclose(VOUT); /*close the SMV variable order file*/
     } /*end if*/
 
+    sprintf(temp, "cat %s; rm %s", tableauFile, tableauFile);
+    system(temp);
+
     /*Delete parse tree here*/
     deleteTree();
 

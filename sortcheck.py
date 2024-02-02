@@ -3,8 +3,8 @@ import argparse
 import sys
 
 from src import log
-from src import mcil
-from src import parse_mcil
+from src import moxi
+from src import parse_moxi
 
 FILE_NAME = Path(__file__).name
 
@@ -13,13 +13,13 @@ def main(input_path: Path, echo: bool) -> int:
         log.error(f"{input_path} is not a valid file.", FILE_NAME)
         return 1
 
-    program = parse_mcil.parse(input_path)
+    program = parse_moxi.parse(input_path)
 
     if not program:
         log.error("Failed parsing", FILE_NAME)
         return 1
 
-    (well_sorted, _) = mcil.sort_check(program)
+    (well_sorted, _) = moxi.sort_check(program)
 
     if not well_sorted:
         log.error("Failed sort check", FILE_NAME)

@@ -1,11 +1,10 @@
 import argparse
 import subprocess
-from os.path import commonpath
-from os import walk
-from pathlib import Path
+import os
+import pathlib
 import shutil
 import time
-from typing import Callable
+
 
 class Color:
     HEADER = "\033[95m"
@@ -18,8 +17,9 @@ class Color:
     BOLD = "\033[1m"
     UNDERLINE = "\033[4m"
 
-FILE_NAME = Path(__file__).name
-FILE_DIR = Path(__file__).parent
+
+FILE_NAME = pathlib.Path(__file__).name
+FILE_DIR = pathlib.Path(__file__).parent
 
 translate_path = FILE_DIR / ".." / "translate.py"
 modelcheck_path = FILE_DIR / ".." / "modelcheck.py"
@@ -29,18 +29,24 @@ results_path = FILE_DIR / "resultsdir"
 
 timeout = 120
 
+
 def print_test(msg: str) -> None:
     print(f"[{Color.HEADER}TEST{Color.ENDC}] {msg}")
 
-def print_pass(msg: str, test_results_path: Path) -> None:
+
+def print_pass(msg: str, test_results_path: pathlib.Path) -> None:
     print(f"[{Color.OKGREEN}PASS{Color.ENDC}] {msg}")
     # print(f"Results written to {test_results_path}")
 
-def print_fail(msg: str, test_results_path: Path) -> None:
+
+def print_fail(msg: str, test_results_path: pathlib.Path) -> None:
     print(f"[{Color.FAIL}FAIL{Color.ENDC}] {msg}")
     # print(f"Results written to {test_results_path}")
 
-def get_common_path(pass_files: list[Path], fail_files: list[Path]) -> Path:
+
+def get_common_path(
+    pass_files: list[pathlib.Path], fail_files: list[pathlib.Path]
+) -> pathlib.Path:
     # special case where only one test total:
     # the common_path must be the parent of the test
     if len(pass_files + fail_files) == 1:
@@ -49,10 +55,12 @@ def get_common_path(pass_files: list[Path], fail_files: list[Path]) -> Path:
         else:
             return fail_files[0].parent
     else:
-        return Path(commonpath([str(f) for f in pass_files + fail_files]))
+        return pathlib.Path(
+            os.path.commonpath([str(f) for f in pass_files + fail_files])
+        )
 
 
-def cleandir(dir: Path, quiet: bool):
+def cleandir(dir: pathlib.Path, quiet: bool):
     """Remove and create fresh dir, print a warning if quiet is False"""
     if dir.is_file():
         if not quiet:
@@ -67,11 +75,11 @@ def cleandir(dir: Path, quiet: bool):
 
 
 def run_test(
-    command: list[str], 
-    output_dir: Path,
-    pass_file: Path,
-    fail_file: Path,
-    should_pass: bool
+    command: list[str],
+    output_dir: pathlib.Path,
+    pass_file: pathlib.Path,
+    fail_file: pathlib.Path,
+    should_pass: bool,
 ) -> bool:
     global results_path
 
@@ -79,8 +87,8 @@ def run_test(
     test_dir.mkdir(parents=True)
 
     stdout_path = test_dir / "stdout"
-    stderr_path = test_dir /  "stderr"
-    cmd_path = test_dir /  "cmd"
+    stderr_path = test_dir / "stderr"
+    cmd_path = test_dir / "cmd"
     stdout_path.touch()
     stderr_path.touch()
     cmd_path.touch()
@@ -103,9 +111,10 @@ def run_test(
 
     test_end = time.perf_counter()
 
-    if ((proc.returncode and should_pass)
-        or (not proc.returncode and not should_pass)):
-        print_fail(f"{output_dir}. Command to reproduce:\n{' '.join(command)}", test_dir)
+    if (proc.returncode and should_pass) or (not proc.returncode and not should_pass):
+        print_fail(
+            f"{output_dir}. Command to reproduce:\n{' '.join(command)}", test_dir
+        )
 
         with open(str(stderr_path), "w") as f:
             f.write(proc.stderr.decode("utf-8"))
@@ -114,7 +123,7 @@ def run_test(
             f.write(proc.stdout.decode("utf-8"))
 
         with open(str(cmd_path), "w") as f:
-            f.write(' '.join(command))
+            f.write(" ".join(command))
 
         with open(str(fail_file), "a") as f:
             f.write(f"{output_dir} {stderr_path}\n")
@@ -134,17 +143,16 @@ def run_test(
             f.write(proc.stdout.decode("utf-8"))
 
         with open(str(cmd_path), "w") as f:
-            f.write(' '.join(command))
+            f.write(" ".join(command))
 
         with open(str(pass_file), "a") as f:
             f.write(f"{output_dir} {test_end - test_start}s\n")
-        
+
         return True
 
 
-def test_nuxmv2mcil(
-    pass_files: list[Path], 
-    fail_files: list[Path]
+def test_smv2moxi(
+    pass_files: list[pathlib.Path], fail_files: list[pathlib.Path]
 ) -> bool:
     global translate_path
 
@@ -153,29 +161,34 @@ def test_nuxmv2mcil(
 
     pass_file.touch()
     fail_file.touch()
-    
+
     common_path = get_common_path(pass_files, fail_files)
 
-    nuxmv2mcil_command: Callable[[Path,Path],list[str]] = (
-        lambda file, output_dir: 
-            ["python3", str(translate_path), str(file), "mcil", "--validate",
-            "--output", str(results_path / output_dir / file.with_suffix(".mcil").name)]
-    )
+    def get_command(file: pathlib.Path, output_dir: pathlib.Path) -> list[str]:
+        return [
+            "python3",
+            str(translate_path),
+            str(file),
+            "moxi",
+            "--validate",
+            "--output",
+            str(results_path / output_dir / file.with_suffix(".moxi").name),
+            "--overwrite",
+        ]
 
     for file in pass_files:
         output_dir = file.relative_to(common_path).with_suffix("")
-        run_test(nuxmv2mcil_command(file, output_dir), output_dir, pass_file, fail_file, True)
+        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, True)
 
     for file in fail_files:
         output_dir = file.relative_to(common_path).with_suffix("")
-        run_test(nuxmv2mcil_command(file, output_dir), output_dir, pass_file, fail_file, False)
+        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, False)
 
     return True
 
 
 def test_any2btor(
-    pass_files: list[Path], 
-    fail_files: list[Path]
+    pass_files: list[pathlib.Path], fail_files: list[pathlib.Path]
 ) -> bool:
     global translate_path
 
@@ -184,29 +197,34 @@ def test_any2btor(
 
     pass_file.touch()
     fail_file.touch()
-    
+
     common_path = get_common_path(pass_files, fail_files)
 
-    mcil2btor_command: Callable[[Path,Path],list[str]] = (
-        lambda file, output_dir: 
-            ["python3", str(translate_path), str(file), "btor2", "--validate",
-            "--output", str(results_path / output_dir / file.with_suffix("").name)]
-    )
+    def get_command(file: pathlib.Path, output_dir: pathlib.Path) -> list[str]:
+        return [
+            "python3",
+            str(translate_path),
+            str(file),
+            "btor2",
+            "--validate",
+            "--output",
+            str(results_path / output_dir / file.with_suffix("").name),
+            "--overwrite",
+        ]
 
     for file in pass_files:
         output_dir = file.relative_to(common_path)
-        run_test(mcil2btor_command(file, output_dir), output_dir, pass_file, fail_file, True)
+        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, True)
 
     for file in fail_files:
         output_dir = file.relative_to(common_path)
-        run_test(mcil2btor_command(file, output_dir), output_dir, pass_file, fail_file, False)
+        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, False)
 
     return True
 
 
 def test_modelcheck(
-    pass_files: list[Path], 
-    fail_files: list[Path]
+    pass_files: list[pathlib.Path], fail_files: list[pathlib.Path]
 ) -> bool:
     global modelcheck_path
 
@@ -218,26 +236,39 @@ def test_modelcheck(
 
     common_path = get_common_path(pass_files, fail_files)
 
-    modelcheck_command: Callable[[Path,Path],list[str]] = (
-        lambda file, output_dir: 
-            ["python3", str(modelcheck_path), str(file), "avr", "--kind",
-            "--output", str(results_path /output_dir), "--copyback"]
-    )
+    def get_command(file: pathlib.Path, output_dir: pathlib.Path) -> list[str]:
+        return [
+            "python3",
+            str(modelcheck_path),
+            str(file),
+            "avr",
+            "--kind",
+            "--output",
+            str(results_path / output_dir),
+            "--copyback",
+            "--overwrite",
+        ]
 
     for file in pass_files:
         output_dir = file.relative_to(common_path)
-        run_test(modelcheck_command(file, output_dir), output_dir, pass_file, fail_file, True)
+        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, True)
 
     for file in fail_files:
         output_dir = file.relative_to(common_path)
-        run_test(modelcheck_command(file, output_dir), output_dir, pass_file, fail_file, False)
+        run_test(
+            get_command(file, output_dir),
+            output_dir,
+            pass_file,
+            fail_file,
+            False,
+        )
 
     return True
 
 
 def test_sortcheck(
-    pass_files: list[Path], 
-    fail_files: list[Path], 
+    pass_files: list[pathlib.Path],
+    fail_files: list[pathlib.Path],
 ) -> bool:
     global sortcheck_path
 
@@ -248,31 +279,32 @@ def test_sortcheck(
 
     common_path = get_common_path(pass_files, fail_files)
 
-    sortcheck_command: Callable[[Path],list[str]] = (
-        lambda file: ["python3", str(sortcheck_path), str(file)]
-    )
+    def get_command(file: pathlib.Path) -> list[str]:
+        return [
+            "python3",
+            str(sortcheck_path),
+            str(file),
+        ]
 
     for file in pass_files:
         output_dir = file.relative_to(common_path)
-        run_test(sortcheck_command(file), output_dir, pass_file, fail_file, True)
+        run_test(get_command(file), output_dir, pass_file, fail_file, True)
 
     for file in fail_files:
         output_dir = file.relative_to(common_path)
-        run_test(sortcheck_command(file), output_dir, pass_file, fail_file, False)
+        run_test(get_command(file), output_dir, pass_file, fail_file, False)
 
     return True
 
 
 def main(
-    pass_files_path: Path, 
-    fail_files_path: Path, 
-    test: str
+    pass_files_path: pathlib.Path, fail_files_path: pathlib.Path, test: str
 ) -> None:
     """Runs tests by using `shutil.copytree`, which will run the `copy_function` on each file in the argument file directory tree while outputting files in an identical tree structure to the argument."""
     global results_path
     cleandir(results_path, False)
 
-    def collect_files(files_path: Path) -> list[Path]:
+    def collect_files(files_path: pathlib.Path) -> list[pathlib.Path]:
         files = []
 
         if files_path.is_file():
@@ -280,10 +312,10 @@ def main(
                 content = f.read()
 
             for file in content.splitlines():
-                files.append(Path(file))
+                files.append(pathlib.Path(file))
         elif files_path.is_dir():
-            for (dirpath,_,filenames) in walk(str(files_path)):
-                files += [Path(dirpath, f) for f in filenames]
+            for dirpath, _, filenames in os.walk(str(files_path)):
+                files += [pathlib.Path(dirpath, f) for f in filenames]
         else:
             print(f"Error: {files_path} does not exist.")
             return []
@@ -293,11 +325,11 @@ def main(
     pass_files = collect_files(pass_files_path)
     fail_files = collect_files(fail_files_path)
 
-    if test ==  "nuxmv2btor":
+    if test == "smv2btor":
         test_any2btor(pass_files, fail_files)
-    elif test == "nuxmv2mcil":
-        test_nuxmv2mcil(pass_files, fail_files)
-    elif test == "mcil2btor":
+    elif test == "smv2moxi":
+        test_smv2moxi(pass_files, fail_files)
+    elif test == "moxi2btor":
         test_any2btor(pass_files, fail_files)
     elif test == "sortcheck":
         test_sortcheck(pass_files, fail_files)
@@ -307,57 +339,46 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument(
-        "passfiles", 
-        help="directory of or file that lists input files that should pass"
+        "passfiles", help="directory of or file that lists input files that should pass"
     )
     parser.add_argument(
-        "failfiles", 
-        help="directory of or file that lists input files that should fail"
+        "failfiles", help="directory of or file that lists input files that should fail"
     )
     parser.add_argument(
-        "test", 
-        choices=["nuxmv2btor", "nuxmv2mcil", "mcil2btor", "sortcheck", "modelcheck"],
-        help="test to run"
+        "test",
+        choices=["smv2btor", "smv2moxi", "moxi2btor", "sortcheck", "modelcheck"],
+        help="test to run",
     )
     parser.add_argument("--translate", help="path to translate.py")
     parser.add_argument("--modelcheck", help="path to modelcheck.py")
     parser.add_argument("--sortcheck", help="path to sortcheck.py")
     parser.add_argument("--catbtor", help="path to catbtor")
     parser.add_argument(
-        "--resultsdir", 
-        help="directory to output test logs and copyback data"
+        "--resultsdir", help="directory to output test logs and copyback data"
     )
     parser.add_argument(
-        "--timeout", 
-        help="max seconds before timeout", 
-        type=int, 
-        default=120
+        "--timeout", help="max seconds before timeout", type=int, default=120
     )
-    
+
     args = parser.parse_args()
 
     if args.translate:
-        translate_path = Path(args.translate)
+        translate_path = pathlib.Path(args.translate)
 
     if args.modelcheck:
-        modelcheck_path = Path(args.modelcheck)
+        modelcheck_path = pathlib.Path(args.modelcheck)
 
     if args.sortcheck:
-        sortcheck_path = Path(args.sortcheck)
+        sortcheck_path = pathlib.Path(args.sortcheck)
 
     if args.catbtor:
-        catbtor_path = Path(args.catbtor)
+        catbtor_path = pathlib.Path(args.catbtor)
 
     if args.resultsdir:
-        results_path = Path(args.resultsdir)
+        results_path = pathlib.Path(args.resultsdir)
 
     timeout = int(args.timeout)
 
-    main(
-        Path(args.passfiles), 
-        Path(args.failfiles), 
-        args.test
-    )
-
+    main(pathlib.Path(args.passfiles), pathlib.Path(args.failfiles), args.test)

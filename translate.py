@@ -8,18 +8,18 @@ from typing import Optional
 
 from src import (
     btor,
-    json2mcil,
+    json2moxi,
     log,
-    mcil2btor,
-    mcil2json,
-    nuxmv2mcil,
-    parse_nuxmv,
+    moxi2btor,
+    moxi2json,
+    parse_smv,
+    smv2moxi,
 )
 
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
-SMV2MCIL_DIR = FILE_DIR / "smv2mcil"
-MCIL2BTOR_DIR = FILE_DIR / "mcil2btor"
+SMV2MCIL_DIR = FILE_DIR / "smv2moxi"
+MCIL2BTOR_DIR = FILE_DIR / "moxi2btor"
 
 CATBTOR = FILE_DIR / "btor2tools" / "build" / "bin" / "catbtor"
 SORTCHECK = FILE_DIR / "sortcheck.py"
@@ -66,36 +66,36 @@ def main(
         return 1
 
     match (input_path.suffix, target_lang):
-        case (".smv", "mcil"):
-            if nuxmv2mcil.translate_file(input_path, output_path, do_cpp, overwrite):
+        case (".smv", "moxi"):
+            if smv2moxi.translate_file(input_path, output_path, do_cpp, overwrite):
                 return FAIL
-        case (".smv", "mcil-json"):
-            mcil_path = input_path.with_suffix(".mcil")
+        case (".smv", "moxi-json"):
+            moxi_path = input_path.with_suffix(".moxi")
 
-            if nuxmv2mcil.translate_file(input_path, mcil_path, do_cpp, overwrite):
+            if smv2moxi.translate_file(input_path, moxi_path, do_cpp, overwrite):
                 return FAIL
 
-            if mcil2json.main(mcil_path, output_path, False, False):
+            if moxi2json.main(moxi_path, output_path, False, False):
                 return FAIL
 
             if keep:
-                mcil_path.rename(keep)
+                moxi_path.rename(keep)
             else:
-                mcil_path.unlink()
+                moxi_path.unlink()
         case (".smv", "btor2"):
-            xmv_program = parse_nuxmv.parse(input_path, do_cpp)
+            xmv_program = parse_smv.parse(input_path, do_cpp)
             if not xmv_program:
                 log.error(f"Failed parsing specification in {input_path}", FILE_NAME)
                 return 1
 
-            mcil_program = nuxmv2mcil.translate(input_path.name, xmv_program)
-            if not mcil_program:
+            moxi_program = smv2moxi.translate(input_path.name, xmv_program)
+            if not moxi_program:
                 log.error(
                     f"Failed translating specification in {input_path}", FILE_NAME
                 )
                 return 1
 
-            btor2_program_set = mcil2btor.translate(mcil_program, int_width)
+            btor2_program_set = moxi2btor.translate(moxi_program, int_width)
 
             if not btor2_program_set:
                 return FAIL
@@ -106,33 +106,33 @@ def main(
 
             if keep:
                 with open(str(keep), "w") as f:
-                    f.write(str(mcil_program))
-        case (".mcil", "mcil-json"):
-            if mcil2json.main(input_path, output_path, False, False):
+                    f.write(str(moxi_program))
+        case (".moxi", "moxi-json"):
+            if moxi2json.main(input_path, output_path, False, False):
                 return FAIL
-        case (".mcil", "btor2"):
-            if mcil2btor.translate_file(
+        case (".moxi", "btor2"):
+            if moxi2btor.translate_file(
                 input_path, output_path, int_width, do_pickle, overwrite
             ):
                 return FAIL
-        case (".json", "mcil"):
-            if json2mcil.main(input_path, output_path, False, False, int_width):
+        case (".json", "moxi"):
+            if json2moxi.main(input_path, output_path, False, False, int_width):
                 return FAIL
         case (".json", "btor2"):
-            mcil_path = input_path.with_suffix(".mcil")
+            moxi_path = input_path.with_suffix(".moxi")
 
-            if json2mcil.main(input_path, mcil_path, False, False, int_width):
+            if json2moxi.main(input_path, moxi_path, False, False, int_width):
                 return FAIL
 
-            if mcil2btor.translate_file(
-                mcil_path, output_path, int_width, do_pickle, overwrite
+            if moxi2btor.translate_file(
+                moxi_path, output_path, int_width, do_pickle, overwrite
             ):
                 return FAIL
 
             if keep:
-                mcil_path.rename(keep)
+                moxi_path.rename(keep)
             else:
-                mcil_path.unlink()
+                moxi_path.unlink()
         case _:
             log.error(
                 f"Translation unsupported: {input_path.suffix} to { target_lang}",
@@ -141,7 +141,7 @@ def main(
             return 1
 
     if validate:
-        if target_lang in {"mcil", "mcil-json"}:
+        if target_lang in {"moxi", "moxi-json"}:
             return run_sortcheck(output_path)
         elif target_lang in {"btor2"}:
             retcodes = [
@@ -161,7 +161,7 @@ if __name__ == "__main__":
         help="input program to translate, language is inferred from file extension",
     )
     parser.add_argument(
-        "targetlang", choices=["mcil", "mcil-json", "btor2"], help="target language"
+        "targetlang", choices=["moxi", "moxi-json", "btor2"], help="target language"
     )
     parser.add_argument(
         "--output",
@@ -171,7 +171,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--validate",
         action="store_true",
-        help="validate output; uses catbtor if targetlan is btor2, sortcheck.py if targetlang is mcil or mcil-json",
+        help="validate output; uses catbtor if targetlan is btor2, sortcheck.py if targetlang is moxi or moxi-json",
     )
     parser.add_argument(
         "--pickle",
@@ -211,9 +211,9 @@ if __name__ == "__main__":
         output_path = pathlib.Path(args.output)
     else:
         match args.targetlang:
-            case "mcil":
-                output_path = input_path.with_suffix(".mcil")
-            case "mcil-json":
+            case "moxi":
+                output_path = input_path.with_suffix(".moxi")
+            case "moxi-json":
                 output_path = input_path.with_suffix(".json")
             case "btor2":
                 output_path = input_path.with_suffix("")

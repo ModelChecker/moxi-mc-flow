@@ -1,32 +1,29 @@
 from enum import Enum
 from typing import Optional
 
-from src import mcil
+from src import moxi
 
 
-class MCILQueryResult(Enum):
+class QueryResult(Enum):
     UNKNOWN = "unknown"
     SAT = "sat"
     UNSAT = "unsat"
 
 
-class MCILCertificate():
-
+class Certificate:
     def __init__(self, symbol: str) -> None:
         self.symbol = symbol
         # TODO
 
 
-class MCILModel():
-
+class Model:
     def __init__(self, symbol: str) -> None:
         self.symbol = symbol
         # TODO
 
 
-class MCILAssignment():
-
-    def __init__(self, symbol: str, value: mcil.MCILExpr) -> None:
+class Assignment:
+    def __init__(self, symbol: str, value: moxi.Expr) -> None:
         self.symbol = symbol
         self.value = value
 
@@ -34,13 +31,12 @@ class MCILAssignment():
         return f"({self.symbol} {str(self.value)})"
 
 
-class MCILState():
-
+class State:
     def __init__(
-        self, 
+        self,
         index: int,
-        state_assigns: list[MCILAssignment],
-        input_assigns: list[MCILAssignment]
+        state_assigns: list[Assignment],
+        input_assigns: list[Assignment],
     ) -> None:
         self.index = index
         self.state_assigns = state_assigns
@@ -52,9 +48,8 @@ class MCILState():
         return f"({self.index} {assigns_str})"
 
 
-class MCILTrail():
-
-    def __init__(self, symbol: str, states: list[MCILState]) -> None:
+class Trail:
+    def __init__(self, symbol: str, states: list[State]) -> None:
         self.symbol = symbol
         self.states = states
 
@@ -62,9 +57,8 @@ class MCILTrail():
         return f"({self.symbol} \n\t" + "\n\t".join([str(s) for s in self.states]) + ")"
 
 
-class MCILTrace():
-
-    def __init__(self, symbol: str, prefix: MCILTrail, lasso: Optional[MCILTrail]) -> None:
+class Trace:
+    def __init__(self, symbol: str, prefix: Trail, lasso: Optional[Trail]) -> None:
         self.symbol = symbol
         self.prefix = prefix
         self.lasso = lasso
@@ -76,15 +70,14 @@ class MCILTrace():
         return s + ")"
 
 
-class MCILQueryResponse():
-
+class QueryResponse:
     def __init__(
-        self, 
-        symbol: str, 
-        result: MCILQueryResult, 
-        model: Optional[MCILModel], 
-        trace: Optional[MCILTrace],
-        certificate: Optional[MCILCertificate]
+        self,
+        symbol: str,
+        result: QueryResult,
+        model: Optional[Model],
+        trace: Optional[Trace],
+        certificate: Optional[Certificate],
     ) -> None:
         self.symbol = symbol
         self.result = result
@@ -103,9 +96,8 @@ class MCILQueryResponse():
         return s + ")"
 
 
-class MCILCheckSystemResponse():
-
-    def __init__(self, symbol: str, query_responses: list[MCILQueryResponse]):
+class CheckSystemResponse:
+    def __init__(self, symbol: str, query_responses: list[QueryResponse]):
         self.symbol = symbol
         self.query_responses = query_responses
 
@@ -140,9 +132,8 @@ class MCILCheckSystemResponse():
         return s + ")"
 
 
-class MCILWitness():
-
-    def __init__(self, responses: list[MCILCheckSystemResponse]) -> None:
+class Witness:
+    def __init__(self, responses: list[CheckSystemResponse]) -> None:
         self.responses = responses
 
     def __str__(self) -> str:

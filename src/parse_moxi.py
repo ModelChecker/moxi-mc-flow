@@ -1,14 +1,14 @@
-#type: ignore
+# type: ignore
 import pathlib
 from typing import Optional
 
 from src import sly
 from src import log
-from src import mcil
+from src import moxi
 
 FILE_NAME = pathlib.Path(__file__).name
 
-class MCILLexer(sly.Lexer):
+class Lexer(sly.Lexer):
 
     def __init__(self, filename: str) -> None:
         self.filename = filename
@@ -93,8 +93,8 @@ class MCILLexer(sly.Lexer):
         self.index += 1
 
 
-class MCILParser(sly.Parser):
-    tokens = MCILLexer.tokens
+class Parser(sly.Parser):
+    tokens = Lexer.tokens
 
     def __init__(self, filename: str) :
         super().__init__()
@@ -121,24 +121,24 @@ class MCILParser(sly.Parser):
 
     @_("LPAREN CMD_SET_LOGIC SYMBOL RPAREN")
     def command(self, p):
-        return mcil.MCILSetLogic(p[2], self.loc(p))
+        return moxi.SetLogic(p[2], self.loc(p))
 
     @_("LPAREN CMD_DECLARE_SORT SYMBOL NUMERAL RPAREN")
     def command(self, p):
-        return mcil.MCILDeclareSort(p[2], p[3], self.loc(p))
+        return moxi.DeclareSort(p[2], p[3], self.loc(p))
     
     @_("LPAREN CMD_DEFINE_SORT labeled_symbol_list sort RPAREN")
     def command(self, p):
         label, symbol_list = p[2]
-        return mcil.MCILDefineSort(label, symbol_list, p[3], self.loc(p))
+        return moxi.DefineSort(label, symbol_list, p[3], self.loc(p))
     
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
-        return mcil.MCILDeclareConst(p[2], p[3], self.loc(p))
+        return moxi.DeclareConst(p[2], p[3], self.loc(p))
     
     @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sorted_var_list RPAREN sort term RPAREN")
     def command(self, p):
-        return mcil.MCILDefineFun(p[2], p[4], p[6], p[7], self.loc(p))
+        return moxi.DefineFun(p[2], p[4], p[6], p[7], self.loc(p))
     
     @_("LPAREN CMD_DECLARE_ENUM_SORT labeled_symbol_list RPAREN")
     def command(self, p):
@@ -149,76 +149,76 @@ class MCILParser(sly.Parser):
             values.append(value)
             self.enums[value] = label
 
-        return mcil.MCILDeclareEnumSort(label, values, self.loc(p))
+        return moxi.DeclareEnumSort(label, values, self.loc(p))
     
     @_("LPAREN CMD_DEFINE_SYSTEM SYMBOL define_system_attribute_list RPAREN")
     def command(self, p):
         input, output, local = [], [], []
-        init_expr = mcil.MCILConstant(mcil.MCIL_BOOL_SORT, True, self.loc(p))
-        trans_expr = mcil.MCILConstant(mcil.MCIL_BOOL_SORT, True, self.loc(p))
-        inv_expr = mcil.MCILConstant(mcil.MCIL_BOOL_SORT, True, self.loc(p))
+        init_expr = moxi.Constant(moxi.Sort.Bool(), True, self.loc(p))
+        trans_expr = moxi.Constant(moxi.Sort.Bool(), True, self.loc(p))
+        inv_expr = moxi.Constant(moxi.Sort.Bool(), True, self.loc(p))
         subsystems = {}
 
-        if mcil.MCILAttribute.INPUT in p[3]:
-            input = p[3][mcil.MCILAttribute.INPUT]
+        if moxi.CommandAttribute.INPUT in p[3]:
+            input = p[3][moxi.CommandAttribute.INPUT]
             
-        if mcil.MCILAttribute.OUTPUT in p[3]:
-            output = p[3][mcil.MCILAttribute.OUTPUT]
+        if moxi.CommandAttribute.OUTPUT in p[3]:
+            output = p[3][moxi.CommandAttribute.OUTPUT]
 
-        if mcil.MCILAttribute.LOCAL in p[3]:
-            local = p[3][mcil.MCILAttribute.LOCAL]
+        if moxi.CommandAttribute.LOCAL in p[3]:
+            local = p[3][moxi.CommandAttribute.LOCAL]
             
-        if mcil.MCILAttribute.INIT in p[3]:
-            init_expr = p[3][mcil.MCILAttribute.INIT]
+        if moxi.CommandAttribute.INIT in p[3]:
+            init_expr = p[3][moxi.CommandAttribute.INIT]
             
-        if mcil.MCILAttribute.TRANS in p[3]:
-            trans_expr = p[3][mcil.MCILAttribute.TRANS]
+        if moxi.CommandAttribute.TRANS in p[3]:
+            trans_expr = p[3][moxi.CommandAttribute.TRANS]
             
-        if mcil.MCILAttribute.INV in p[3]:
-            inv_expr = p[3][mcil.MCILAttribute.INV]
+        if moxi.CommandAttribute.INV in p[3]:
+            inv_expr = p[3][moxi.CommandAttribute.INV]
 
-        if mcil.MCILAttribute.SUBSYS in p[3]:
-            subsystems = p[3][mcil.MCILAttribute.SUBSYS]
+        if moxi.CommandAttribute.SUBSYS in p[3]:
+            subsystems = p[3][moxi.CommandAttribute.SUBSYS]
 
-        return mcil.MCILDefineSystem(str(p[2]), input, output, local, init_expr, trans_expr, inv_expr, subsystems, self.loc(p))
+        return moxi.DefineSystem(str(p[2]), input, output, local, init_expr, trans_expr, inv_expr, subsystems, self.loc(p))
 
     @_("LPAREN CMD_CHECK_SYSTEM SYMBOL check_system_attribute_list RPAREN")
     def command(self, p):
         input, output, local, queries = [], [], [], []
         assume, fair, reach, current, query = {}, {}, {}, {}, {}
 
-        if mcil.MCILAttribute.INPUT in p[3]:
-            input = p[3][mcil.MCILAttribute.INPUT]
+        if moxi.CommandAttribute.INPUT in p[3]:
+            input = p[3][moxi.CommandAttribute.INPUT]
             
-        if mcil.MCILAttribute.OUTPUT in p[3]:
-            output = p[3][mcil.MCILAttribute.OUTPUT]
+        if moxi.CommandAttribute.OUTPUT in p[3]:
+            output = p[3][moxi.CommandAttribute.OUTPUT]
 
-        if mcil.MCILAttribute.LOCAL in p[3]:
-            local = p[3][mcil.MCILAttribute.LOCAL]
+        if moxi.CommandAttribute.LOCAL in p[3]:
+            local = p[3][moxi.CommandAttribute.LOCAL]
 
-        if mcil.MCILAttribute.ASSUMPTION in p[3]:
-            assume = p[3][mcil.MCILAttribute.ASSUMPTION]
+        if moxi.CommandAttribute.ASSUMPTION in p[3]:
+            assume = p[3][moxi.CommandAttribute.ASSUMPTION]
             
-        if mcil.MCILAttribute.FAIRNESS in p[3]:
-            fair = p[3][mcil.MCILAttribute.FAIRNESS]
+        if moxi.CommandAttribute.FAIRNESS in p[3]:
+            fair = p[3][moxi.CommandAttribute.FAIRNESS]
             
-        if mcil.MCILAttribute.REACHABLE in p[3]:
-            reach = p[3][mcil.MCILAttribute.REACHABLE]
+        if moxi.CommandAttribute.REACHABLE in p[3]:
+            reach = p[3][moxi.CommandAttribute.REACHABLE]
             
-        if mcil.MCILAttribute.CURRENT in p[3]:
-            current = p[3][mcil.MCILAttribute.CURRENT]
+        if moxi.CommandAttribute.CURRENT in p[3]:
+            current = p[3][moxi.CommandAttribute.CURRENT]
             
-        if mcil.MCILAttribute.QUERY in p[3]:
-            query = p[3][mcil.MCILAttribute.QUERY]
+        if moxi.CommandAttribute.QUERY in p[3]:
+            query = p[3][moxi.CommandAttribute.QUERY]
             
-        if mcil.MCILAttribute.QUERIES in p[3]:
-            queries = p[3][mcil.MCILAttribute.QUERIES]
+        if moxi.CommandAttribute.QUERIES in p[3]:
+            queries = p[3][moxi.CommandAttribute.QUERIES]
 
-        return mcil.MCILCheckSystem(p[2], input, output, local, assume, fair, reach, current, query, queries, self.loc(p))
+        return moxi.CheckSystem(p[2], input, output, local, assume, fair, reach, current, query, queries, self.loc(p))
 
     @_("LPAREN CMD_EXIT RPAREN")
     def command(self, p):
-        return mcil.MCILExit()
+        return moxi.Exit()
 
     @_("define_system_attribute_list define_system_attribute")
     def define_system_attribute_list(self, p):
@@ -238,10 +238,12 @@ class MCILParser(sly.Parser):
             p[0][attr].update(value)
         elif attr.get_value_type() == list:
             p[0][attr] += value
-        elif attr.get_value_type() == mcil.MCILExpr and isinstance(attr, mcil.MCILAttribute.TRANS):
-            p[0][attr] = mcil.MCILApply(mcil.MCIL_NO_SORT, mcil.MCILIdentifier("or", []), [p[0][attr], value], self.loc(p))
-        elif attr.get_value_type() == mcil.MCILExpr and isinstance(attr, mcil.MCILAttribute.INV):
-            p[0][attr] = mcil.MCILApply(mcil.MCIL_NO_SORT, mcil.MCILIdentifier("and", []), [p[0][attr], value], self.loc(p))
+        elif attr.get_value_type() == moxi.Expr and isinstance(attr, moxi.CommandAttribute.TRANS):
+            p[0][attr] = moxi.Apply.Or([p[0][attr], value], self.loc(p))
+            # p[0][attr] = moxi.Apply(moxi.Sort.NoSort(), moxi.Identifier("or", []), [p[0][attr], value], self.loc(p))
+        elif attr.get_value_type() == moxi.Expr and isinstance(attr, moxi.CommandAttribute.INV):
+            p[0][attr] = moxi.Apply.And([p[0][attr], value], self.loc(p))
+            # p[0][attr] = moxi.Apply(moxi.Sort.NoSort(), moxi.Identifier("and", []), [p[0][attr], value], self.loc(p))
         else:
             log.error(f"Error:{p.lineno}: parser error ({attr.value}).", FILE_NAME, self.loc(p))
             self.status = False
@@ -254,31 +256,31 @@ class MCILParser(sly.Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        return (mcil.MCILAttribute.INPUT, p[2])
+        return (moxi.CommandAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        return (mcil.MCILAttribute.OUTPUT, p[2])
+        return (moxi.CommandAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def define_system_attribute(self, p):
-        return (mcil.MCILAttribute.LOCAL, p[2])
+        return (moxi.CommandAttribute.LOCAL, p[2])
 
     @_("PK_INIT term")
     def define_system_attribute(self, p):
-        return (mcil.MCILAttribute.INIT, p[1])
+        return (moxi.CommandAttribute.INIT, p[1])
 
     @_("PK_TRANS term")
     def define_system_attribute(self, p):
-        return (mcil.MCILAttribute.TRANS, p[1])
+        return (moxi.CommandAttribute.TRANS, p[1])
 
     @_("PK_INV term")
     def define_system_attribute(self, p):
-        return (mcil.MCILAttribute.INV, p[1])
+        return (moxi.CommandAttribute.INV, p[1])
 
     @_("PK_SUBSYS LPAREN SYMBOL LPAREN SYMBOL symbol_list RPAREN RPAREN")
     def define_system_attribute(self, p):
-        return (mcil.MCILAttribute.SUBSYS, {p[2] : (p[4], p[5])})
+        return (moxi.CommandAttribute.SUBSYS, {p[2] : (p[4], p[5])})
 
     @_("check_system_attribute_list check_system_attribute")
     def check_system_attribute_list(self, p):
@@ -309,40 +311,40 @@ class MCILParser(sly.Parser):
 
     @_("PK_INPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        return (mcil.MCILAttribute.INPUT, p[2])
+        return (moxi.CommandAttribute.INPUT, p[2])
 
     @_("PK_OUTPUT LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        return (mcil.MCILAttribute.OUTPUT, p[2])
+        return (moxi.CommandAttribute.OUTPUT, p[2])
 
     @_("PK_LOCAL LPAREN sorted_var_list RPAREN")
     def check_system_attribute(self, p):
-        return (mcil.MCILAttribute.LOCAL, p[2])
+        return (moxi.CommandAttribute.LOCAL, p[2])
 
     @_("PK_ASSUMPTION LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (mcil.MCILAttribute.ASSUMPTION, {p[2]: p[3]})
+        return (moxi.CommandAttribute.ASSUMPTION, {p[2]: p[3]})
 
     @_("PK_FAIRNESS LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (mcil.MCILAttribute.FAIRNESS, {p[2]: p[3]})
+        return (moxi.CommandAttribute.FAIRNESS, {p[2]: p[3]})
 
     @_("PK_REACHABLE LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (mcil.MCILAttribute.REACHABLE, {p[2]: p[3]})
+        return (moxi.CommandAttribute.REACHABLE, {p[2]: p[3]})
 
     @_("PK_CURRENT LPAREN SYMBOL term RPAREN")
     def check_system_attribute(self, p):
-        return (mcil.MCILAttribute.CURRENT, {p[2]: p[3]})
+        return (moxi.CommandAttribute.CURRENT, {p[2]: p[3]})
 
     @_("PK_QUERY LPAREN labeled_symbol_list RPAREN")
     def check_system_attribute(self, p):
         label,symbol_list = p[2]
-        return (mcil.MCILAttribute.QUERY, {label: symbol_list})
+        return (moxi.CommandAttribute.QUERY, {label: symbol_list})
 
     @_("PK_QUERIES LPAREN labeled_symbol_list_list RPAREN")
     def check_system_attribute(self, p):
-        return (mcil.MCILAttribute.QUERIES, [p[2]])
+        return (moxi.CommandAttribute.QUERIES, [p[2]])
     
     @_("sorted_var_list LPAREN sorted_var RPAREN")
     def sorted_var_list(self, p):
@@ -413,48 +415,48 @@ class MCILParser(sly.Parser):
 
         symbol: str = p[0].symbol
         if symbol == "true":
-            return mcil.MCIL_BOOL_CONST(True)
+            return moxi.Constant.Bool(True)
         elif symbol == "false":
-            return mcil.MCIL_BOOL_CONST(False)
+            return moxi.Constant.Bool(False)
         elif symbol in self.enums:
-            return mcil.MCIL_ENUM_CONST(self.enums[symbol], symbol)
+            return moxi.Constant.Enum(self.enums[symbol], symbol)
 
         prime: bool = False
         if symbol[len(symbol)-1] == "'":
             prime = True
             symbol = symbol[:-1]
 
-        return mcil.MCILVar(mcil.MCIL_NO_SORT, symbol, prime, self.loc(p))
+        return moxi.Variable(moxi.Sort.NoSort(), symbol, prime, self.loc(p))
 
     @_("NUMERAL")
     def term(self, p):
-        return mcil.MCIL_INT_CONST(int(p[0]))
+        return moxi.Constant.Int(int(p[0]))
 
     @_("DECIMAL")
     def term(self, p):
-        return mcil.MCIL_REAL_CONST(float(p[0]))
+        return moxi.Constant.Real(float(p[0]))
 
     @_("HEXADECIMAL") # example: "#x123"
     def term(self, p):
-        return mcil.MCIL_BITVEC_CONST(len(p[0][2:])*4, int(p[0][2:], base=16))
+        return moxi.Constant.BitVec(len(p[0][2:])*4, int(p[0][2:], base=16))
 
     @_("BINARY") # example: "#b101"
     def term(self, p):
-        return mcil.MCIL_BITVEC_CONST(len(p[0][2:]), int(p[0][2:], base=2))
+        return moxi.Constant.BitVec(len(p[0][2:]), int(p[0][2:], base=2))
 
     @_("LPAREN identifier term_list term RPAREN")
     def term(self, p):
         p[2].append(p[3])
-        return mcil.MCILApply(mcil.MCIL_NO_SORT, p[1], p[2], self.loc(p))
+        return moxi.Apply(moxi.Sort.NoSort(), p[1], p[2], self.loc(p))
 
     @_("LPAREN RW_LET LPAREN bound_var_list RPAREN term RPAREN")
     def term(self, p):
-        return mcil.MCILLetExpr(mcil.MCIL_NO_SORT, p[3], p[5], self.loc(p))
+        return moxi.LetExpr(moxi.Sort.NoSort(), p[3], p[5], self.loc(p))
 
     @_("LPAREN qualified_identifier term RPAREN")
     def term(self, p):
         ident, sort = p[1]
-        return mcil.MCILApply(sort, ident, [p[2]], self.loc(p))
+        return moxi.Apply(sort, ident, [p[2]], self.loc(p))
 
     @_("LPAREN term RPAREN")
     def term(self, p):
@@ -462,12 +464,12 @@ class MCILParser(sly.Parser):
 
     @_("identifier")
     def sort(self, p):
-        return mcil.MCILSort(p[0], [])
+        return moxi.Sort(p[0], [])
 
     @_("LPAREN identifier sort_list sort RPAREN")
     def sort(self, p):
         p[2].append(p[3])
-        return mcil.MCILSort(p[1], p[2])
+        return moxi.Sort(p[1], p[2])
 
     @_("sort_list sort")
     def sort_list(self, p):
@@ -485,12 +487,12 @@ class MCILParser(sly.Parser):
     # Identifiers
     @_("SYMBOL")
     def identifier(self, p):
-        return mcil.MCILIdentifier(p[0], [])
+        return moxi.Identifier(p[0], [])
 
     @_("LPAREN RW_UNDERSCORE SYMBOL index_list index RPAREN")
     def identifier(self, p):
         p[3].append(p[4])
-        return mcil.MCILIdentifier(p[2], p[3])
+        return moxi.Identifier(p[2], p[3])
 
     # Indices
     @_("index_list index")
@@ -507,18 +509,18 @@ class MCILParser(sly.Parser):
         return int(p[0])
 
 
-def parse(input_path: pathlib.Path) -> Optional[mcil.MCILProgram]:
+def parse(input_path: pathlib.Path) -> Optional[moxi.Program]:
     """Parse contents of `input_path` and returns corresponding program on success, else returns None."""
     with open(str(input_path), "r") as f:
         content = f.read()
 
-    lexer: MCILLexer = MCILLexer(input_path.name)
-    parser: MCILParser = MCILParser(input_path.name)
+    lexer: Lexer = Lexer(input_path.name)
+    parser: Parser = Parser(input_path.name)
 
     cmds = parser.parse(lexer.tokenize(content))
 
     if parser.status and cmds:
-        return mcil.MCILProgram(cmds)
+        return moxi.Program(cmds)
     
     return None
 

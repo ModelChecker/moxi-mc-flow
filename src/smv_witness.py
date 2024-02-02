@@ -4,10 +4,10 @@ Representation of nuXmv witnesses (mostly traces). See Section 4.7 (p97) of http
 from enum import Enum
 from typing import Optional
 
-from src import nuxmv
+from src import smv
 
 
-class XMVSpecResult(Enum):
+class SpecResult(Enum):
     UNKNOWN = "unknown"
     SAT = "false"
     UNSAT = "true"
@@ -15,18 +15,22 @@ class XMVSpecResult(Enum):
 
 def post_process_xmv_identifier(xmv_identifier: str) -> str:
     # reverse the pre-processing steps from preprocess_nuxmv.py
-    return (xmv_identifier.replace('_dot_', '.')
-        .replace('_colon_', ':')
-        .replace("_dquote_","\"")
-        .replace('_dollar_','$')
-        .replace('_lbrack_','[')
-        .replace('_rbrack_',']',)
-        .replace('_dbs_',r'\\'))
+    return (
+        xmv_identifier.replace("_dot_", ".")
+        .replace("_colon_", ":")
+        .replace("_dquote_", '"')
+        .replace("_dollar_", "$")
+        .replace("_lbrack_", "[")
+        .replace(
+            "_rbrack_",
+            "]",
+        )
+        .replace("_dbs_", r"\\")
+    )
 
 
-class XMVAssignment():
-
-    def __init__(self, symbol: str, value: nuxmv.XMVExpr) -> None:
+class Assignment:
+    def __init__(self, symbol: str, value: smv.Expr) -> None:
         self.symbol = post_process_xmv_identifier(symbol)
         self.value = value
 
@@ -34,14 +38,13 @@ class XMVAssignment():
         return f"{self.symbol} = {self.value}"
 
 
-class XMVState():
-
+class State:
     def __init__(
-        self, 
-        trace_id: int, 
-        index: int, 
-        state_assigns: list[XMVAssignment],
-        input_assigns: list[XMVAssignment]
+        self,
+        trace_id: int,
+        index: int,
+        state_assigns: list[Assignment],
+        input_assigns: list[Assignment],
     ) -> None:
         self.trace_id = trace_id
         self.index = index
@@ -65,34 +68,31 @@ class XMVState():
         return s
 
 
-class XMVTrail():
-
-    def __init__(self, states: list[XMVState]) -> None:
+class Trail:
+    def __init__(self, states: list[State]) -> None:
         self.states = states
 
     def __str__(self) -> str:
         return "".join(str(state) for state in self.states)
 
 
-class XMVTrace():
-
-    def __init__(self, prefix: XMVTrail, lasso: Optional[XMVTrail]) -> None:
+class Trace:
+    def __init__(self, prefix: Trail, lasso: Optional[Trail]) -> None:
         self.prefix = prefix
         self.lasso = lasso
 
     def __str__(self) -> str:
-        s =  "Trace Description: nuxmv2btor counterexample\n"
+        s = "Trace Description: nuxmv2btor counterexample\n"
         s += "Trace Type: Counterexample\n"
         s += str(self.prefix)
         if self.lasso:
             s += "  -- Loop starts here\n"
             s += str(self.lasso)
-        return s[:-1] # remove trailing \n
+        return s[:-1]  # remove trailing \n
 
 
-class XMVSpecResponse():
-
-    def __init__(self, result: XMVSpecResult, spec: str, trace: Optional[XMVTrace]) -> None:
+class SpecResponse:
+    def __init__(self, result: SpecResult, spec: str, trace: Optional[Trace]) -> None:
         self.result = result
         self.spec = spec
         self.trace = trace
@@ -105,11 +105,10 @@ class XMVSpecResponse():
         return s
 
 
-class XMVWitness():
-
+class Witness:
     def __init__(
-        self, 
-        responses: list[XMVSpecResponse],
+        self,
+        responses: list[SpecResponse],
     ) -> None:
         self.responses = responses
 

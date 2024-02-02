@@ -20,8 +20,11 @@ def rmdir(dir: pathlib.Path):
 def cleandir(dir: pathlib.Path, overwrite: bool) -> bool:
     """Remove and create fresh `dir`"""
     if not overwrite and dir.exists():
-        log.error(f"Already exists: {dir}\n\t"
-                  "Did you mean to enable the '--overwrite' option?", FILE_NAME)
+        log.error(
+            f"Already exists: {dir}\n\t"
+            "Did you mean to enable the '--overwrite' option?",
+            FILE_NAME,
+        )
         return False
 
     rmdir(dir)

@@ -15,6 +15,7 @@ FILE_NAME = Path(__file__).name
 
 EMPTY_ARGS = (None, None, None)
 
+
 class BtorOperator(Enum):
     # indexed (also unary)
     SEXT = 0
@@ -80,10 +81,10 @@ class BtorOperator(Enum):
     def id(self) -> str:
         """Returns name of operator as used in the Btor syntax."""
         return f"{self.name.lower()}"
-    
+
     def is_indexed(self) -> bool:
         return self.value >= 0 and self.value < 100
-    
+
     def is_unary(self) -> bool:
         return self.value >= 0 and self.value < 200
 
@@ -94,8 +95,7 @@ class BtorOperator(Enum):
         return self.value >= 300 and self.value < 400
 
 
-class BtorNode():
-
+class BtorNode:
     def __init__(self):
         self.nid = -1
         self.comment = ""
@@ -111,24 +111,22 @@ class BtorNode():
 
 
 class BtorSort(BtorNode):
-
     def __init__(self):
         super().__init__()
 
 
 class BtorBitVec(BtorSort):
-
     def __init__(self, len: int):
         super().__init__()
         self.length = len
         self.symbol = "bitvec"
-        
+
     def __repr__(self) -> str:
         return f"({self.nid} sort {self.symbol} {self.length})"
 
     def __str__(self) -> str:
         return f"{self.nid} sort {self.symbol} {self.length}{self.comment}"
-    
+
     def __eq__(self, __value: object) -> bool:
         if not isinstance(__value, BtorBitVec):
             return False
@@ -139,19 +137,18 @@ class BtorBitVec(BtorSort):
 
 
 class BtorArray(BtorSort):
-
     def __init__(self, domain: BtorSort, range: BtorSort):
         super().__init__()
         self.domain = domain
         self.range = range
         self.symbol = "array"
-        
+
     def __repr__(self) -> str:
         return f"({self.nid} sort {self.symbol} {repr(self.domain)} {repr(self.range)})"
 
     def __str__(self) -> str:
         return f"{self.nid} sort {self.symbol} {self.domain.nid} {self.range.nid}{self.comment}"
-    
+
     def __eq__(self, __value: object) -> bool:
         if isinstance(__value, BtorArray):
             return self.domain == __value.domain and self.range == __value.range
@@ -163,14 +160,12 @@ class BtorArray(BtorSort):
 
 
 class BtorExpr(BtorNode):
-
     def __init__(self, c: BtorArgs):
         super().__init__()
         self.children = c
 
 
 class BtorVar(BtorExpr):
-
     def __init__(self, sort: BtorSort, symbol: str = ""):
         super().__init__(EMPTY_ARGS)
         self.sort: BtorSort = sort
@@ -178,14 +173,12 @@ class BtorVar(BtorExpr):
         self.var_index: int = 0  # used to refer to vars in witness
 
     def with_no_suffix(self) -> str:
-        return (((str(self.symbol)
-            ).removesuffix(".init")
-            ).removesuffix(".cur")
-            ).removesuffix("next")
+        return (
+            ((str(self.symbol)).removesuffix(".init")).removesuffix(".cur")
+        ).removesuffix("next")
 
 
 class BtorInputVar(BtorVar):
-
     def __init__(self, sort: BtorSort, symbol: str = ""):
         super().__init__(sort, symbol)
 
@@ -202,7 +195,6 @@ class BtorInputVar(BtorVar):
 
 
 class BtorStateVar(BtorVar):
-
     def __init__(self, sort: BtorSort, symbol: str = ""):
         super().__init__(sort, symbol)
 
@@ -222,7 +214,6 @@ class BtorStateVar(BtorVar):
 
 
 class BtorConst(BtorExpr):
-
     def __init__(self, sort: BtorSort, val: Any):
         super().__init__(EMPTY_ARGS)
         self.sort = sort
@@ -243,14 +234,14 @@ class BtorConst(BtorExpr):
 # BTOR2 operators have only 1, 2, or 3 arguments
 BtorArgs = tuple[Optional[BtorExpr], Optional[BtorExpr], Optional[BtorExpr]]
 
-class BtorApply(BtorExpr):
 
+class BtorApply(BtorExpr):
     def __init__(
-        self, 
-        sort: BtorSort, 
-        op: BtorOperator, 
-        indices: tuple[Optional[int], Optional[int]], 
-        args: BtorArgs
+        self,
+        sort: BtorSort,
+        op: BtorOperator,
+        indices: tuple[Optional[int], Optional[int]],
+        args: BtorArgs,
     ) -> None:
         super().__init__(args)
         self.indices = indices
@@ -258,14 +249,14 @@ class BtorApply(BtorExpr):
         self.operator = op
 
     def __repr__(self) -> str:
-        s =  f"({id(self)} "
+        s = f"({id(self)} "
         s += f"{self.nid} "
         s += f"{self.operator.name.lower()} "
         s += f"{' '.join([repr(c) for c in self.children if c] + [str(i) for i in self.indices if i is not None])})"
         return s
 
     def __str__(self) -> str:
-        s =  f"{self.nid} "
+        s = f"{self.nid} "
         s += f"{self.operator.name.lower()} "
         s += f"{self.sort.nid} "
         s += f"{' '.join([str(c.nid) for c in self.children if c] + [str(i) for i in self.indices if i is not None])}"
@@ -285,13 +276,13 @@ def eq_btor(e1: BtorExpr, e2: object) -> bool:
         return False
 
     try:
-        for c1,c2 in zip(preorder_btor(e1), preorder_btor(e2), strict=True):
+        for c1, c2 in zip(preorder_btor(e1), preorder_btor(e2), strict=True):
             if isinstance(c1, BtorVar) and isinstance(c2, BtorVar):
                 if c1.symbol != c2.symbol:
                     return False
             elif isinstance(c1, BtorConst) and isinstance(c2, BtorConst):
                 if c1.sort != c2.sort:
-                    return False 
+                    return False
                 elif c1.value != c2.value:
                     return False
             elif isinstance(c1, BtorApply) and isinstance(c2, BtorApply):
@@ -313,7 +304,7 @@ def hash_btor(expr: BtorExpr) -> int:
     elif isinstance(expr, BtorConst):
         return hash((expr.sort, expr.value))
     elif isinstance(expr, BtorApply):
-        h,cnt = 0,0
+        h, cnt = 0, 0
 
         for subexpr in preorder_btor(expr):
             if isinstance(expr, BtorVar):
@@ -326,32 +317,30 @@ def hash_btor(expr: BtorExpr) -> int:
             if cnt > 30:
                 return h
             cnt += 1
-        
+
         return h
 
     raise NotImplementedError(f"Hash not implemented for {type(expr)}")
 
 
 class BtorConstraint(BtorNode):
-
     def __init__(self, expr: BtorNode):
         super().__init__()
         self.expr = expr
 
     def __str__(self) -> str:
         return f"{self.nid} constraint {self.expr.nid}{self.comment}"
-    
+
     def __eq__(self, __o: object) -> bool:
         if not isinstance(__o, BtorConstraint):
             return False
         return self.expr == __o.expr
-    
+
     def __hash__(self) -> int:
         return hash((type(self), self.expr))
 
 
 class BtorInit(BtorNode):
-
     def __init__(self, state: BtorStateVar, expr: BtorNode):
         super().__init__()
         self.state = state
@@ -370,7 +359,6 @@ class BtorInit(BtorNode):
 
 
 class BtorNext(BtorNode):
-
     def __init__(self, state: BtorStateVar, expr: BtorNode):
         super().__init__()
         self.state = state
@@ -389,7 +377,6 @@ class BtorNext(BtorNode):
 
 
 class BtorBad(BtorNode):
-
     def __init__(self, expr: BtorNode):
         super().__init__()
         self.expr = expr
@@ -399,7 +386,6 @@ class BtorBad(BtorNode):
 
 
 class BtorFair(BtorNode):
-
     def __init__(self, expr: BtorNode):
         super().__init__()
         self.expr = expr
@@ -408,14 +394,13 @@ class BtorFair(BtorNode):
         return f"{self.nid} fair {self.expr.nid}{self.comment}"
 
 
-class BtorProgram():
-
+class BtorProgram:
     def __init__(self, nodes: list[BtorNode]):
         self.nodes = nodes
 
     def __str__(self) -> str:
         return "\n".join([str(n) for n in self.nodes]) + "\n"
-    
+
 
 # The elements of a BtorProgramSet represent translated check-system commands,
 # where each dict maps the query symbol to the respective program
@@ -497,36 +482,31 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
 
 
 def write_btor2_program_set(
-    program_set: BtorProgramSet,
-    output_path: Path,
-    do_pickle: bool,
-    do_overwrite: bool
+    program_set: BtorProgramSet, output_path: Path, do_pickle: bool, do_overwrite: bool
 ) -> bool:
     status = util.cleandir(output_path, do_overwrite)
     if not status:
         return False
 
     program_index: dict[str, int] = {}
-    for symbol,programs in program_set:
+    for symbol, programs in program_set:
         if symbol not in program_index:
             program_index[symbol] = 1
 
-        program_output_path = (
-            output_path / f"{symbol}.{program_index[symbol]}"
-        )
+        program_output_path = output_path / f"{symbol}.{program_index[symbol]}"
 
         program_index[symbol] += 1
 
         os.mkdir(program_output_path)
 
-        for query_symbol,program in programs.items():
+        for query_symbol, program in programs.items():
             output_file_path = program_output_path / f"{query_symbol}.btor2"
 
             with open(str(output_file_path), "w") as f:
-                f.write(str(program)) 
+                f.write(str(program))
 
             if do_pickle:
                 with open(output_file_path.with_suffix(".btor2.pickle"), "wb") as f:
                     pickle.dump(program, f)
-                    
+
     return True
