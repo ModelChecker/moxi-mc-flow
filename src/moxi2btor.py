@@ -770,7 +770,6 @@ def translate_file(
     output_path: Path,
     int_width: int,
     do_pickle: bool,
-    do_overwrite: bool,
 ) -> int:
     if not input_path.is_file():
         log.error(f"{input_path} is not a valid file.", FILE_NAME)
@@ -799,7 +798,7 @@ def translate_file(
         return 1
 
     if not btor.write_btor2_program_set(
-        btor2_program_set, output_path, do_overwrite, do_pickle
+        btor2_program_set, output_path, do_pickle
     ):
         return 1
 

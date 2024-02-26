@@ -84,7 +84,7 @@ def translate(
     return xmv_response
 
 
-def main(input_path: Path, output_path: Path, overwrite: bool) -> int:
+def main(input_path: Path, output_path: Path) -> int:
     xmv_responses: list[smv_witness.SpecResponse] = []
 
     with open(str(input_path), "rb") as f:
@@ -110,14 +110,6 @@ def main(input_path: Path, output_path: Path, overwrite: bool) -> int:
     ]
 
     xmv_witness = smv_witness.Witness(xmv_responses)
-
-    if not overwrite and output_path.exists():
-        log.error(
-            f"Already exists: {output_path}\n\t"
-            "Did you mean to enable the '--overwrite' option?",
-            FILE_NAME,
-        )
-        return 1
 
     with open(str(output_path), "w") as f:
         f.write(str(xmv_witness))

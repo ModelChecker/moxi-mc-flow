@@ -191,7 +191,6 @@ def model_check(
     kmax: int,
     kind: bool,
     cpp: bool,
-    overwrite: bool,
     debug: bool,
 ) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
@@ -201,10 +200,8 @@ def model_check(
         log.error(f"Source is not a file ({input_path})", FILE_NAME)
         return 1
     
-    status = util.cleandir(output_path, overwrite)
-    if not status:
-        return 1
-    util.cleandir(WORK_DIR, True)
+    util.cleandir(output_path)
+    util.cleandir(WORK_DIR)
 
     src_path = WORK_DIR / input_path.name
     btor2_output_path = WORK_DIR / "btor2" 
@@ -246,7 +243,9 @@ def model_check(
     proc = subprocess.run(command, capture_output=not debug)
 
     if proc.returncode:
-        log.error(proc.stderr.decode("utf-8")[:-1], FILE_NAME) # [:-1] removes trailing "\n"
+        print(proc.returncode)
+        if not debug:
+            log.error(proc.stderr.decode("utf-8")[:-1], FILE_NAME) # [:-1] removes trailing "\n"
         log.error(f"Translation failure for {input_path}", FILE_NAME)
         return proc.returncode
     
@@ -271,7 +270,6 @@ def model_check(
     retcode = btorwit2moxiwit.main(
         btor2_output_path, moxi_witness_path, 
         verbose=True, do_pickle=(input_path.suffix == ".smv"),
-        overwrite=overwrite
     )
 
     if retcode:
@@ -280,7 +278,6 @@ def model_check(
     if input_path.suffix == ".smv":
         retcode = moxiwit2nuxmvwit.main(
             moxi_witness_pickle_path, nuxmv_witness_path,
-            overwrite=overwrite
         )
 
         if retcode: 
@@ -289,6 +286,11 @@ def model_check(
     end_total = time.perf_counter()
 
     log.info(f"End-to-end done in {end_total-start_total}s", FILE_NAME)
+
+    if output_path.is_file():
+        output_path.unlink()
+    elif output_path.is_dir():
+        shutil.rmtree(output_path)
 
     if copyback:
         shutil.copytree(WORK_DIR, output_path)
@@ -338,8 +340,6 @@ if __name__ == "__main__":
         help="output debug messages")
     parser.add_argument("--quiet", action="store_true", 
         help="silence output")
-    parser.add_argument("--overwrite", action="store_true", 
-        help="enable overwriting of output path")
     args = parser.parse_args()
 
     if args.debug:
@@ -381,7 +381,6 @@ if __name__ == "__main__":
         kmax=args.kmax,
         kind=args.kind,
         cpp=args.cpp,
-        overwrite=args.overwrite,
         debug=args.debug
     )
 

@@ -59,7 +59,6 @@ def main(
     do_pickle: bool,
     do_cpp: bool,
     int_width: int,
-    overwrite: bool,
 ) -> int:
     if not input_path.is_file():
         log.error(f"Source is not a file ({input_path})", FILE_NAME)
@@ -67,12 +66,12 @@ def main(
 
     match (input_path.suffix, target_lang):
         case (".smv", "moxi"):
-            if smv2moxi.translate_file(input_path, output_path, do_cpp, overwrite):
+            if smv2moxi.translate_file(input_path, output_path, do_cpp):
                 return FAIL
         case (".smv", "moxi-json"):
             moxi_path = input_path.with_suffix(".moxi")
 
-            if smv2moxi.translate_file(input_path, moxi_path, do_cpp, overwrite):
+            if smv2moxi.translate_file(input_path, moxi_path, do_cpp):
                 return FAIL
 
             if moxi2json.main(moxi_path, output_path, False, False):
@@ -101,7 +100,7 @@ def main(
                 return FAIL
 
             btor.write_btor2_program_set(
-                btor2_program_set, output_path, do_pickle, overwrite
+                btor2_program_set, output_path, do_pickle
             )
 
             if keep:
@@ -112,7 +111,7 @@ def main(
                 return FAIL
         case (".moxi", "btor2"):
             if moxi2btor.translate_file(
-                input_path, output_path, int_width, do_pickle, overwrite
+                input_path, output_path, int_width, do_pickle
             ):
                 return FAIL
         case (".json", "moxi"):
@@ -125,7 +124,7 @@ def main(
                 return FAIL
 
             if moxi2btor.translate_file(
-                moxi_path, output_path, int_width, do_pickle, overwrite
+                moxi_path, output_path, int_width, do_pickle
             ):
                 return FAIL
 
@@ -150,7 +149,7 @@ def main(
 
             if any(retcodes):
                 return 1
-
+            
     return 0
 
 
@@ -194,9 +193,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--profile", action="store_true", help="runs using cProfile if true"
     )
-    parser.add_argument(
-        "--overwrite", action="store_true", help="enable overwriting of output path"
-    )
+
     args = parser.parse_args()
 
     if args.debug:
@@ -243,6 +240,5 @@ if __name__ == "__main__":
         args.pickle,
         args.cpp,
         args.intwidth,
-        args.overwrite,
     )
     sys.exit(returncode)

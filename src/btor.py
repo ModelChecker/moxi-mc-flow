@@ -482,11 +482,9 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
 
 
 def write_btor2_program_set(
-    program_set: BtorProgramSet, output_path: Path, do_pickle: bool, do_overwrite: bool
+    program_set: BtorProgramSet, output_path: Path, do_pickle: bool
 ) -> bool:
-    status = util.cleandir(output_path, do_overwrite)
-    if not status:
-        return False
+    util.cleandir(output_path)
 
     program_index: dict[str, int] = {}
     for symbol, programs in program_set:

@@ -17,17 +17,7 @@ def rmdir(dir: pathlib.Path):
         shutil.rmtree(dir)
 
 
-def cleandir(dir: pathlib.Path, overwrite: bool) -> bool:
+def cleandir(dir: pathlib.Path) -> None:
     """Remove and create fresh `dir`"""
-    if not overwrite and dir.exists():
-        log.error(
-            f"Already exists: {dir}\n\t"
-            "Did you mean to enable the '--overwrite' option?",
-            FILE_NAME,
-        )
-        return False
-
     rmdir(dir)
     os.mkdir(dir)
-
-    return True

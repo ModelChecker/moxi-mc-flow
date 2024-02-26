@@ -256,7 +256,6 @@ def main(
     output_path: pathlib.Path,
     verbose: bool,
     do_pickle: bool,
-    overwrite: bool,
 ) -> int:
     """Translates each BTOR2 file set in each `check-system` directory in `witness_path` into the corresponding `moxi.Witness` and writes the result to `output_path`. If `verbose` is enabled, writes the `moxi.Witness` in verbose format (TODO: Implement compact format).
 
@@ -325,14 +324,6 @@ def main(
         )
 
     moxi_wit = moxi_witness.Witness(check_system_responses)
-
-    if not overwrite and output_path.exists():
-        log.error(
-            f"Already exists: {output_path}\n\t"
-            "Did you mean to enable the '--overwrite' option?",
-            FILE_NAME,
-        )
-        return 1
 
     with open(str(output_path), "w") as f:
         f.write(str(moxi_wit))

@@ -1147,7 +1147,7 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
 
 
 def translate_file(
-    input_path: pathlib.Path, output_path: pathlib.Path, do_cpp: bool, overwrite: bool
+    input_path: pathlib.Path, output_path: pathlib.Path, do_cpp: bool
 ) -> int:
     """Parses, type checks, translates, and writes the translation result of `input_path` to `output_path`. Runs C preprocessor if `do_cpp` is True. Returns 0 on success, 1 otherwise."""
     log.info("Parsing", FILE_NAME)
@@ -1160,14 +1160,6 @@ def translate_file(
     result = translate(input_path.name, parse_tree)
     if not result:
         log.info(f"Failed translating specification {input_path}", FILE_NAME)
-        return 1
-
-    if not overwrite and output_path.exists():
-        log.error(
-            f"Already exists: {output_path}\n\t"
-            "Did you mean to enable the '--overwrite' option?",
-            FILE_NAME,
-        )
         return 1
 
     log.info(f"Writing output to {output_path}", FILE_NAME)
