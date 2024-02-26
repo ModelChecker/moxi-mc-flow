@@ -142,7 +142,7 @@ def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax:
 
 def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, kind: bool) -> int:
     log.info(f"Running pono over {btor_path}", FILE_NAME)
-    label = btor_path.stem
+    # label = btor_path.stem
 
     command = [str(pono_path), "-k", str(kmax), "-e"]
     if kind:
