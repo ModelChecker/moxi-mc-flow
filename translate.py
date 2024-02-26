@@ -18,8 +18,8 @@ from src import (
 
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
-SMV2MCIL_DIR = FILE_DIR / "smv2moxi"
-MCIL2BTOR_DIR = FILE_DIR / "moxi2btor"
+SMV2MOXI_DIR = FILE_DIR / "smv2moxi"
+MOXI2BTOR_DIR = FILE_DIR / "moxi2btor"
 
 CATBTOR = FILE_DIR / "btor2tools" / "build" / "bin" / "catbtor"
 SORTCHECK = FILE_DIR / "sortcheck.py"
@@ -181,7 +181,7 @@ if __name__ == "__main__":
         "--cpp", action="store_true", help="runs cpp on input if input is SMV"
     )
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
-    parser.add_argument("--sortcheck", help="path to sortcheck.py for MCIL validation")
+    parser.add_argument("--sortcheck", help="path to sortcheck.py for MoXI validation")
     parser.add_argument(
         "--intwidth",
         default=32,

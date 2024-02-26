@@ -327,7 +327,7 @@ if __name__ == "__main__":
     # parser.add_argument("--fulltrace", action="store_true", 
     #     help="return traces with all variable values for every state")
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
-    parser.add_argument("--sortcheck", help="path to sortcheck.py for MCIL validation")
+    parser.add_argument("--sortcheck", help="path to sortcheck.py for MoXI validation")
     parser.add_argument("--kmax", default=1000, type=int, 
         help="max bound for BMC (default=1000)")
     parser.add_argument("--timeout", default=3600, type=int, 

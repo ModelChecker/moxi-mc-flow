@@ -34,7 +34,7 @@ def main(input_path: Path, echo: bool) -> int:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="MCIL program to sort check")
+    parser.add_argument("input", help="MoXI program to sort check")
     parser.add_argument("--echo", action="store_true", help="echo input program")
     args = parser.parse_args()
 
