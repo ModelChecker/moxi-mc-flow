@@ -32,7 +32,7 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
     proc = subprocess.run(["python3", SORTCHECK, src_path], capture_output=True)
 
     if proc.returncode:
-        print(proc.stderr.decode("utf-8")[:-1])
+        log.error(proc.stderr.decode("utf-8"), FILE_NAME)
         return FAIL
 
     log.info(proc.stdout.decode("utf-8")[:-1], FILE_NAME)
