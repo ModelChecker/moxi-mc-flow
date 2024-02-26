@@ -1,27 +1,25 @@
-from pathlib import Path
-from typing import Optional
 import argparse
+import cProfile
+import pathlib
 import subprocess
 import sys
-import logging
-import cProfile
 from pstats import SortKey
+from typing import Optional
 
-from src.util import cleandir, logger
-from src.btor import write_btor2_program_set as write_btor2
-from src.parse_nuxmv import parse as parse_nuxmv
-from src.nuxmv2mcil import translate as nuxmv2mcil
-from src.nuxmv2mcil import translate_file as nuxmv2mcil_file
-from src.mcil2btor import translate as mcil2btor
-from src.mcil2btor import translate_file as mcil2btor_file
-from src.mcil2json import main as mcil2json
-from src.json2mcil import main as json2mcil
+from src import (
+    btor,
+    json2moxi,
+    log,
+    moxi2btor,
+    moxi2json,
+    parse_smv,
+    smv2moxi,
+)
 
-
-FILE_NAME = Path(__file__).name
-FILE_DIR = Path(__file__).parent
-SMV2MCIL_DIR = FILE_DIR / "smv2mcil"
-MCIL2BTOR_DIR = FILE_DIR / "mcil2btor"
+FILE_NAME = pathlib.Path(__file__).name
+FILE_DIR = pathlib.Path(__file__).parent
+SMV2MCIL_DIR = FILE_DIR / "smv2moxi"
+MCIL2BTOR_DIR = FILE_DIR / "moxi2btor"
 
 CATBTOR = FILE_DIR / "btor2tools" / "build" / "bin" / "catbtor"
 SORTCHECK = FILE_DIR / "sortcheck.py"
@@ -30,120 +28,124 @@ PASS = 0
 FAIL = 1
 
 
-def run_sortcheck(src_path: Path) -> int:
-    proc = subprocess.run(
-        ["python3", SORTCHECK, src_path],
-        capture_output=True
-    )
-    
+def run_sortcheck(src_path: pathlib.Path) -> int:
+    proc = subprocess.run(["python3", SORTCHECK, src_path], capture_output=True)
+
     if proc.returncode:
-        print(proc.stderr.decode("utf-8")[:-1])
+        log.error(proc.stderr.decode("utf-8"), FILE_NAME)
         return FAIL
 
-    logger.info(proc.stdout.decode("utf-8")[:-1])
+    log.info(proc.stdout.decode("utf-8")[:-1], FILE_NAME)
     return PASS
 
 
-def run_catbtor(src_path: Path) -> int:
-    proc = subprocess.run(
-        [CATBTOR, src_path], 
-        capture_output=True
-    )
-    
+def run_catbtor(src_path: pathlib.Path) -> int:
+    proc = subprocess.run([CATBTOR, src_path], capture_output=True)
+
     if proc.returncode:
-        logger.error(proc.stderr.decode("utf-8"))
+        log.error(proc.stderr.decode("utf-8"), FILE_NAME)
         return FAIL
 
-    logger.info(proc.stdout.decode("utf-8")[:-1])
+    log.info(proc.stdout.decode("utf-8")[:-1], FILE_NAME)
     return PASS
 
 
 def main(
-    input_path: Path, 
-    target_lang: str, 
-    output_path: Path, 
-    keep: Optional[Path],
+    input_path: pathlib.Path,
+    target_lang: str,
+    output_path: pathlib.Path,
+    keep: Optional[pathlib.Path],
     validate: bool,
-    do_pickle: bool, 
-    do_cpp: bool, 
+    do_pickle: bool,
+    do_cpp: bool,
     int_width: int,
+    overwrite: bool,
 ) -> int:
     if not input_path.is_file():
-        logger.error(f"Source is not a file ({input_path})\n")
+        log.error(f"Source is not a file ({input_path})", FILE_NAME)
         return 1
 
     match (input_path.suffix, target_lang):
-        case (".smv", "mcil"):
-            if nuxmv2mcil_file(input_path, output_path, do_cpp):
+        case (".smv", "moxi"):
+            if smv2moxi.translate_file(input_path, output_path, do_cpp, overwrite):
                 return FAIL
-        case (".smv", "mcil-json"):
-            mcil_path = input_path.with_suffix(".mcil")
+        case (".smv", "moxi-json"):
+            moxi_path = input_path.with_suffix(".moxi")
 
-            if nuxmv2mcil_file(input_path, mcil_path, do_cpp):
+            if smv2moxi.translate_file(input_path, moxi_path, do_cpp, overwrite):
                 return FAIL
 
-            if mcil2json(mcil_path, output_path, False, False):
+            if moxi2json.main(moxi_path, output_path, False, False):
                 return FAIL
-            
+
             if keep:
-                mcil_path.rename(keep)
+                moxi_path.rename(keep)
             else:
-                mcil_path.unlink()
+                moxi_path.unlink()
         case (".smv", "btor2"):
-            xmv_program = parse_nuxmv(input_path, do_cpp)
+            xmv_program = parse_smv.parse(input_path, do_cpp)
             if not xmv_program:
-                logger.error(f"Failed parsing specification in {input_path}")
+                log.error(f"Failed parsing specification in {input_path}", FILE_NAME)
                 return 1
 
-            mcil_program = nuxmv2mcil(xmv_program)
-            if not mcil_program:
-                logger.error(f"Failed translating specification in {input_path}")
+            moxi_program = smv2moxi.translate(input_path.name, xmv_program)
+            if not moxi_program:
+                log.error(
+                    f"Failed translating specification in {input_path}", FILE_NAME
+                )
                 return 1
-            
-            btor2_program_set = mcil2btor(mcil_program, int_width)
-            
+
+            btor2_program_set = moxi2btor.translate(moxi_program, int_width)
+
             if not btor2_program_set:
                 return FAIL
 
-            write_btor2(btor2_program_set, output_path, do_pickle)
+            btor.write_btor2_program_set(
+                btor2_program_set, output_path, do_pickle, overwrite
+            )
 
             if keep:
                 with open(str(keep), "w") as f:
-                    f.write(str(mcil_program))
-        case (".mcil", "mcil-json"):
-            if mcil2json(input_path, output_path, False, False):
+                    f.write(str(moxi_program))
+        case (".moxi", "moxi-json"):
+            if moxi2json.main(input_path, output_path, False, False):
                 return FAIL
-        case(".mcil", "btor2"):
-            if mcil2btor_file(input_path, output_path, int_width, do_pickle):
+        case (".moxi", "btor2"):
+            if moxi2btor.translate_file(
+                input_path, output_path, int_width, do_pickle, overwrite
+            ):
                 return FAIL
-        case (".json", "mcil"):
-            if json2mcil(input_path, output_path, False, False, int_width):
+        case (".json", "moxi"):
+            if json2moxi.main(input_path, output_path, False, False, int_width):
                 return FAIL
         case (".json", "btor2"):
-            mcil_path = input_path.with_suffix(".mcil")
+            moxi_path = input_path.with_suffix(".moxi")
 
-            if json2mcil(input_path, mcil_path, False, False, int_width):
+            if json2moxi.main(input_path, moxi_path, False, False, int_width):
                 return FAIL
 
-            if mcil2btor_file(mcil_path, output_path, int_width, do_pickle):
+            if moxi2btor.translate_file(
+                moxi_path, output_path, int_width, do_pickle, overwrite
+            ):
                 return FAIL
-            
+
             if keep:
-                mcil_path.rename(keep)
+                moxi_path.rename(keep)
             else:
-                mcil_path.unlink()
+                moxi_path.unlink()
         case _:
-            logger.error(f"Translation unsupported: {input_path.suffix} to { target_lang}")
+            log.error(
+                f"Translation unsupported: {input_path.suffix} to { target_lang}",
+                FILE_NAME,
+            )
             return 1
 
     if validate:
-        if target_lang in {"mcil", "mcil-json"}:
+        if target_lang in {"moxi", "moxi-json"}:
             return run_sortcheck(output_path)
         elif target_lang in {"btor2"}:
             retcodes = [
-                run_catbtor(btor_file) 
-                for btor_file 
-                in output_path.rglob("*.btor2")
+                run_catbtor(btor_file) for btor_file in output_path.rglob("*.btor2")
             ]
 
             if any(retcodes):
@@ -154,55 +156,93 @@ def main(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("input", help="input program to translate, language is inferred from file extension")
-    parser.add_argument("targetlang", choices=["mcil", "mcil-json", "btor2"],
-                        help="target language")
-    parser.add_argument("--output", help="target location; should be a directory if targetlang is 'btor2', a filename otherwise")
+    parser.add_argument(
+        "input",
+        help="input program to translate, language is inferred from file extension",
+    )
+    parser.add_argument(
+        "targetlang", choices=["moxi", "moxi-json", "btor2"], help="target language"
+    )
+    parser.add_argument(
+        "--output",
+        help="target location; should be a directory if targetlang is 'btor2', a filename otherwise",
+    )
     parser.add_argument("--keep", help="path to write intermediate translation file(s)")
-    parser.add_argument("--validate", action="store_true", 
-                        help="validate output; uses catbtor if targetlan is btor2, sortcheck.py if targetlang is mcil or mcil-json")
-    parser.add_argument("--pickle", action="store_true", 
-                        help="if targetlang is `btor2`, dump pickled BTOR2; needed for witness translations")
-    parser.add_argument("--cpp", action="store_true", 
-                        help="runs cpp on input if input is SMV")
+    parser.add_argument(
+        "--validate",
+        action="store_true",
+        help="validate output; uses catbtor if targetlan is btor2, sortcheck.py if targetlang is moxi or moxi-json",
+    )
+    parser.add_argument(
+        "--pickle",
+        action="store_true",
+        help="if targetlang is `btor2`, dump pickled BTOR2; needed for witness translations",
+    )
+    parser.add_argument(
+        "--cpp", action="store_true", help="runs cpp on input if input is SMV"
+    )
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
     parser.add_argument("--sortcheck", help="path to sortcheck.py for MCIL validation")
-    parser.add_argument("--intwidth", default=32, type=int, help="bit width to translate Int types to when translating to BTOR2")
-    parser.add_argument("--debug", action="store_true", 
-                        help="output debug messages")
-    parser.add_argument("--profile", action="store_true", 
-                        help="runs using cProfile if true")
+    parser.add_argument(
+        "--intwidth",
+        default=32,
+        type=int,
+        help="bit width to translate Int types to when translating to BTOR2",
+    )
+    parser.add_argument("--debug", action="store_true", help="output debug messages")
+    parser.add_argument("--quiet", action="store_true", help="disable output")
+    parser.add_argument(
+        "--profile", action="store_true", help="runs using cProfile if true"
+    )
+    parser.add_argument(
+        "--overwrite", action="store_true", help="enable overwriting of output path"
+    )
     args = parser.parse_args()
 
     if args.debug:
-        logger.setLevel(logging.DEBUG)
+        log.set_debug()
 
-    input_path = Path(args.input)
+    if args.quiet:
+        log.set_quiet()
+
+    input_path = pathlib.Path(args.input)
 
     if args.output:
-        output_path = Path(args.output) 
+        output_path = pathlib.Path(args.output)
     else:
         match args.targetlang:
-            case "mcil":
-                output_path = input_path.with_suffix(".mcil")
-            case "mcil-json":
+            case "moxi":
+                output_path = input_path.with_suffix(".moxi")
+            case "moxi-json":
                 output_path = input_path.with_suffix(".json")
             case "btor2":
                 output_path = input_path.with_suffix("")
-                cleandir(output_path, False)
             case _:
-                logger.error(f"Invalid target language")
+                log.error("Invalid target language", FILE_NAME)
                 sys.exit(1)
 
     if args.catbtor:
-        CATBTOR = Path(args.catbtor)
+        CATBTOR = pathlib.Path(args.catbtor)
 
     if args.sortcheck:
-        SORTCHECK = Path(args.sortcheck)
+        SORTCHECK = pathlib.Path(args.sortcheck)
 
     if args.profile:
-        cProfile.run("main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)", sort=SortKey.TIME)
+        cProfile.run(
+            "main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)",
+            sort=SortKey.TIME,
+        )
         sys.exit(0)
 
-    returncode = main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)
+    returncode = main(
+        input_path,
+        args.targetlang,
+        output_path,
+        args.keep,
+        args.validate,
+        args.pickle,
+        args.cpp,
+        args.intwidth,
+        args.overwrite,
+    )
     sys.exit(returncode)
