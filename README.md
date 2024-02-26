@@ -1,6 +1,6 @@
 # IlToBtor2Python
 
-Repository for python translators from nuXmv to MCIL to BTOR2 and their witnesses. 
+Repository for python translators from SMV to MoXI to BTOR2 and their witnesses. 
 
 ## Translation
 To translate, use the `translate.py` script. For example:
@@ -34,7 +34,7 @@ options:
   --cpp                 runs cpp on input if input is SMV
   --catbtor CATBTOR     path to catbtor for BTOR2 validation
   --sortcheck SORTCHECK
-                        path to sortcheck.py for MCIL validation
+                        path to sortcheck.py for MoXI validation
   --intwidth INTWIDTH   bit width to translate Int types to when translating to BTOR2
   --debug               output debug messages
   --quiet               disable output
@@ -87,7 +87,7 @@ options:
   --intwidth INTWIDTH   bit width to translate Int types to (default=32)
   --catbtor CATBTOR     path to catbtor for BTOR2 validation
   --sortcheck SORTCHECK
-                        path to sortcheck.py for MCIL validation
+                        path to sortcheck.py for MoXI validation
   --kmax KMAX           max bound for BMC (default=1000)
   --timeout TIMEOUT     timeout in seconds (default=3600)
   --kind                enable k-induction
