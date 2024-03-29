@@ -1252,6 +1252,9 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
     context.vars[module.name] = {}
     context.defs[module.name] = {}
 
+    if module.name not in context.module_params:
+        context.module_params[module.name] = {}
+
     # Forward references are allowed....ugh
     # First we go thru each element of the module and collect every declared variable/define
     for element in module.elements:

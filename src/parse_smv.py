@@ -460,6 +460,8 @@ class Parser(sly.Parser):
         return p[0]
     
     @_(
+        "constant",
+        "complex_identifier",
         "LPAREN ltl_expr RPAREN",
         "EXCLAMATION ltl_expr %prec UMINUS",
         "SMV_X ltl_expr",
@@ -475,14 +477,29 @@ class Parser(sly.Parser):
         "ltl_expr SMV_XNOR ltl_expr",
         "ltl_expr RIGHTARROW ltl_expr",
         "ltl_expr LEFTRIGHTARROW ltl_expr",
+        "ltl_expr EQUAL ltl_expr",
+        "ltl_expr NOTEQUAL ltl_expr",
+        "ltl_expr LESSTHAN ltl_expr",
+        "ltl_expr GREATEREQUAL ltl_expr",
+        "ltl_expr GREATERTHAN ltl_expr",
         "ltl_expr LESSEQUAL ltl_expr",
+        "ltl_expr PLUS ltl_expr",
+        "ltl_expr MINUS ltl_expr",
+        "ltl_expr STAR ltl_expr",
+        "ltl_expr DIVIDE ltl_expr",
+        "ltl_expr SMV_MOD ltl_expr",
+        "ltl_expr LSHIFT ltl_expr",
+        "ltl_expr RSHIFT ltl_expr",
+        "ltl_expr SMV_UNION ltl_expr",
+        "ltl_expr SMV_IN ltl_expr",
+        "IDENT LPAREN cs_expr_list RPAREN",
         "ltl_expr SMV_U ltl_expr",
         "ltl_expr SMV_V ltl_expr",
         "ltl_expr SMV_S ltl_expr",
         "ltl_expr SMV_T ltl_expr",
-        "expr"
     )
     def ltl_expr(self, p):
+        # TODO: handle cases of propositions
         if len(p) == 1: 
             return smv.LTLProposition(p[0], loc=self.loc(p))
         if len(p) == 2: # unop

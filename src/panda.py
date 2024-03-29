@@ -8,7 +8,7 @@ from src import log, parse_smv, smv
 FILE_NAME = pathlib.Path(__file__).name
 
 PARENT_PATH = pathlib.Path(__file__).parent
-PANDA_PATH = PARENT_PATH.parent / "PANDA" / "PANDAcore" / "PANDA"
+PANDA_PATH = PARENT_PATH / "PANDA" / "PANDAcore" / "PANDA"
 FORMULA_PATH = PARENT_PATH / "__tmp__"
 PANDA_OUTPUT_PATH = PARENT_PATH / "__tmp__.smv"
 
@@ -67,7 +67,7 @@ def run_panda(props: set[str], formula_name: str) -> Optional[smv.ModuleDeclarat
 
     processed_output = process_panda_output(panda_output, props, formula_name)
 
-    print(processed_output)
+    print(panda_output)
 
     with open(PANDA_OUTPUT_PATH, "w") as f:
         f.write(processed_output)
@@ -118,9 +118,9 @@ def get_ltlspec_modules(
         module.elements.append(new_var_decl)
 
     # clean up temporary files
-    if FORMULA_PATH.exists():
-        FORMULA_PATH.unlink()
-    if PANDA_OUTPUT_PATH.exists():
-        PANDA_OUTPUT_PATH.unlink()
+    # if FORMULA_PATH.exists():
+    #     FORMULA_PATH.unlink()
+    # if PANDA_OUTPUT_PATH.exists():
+    #     PANDA_OUTPUT_PATH.unlink()
 
     return ltl_modules
