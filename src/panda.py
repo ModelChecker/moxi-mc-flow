@@ -79,10 +79,6 @@ def run_panda(props: set[str], formula_name: str) -> Optional[smv.ModuleDeclarat
     return result.modules[0]
 
 
-def unmap_propositions():
-    pass
-
-
 def get_ltlspec_modules(
     module: smv.ModuleDeclaration, context: smv.Context
 ) -> list[smv.ModuleDeclaration]:
@@ -115,10 +111,15 @@ def get_ltlspec_modules(
 
         module.elements.append(new_var_decl)
 
+        for prop,name in props.items():
+            module.elements.append(
+                smv.InvarDeclaration(smv.BinOp("=", smv.Identifier(name), prop.expr))
+            )
+
     # clean up temporary files
-    # if FORMULA_PATH.exists():
-    #     FORMULA_PATH.unlink()
-    # if PANDA_OUTPUT_PATH.exists():
-    #     PANDA_OUTPUT_PATH.unlink()
+    if FORMULA_PATH.exists():
+        FORMULA_PATH.unlink()
+    if PANDA_OUTPUT_PATH.exists():
+        PANDA_OUTPUT_PATH.unlink()
 
     return ltl_modules
