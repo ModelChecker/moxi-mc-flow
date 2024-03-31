@@ -223,7 +223,7 @@ def translate_expr(
                     expr_map[expr] = moxi.Variable(
                         sort=translate_type(context.vars[module.name][ident], context),
                         symbol=ident,
-                        prime=False,
+                        prime=context.in_next_expr,
                     )
                 elif ident in context.reverse_enums:
                     # print(f"{ident}: enum case")
@@ -238,7 +238,7 @@ def translate_expr(
                     )
                     # print(f"assigning {expr} : {ttype}")
                     expr_map[expr] = moxi.Variable(
-                        sort=ttype, symbol=ident, prime=False
+                        sort=ttype, symbol=ident, prime=context.in_next_expr
                     )
                 else:
                     raise ValueError(f"Unrecognized var `{ident}`")
@@ -262,54 +262,7 @@ def translate_expr(
                     case "unsigned":
                         expr_map[expr] = expr_map[fargs[0]]
                     case "next":
-                        # if not isinstance(fargs[0], nuxmv.Identifier):
-                        #     raise ValueError("complex next expressions unsupported")
-                        if isinstance(fargs[0], smv.ModuleAccess):
-                            # FIXME: I'm assuming that we know that mod_type will be a nuxmv.ModuleType
-                            mod_type = cast(
-                                smv.ModuleType,
-                                context.vars[module.name][fargs[0].module.ident],
-                            )
-                            mod_name = mod_type.module_name
-                            module_access = fargs[0]
-
-                            # FIXME: Also assuming that the translated expr is a Var
-                            mod_var = cast(moxi.Variable, expr_map[fargs[0]])
-
-                            expr_map[expr] = moxi.Variable(
-                                sort=translate_type(
-                                    context.vars[mod_name][module_access.element.ident],
-                                    context,
-                                ),
-                                symbol=mod_var.symbol,
-                                prime=True,
-                            )
-                        elif isinstance(fargs[0], smv.Identifier):  # nuxmv.Identifier
-                            ident = fargs[0].ident
-                            if ident in context.vars[module.name]:
-                                # print(f"ident found in variable map")
-                                expr_map[expr] = moxi.Variable(
-                                    sort=translate_type(
-                                        context.vars[module.name][ident], context
-                                    ),
-                                    symbol=ident,
-                                    prime=True,
-                                )
-                            elif ident in context.module_params[module.name]:
-                                expr_map[expr] = moxi.Variable(
-                                    sort=translate_type(
-                                        context.module_params[module.name][ident],
-                                        context,
-                                    ),
-                                    symbol=ident,
-                                    prime=True,
-                                )
-                            else:
-                                raise ValueError(
-                                    f"{ident} not in either variables or parameters = {context.module_params[module.name]}?"
-                                )
-                        else:
-                            raise ValueError("Unsupported argument to next expression.")
+                        expr_map[expr] = expr_map[fargs[0]]
                     case "READ":
                         expr_map[expr] = moxi.Apply.Select(
                             expr_map[fargs[0]], expr_map[fargs[1]]
@@ -587,11 +540,6 @@ def gather_local(
                     result.append((var_name.ident + "." + var_symbol, var_sort))
                     context.module_locals[var_name.ident].append(local_var)
 
-    for ltlspec in [
-        e for e in smv_module.elements if isinstance(e, smv.LTLSpecDeclaration)
-    ]:
-        pass
-
     return result
 
 
@@ -855,7 +803,6 @@ def gather_inv(
                             ]
                         )
                     )
-
             case smv.DefineDeclaration(define_list=define_list):
                 for define in [
                     define
@@ -992,6 +939,32 @@ def gather_consts(smv_module: smv.ModuleDeclaration) -> list[moxi.Command]:
     return []
 
 
+def gather_justice(
+    smv_module: smv.ModuleDeclaration,
+    context: smv.Context,
+    expr_map: dict[smv.Expr, moxi.Expr],
+) -> dict[str, moxi.Expr]:
+    justice_dict: dict[str, moxi.Expr] = {}
+
+    spec_num = 1
+    for justice_decl in [
+        e for e in smv_module.elements if isinstance(e, smv.JusticeDeclaration)
+    ]:
+        smv_expr = justice_decl.formula
+        translate_expr(
+            smv_expr, context, expr_map, in_let_expr=False, module=smv_module
+        )
+
+        justice_dict[f"fair_{spec_num}"] = cast(
+            moxi.Expr,
+            expr_map[smv_expr]
+        )
+
+        spec_num += 1
+
+    return justice_dict
+
+
 def gather_invarspecs(
     smv_module: smv.ModuleDeclaration,
     context: smv.Context,
@@ -1066,7 +1039,10 @@ def translate_module(
         )
     )
 
+    justice: dict[str, moxi.Expr] = gather_justice(smv_module, context, expr_map)
     reachable: dict[str, moxi.Expr] = gather_invarspecs(smv_module, context, expr_map)
+
+    labels = [r for r in reachable.keys()] + [j for j in justice.keys()]
 
     if len(reachable) == 0:
         check_system: list[moxi.Command] = []
@@ -1078,10 +1054,10 @@ def translate_module(
                 output=output,
                 local=local,
                 assumption={},
-                fairness={},
+                fairness=justice,
                 reachable=reachable,
                 current={},
-                query={f"qry_{r}": [r] for r in reachable.keys()},
+                query={"qry": labels},
                 queries=[],
             )
         ]
@@ -1126,8 +1102,6 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
         ltlspec_modules = panda.get_ltlspec_modules(smv_module, context)
         if ltlspec_modules:
             smv.type_check_module(smv_module, context)
-        for ltl_module in ltlspec_modules:
-            commands += translate_module(ltl_module, context)
 
     commands += [
         moxi.DeclareEnumSort(symbol, [str(s) for s in enum.summands])

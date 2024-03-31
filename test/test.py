@@ -173,7 +173,6 @@ def test_smv2moxi(
             "--validate",
             "--output",
             str(results_path / output_dir / file.with_suffix(".moxi").name),
-            "--overwrite",
         ]
 
     for file in pass_files:
@@ -209,7 +208,6 @@ def test_any2btor(
             "--validate",
             "--output",
             str(results_path / output_dir / file.with_suffix("").name),
-            "--overwrite",
         ]
 
     for file in pass_files:
@@ -246,7 +244,6 @@ def test_modelcheck(
             "--output",
             str(results_path / output_dir),
             "--copyback",
-            "--overwrite",
         ]
 
     for file in pass_files:

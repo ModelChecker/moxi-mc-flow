@@ -678,7 +678,6 @@ class Context:
         self.init: list[Expr] = []
         self.invar: list[Expr] = []
         self.trans: list[Expr] = []
-        self.invarspecs: list[Expr] = []
 
         # enum1: {s1, s2, s3}; enum2: {t1, t2} --> [[s1, s2, s3], [t1, t2]] (assume they're unique)
         self.enums: dict[str, Enumeration] = {}
@@ -765,6 +764,10 @@ def postorder(expr: Expr, context: Context, traverse_defs: bool):
 
         if seen:
             yield cur
+
+            if isinstance(cur, FunCall) and cur.name == "next":
+                context.in_next_expr = False
+
             continue
         elif id(cur) in visited:
             continue
@@ -778,6 +781,8 @@ def postorder(expr: Expr, context: Context, traverse_defs: bool):
             ) if traverse_defs and ident in context.get_cur_defs():
                 stack.append((False, context.get_cur_defs()[ident]))
             case FunCall(args=args):
+                if cur.name == "next":
+                    context.in_next_expr = True
                 [stack.append((False, arg)) for arg in args]
             case UnOp(arg=arg):
                 stack.append((False, arg))
@@ -1381,9 +1386,10 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
             case InvarDeclaration(formula=formula):
                 status = status and type_check_expr(formula, context, module)
                 context.invar.append(formula)
+            case JusticeDeclaration(formula=formula):
+                status = status and type_check_expr(formula, context, module)
             case InvarspecDeclaration(formula=formula):
                 status = status and type_check_expr(formula, context, module)
-                context.invarspecs.append(formula)
             case LTLSpecDeclaration(formula=formula):
                 log.debug(f"Typing checking {formula}", FILE_NAME)
                 status = status and type_check_expr(formula, context, module)

@@ -67,8 +67,6 @@ def run_panda(props: set[str], formula_name: str) -> Optional[smv.ModuleDeclarat
 
     processed_output = process_panda_output(panda_output, props, formula_name)
 
-    print(panda_output)
-
     with open(PANDA_OUTPUT_PATH, "w") as f:
         f.write(processed_output)
 
