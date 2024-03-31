@@ -118,7 +118,7 @@ class Enumeration(Type):
         )
 
     def __repr__(self) -> str:
-        return f"enum({','.join({str(s) for s in self.summands})})"
+        return f"enum({','.join({str(s) for s in sorted(self.summands)})})"
 
 
 class Array(Type):
@@ -681,6 +681,8 @@ class Context:
 
         # enum1: {s1, s2, s3}; enum2: {t1, t2} --> [[s1, s2, s3], [t1, t2]] (assume they're unique)
         self.enums: dict[str, Enumeration] = {}
+        self.declared_enums: set[str] = set()
+
         # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
         self.reverse_enums: dict[str, list[str]] = {}
 
@@ -1278,8 +1280,12 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
                             )
                             status = False
 
+                        if repr(smv_type) in context.declared_enums:
+                            continue
+
                         new_sym: str = fresh_symbol("enum")
                         context.enums[new_sym] = smv_type
+                        context.declared_enums.add(repr(smv_type))
 
                         set_list: list[str | int] = list(smv_type.summands)
                         str_set_list: list[str] = [str(s) for s in set_list]
