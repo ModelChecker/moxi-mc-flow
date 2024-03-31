@@ -2133,9 +2133,9 @@ def sort_check(program: Program) -> tuple[bool, Context]:
             # TODO
             context.add_defined_sort(cmd.definition)
         elif isinstance(cmd, DeclareEnumSort):
-            if cmd.symbol in context.symbols:
+            for conflict in [s for s in [cmd.symbol] + cmd.values if s in context.symbols]:
                 log.error(
-                    f"symbol '{cmd.symbol}' already in use.\n\t{cmd}",
+                    f"symbol '{conflict}' already in use.\n\t{cmd}",
                     FILE_NAME,
                     cmd.loc,
                 )
