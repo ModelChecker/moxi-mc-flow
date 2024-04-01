@@ -46,7 +46,7 @@ def modify_ltl_formula(
 def process_panda_output(content: str, props: set[str], formula_name: str) -> str:
     new = content
 
-    new = re.sub(r"SPEC", "JUSTICE TRUE\n\nINVARSPEC", new)
+    new = re.sub(r"SPEC", "JUSTICE TRUE\n\n__PANDASPEC__", new)
     new = re.sub(r"& EG TRUE", "", new)
 
     param_list = ",".join([p for p in props])

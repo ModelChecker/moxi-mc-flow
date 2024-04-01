@@ -955,10 +955,7 @@ def gather_justice(
             smv_expr, context, expr_map, in_let_expr=False, module=smv_module
         )
 
-        justice_dict[f"fair_{spec_num}"] = cast(
-            moxi.Expr,
-            expr_map[smv_expr]
-        )
+        justice_dict[f"fair_{spec_num}"] = expr_map[smv_expr]
 
         spec_num += 1
 
@@ -991,6 +988,29 @@ def gather_invarspecs(
         spec_num += 1
 
     return invarspec_dict
+
+
+def gather_pandaspecs(
+    smv_module: smv.ModuleDeclaration,
+    context: smv.Context,
+    expr_map: dict[smv.Expr, moxi.Expr],
+) -> dict[str, moxi.Expr]:
+    pandaspec_dict: dict[str, moxi.Expr] = {}
+
+    spec_num = 1
+    for pandaspec_decl in [
+        e for e in smv_module.elements if isinstance(e, smv.PandaSpecDeclaration)
+    ]:
+        smv_expr = pandaspec_decl.formula
+        translate_expr(
+            smv_expr, context, expr_map, in_let_expr=False, module=smv_module
+        )
+
+        pandaspec_dict[f"panda_{spec_num}"] = expr_map[smv_expr]
+
+        spec_num += 1
+
+    return pandaspec_dict
 
 
 def translate_module(
@@ -1041,10 +1061,15 @@ def translate_module(
 
     justice: dict[str, moxi.Expr] = gather_justice(smv_module, context, expr_map)
     reachable: dict[str, moxi.Expr] = gather_invarspecs(smv_module, context, expr_map)
+    panda: dict[str, moxi.Expr] = gather_pandaspecs(smv_module, context, expr_map)
 
-    labels = [r for r in reachable.keys()] + [j for j in justice.keys()]
+    # In nuXmv, each property should be a separate queries. Also, INVARSPEC properties do not consider fariness constraints (p41 of user manual). If we take this into account, then we'll need to change how PANDA is hooked up, since we rely on fairness and invarspecs together.
 
-    if len(reachable) == 0:
+    # To solve this, we can either:
+    # 1) only allow single property checks (either INVARSPEC or LTLSPEC), or
+    # 2) respect the nuXmv semantics by having each INVARSPEC be a single query with a single reachable property and have a special kind of spec for PANDA's final CTLSPEC (this would be a reachability property that respects fairness constraints).
+
+    if len(reachable) == 0 and len(panda) == 0:
         check_system: list[moxi.Command] = []
     else:
         check_system: list[moxi.Command] = [
@@ -1055,9 +1080,10 @@ def translate_module(
                 local=local,
                 assumption={},
                 fairness=justice,
-                reachable=reachable,
+                reachable=reachable | panda,
                 current={},
-                query={"qry": labels},
+                query={f"qry_{r}": [r] for r in reachable.keys()} | 
+                      {f"qry_{p}": [p]+list(justice.keys()) for p in panda.keys()},
                 queries=[],
             )
         ]

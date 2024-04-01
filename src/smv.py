@@ -633,6 +633,14 @@ class LTLSpecDeclaration(ModuleElement):
         return f"LTLSPEC {self.formula}"
 
 
+class PandaSpecDeclaration(ModuleElement):
+    def __init__(self, formula: Expr):
+        self.formula = formula
+
+    def __repr__(self) -> str:
+        return f"__PANDASPEC__ {self.formula}"
+
+
 # module elements -------------------------
 
 
@@ -1398,6 +1406,8 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
                 status = status and type_check_expr(formula, context, module)
             case LTLSpecDeclaration(formula=formula):
                 log.debug(f"Typing checking {formula}", FILE_NAME)
+                status = status and type_check_expr(formula, context, module)
+            case PandaSpecDeclaration(formula=formula):
                 status = status and type_check_expr(formula, context, module)
             case _:
                 pass

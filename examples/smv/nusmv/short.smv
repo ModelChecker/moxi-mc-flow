@@ -11,4 +11,4 @@ ASSIGN
                    TRUE : busy;
                  esac;
 LTLSPEC
-  G((request = Tr) -> F (state = busy))
+  G((request = Tr) -> (F (state = busy)))

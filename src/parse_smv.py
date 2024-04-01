@@ -48,7 +48,7 @@ class Lexer(sly.Lexer):
         SMV_FAIRNESS, SMV_JUSTICE, SMV_COMPASSION,
         SMV_PRED, SMV_MIRROR, SMV_ISA, # don't care
         SMV_CTLSPEC, SMV_SPEC, SMV_NAME, # don't care
-        SMV_LTLSPEC, SMV_INVARSPEC,
+        SMV_LTLSPEC, SMV_INVARSPEC, SMV_PANDASPEC,
 
         # type specifiers
         SMV_INTEGER, SMV_BOOLEAN,
@@ -138,6 +138,7 @@ class Lexer(sly.Lexer):
     IDENT["NAME"] = SMV_NAME
     IDENT["INVARSPEC"] = SMV_INVARSPEC
     IDENT["LTLSPEC"] = SMV_LTLSPEC
+    IDENT["__PANDASPEC__"] = SMV_PANDASPEC
 
     # type specifiers
     IDENT["integer"] = SMV_INTEGER
@@ -305,7 +306,11 @@ class Parser(sly.Parser):
         "SMV_LTLSPEC ltl_expr",
         "SMV_LTLSPEC ltl_expr SEMICOLON",
         "SMV_LTLSPEC SMV_NAME IDENT COLONEQ ltl_expr",
-        "SMV_LTLSPEC SMV_NAME IDENT COLONEQ ltl_expr SEMICOLON"
+        "SMV_LTLSPEC SMV_NAME IDENT COLONEQ ltl_expr SEMICOLON",
+        "SMV_PANDASPEC expr",
+        "SMV_PANDASPEC expr SEMICOLON",
+        "SMV_PANDASPEC SMV_NAME IDENT COLONEQ expr",
+        "SMV_PANDASPEC SMV_NAME IDENT COLONEQ expr SEMICOLON"
     )
     def module_element(self, p):
         match p[0]:
@@ -337,6 +342,8 @@ class Parser(sly.Parser):
                 ltlspec = smv.LTLSpecDeclaration(formula=p.ltl_expr, name=f"LTLSPEC_{self.cur_formula_id}")
                 self.cur_formula_id += 1
                 return ltlspec
+            case "__PANDASPEC__":
+                return smv.PandaSpecDeclaration(formula=p.expr)
             
 
     @_(
