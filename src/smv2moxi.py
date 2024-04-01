@@ -1099,9 +1099,11 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
     commands: list[moxi.Command] = []
 
     for smv_module in smv_program.modules:
-        ltlspec_modules = panda.get_ltlspec_modules(smv_module, context)
-        if ltlspec_modules:
-            smv.type_check_module(smv_module, context)
+        panda.handle_ltlspecs(smv_module, context)
+        smv.type_check_module(smv_module, context)
+        # ltlspec_modules = panda.get_ltlspec_modules(smv_module, context)
+        # if ltlspec_modules:
+        #     smv.type_check_module(smv_module, context)
 
     commands += [
         moxi.DeclareEnumSort(symbol, [str(s) for s in enum.summands])

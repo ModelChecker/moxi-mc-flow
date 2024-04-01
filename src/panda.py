@@ -50,7 +50,7 @@ def process_panda_output(content: str, props: set[str], formula_name: str) -> st
     new = re.sub(r"& EG TRUE", "", new)
 
     param_list = ",".join([p for p in props])
-    new = re.sub(r"main", f"{formula_name}({param_list})", new)  # TODO: label
+    new = re.sub(r"main", f"{formula_name}({param_list})", new) 
 
     # remove declared propositions -- we changed these to parameters
     new = re.sub(r"VAR.*(?=VAR\s)", "", new, count=1, flags=re.DOTALL)
@@ -79,11 +79,10 @@ def run_panda(props: set[str], formula_name: str) -> Optional[smv.ModuleDeclarat
     return result.modules[0]
 
 
-def get_ltlspec_modules(
+def handle_ltlspecs(
     module: smv.ModuleDeclaration, context: smv.Context
-) -> list[smv.ModuleDeclaration]:
-    ltl_modules = []
-
+) -> None:
+    """For every LTLSPEC in `module`, runs PANDA on that spec and composes the output SMV module with `module`. The result is an SMV module with checks """
     for ltlspec in [
         e for e in module.elements if isinstance(e, smv.LTLSpecDeclaration)
     ]:
@@ -95,23 +94,16 @@ def get_ltlspec_modules(
 
         ltl_module = run_panda(set(props.values()), ltlspec.name)
         if ltl_module:
-            context.init_module(ltl_module)
-            ltl_modules.append(ltl_module)
+            [module.elements.append(el) for el in ltl_module.elements]
 
         new_var_decl = smv.VarDeclaration([], "VAR")
         for name in props.values():
             new_var_decl.var_list.append((smv.Identifier(name), smv.Boolean()))
 
-        new_var_decl.var_list.append(
-            (
-                smv.Identifier("__" + ltlspec.name),
-                smv.ModuleType(ltlspec.name, [p for p, _ in new_var_decl.var_list]),
-            )
-        )
-
         module.elements.append(new_var_decl)
 
         for prop,name in props.items():
+            print(name)
             module.elements.append(
                 smv.InvarDeclaration(smv.BinOp("=", smv.Identifier(name), prop.expr))
             )
@@ -121,5 +113,3 @@ def get_ltlspec_modules(
         FORMULA_PATH.unlink()
     if PANDA_OUTPUT_PATH.exists():
         PANDA_OUTPUT_PATH.unlink()
-
-    return ltl_modules
