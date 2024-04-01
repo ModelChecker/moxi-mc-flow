@@ -48,7 +48,7 @@ class Lexer(sly.Lexer):
         SMV_FAIRNESS, SMV_JUSTICE, SMV_COMPASSION,
         SMV_PRED, SMV_MIRROR, SMV_ISA, # don't care
         SMV_CTLSPEC, SMV_SPEC, SMV_NAME, # don't care
-        SMV_LTLSPEC, SMV_INVARSPEC, SMV_PANDASPEC,
+        SMV_LTLSPEC, SMV_INVARSPEC, SMV_PANDASPEC, 
 
         # type specifiers
         SMV_INTEGER, SMV_BOOLEAN,
@@ -138,7 +138,7 @@ class Lexer(sly.Lexer):
     IDENT["NAME"] = SMV_NAME
     IDENT["INVARSPEC"] = SMV_INVARSPEC
     IDENT["LTLSPEC"] = SMV_LTLSPEC
-    IDENT["__PANDASPEC__"] = SMV_PANDASPEC
+    IDENT["__PANDASPEC__"] = SMV_PANDASPEC # see panda.py
 
     # type specifiers
     IDENT["integer"] = SMV_INTEGER

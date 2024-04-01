@@ -939,29 +939,6 @@ def gather_consts(smv_module: smv.ModuleDeclaration) -> list[moxi.Command]:
     return []
 
 
-def gather_justice(
-    smv_module: smv.ModuleDeclaration,
-    context: smv.Context,
-    expr_map: dict[smv.Expr, moxi.Expr],
-) -> dict[str, moxi.Expr]:
-    justice_dict: dict[str, moxi.Expr] = {}
-
-    spec_num = 1
-    for justice_decl in [
-        e for e in smv_module.elements if isinstance(e, smv.JusticeDeclaration)
-    ]:
-        smv_expr = justice_decl.formula
-        translate_expr(
-            smv_expr, context, expr_map, in_let_expr=False, module=smv_module
-        )
-
-        justice_dict[f"fair_{spec_num}"] = expr_map[smv_expr]
-
-        spec_num += 1
-
-    return justice_dict
-
-
 def gather_invarspecs(
     smv_module: smv.ModuleDeclaration,
     context: smv.Context,
@@ -988,6 +965,29 @@ def gather_invarspecs(
         spec_num += 1
 
     return invarspec_dict
+
+
+def gather_justice(
+    smv_module: smv.ModuleDeclaration,
+    context: smv.Context,
+    expr_map: dict[smv.Expr, moxi.Expr],
+) -> dict[str, moxi.Expr]:
+    justice_dict: dict[str, moxi.Expr] = {}
+
+    spec_num = 1
+    for justice_decl in [
+        e for e in smv_module.elements if isinstance(e, smv.JusticeDeclaration)
+    ]:
+        smv_expr = justice_decl.formula
+        translate_expr(
+            smv_expr, context, expr_map, in_let_expr=False, module=smv_module
+        )
+
+        justice_dict[f"fair_{spec_num}"] = expr_map[smv_expr]
+
+        spec_num += 1
+
+    return justice_dict
 
 
 def gather_pandaspecs(
@@ -1059,15 +1059,13 @@ def translate_module(
         )
     )
 
-    justice: dict[str, moxi.Expr] = gather_justice(smv_module, context, expr_map)
+    # In nuXmv, INVARSPEC properties do not consider fariness constraints (p41 of user manual). To
+    # account for this with encoded LTLSPECs, we use special __PANDASPEC__s to denote an INVARSPEC
+    # that respects JUSTICE constraints.
+
     reachable: dict[str, moxi.Expr] = gather_invarspecs(smv_module, context, expr_map)
+    justice: dict[str, moxi.Expr] = gather_justice(smv_module, context, expr_map)
     panda: dict[str, moxi.Expr] = gather_pandaspecs(smv_module, context, expr_map)
-
-    # In nuXmv, each property should be a separate queries. Also, INVARSPEC properties do not consider fariness constraints (p41 of user manual). If we take this into account, then we'll need to change how PANDA is hooked up, since we rely on fairness and invarspecs together.
-
-    # To solve this, we can either:
-    # 1) only allow single property checks (either INVARSPEC or LTLSPEC), or
-    # 2) respect the nuXmv semantics by having each INVARSPEC be a single query with a single reachable property and have a special kind of spec for PANDA's final CTLSPEC (this would be a reachability property that respects fairness constraints).
 
     if len(reachable) == 0 and len(panda) == 0:
         check_system: list[moxi.Command] = []
