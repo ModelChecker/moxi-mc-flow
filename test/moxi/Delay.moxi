@@ -1,0 +1,13 @@
+(define-system Delay 
+    :input ((in Bool))
+    :output ((out Bool))
+    :trans (= out' in)
+)
+
+(check-system Delay
+    :input ((i Bool))
+    :output ((o Bool))
+    :current (cur (= o false))
+    :reachable (rch (= o true))
+    :query (q (rch cur))
+)

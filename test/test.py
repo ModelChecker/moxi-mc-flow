@@ -1,10 +1,12 @@
 import pathlib
 import json
 import difflib
+import shutil
 import subprocess
 import sys
 import argparse
 
+from typing import cast
 
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
@@ -57,50 +59,48 @@ def run_diff(
     return (status, diff)
 
 
-def run_test(test: dict) -> bool:
-    """Runs and prints status of `test` where `test` looks like:
+def run_test(script: str, options: list[str], test: dict) -> bool:
+    """Runs and prints status of `test` where `test` looks something like:
 
     `{
-        "input": "file.c2po",
-        "expected_output": "file.c2po.expect",
+        "input": "file.moxi",
+        "expected_output": "file.expect",
         "options": ["opt", ...]
     }`
-
-    See `config.json`.
     """
     status, diff = True, ""
 
-    command = []
+    command = ["python3", script, test["input"]] + options
+
+    if "options" in test:
+        command += test["options"]
 
     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     try:
-        if "expected_output" in test:
+        if "expected_result" in test:
             # Both stdout and stderr are captured in proc.stdout
-            test_output = proc.stdout.decode().splitlines(keepends=True)
-
-            with open(test["expected_output"], "r") as f:
-                expected_output = f.read().splitlines(keepends=True)
+            test_output = proc.stdout.decode().splitlines()
+            expected_output = test["expected_result"].splitlines()
 
             status, diff = run_diff(
-                expected_output, test_output, test["input"], test["expected_output"]
+                expected_output, test_output, test["input"], test["expected_result"]
             )
-        elif "expected_c2po" in test:
-            # See serialize.py for default dump file names
-            input_path = pathlib.Path(test["input"])
-            c2po_output_path = input_path.with_suffix(".out.c2po")
+        elif "expected_btor2" in test:
+            # `expected` is a list of pairs of files that should be the same
+            expected = cast(list[tuple[str,str]], test["expected_btor2"])
 
-            with open(str(c2po_output_path), "r") as f:
-                test_output = f.read().splitlines(keepends=True)
+            for expect,out in expected:
+                with open(out, "r") as f:
+                    test_output = f.read().splitlines(keepends=True)
+                with open(expect, "r") as f:
+                    expected_output = f.read().splitlines(keepends=True)
 
-            with open(test["expected_c2po"], "r") as f:
-                expected_output = f.read().splitlines(keepends=True)
+                status, diff = run_diff(
+                    expected_output, test_output, test["input"], expect
+                )
 
-            status, diff = run_diff(
-                expected_output, test_output, test["input"], test["expected_c2po"]
-            )
-
-            c2po_output_path.unlink()
+            shutil.rmtree(pathlib.Path("tmp").absolute())
     except FileNotFoundError:
         print_fail(f"{test['input']}: file does not exist")
         return False
@@ -150,8 +150,25 @@ if __name__ == "__main__":
 
     timeout = int(args.timeout)
 
-    # tests is an array of JSON objects
     with open(args.config, "r") as f:
         config = json.load(f)
+
+    if "script" in config:
+        script = config["script"]
+    else:
+        print("'script' attribute not in test config, exiting")
+        sys.exit(1)
+
+    if "options" in config:
+        options = config["options"]
+    else:
+        options = []
+
+    if "tests" not in config:
+        print("'tests' attribute not in test config, exiting")
+        sys.exit(1)
+
+    if any([not run_test(script, options, test) for test in config["tests"]]):
+        sys.exit(1)
         
     sys.exit(0)
