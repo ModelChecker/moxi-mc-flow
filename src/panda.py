@@ -62,7 +62,7 @@ def process_panda_output(content: str, props: set[str], formula_name: str) -> st
 def run_panda(props: set[str], formula_name: str) -> Optional[smv.ModuleDeclaration]:
     """Runs PANDA on the file at `FORMULA_PATH` to generate an SMV-encoded automata of that LTL formula, then processes, parses, and returns the SMV output."""
     command = [str(PANDA_PATH), "-n", str(FORMULA_PATH)]
-    print(" ".join(command))
+    log.debug(2, " ".join(command), FILE_NAME)
     proc = subprocess.run(command, capture_output=True)
 
     panda_output = proc.stdout.decode()
@@ -102,7 +102,6 @@ def handle_ltlspecs(
             [module.elements.append(el) for el in ltl_module.elements]
 
         for prop,name in props.items():
-            print(name)
             module.elements.append(
                 smv.InvarDeclaration(smv.BinOp("=", smv.Identifier(name), prop.expr))
             )

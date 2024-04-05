@@ -7,7 +7,7 @@ from src import log
 FILE_NAME = pathlib.Path(__file__).name
 
 
-def rmdir(dir: pathlib.Path):
+def rm(dir: pathlib.Path):
     """Remove `dir`"""
     if dir.is_file():
         log.warning(f"Overwriting {dir}", FILE_NAME)
@@ -19,5 +19,5 @@ def rmdir(dir: pathlib.Path):
 
 def cleandir(dir: pathlib.Path) -> None:
     """Remove and create fresh `dir`"""
-    rmdir(dir)
+    rm(dir)
     os.mkdir(dir)

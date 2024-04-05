@@ -98,7 +98,7 @@ def preprocess(input_path: pathlib.Path, do_cpp: bool) -> str:
 
     2) Identifier Cleanup: Identifiers appearing in nuXmv distribution benchmarks do not conform to the identifier grammar specified in the nuXmv reference manual. As such, we replace restricted tokens (`:`, `"`, `\\`, `[`, `]`, `$`) that appear in identifiers with conformant alternatives (usually the written name of the character - `_colon_`, etc.).
     """
-    log.debug(f"Preprocessing {input_path}", FILE_NAME)
+    log.debug(2, f"Preprocessing {input_path}", FILE_NAME)
 
     if do_cpp:
         proc = subprocess.run(["cpp", "-P", str(input_path)], capture_output=True)

@@ -753,7 +753,7 @@ class Parser(sly.Parser):
 def parse(input_path: pathlib.Path, do_cpp: bool) -> Optional[smv.Program]:
     content = preprocess_smv.preprocess(input_path, do_cpp)
 
-    log.debug(f"Parsing {input_path}", FILE_NAME)
+    log.debug(2, f"Parsing {input_path}", FILE_NAME)
 
     lexer = Lexer(input_path.name)
     parser = Parser(input_path.name)

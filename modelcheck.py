@@ -20,7 +20,7 @@ translate_path = FILE_DIR / "translate.py"
 
 
 def run_btormc(btormc_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, kind: bool) -> int:
-    log.info(f"Running btormc over {btor_path}", FILE_NAME)
+    log.debug(1, f"Running btormc over {btor_path}", FILE_NAME)
     label = btor_path.stem
 
     command = [
@@ -48,7 +48,7 @@ def run_btormc(btormc_path: pathlib.Path, btor_path: pathlib.Path, timeout: int,
         log.error(f"btormc failure for query '{label}'", FILE_NAME)
         return proc.returncode
     
-    log.info(f"Done model checking in {end_mc-start_mc}s", FILE_NAME)
+    log.debug(1, f"Done model checking in {end_mc-start_mc}s", FILE_NAME)
 
     btor_witness_bytes = proc.stdout
 
@@ -58,13 +58,13 @@ def run_btormc(btormc_path: pathlib.Path, btor_path: pathlib.Path, timeout: int,
 
     if btor_witness_bytes.startswith(b'sat'):
         print("sat")
-        log.info(f"btormc witness created at {btor_witness_path}", FILE_NAME)
+        log.debug(1, f"btormc witness created at {btor_witness_path}", FILE_NAME)
     elif btor_witness_bytes.startswith(b'unsat'):
         print("unsat")
     else:
         print("unknown")
 
-    log.info(f"btormc witness created at {btor_witness_path}", FILE_NAME)
+    log.debug(1, f"btormc witness created at {btor_witness_path}", FILE_NAME)
 
     return 0
 
@@ -72,7 +72,7 @@ def run_btormc(btormc_path: pathlib.Path, btor_path: pathlib.Path, timeout: int,
 def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, kind: bool) -> int:
     absolute_btor_path = btor_path.absolute()
 
-    log.info(f"Running avr over {absolute_btor_path}", FILE_NAME)
+    log.debug(1, f"Running avr over {absolute_btor_path}", FILE_NAME)
     label = absolute_btor_path.stem
 
     avr_output_path = absolute_btor_path.parent
@@ -109,7 +109,7 @@ def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax:
         log.error(f"AVR failure for query '{label}'", FILE_NAME)
         return proc.returncode
 
-    log.info(f"Done model checking in {end_mc-start_mc}s", FILE_NAME)
+    log.debug(1, f"Done model checking in {end_mc-start_mc}s", FILE_NAME)
 
     with open(str(avr_results_path / "result.pr"), "r") as f:
         result_str = f.read()
@@ -136,12 +136,12 @@ def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax:
     if len(avr_proof_path) > 0:
         avr_proof_path[0].rename(str(btor_witness_path.parent / "inv.txt"))
 
-    log.info(f"AVR witness created at {btor_witness_path}", FILE_NAME)
+    log.debug(1, f"AVR witness created at {btor_witness_path}", FILE_NAME)
 
     return 0
 
 def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, kind: bool) -> int:
-    log.info(f"Running pono over {btor_path}", FILE_NAME)
+    log.debug(1, f"Running pono over {btor_path}", FILE_NAME)
     # label = btor_path.stem
 
     command = [str(pono_path), "-k", str(kmax), "-e"]
@@ -161,7 +161,7 @@ def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kma
 
     end_mc = time.perf_counter()
 
-    log.info(f"Done model checking in {end_mc-start_mc}s", FILE_NAME)
+    log.debug(1, f"Done model checking in {end_mc-start_mc}s", FILE_NAME)
 
     btor_witness_bytes = proc.stdout
     btor_witness_path = btor_path.with_suffix(".btor2.cex")
@@ -185,7 +185,7 @@ def model_check(
     sortcheck: Optional[str],
     catbtor: Optional[str],
     copyback: bool,
-    fulltrace: bool,
+    no_witness: bool,
     int_width: int,
     timeout: int,
     kmax: int,
@@ -200,7 +200,7 @@ def model_check(
         log.error(f"Source is not a file ({input_path})", FILE_NAME)
         return 1
     
-    util.cleandir(output_path)
+    util.rm(output_path)
     util.cleandir(WORK_DIR)
 
     src_path = WORK_DIR / input_path.name
@@ -239,7 +239,7 @@ def model_check(
     if debug:
         command.append("--debug")
 
-    log.info(f"Translating {input_path}", FILE_NAME)
+    log.debug(1, f"Translating {input_path}", FILE_NAME)
     proc = subprocess.run(command, capture_output=not debug)
 
     if proc.returncode:
@@ -285,7 +285,7 @@ def model_check(
         
     end_total = time.perf_counter()
 
-    log.info(f"End-to-end done in {end_total-start_total}s", FILE_NAME)
+    log.debug(1, f"End-to-end done in {end_total-start_total}s", FILE_NAME)
 
     if output_path.is_file():
         output_path.unlink()
@@ -294,12 +294,14 @@ def model_check(
 
     if copyback:
         shutil.copytree(WORK_DIR, output_path)
-        log.info(f"Wrote files to {output_path}", FILE_NAME)
+        log.debug(1, f"Wrote files to {output_path}", FILE_NAME)
+    elif no_witness:
+        witness_path.unlink()
     else:
         witness_path.replace(output_path)
-        log.info(f"Wrote witness to {output_path}", FILE_NAME)
+        log.debug(1, f"Wrote witness to {output_path}", FILE_NAME)
 
-    util.rmdir(WORK_DIR)
+    util.rm(WORK_DIR)
 
     return 0
 
@@ -312,6 +314,8 @@ if __name__ == "__main__":
         help="model checker to use")
     parser.add_argument("--output",  
         help="location of output check-system response")
+    parser.add_argument("--no-witness", action="store_true",
+        help="disable writing of witness file")
     parser.add_argument("--avr-path",
         help="path to avr directory")
     parser.add_argument("--btormc-path",  
@@ -336,14 +340,19 @@ if __name__ == "__main__":
         help="enable k-induction")
     parser.add_argument("--cpp", action="store_true", 
         help="runs cpp on input if SMV")
-    parser.add_argument("--debug", action="store_true", 
-        help="output debug messages")
     parser.add_argument("--quiet", action="store_true", 
         help="silence output")
+    parser.add_argument(
+        "--debug",
+        nargs="?",
+        default=0,
+        const=1,
+        type=int,
+        help="set debug level (0=none, 1=basic, 2=extra)",
+    )
     args = parser.parse_args()
 
-    if args.debug:
-        log.set_debug()
+    log.set_debug_level(args.debug)
 
     if args.quiet:
         log.set_quiet()
@@ -362,9 +371,9 @@ if __name__ == "__main__":
 
     input_path = pathlib.Path(args.input)
 
-    output_path = input_path.with_suffix(".witness")
+    output_path = input_path.with_suffix(".witness").absolute()
     if args.output:
-        output_path = pathlib.Path(args.output)
+        output_path = pathlib.Path(args.output).absolute()
         
     WORK_DIR = FILE_DIR / f"__workdir__{input_path.name}"
 
@@ -375,7 +384,7 @@ if __name__ == "__main__":
         sortcheck=args.sortcheck,
         catbtor=args.catbtor,
         copyback=args.copyback, 
-        fulltrace=True, 
+        no_witness=args.no_witness, 
         int_width=args.intwidth, 
         timeout=args.timeout,
         kmax=args.kmax,

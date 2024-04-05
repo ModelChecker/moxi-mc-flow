@@ -102,7 +102,7 @@ def get_define_let_var(symbol: str) -> moxi.Variable:
 def build_define_expr(
     expr: smv.Identifier, context: smv.Context, module: smv.ModuleDeclaration
 ) -> moxi.Expr:
-    log.debug(f"building define expr {expr}", FILE_NAME)
+    log.debug(2, f"building define expr {expr}", FILE_NAME)
 
     def dependent_defines(ident: str, context: smv.Context) -> list[smv.Identifier]:
         stack: list[tuple[bool, smv.Expr]] = []
@@ -173,7 +173,7 @@ def build_define_expr(
     )
 
     for d in reversed(dependent_defines(expr.ident, context)):
-        log.debug(str(d), FILE_NAME)
+        log.debug(2, str(d), FILE_NAME)
         translate_expr(
             context.defs[module.name][d.ident],
             context,
@@ -668,7 +668,7 @@ def gather_trans(
     for trans_decl in [
         e for e in smv_module.elements if isinstance(e, smv.TransDeclaration)
     ]:
-        log.debug("translating transition relation", FILE_NAME)
+        log.debug(2, "translating transition relation", FILE_NAME)
         translate_expr(
             trans_decl.formula, context, expr_map, in_let_expr=False, module=smv_module
         )
@@ -1020,28 +1020,28 @@ def translate_module(
 
     module_name = smv_module.name
 
-    log.debug(f"Translating module '{module_name}'", FILE_NAME)
+    log.debug(2, f"Translating module '{module_name}'", FILE_NAME)
 
-    # log.debug("Translating enums", FILE_NAME)
+    # log.debug(2, "Translating enums", FILE_NAME)
     # enums = gather_enums(smv_module, context)
 
-    log.debug("Translating input variables", FILE_NAME)
+    log.debug(2, "Translating input variables", FILE_NAME)
     input = gather_input(smv_module, context)
 
-    log.debug("Translating output variables", FILE_NAME)
+    log.debug(2, "Translating output variables", FILE_NAME)
     output = gather_output(smv_module, context)
 
-    log.debug("Translating local variables", FILE_NAME)
+    log.debug(2, "Translating local variables", FILE_NAME)
     local = gather_local(smv_module, context)
 
-    log.debug("Translating initialization constraints", FILE_NAME)
+    log.debug(2, "Translating initialization constraints", FILE_NAME)
     expr_map = {}
     init = gather_init(smv_module, context, expr_map)
 
-    log.debug("Translating transition relation", FILE_NAME)
+    log.debug(2, "Translating transition relation", FILE_NAME)
     trans = gather_trans(smv_module, context, expr_map)
 
-    log.debug("Translating invariant constraints", FILE_NAME)
+    log.debug(2, "Translating invariant constraints", FILE_NAME)
     inv = gather_inv(smv_module, context, expr_map)
 
     subsystems = gather_subsystems(smv_module, context)
@@ -1112,7 +1112,7 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
         log.error("No module 'main', cannot translate.", FILE_NAME)
         return None
 
-    log.info("Type checking", FILE_NAME)
+    log.debug(1, "Type checking", FILE_NAME)
     context = smv.Context(filename, smv_program.modules)
     well_typed = smv.type_check_module(smv_program.main, context)
 
@@ -1140,7 +1140,7 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
 
     logic: Optional[moxi.SetLogic] = infer_logic(commands)
     if logic:
-        log.debug("inferred SMT logic {logic.logic}", FILE_NAME)
+        log.debug(2, "inferred SMT logic {logic.logic}", FILE_NAME)
         commands = [logic] + commands
 
     return moxi.Program(commands=commands)
@@ -1150,22 +1150,22 @@ def translate_file(
     input_path: pathlib.Path, output_path: pathlib.Path, do_cpp: bool
 ) -> int:
     """Parses, type checks, translates, and writes the translation result of `input_path` to `output_path`. Runs C preprocessor if `do_cpp` is True. Returns 0 on success, 1 otherwise."""
-    log.info("Parsing", FILE_NAME)
+    log.debug(1, "Parsing", FILE_NAME)
     parse_tree = parse_smv.parse(input_path, do_cpp)
     if not parse_tree:
-        log.info(f"Failed parsing specification {input_path}", FILE_NAME)
+        log.debug(1, f"Failed parsing specification {input_path}", FILE_NAME)
         return 1
 
-    log.info("Translating", FILE_NAME)
+    log.debug(1, "Translating", FILE_NAME)
     result = translate(input_path.name, parse_tree)
     if not result:
-        log.info(f"Failed translating specification {input_path}", FILE_NAME)
+        log.debug(1, f"Failed translating specification {input_path}", FILE_NAME)
         return 1
 
-    log.info(f"Writing output to {output_path}", FILE_NAME)
+    log.debug(1, f"Writing output to {output_path}", FILE_NAME)
 
     with open(str(output_path), "w") as f:
         f.write(str(result))
-        log.info(f"Wrote output to {output_path}", FILE_NAME)
+        log.debug(1, f"Wrote output to {output_path}", FILE_NAME)
 
     return 0

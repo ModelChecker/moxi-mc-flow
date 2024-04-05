@@ -1256,7 +1256,7 @@ def type_check_expr(
 
 
 def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
-    log.debug(f"Type checking module '{module.name}'", FILE_NAME)
+    log.debug(2, f"Type checking module '{module.name}'", FILE_NAME)
 
     status = True
 
@@ -1315,7 +1315,7 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
             for var_name, smv_type in var_decl.var_list
             if isinstance(smv_type, ModuleType)
         ]:
-            log.debug(
+            log.debug(2, 
                 f"Module instantiation of '{smv_type.module_name}' ({var_name})",
                 FILE_NAME,
             )
@@ -1351,7 +1351,7 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
                 status = status and type_check_module(target_module, context)
                 context.cur_module = module
 
-                log.debug(f"Done with module '{target_module.name}'", FILE_NAME)
+                log.debug(2, f"Done with module '{target_module.name}'", FILE_NAME)
 
                 continue
 
@@ -1384,7 +1384,7 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
                 for define in reversed(define_list):
                     # TODO: is the check below helpful?
                     if define.expr.type == AnyType():
-                        log.debug(f"Type checking DEFINE {define.name}", FILE_NAME)
+                        log.debug(2, f"Type checking DEFINE {define.name}", FILE_NAME)
                         status = status and type_check_expr(
                             define.expr, context, module
                         )
@@ -1405,7 +1405,7 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
             case InvarspecDeclaration(formula=formula):
                 status = status and type_check_expr(formula, context, module)
             case LTLSpecDeclaration(formula=formula):
-                log.debug(f"Typing checking {formula}", FILE_NAME)
+                log.debug(2, f"Typing checking {formula}", FILE_NAME)
                 status = status and type_check_expr(formula, context, module)
             case PandaSpecDeclaration(formula=formula):
                 status = status and type_check_expr(formula, context, module)
