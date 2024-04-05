@@ -191,7 +191,7 @@ def model_check(
     kmax: int,
     kind: bool,
     cpp: bool,
-    debug: bool,
+    debug: int,
 ) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
     # does not output valid witness output (header is missing), so we don't use it.
@@ -238,6 +238,7 @@ def model_check(
         command.append("--cpp")
     if debug:
         command.append("--debug")
+        command.append(str(debug))
 
     log.debug(1, f"Translating {input_path}", FILE_NAME)
     proc = subprocess.run(command, capture_output=not debug)

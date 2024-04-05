@@ -11,12 +11,6 @@ from typing import cast
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
 
-translate_path = FILE_DIR / ".." / "translate.py"
-modelcheck_path = FILE_DIR / ".." / "modelcheck.py"
-catbtor_path = FILE_DIR / ".." / "btor2tools" / "build" / "bin" / "catbtor"
-sortcheck_path = FILE_DIR / ".." / "sortcheck.py"
-results_path = FILE_DIR / "resultsdir"
-
 
 class Color:
     HEADER = "\033[95m"
@@ -75,6 +69,8 @@ def run_test(script: str, options: list[str], test: dict) -> bool:
     if "options" in test:
         command += test["options"]
 
+    print(" ".join(command))
+
     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     try:
@@ -115,40 +111,8 @@ def run_test(script: str, options: list[str], test: dict) -> bool:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "config", help="config file that defines the tests to run"
-    )
-    parser.add_argument("--translate", help="path to translate.py")
-    parser.add_argument("--modelcheck", help="path to modelcheck.py")
-    parser.add_argument("--sortcheck", help="path to sortcheck.py")
-    parser.add_argument("--catbtor", help="path to catbtor")
-    parser.add_argument(
-        "--resultsdir", help="directory to output test logs and copyback data"
-    )
-    parser.add_argument(
-        "--timeout", help="max seconds before timeout", type=int, default=120
-    )
-    parser.add_argument("subset", nargs="?", default="",
-                        help="name of subset to run")
-
+    parser.add_argument("config", help="config file that defines the tests to run")
     args = parser.parse_args()
-
-    if args.translate:
-        translate_path = pathlib.Path(args.translate)
-
-    if args.modelcheck:
-        modelcheck_path = pathlib.Path(args.modelcheck)
-
-    if args.sortcheck:
-        sortcheck_path = pathlib.Path(args.sortcheck)
-
-    if args.catbtor:
-        catbtor_path = pathlib.Path(args.catbtor)
-
-    if args.resultsdir:
-        results_path = pathlib.Path(args.resultsdir)
-
-    timeout = int(args.timeout)
 
     with open(args.config, "r") as f:
         config = json.load(f)
