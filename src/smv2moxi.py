@@ -991,6 +991,24 @@ def gather_subsystems(
 def gather_consts(smv_module: smv.ModuleDeclaration) -> list[moxi.Command]:
     return []
 
+def gather_fairness(
+        smv_module: smv.ModuleDeclaration,
+        context: smv.Context,
+        expr_map: dict[smv.Expr, moxi.Expr],
+) -> dict[str, moxi.Expr]:
+    fairness_dict: dict[str, moxi.Expr] = {}
+    spec_num = 1
+    for fairness_decl in [
+        e for e in smv_module.elements if isinstance(e, smv.FairnessDeclaration)
+    ]:
+        smv_expr = fairness_decl.formula
+        translate_expr(smv_expr, context, expr_map, in_let_expr=False, module=smv_module)
+        fairness_dict[f"fair_{spec_num}"] = cast(
+            moxi.Expr,
+            moxi.Apply(moxi.Sort.Bool(), moxi.Identifier("not", []), [expr_map[smv_expr]])
+        )
+        spec_num += 1
+    return fairness_dict
 
 def gather_invarspecs(
     smv_module: smv.ModuleDeclaration,
@@ -1066,6 +1084,7 @@ def translate_module(
         )
     )
 
+    fairness: dict[str, moxi.Expr] = gather_fairness(smv_module, context, expr_map)
     reachable: dict[str, moxi.Expr] = gather_invarspecs(smv_module, context, expr_map)
 
     if len(reachable) == 0:
@@ -1078,7 +1097,7 @@ def translate_module(
                 output=output,
                 local=local,
                 assumption={},
-                fairness={},
+                fairness=fairness,
                 reachable=reachable,
                 current={},
                 query={f"qry_{r}": [r] for r in reachable.keys()},
@@ -1135,10 +1154,6 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
         if enum.is_symbolic()
     ]
 
-    commands += [
-        moxi.DeclareConst(symbol=symbol, sort=translate_type(smv.SymbolicConstant(symbol=symbol), smv_context=context))
-        for symbol in context.constants
-    ]
 
     commands += [
         moxi.DeclareFun(symbol=symbol, 

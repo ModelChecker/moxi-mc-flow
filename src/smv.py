@@ -622,6 +622,13 @@ class InvarspecDeclaration(ModuleElement):
 
     def __repr__(self) -> str:
         return f"INVARSPEC {self.formula}"
+    
+class FairnessDeclaration(ModuleElement):
+    def __init__(self, formula: Expr):
+        self.formula = formula
+
+    def __repr__(self) -> str:
+        return f"FAIRNESS {self.formula}"
 
 
 class LTLSpecDeclaration(ModuleElement):

@@ -303,6 +303,8 @@ class Parser(sly.Parser):
         "SMV_INVARSPEC expr SEMICOLON",
         "SMV_INVARSPEC SMV_NAME IDENT COLONEQ expr",
         "SMV_INVARSPEC SMV_NAME IDENT COLONEQ expr SEMICOLON",
+        "SMV_FAIRNESS expr",
+        "SMV_FAIRNESS expr SEMICOLON",
         "SMV_LTLSPEC ltl_expr",
         "SMV_LTLSPEC ltl_expr SEMICOLON",
         "SMV_LTLSPEC SMV_NAME IDENT COLONEQ ltl_expr",
@@ -334,6 +336,10 @@ class Parser(sly.Parser):
                 return smv.JusticeDeclaration(formula=p[1])
             case "INVARSPEC":
                 return smv.InvarspecDeclaration(formula=p.expr)
+            case "FAIRNESS":
+                return smv.FairnessDeclaration(formula=p.expr)
+            case "JUSTICE":
+                return smv.FairnessDeclaration(formula=p.expr)
             case "LTLSPEC":
                 ltlspec = smv.LTLSpecDeclaration(formula=p.ltl_expr, name=f"LTLSPEC_{self.cur_formula_id}")
                 self.cur_formula_id += 1
