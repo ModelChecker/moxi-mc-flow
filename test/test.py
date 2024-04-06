@@ -1,16 +1,22 @@
-import argparse
-import subprocess
-import os
 import pathlib
+import json
+import difflib
 import shutil
-import time
+import subprocess
+import sys
+import argparse
+
+from typing import cast
+
+FILE_NAME = pathlib.Path(__file__).name
+FILE_DIR = pathlib.Path(__file__).parent
 
 
 class Color:
     HEADER = "\033[95m"
     OKBLUE = "\033[94m"
     OKCYAN = "\033[96m"
-    OKGREEN = "\033[92m"
+    PASS = "\033[92m"
     WARNING = "\033[93m"
     FAIL = "\033[91m"
     ENDC = "\033[0m"
@@ -18,367 +24,115 @@ class Color:
     UNDERLINE = "\033[4m"
 
 
-FILE_NAME = pathlib.Path(__file__).name
-FILE_DIR = pathlib.Path(__file__).parent
-
-translate_path = FILE_DIR / ".." / "translate.py"
-modelcheck_path = FILE_DIR / ".." / "modelcheck.py"
-catbtor_path = FILE_DIR / ".." / "btor2tools" / "build" / "bin" / "catbtor"
-sortcheck_path = FILE_DIR / ".." / "sortcheck.py"
-results_path = FILE_DIR / "resultsdir"
-
-timeout = 120
+def print_pass(msg: str):
+    print(f"[{Color.PASS}PASS{Color.ENDC}] {msg}")
 
 
-def print_test(msg: str) -> None:
-    print(f"[{Color.HEADER}TEST{Color.ENDC}] {msg}")
-
-
-def print_pass(msg: str, test_results_path: pathlib.Path) -> None:
-    print(f"[{Color.OKGREEN}PASS{Color.ENDC}] {msg}")
-    # print(f"Results written to {test_results_path}")
-
-
-def print_fail(msg: str, test_results_path: pathlib.Path) -> None:
+def print_fail(msg: str):
     print(f"[{Color.FAIL}FAIL{Color.ENDC}] {msg}")
-    # print(f"Results written to {test_results_path}")
 
 
-def get_common_path(
-    pass_files: list[pathlib.Path], fail_files: list[pathlib.Path]
-) -> pathlib.Path:
-    # special case where only one test total:
-    # the common_path must be the parent of the test
-    if len(pass_files + fail_files) == 1:
-        if len(pass_files) == 1:
-            return pass_files[0].parent
-        else:
-            return fail_files[0].parent
-    else:
-        return pathlib.Path(
-            os.path.commonpath([str(f) for f in pass_files + fail_files])
-        )
+def run_diff(
+    expected_output: "list[str]", test_output: "list[str]", fromfile: str, tofile: str
+) -> "tuple[bool, str]":
+    """Returns a pair whose first element is True if the `expected_output` and `test_output` are the same and False otherwise, and whose second element is the diff between `expected_output` and `test_output`."""
+    result = difflib.unified_diff(
+        expected_output,
+        test_output,
+        fromfile=fromfile,
+        tofile=tofile,
+    )
+
+    status = True
+    diff = ""
+    for line in result:
+        if line[0] in {"-", "+", "?"}:
+            status = False
+        diff += line
+
+    return (status, diff)
 
 
-def cleandir(dir: pathlib.Path, quiet: bool):
-    """Remove and create fresh dir, print a warning if quiet is False"""
-    if dir.is_file():
-        if not quiet:
-            print(f"Overwriting {dir}")
-        dir.rmdir()
-    elif dir.is_dir():
-        if not quiet:
-            print(f"Overwriting {dir}")
-        shutil.rmtree(dir)
+def run_test(script: str, options: list[str], test: dict) -> bool:
+    """Runs and prints status of `test` where `test` looks something like:
 
-    dir.mkdir()
+    `{
+        "input": "file.moxi",
+        "expected_output": "file.expect",
+        "options": ["opt", ...]
+    }`
+    """
+    status, diff = True, ""
 
+    command = ["python3", script, test["input"]] + options
 
-def run_test(
-    command: list[str],
-    output_dir: pathlib.Path,
-    pass_file: pathlib.Path,
-    fail_file: pathlib.Path,
-    should_pass: bool,
-) -> bool:
-    global results_path
+    if "options" in test:
+        command += test["options"]
 
-    test_dir = results_path / output_dir
-    test_dir.mkdir(parents=True)
+    print(" ".join(command))
 
-    stdout_path = test_dir / "stdout"
-    stderr_path = test_dir / "stderr"
-    cmd_path = test_dir / "cmd"
-    stdout_path.touch()
-    stderr_path.touch()
-    cmd_path.touch()
-
-    print_test(str(output_dir))
-    test_start = time.perf_counter()
+    proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     try:
-        proc = subprocess.run(command, capture_output=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        print_fail(f"{output_dir}", test_dir)
+        if "expected_result" in test:
+            # Both stdout and stderr are captured in proc.stdout
+            test_output = proc.stdout.decode().splitlines()
+            expected_output = test["expected_result"].splitlines()
 
-        with open(str(stderr_path), "w") as f:
-            f.write(f"timeout after {timeout}s")
+            status, diff = run_diff(
+                expected_output, test_output, test["input"], test["expected_result"]
+            )
+        elif "expected_btor2" in test:
+            # `expected` is a list of pairs of files that should be the same
+            expected = cast(list[tuple[str,str]], test["expected_btor2"])
 
-        with open(str(fail_file), "a") as f:
-            f.write(f"{output_dir} timeout\n")
+            for expect,out in expected:
+                with open(out, "r") as f:
+                    test_output = f.read().splitlines(keepends=True)
+                with open(expect, "r") as f:
+                    expected_output = f.read().splitlines(keepends=True)
 
+                status, diff = run_diff(
+                    expected_output, test_output, test["input"], expect
+                )
+
+            shutil.rmtree(pathlib.Path("tmp").absolute())
+    except FileNotFoundError:
+        print_fail(f"{test['input']}: file does not exist")
         return False
 
-    test_end = time.perf_counter()
-
-    if (proc.returncode and should_pass) or (not proc.returncode and not should_pass):
-        print_fail(
-            f"{output_dir}. Command to reproduce:\n{' '.join(command)}", test_dir
-        )
-
-        with open(str(stderr_path), "w") as f:
-            f.write(proc.stderr.decode("utf-8"))
-
-        with open(str(stdout_path), "w") as f:
-            f.write(proc.stdout.decode("utf-8"))
-
-        with open(str(cmd_path), "w") as f:
-            f.write(" ".join(command))
-
-        with open(str(fail_file), "a") as f:
-            f.write(f"{output_dir} {stderr_path}\n")
-
-        return False
+    if status:
+        print_pass(f"{test['input']}")
     else:
-        print_pass(f"{output_dir} ({test_end - test_start:.5f}s)", test_dir)
-        if proc.stdout.decode("utf-8").find("sat"):
-            print("sat")
-        elif proc.stdout.decode("utf-8").find("unsat"):
-            print("unsat")
+        print_fail(f"{test['input']}\nCommand: {' '.join(command)}\n{diff}")
 
-        with open(str(stderr_path), "w") as f:
-            f.write(proc.stderr.decode("utf-8"))
-
-        with open(str(stdout_path), "w") as f:
-            f.write(proc.stdout.decode("utf-8"))
-
-        with open(str(cmd_path), "w") as f:
-            f.write(" ".join(command))
-
-        with open(str(pass_file), "a") as f:
-            f.write(f"{output_dir} {test_end - test_start}s\n")
-
-        return True
-
-
-def test_smv2moxi(
-    pass_files: list[pathlib.Path], fail_files: list[pathlib.Path]
-) -> bool:
-    global translate_path
-
-    pass_file = results_path / "pass.txt"
-    fail_file = results_path / "fail.txt"
-
-    pass_file.touch()
-    fail_file.touch()
-
-    common_path = get_common_path(pass_files, fail_files)
-
-    def get_command(file: pathlib.Path, output_dir: pathlib.Path) -> list[str]:
-        return [
-            "python3",
-            str(translate_path),
-            str(file),
-            "moxi",
-            "--validate",
-            "--output",
-            str(results_path / output_dir / file.with_suffix(".moxi").name),
-            "--overwrite",
-        ]
-
-    for file in pass_files:
-        output_dir = file.relative_to(common_path).with_suffix("")
-        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, True)
-
-    for file in fail_files:
-        output_dir = file.relative_to(common_path).with_suffix("")
-        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, False)
-
-    return True
-
-
-def test_any2btor(
-    pass_files: list[pathlib.Path], fail_files: list[pathlib.Path]
-) -> bool:
-    global translate_path
-
-    pass_file = results_path / "pass.txt"
-    fail_file = results_path / "fail.txt"
-
-    pass_file.touch()
-    fail_file.touch()
-
-    common_path = get_common_path(pass_files, fail_files)
-
-    def get_command(file: pathlib.Path, output_dir: pathlib.Path) -> list[str]:
-        return [
-            "python3",
-            str(translate_path),
-            str(file),
-            "btor2",
-            "--validate",
-            "--output",
-            str(results_path / output_dir / file.with_suffix("").name),
-            "--overwrite",
-        ]
-
-    for file in pass_files:
-        output_dir = file.relative_to(common_path)
-        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, True)
-
-    for file in fail_files:
-        output_dir = file.relative_to(common_path)
-        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, False)
-
-    return True
-
-
-def test_modelcheck(
-    pass_files: list[pathlib.Path], fail_files: list[pathlib.Path]
-) -> bool:
-    global modelcheck_path
-
-    pass_file = results_path / "pass.txt"
-    fail_file = results_path / "fail.txt"
-
-    pass_file.touch()
-    fail_file.touch()
-
-    common_path = get_common_path(pass_files, fail_files)
-
-    def get_command(file: pathlib.Path, output_dir: pathlib.Path) -> list[str]:
-        return [
-            "python3",
-            str(modelcheck_path),
-            str(file),
-            "avr",
-            "--kind",
-            "--output",
-            str(results_path / output_dir),
-            "--copyback",
-            "--overwrite",
-        ]
-
-    for file in pass_files:
-        output_dir = file.relative_to(common_path)
-        run_test(get_command(file, output_dir), output_dir, pass_file, fail_file, True)
-
-    for file in fail_files:
-        output_dir = file.relative_to(common_path)
-        run_test(
-            get_command(file, output_dir),
-            output_dir,
-            pass_file,
-            fail_file,
-            False,
-        )
-
-    return True
-
-
-def test_sortcheck(
-    pass_files: list[pathlib.Path],
-    fail_files: list[pathlib.Path],
-) -> bool:
-    global sortcheck_path
-
-    pass_file = results_path / "pass.txt"
-    fail_file = results_path / "fail.txt"
-    pass_file.touch()
-    fail_file.touch()
-
-    common_path = get_common_path(pass_files, fail_files)
-
-    def get_command(file: pathlib.Path) -> list[str]:
-        return [
-            "python3",
-            str(sortcheck_path),
-            str(file),
-        ]
-
-    for file in pass_files:
-        output_dir = file.relative_to(common_path)
-        run_test(get_command(file), output_dir, pass_file, fail_file, True)
-
-    for file in fail_files:
-        output_dir = file.relative_to(common_path)
-        run_test(get_command(file), output_dir, pass_file, fail_file, False)
-
-    return True
-
-
-def main(
-    pass_files_path: pathlib.Path, fail_files_path: pathlib.Path, test: str
-) -> None:
-    """Runs tests by using `shutil.copytree`, which will run the `copy_function` on each file in the argument file directory tree while outputting files in an identical tree structure to the argument."""
-    global results_path
-    cleandir(results_path, False)
-
-    def collect_files(files_path: pathlib.Path) -> list[pathlib.Path]:
-        files = []
-
-        if files_path.is_file():
-            with open(str(files_path), "r") as f:
-                content = f.read()
-
-            for file in content.splitlines():
-                files.append(pathlib.Path(file))
-        elif files_path.is_dir():
-            for dirpath, _, filenames in os.walk(str(files_path)):
-                files += [pathlib.Path(dirpath, f) for f in filenames]
-        else:
-            print(f"Error: {files_path} does not exist.")
-            return []
-
-        return files
-
-    pass_files = collect_files(pass_files_path)
-    fail_files = collect_files(fail_files_path)
-
-    if test == "smv2btor":
-        test_any2btor(pass_files, fail_files)
-    elif test == "smv2moxi":
-        test_smv2moxi(pass_files, fail_files)
-    elif test == "moxi2btor":
-        test_any2btor(pass_files, fail_files)
-    elif test == "sortcheck":
-        test_sortcheck(pass_files, fail_files)
-    elif test == "modelcheck":
-        test_modelcheck(pass_files, fail_files)
+    return status
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-
-    parser.add_argument(
-        "passfiles", help="directory of or file that lists input files that should pass"
-    )
-    parser.add_argument(
-        "failfiles", help="directory of or file that lists input files that should fail"
-    )
-    parser.add_argument(
-        "test",
-        choices=["smv2btor", "smv2moxi", "moxi2btor", "sortcheck", "modelcheck"],
-        help="test to run",
-    )
-    parser.add_argument("--translate", help="path to translate.py")
-    parser.add_argument("--modelcheck", help="path to modelcheck.py")
-    parser.add_argument("--sortcheck", help="path to sortcheck.py")
-    parser.add_argument("--catbtor", help="path to catbtor")
-    parser.add_argument(
-        "--resultsdir", help="directory to output test logs and copyback data"
-    )
-    parser.add_argument(
-        "--timeout", help="max seconds before timeout", type=int, default=120
-    )
-
+    parser.add_argument("config", help="config file that defines the tests to run")
     args = parser.parse_args()
 
-    if args.translate:
-        translate_path = pathlib.Path(args.translate)
+    with open(args.config, "r") as f:
+        config = json.load(f)
 
-    if args.modelcheck:
-        modelcheck_path = pathlib.Path(args.modelcheck)
+    if "script" in config:
+        script = config["script"]
+    else:
+        print("'script' attribute not in test config, exiting")
+        sys.exit(1)
 
-    if args.sortcheck:
-        sortcheck_path = pathlib.Path(args.sortcheck)
+    if "options" in config:
+        options = config["options"]
+    else:
+        options = []
 
-    if args.catbtor:
-        catbtor_path = pathlib.Path(args.catbtor)
+    if "tests" not in config:
+        print("'tests' attribute not in test config, exiting")
+        sys.exit(1)
 
-    if args.resultsdir:
-        results_path = pathlib.Path(args.resultsdir)
-
-    timeout = int(args.timeout)
-
-    main(pathlib.Path(args.passfiles), pathlib.Path(args.failfiles), args.test)
+    if any([not run_test(script, options, test) for test in config["tests"]]):
+        sys.exit(1)
+        
+    sys.exit(0)

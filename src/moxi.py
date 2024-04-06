@@ -2133,9 +2133,9 @@ def sort_check(program: Program) -> tuple[bool, Context]:
             # TODO
             context.add_defined_sort(cmd.definition)
         elif isinstance(cmd, DeclareEnumSort):
-            if cmd.symbol in context.symbols:
+            for conflict in [s for s in [cmd.symbol] + cmd.values if s in context.symbols]:
                 log.error(
-                    f"symbol '{cmd.symbol}' already in use.\n\t{cmd}",
+                    f"symbol '{conflict}' already in use.\n\t{cmd}",
                     FILE_NAME,
                     cmd.loc,
                 )
@@ -2466,7 +2466,7 @@ def to_qfbv(program: Program, int_width: int):
             command.logic = "QF_ABV"
         if isinstance(command, DefineSort):
             # FIXME: Need to check for any Int parameters of the definition
-            raise NotImplementedError
+            pass
         elif isinstance(command, DeclareConst) and command.sort.symbol in SORT_MAP:
             command.sort = SORT_MAP[command.sort.symbol]
         elif isinstance(command, DeclareFun):

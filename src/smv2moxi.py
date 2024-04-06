@@ -102,7 +102,7 @@ def get_define_let_var(symbol: str) -> moxi.Variable:
 def build_define_expr(
     expr: smv.Identifier, context: smv.Context, module: smv.ModuleDeclaration
 ) -> moxi.Expr:
-    log.debug(f"building define expr {expr}", FILE_NAME)
+    log.debug(2, f"building define expr {expr}", FILE_NAME)
 
     def dependent_defines(ident: str, context: smv.Context) -> list[smv.Identifier]:
         stack: list[tuple[bool, smv.Expr]] = []
@@ -173,7 +173,7 @@ def build_define_expr(
     )
 
     for d in reversed(dependent_defines(expr.ident, context)):
-        log.debug(str(d), FILE_NAME)
+        log.debug(2, str(d), FILE_NAME)
         translate_expr(
             context.defs[module.name][d.ident],
             context,
@@ -223,7 +223,7 @@ def translate_expr(
                     expr_map[expr] = moxi.Variable(
                         sort=translate_type(context.vars[module.name][ident], context),
                         symbol=ident,
-                        prime=False,
+                        prime=context.in_next_expr,
                     )
                 elif ident in context.reverse_enums:
                     # print(f"{ident}: enum case")
@@ -238,7 +238,7 @@ def translate_expr(
                     )
                     # print(f"assigning {expr} : {ttype}")
                     expr_map[expr] = moxi.Variable(
-                        sort=ttype, symbol=ident, prime=False
+                        sort=ttype, symbol=ident, prime=context.in_next_expr
                     )
                 else:
                     raise ValueError(f"Unrecognized var `{ident}`")
@@ -262,54 +262,7 @@ def translate_expr(
                     case "unsigned":
                         expr_map[expr] = expr_map[fargs[0]]
                     case "next":
-                        # if not isinstance(fargs[0], nuxmv.Identifier):
-                        #     raise ValueError("complex next expressions unsupported")
-                        if isinstance(fargs[0], smv.ModuleAccess):
-                            # FIXME: I'm assuming that we know that mod_type will be a nuxmv.ModuleType
-                            mod_type = cast(
-                                smv.ModuleType,
-                                context.vars[module.name][fargs[0].module.ident],
-                            )
-                            mod_name = mod_type.module_name
-                            module_access = fargs[0]
-
-                            # FIXME: Also assuming that the translated expr is a Var
-                            mod_var = cast(moxi.Variable, expr_map[fargs[0]])
-
-                            expr_map[expr] = moxi.Variable(
-                                sort=translate_type(
-                                    context.vars[mod_name][module_access.element.ident],
-                                    context,
-                                ),
-                                symbol=mod_var.symbol,
-                                prime=True,
-                            )
-                        elif isinstance(fargs[0], smv.Identifier):  # nuxmv.Identifier
-                            ident = fargs[0].ident
-                            if ident in context.vars[module.name]:
-                                # print(f"ident found in variable map")
-                                expr_map[expr] = moxi.Variable(
-                                    sort=translate_type(
-                                        context.vars[module.name][ident], context
-                                    ),
-                                    symbol=ident,
-                                    prime=True,
-                                )
-                            elif ident in context.module_params[module.name]:
-                                expr_map[expr] = moxi.Variable(
-                                    sort=translate_type(
-                                        context.module_params[module.name][ident],
-                                        context,
-                                    ),
-                                    symbol=ident,
-                                    prime=True,
-                                )
-                            else:
-                                raise ValueError(
-                                    f"{ident} not in either variables or parameters = {context.module_params[module.name]}?"
-                                )
-                        else:
-                            raise ValueError("Unsupported argument to next expression.")
+                        expr_map[expr] = expr_map[fargs[0]]
                     case "READ":
                         expr_map[expr] = moxi.Apply.Select(
                             expr_map[fargs[0]], expr_map[fargs[1]]
@@ -587,11 +540,6 @@ def gather_local(
                     result.append((var_name.ident + "." + var_symbol, var_sort))
                     context.module_locals[var_name.ident].append(local_var)
 
-    for ltlspec in [
-        e for e in smv_module.elements if isinstance(e, smv.LTLSpecDeclaration)
-    ]:
-        pass
-
     return result
 
 
@@ -720,7 +668,7 @@ def gather_trans(
     for trans_decl in [
         e for e in smv_module.elements if isinstance(e, smv.TransDeclaration)
     ]:
-        log.debug("translating transition relation", FILE_NAME)
+        log.debug(2, "translating transition relation", FILE_NAME)
         translate_expr(
             trans_decl.formula, context, expr_map, in_let_expr=False, module=smv_module
         )
@@ -855,7 +803,6 @@ def gather_inv(
                             ]
                         )
                     )
-
             case smv.DefineDeclaration(define_list=define_list):
                 for define in [
                     define
@@ -1020,6 +967,52 @@ def gather_invarspecs(
     return invarspec_dict
 
 
+def gather_justice(
+    smv_module: smv.ModuleDeclaration,
+    context: smv.Context,
+    expr_map: dict[smv.Expr, moxi.Expr],
+) -> dict[str, moxi.Expr]:
+    justice_dict: dict[str, moxi.Expr] = {}
+
+    spec_num = 1
+    for justice_decl in [
+        e for e in smv_module.elements if isinstance(e, smv.JusticeDeclaration)
+    ]:
+        smv_expr = justice_decl.formula
+        translate_expr(
+            smv_expr, context, expr_map, in_let_expr=False, module=smv_module
+        )
+
+        justice_dict[f"fair_{spec_num}"] = expr_map[smv_expr]
+
+        spec_num += 1
+
+    return justice_dict
+
+
+def gather_pandaspecs(
+    smv_module: smv.ModuleDeclaration,
+    context: smv.Context,
+    expr_map: dict[smv.Expr, moxi.Expr],
+) -> dict[str, moxi.Expr]:
+    pandaspec_dict: dict[str, moxi.Expr] = {}
+
+    spec_num = 1
+    for pandaspec_decl in [
+        e for e in smv_module.elements if isinstance(e, smv.PandaSpecDeclaration)
+    ]:
+        smv_expr = pandaspec_decl.formula
+        translate_expr(
+            smv_expr, context, expr_map, in_let_expr=False, module=smv_module
+        )
+
+        pandaspec_dict[f"panda_{spec_num}"] = expr_map[smv_expr]
+
+        spec_num += 1
+
+    return pandaspec_dict
+
+
 def translate_module(
     smv_module: smv.ModuleDeclaration, context: smv.Context
 ) -> list[moxi.Command]:
@@ -1027,28 +1020,28 @@ def translate_module(
 
     module_name = smv_module.name
 
-    log.debug(f"Translating module '{module_name}'", FILE_NAME)
+    log.debug(2, f"Translating module '{module_name}'", FILE_NAME)
 
-    # log.debug("Translating enums", FILE_NAME)
+    # log.debug(2, "Translating enums", FILE_NAME)
     # enums = gather_enums(smv_module, context)
 
-    log.debug("Translating input variables", FILE_NAME)
+    log.debug(2, "Translating input variables", FILE_NAME)
     input = gather_input(smv_module, context)
 
-    log.debug("Translating output variables", FILE_NAME)
+    log.debug(2, "Translating output variables", FILE_NAME)
     output = gather_output(smv_module, context)
 
-    log.debug("Translating local variables", FILE_NAME)
+    log.debug(2, "Translating local variables", FILE_NAME)
     local = gather_local(smv_module, context)
 
-    log.debug("Translating initialization constraints", FILE_NAME)
+    log.debug(2, "Translating initialization constraints", FILE_NAME)
     expr_map = {}
     init = gather_init(smv_module, context, expr_map)
 
-    log.debug("Translating transition relation", FILE_NAME)
+    log.debug(2, "Translating transition relation", FILE_NAME)
     trans = gather_trans(smv_module, context, expr_map)
 
-    log.debug("Translating invariant constraints", FILE_NAME)
+    log.debug(2, "Translating invariant constraints", FILE_NAME)
     inv = gather_inv(smv_module, context, expr_map)
 
     subsystems = gather_subsystems(smv_module, context)
@@ -1066,9 +1059,15 @@ def translate_module(
         )
     )
 
-    reachable: dict[str, moxi.Expr] = gather_invarspecs(smv_module, context, expr_map)
+    # In nuXmv, INVARSPEC properties do not consider fariness constraints (p41 of user manual). To
+    # account for this with encoded LTLSPECs, we use special __PANDASPEC__s to denote an INVARSPEC
+    # that respects JUSTICE constraints.
 
-    if len(reachable) == 0:
+    reachable: dict[str, moxi.Expr] = gather_invarspecs(smv_module, context, expr_map)
+    justice: dict[str, moxi.Expr] = gather_justice(smv_module, context, expr_map)
+    panda: dict[str, moxi.Expr] = gather_pandaspecs(smv_module, context, expr_map)
+
+    if len(reachable) == 0 and len(panda) == 0:
         check_system: list[moxi.Command] = []
     else:
         check_system: list[moxi.Command] = [
@@ -1078,10 +1077,11 @@ def translate_module(
                 output=output,
                 local=local,
                 assumption={},
-                fairness={},
-                reachable=reachable,
+                fairness=justice,
+                reachable=reachable | panda,
                 current={},
-                query={f"qry_{r}": [r] for r in reachable.keys()},
+                query={f"qry_{r}": [r] for r in reachable.keys()} | 
+                      {f"qry_{p}": [p]+list(justice.keys()) for p in panda.keys()},
                 queries=[],
             )
         ]
@@ -1112,7 +1112,7 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
         log.error("No module 'main', cannot translate.", FILE_NAME)
         return None
 
-    log.info("Type checking", FILE_NAME)
+    log.debug(1, "Type checking", FILE_NAME)
     context = smv.Context(filename, smv_program.modules)
     well_typed = smv.type_check_module(smv_program.main, context)
 
@@ -1123,11 +1123,11 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
     commands: list[moxi.Command] = []
 
     for smv_module in smv_program.modules:
-        ltlspec_modules = panda.get_ltlspec_modules(smv_module, context)
-        if ltlspec_modules:
-            smv.type_check_module(smv_module, context)
-        for ltl_module in ltlspec_modules:
-            commands += translate_module(ltl_module, context)
+        panda.handle_ltlspecs(smv_module, context)
+        smv.type_check_module(smv_module, context)
+        # ltlspec_modules = panda.get_ltlspec_modules(smv_module, context)
+        # if ltlspec_modules:
+        #     smv.type_check_module(smv_module, context)
 
     commands += [
         moxi.DeclareEnumSort(symbol, [str(s) for s in enum.summands])
@@ -1140,7 +1140,7 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
 
     logic: Optional[moxi.SetLogic] = infer_logic(commands)
     if logic:
-        log.debug("inferred SMT logic {logic.logic}", FILE_NAME)
+        log.debug(2, "inferred SMT logic {logic.logic}", FILE_NAME)
         commands = [logic] + commands
 
     return moxi.Program(commands=commands)
@@ -1150,22 +1150,22 @@ def translate_file(
     input_path: pathlib.Path, output_path: pathlib.Path, do_cpp: bool
 ) -> int:
     """Parses, type checks, translates, and writes the translation result of `input_path` to `output_path`. Runs C preprocessor if `do_cpp` is True. Returns 0 on success, 1 otherwise."""
-    log.info("Parsing", FILE_NAME)
+    log.debug(1, "Parsing", FILE_NAME)
     parse_tree = parse_smv.parse(input_path, do_cpp)
     if not parse_tree:
-        log.info(f"Failed parsing specification {input_path}", FILE_NAME)
+        log.debug(1, f"Failed parsing specification {input_path}", FILE_NAME)
         return 1
 
-    log.info("Translating", FILE_NAME)
+    log.debug(1, "Translating", FILE_NAME)
     result = translate(input_path.name, parse_tree)
     if not result:
-        log.info(f"Failed translating specification {input_path}", FILE_NAME)
+        log.debug(1, f"Failed translating specification {input_path}", FILE_NAME)
         return 1
 
-    log.info(f"Writing output to {output_path}", FILE_NAME)
+    log.debug(1, f"Writing output to {output_path}", FILE_NAME)
 
     with open(str(output_path), "w") as f:
         f.write(str(result))
-        log.info(f"Wrote output to {output_path}", FILE_NAME)
+        log.debug(1, f"Wrote output to {output_path}", FILE_NAME)
 
     return 0

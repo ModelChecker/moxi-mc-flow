@@ -1,0 +1,9 @@
+{
+    "script": "../sortcheck.py",
+    "tests": [
+        {
+            "input": "../examples/moxi/QF_ABV/Arrays.moxi",
+            "expected_returncode": 0
+        }
+    ]
+}

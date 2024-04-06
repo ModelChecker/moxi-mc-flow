@@ -95,6 +95,9 @@ def from_json(contents: dict) -> Optional[moxi.Program]:
     enums: dict[str, str] = {}  # maps enum values to their sort symbol
 
     for cmd in contents:
+        if cmd["command"] == "set-logic":
+            new = moxi.SetLogic(cmd["logic"])
+            program.append(new)
         if cmd["command"] == "declare-sort":
             new = moxi.DeclareSort(cmd["symbol"], int(cmd["arity"]))
             program.append(new)

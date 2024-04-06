@@ -1,0 +1,10 @@
+{
+    "script": "../translate.py",
+    "options": ["moxi", "--validate"],
+    "tests": [
+        {
+            "input": "",
+            "expected_output": ""
+        }
+    ] 
+}

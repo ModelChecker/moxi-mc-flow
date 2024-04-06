@@ -1,0 +1,29 @@
+{
+    "script": "../translate.py",
+    "options": ["btor2", "--validate", "--output", "tmp"],
+    "tests": [
+        {
+            "input": "moxi/QF_ABV/Arrays.moxi",
+            "expected_btor2": [
+                ["moxi/QF_ABV/Arrays.btor2.expect", 
+                 "tmp/ArrayExample.1/q.btor2"]
+            ]
+        },
+        {
+            "input": "moxi/QF_ABV/ConstArray.moxi",
+            "expected_btor2": [
+                ["moxi/QF_ABV/ConstArray.btor2.expect", 
+                 "tmp/ArrayExample.1/q.btor2"]
+            ]
+        },
+        {
+            "input": "moxi/QF_BV/DoubleDelayTwoCheck.moxi",
+            "expected_btor2": [
+                ["moxi/QF_BV/DoubleDelayTwoCheck.1.btor2.expect", 
+                 "tmp/DoubleDelay.1/q.qry.btor2"],
+                 ["moxi/QF_BV/DoubleDelayTwoCheck.2.btor2.expect", 
+                  "tmp/DoubleDelay.2/q.qry.btor2"]
+            ]
+        }
+    ] 
+}

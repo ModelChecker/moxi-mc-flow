@@ -9,7 +9,7 @@ from typing import NamedTuple, Optional
 OUT = sys.stdout
 ERR = sys.stderr
 
-enable_debug = False
+debug_level = 0
 enable_quiet = False
 
 
@@ -30,9 +30,9 @@ class Color(enum.Enum):
     UNDERLINE = "\033[4m"
 
 
-def set_debug() -> None:
-    global enable_debug
-    enable_debug = True
+def set_debug_level(level: int) -> None:
+    global debug_level
+    debug_level = level
 
 
 def set_quiet() -> None:
@@ -67,12 +67,12 @@ def format(
 
 
 def debug(
+    level: int,
     message: str,
     module: str,
-    submodule: Optional[str] = None,
     location: Optional[FileLocation] = None,
 ) -> None:
-    if not enable_debug or enable_quiet:
+    if level > debug_level or enable_quiet:
         return
     formatted_message = format(
         message, "DEBUG", Color.OKBLUE, module, location

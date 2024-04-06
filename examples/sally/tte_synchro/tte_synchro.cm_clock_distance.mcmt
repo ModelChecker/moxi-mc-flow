@@ -1,6 +1,0 @@
-(query T (and
-        (<= (- cm_clock!0 cm_clock!0) (* max_drift 4))
-        (<= (- cm_clock!1 cm_clock!0) (* max_drift 4))
-        (<= (- cm_clock!0 cm_clock!1) (* max_drift 4))
-        (<= (- cm_clock!1 cm_clock!1) (* max_drift 4))
-))

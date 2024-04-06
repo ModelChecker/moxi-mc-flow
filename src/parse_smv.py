@@ -48,7 +48,7 @@ class Lexer(sly.Lexer):
         SMV_FAIRNESS, SMV_JUSTICE, SMV_COMPASSION,
         SMV_PRED, SMV_MIRROR, SMV_ISA, # don't care
         SMV_CTLSPEC, SMV_SPEC, SMV_NAME, # don't care
-        SMV_LTLSPEC, SMV_INVARSPEC,
+        SMV_LTLSPEC, SMV_INVARSPEC, SMV_PANDASPEC, 
 
         # type specifiers
         SMV_INTEGER, SMV_BOOLEAN,
@@ -138,6 +138,7 @@ class Lexer(sly.Lexer):
     IDENT["NAME"] = SMV_NAME
     IDENT["INVARSPEC"] = SMV_INVARSPEC
     IDENT["LTLSPEC"] = SMV_LTLSPEC
+    IDENT["__PANDASPEC__"] = SMV_PANDASPEC # see panda.py
 
     # type specifiers
     IDENT["integer"] = SMV_INTEGER
@@ -191,7 +192,6 @@ class Lexer(sly.Lexer):
 
 class Parser(sly.Parser):
     tokens = Lexer.tokens
-
     def __init__(self, filename: str) -> None:
         super().__init__()
         self.filename = filename
@@ -306,7 +306,11 @@ class Parser(sly.Parser):
         "SMV_LTLSPEC ltl_expr",
         "SMV_LTLSPEC ltl_expr SEMICOLON",
         "SMV_LTLSPEC SMV_NAME IDENT COLONEQ ltl_expr",
-        "SMV_LTLSPEC SMV_NAME IDENT COLONEQ ltl_expr SEMICOLON"
+        "SMV_LTLSPEC SMV_NAME IDENT COLONEQ ltl_expr SEMICOLON",
+        "SMV_PANDASPEC expr",
+        "SMV_PANDASPEC expr SEMICOLON",
+        "SMV_PANDASPEC SMV_NAME IDENT COLONEQ expr",
+        "SMV_PANDASPEC SMV_NAME IDENT COLONEQ expr SEMICOLON"
     )
     def module_element(self, p):
         match p[0]:
@@ -338,6 +342,8 @@ class Parser(sly.Parser):
                 ltlspec = smv.LTLSpecDeclaration(formula=p.ltl_expr, name=f"LTLSPEC_{self.cur_formula_id}")
                 self.cur_formula_id += 1
                 return ltlspec
+            case "__PANDASPEC__":
+                return smv.PandaSpecDeclaration(formula=p.expr)
             
 
     @_(
@@ -412,7 +418,7 @@ class Parser(sly.Parser):
         "IDENT LPAREN cs_expr_list RPAREN"
     )
     def expr(self, p):
-        if len(p) == 1: # TODO: constants/whatever
+        if len(p) == 1: # constants/whatever
             return p[0]
         if len(p) == 2: # unop
             return smv.UnOp(op=p[0], arg=p[1], loc=self.loc(p))
@@ -460,6 +466,7 @@ class Parser(sly.Parser):
         return p[0]
     
     @_(
+        "ltl_prop_expr",
         "LPAREN ltl_expr RPAREN",
         "EXCLAMATION ltl_expr %prec UMINUS",
         "SMV_X ltl_expr",
@@ -475,12 +482,10 @@ class Parser(sly.Parser):
         "ltl_expr SMV_XNOR ltl_expr",
         "ltl_expr RIGHTARROW ltl_expr",
         "ltl_expr LEFTRIGHTARROW ltl_expr",
-        "ltl_expr LESSEQUAL ltl_expr",
         "ltl_expr SMV_U ltl_expr",
         "ltl_expr SMV_V ltl_expr",
         "ltl_expr SMV_S ltl_expr",
         "ltl_expr SMV_T ltl_expr",
-        "expr"
     )
     def ltl_expr(self, p):
         if len(p) == 1: 
@@ -493,6 +498,76 @@ class Parser(sly.Parser):
             return smv.BinOp(op=p[1], lhs=p[0], rhs=p[2], loc=self.loc(p)) 
         if len(p) == 4: # function call
             return smv.FunCall(name=p[0], args=p.cs_expr_list, loc=self.loc(p))
+        
+    @_(
+        "constant",
+        "complex_identifier",
+        "LPAREN ltl_prop_expr RPAREN",
+        "MINUS ltl_prop_expr %prec UMINUS",
+        "ltl_prop_expr EQUAL ltl_prop_expr",
+        "ltl_prop_expr NOTEQUAL ltl_prop_expr",
+        "ltl_prop_expr LESSTHAN ltl_prop_expr",
+        "ltl_prop_expr GREATEREQUAL ltl_prop_expr",
+        "ltl_prop_expr GREATERTHAN ltl_prop_expr",
+        "ltl_prop_expr LESSEQUAL ltl_prop_expr",
+        "ltl_prop_expr PLUS ltl_prop_expr",
+        "ltl_prop_expr MINUS ltl_prop_expr",
+        "ltl_prop_expr STAR ltl_prop_expr",
+        "ltl_prop_expr DIVIDE ltl_prop_expr",
+        "ltl_prop_expr SMV_MOD ltl_prop_expr",
+        "ltl_prop_expr LSHIFT ltl_prop_expr",
+        "ltl_prop_expr RSHIFT ltl_prop_expr",
+        "ltl_prop_expr SMV_UNION ltl_prop_expr",
+        "ltl_prop_expr SMV_IN ltl_prop_expr",
+        "IDENT LPAREN cs_expr_list RPAREN"
+    )
+    def ltl_prop_expr(self, p):
+        if len(p) == 1: # constants/whatever
+            return p[0]
+        if len(p) == 2: # unop
+            return smv.UnOp(op=p[0], arg=p[1], loc=self.loc(p))
+        if p[0] == "(":
+            return p[1]
+        if len(p) == 3: # binop
+            return smv.BinOp(op=p[1], lhs=p[0], rhs=p[2], loc=self.loc(p)) 
+        if len(p) == 4: # function call
+            return smv.FunCall(name=p[0], args=p.cs_expr_list, loc=self.loc(p))
+        
+    @_("NEXT LPAREN ltl_prop_expr RPAREN")
+    def ltl_prop_expr(self, p):
+        return smv.FunCall(name="next", args=[p[2]], loc=self.loc(p))
+    
+    @_("SMV_SIGNED LPAREN ltl_prop_expr RPAREN")
+    def ltl_prop_expr(self, p):
+        return smv.FunCall(name="signed", args=[p[2]], loc=self.loc(p))
+    
+    @_("SMV_UNSIGNED LPAREN ltl_prop_expr RPAREN")
+    def ltl_prop_expr(self, p):
+        return smv.FunCall(name="unsigned", args=[p[2]], loc=self.loc(p))
+
+    @_("ltl_prop_expr LBRACK ltl_prop_expr RBRACK")
+    def ltl_prop_expr(self, p):
+        return smv.IndexSubscript(array=p[0], index=p[2], loc=self.loc(p))
+
+    @_("ltl_prop_expr LBRACK INTEGER COLON INTEGER RBRACK")
+    def ltl_prop_expr(self, p):
+        return smv.WordBitSelection(word=p[0], high=int(p[2]), low=int(p[4]), loc=self.loc(p))
+
+    @_("ltl_prop_expr CONCAT ltl_prop_expr")
+    def ltl_prop_expr(self, p):
+        return smv.BinOp(op="concat", lhs=p[0], rhs=p[2], loc=self.loc(p))
+    
+    @_("LBRACE cs_expr_list RBRACE")
+    def ltl_prop_expr(self, p):
+        return smv.SetBodyExpression(members=p.cs_expr_list, loc=self.loc(p))
+    
+    @_("ltl_prop_expr QUESTIONMARK ltl_prop_expr COLON ltl_prop_expr")
+    def ltl_prop_expr(self, p):
+        return smv.Ternary(cond=p[0], then_expr=p[2], else_expr=p[4], loc=self.loc(p))
+    
+    @_("case_expr")
+    def ltl_prop_expr(self, p):
+        return p[0]
     
     @_("SMV_CASE case_body SMV_ESAC")
     def case_expr(self, p):
@@ -678,7 +753,7 @@ class Parser(sly.Parser):
 def parse(input_path: pathlib.Path, do_cpp: bool) -> Optional[smv.Program]:
     content = preprocess_smv.preprocess(input_path, do_cpp)
 
-    log.debug(f"Parsing {input_path}", FILE_NAME)
+    log.debug(2, f"Parsing {input_path}", FILE_NAME)
 
     lexer = Lexer(input_path.name)
     parser = Parser(input_path.name)

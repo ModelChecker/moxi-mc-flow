@@ -1,2 +1,0 @@
-- `examples/smv/nuxmv-examples/invgen/QF_BV/heapsort1.c.smv`: This file has an actual type check error on line 30, `__expr12` is signed and the constant is unsigned.
-- `examples/smv/nuxmv-examples/invgen/QF_BV/id_trans.c.smv`: This file has an actual type check error on line 31, `__expr12` is signed and `nlen__5$main` is unsigned.

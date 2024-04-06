@@ -484,7 +484,7 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
 def write_btor2_program_set(
     program_set: BtorProgramSet, output_path: Path, do_pickle: bool
 ) -> bool:
-    util.cleandir(output_path)
+    util.cleandir(output_path, quiet=False)
 
     program_index: dict[str, int] = {}
     for symbol, programs in program_set:

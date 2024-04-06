@@ -35,7 +35,7 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
         log.error(proc.stderr.decode("utf-8"), FILE_NAME)
         return FAIL
 
-    log.info(proc.stdout.decode("utf-8")[:-1], FILE_NAME)
+    log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
     return PASS
 
 
@@ -46,7 +46,7 @@ def run_catbtor(src_path: pathlib.Path) -> int:
         log.error(proc.stderr.decode("utf-8"), FILE_NAME)
         return FAIL
 
-    log.info(proc.stdout.decode("utf-8")[:-1], FILE_NAME)
+    log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
     return PASS
 
 
@@ -99,9 +99,7 @@ def main(
             if not btor2_program_set:
                 return FAIL
 
-            btor.write_btor2_program_set(
-                btor2_program_set, output_path, do_pickle
-            )
+            btor.write_btor2_program_set(btor2_program_set, output_path, do_pickle)
 
             if keep:
                 with open(str(keep), "w") as f:
@@ -110,9 +108,7 @@ def main(
             if moxi2json.main(input_path, output_path, False, False):
                 return FAIL
         case (".moxi", "btor2"):
-            if moxi2btor.translate_file(
-                input_path, output_path, int_width, do_pickle
-            ):
+            if moxi2btor.translate_file(input_path, output_path, int_width, do_pickle):
                 return FAIL
         case (".json", "moxi"):
             if json2moxi.main(input_path, output_path, False, False, int_width):
@@ -123,9 +119,7 @@ def main(
             if json2moxi.main(input_path, moxi_path, False, False, int_width):
                 return FAIL
 
-            if moxi2btor.translate_file(
-                moxi_path, output_path, int_width, do_pickle
-            ):
+            if moxi2btor.translate_file(moxi_path, output_path, int_width, do_pickle):
                 return FAIL
 
             if keep:
@@ -149,7 +143,7 @@ def main(
 
             if any(retcodes):
                 return 1
-            
+
     return 0
 
 
@@ -188,16 +182,22 @@ if __name__ == "__main__":
         type=int,
         help="bit width to translate Int types to when translating to BTOR2",
     )
-    parser.add_argument("--debug", action="store_true", help="output debug messages")
     parser.add_argument("--quiet", action="store_true", help="disable output")
     parser.add_argument(
         "--profile", action="store_true", help="runs using cProfile if true"
     )
+    parser.add_argument(
+        "--debug",
+        nargs="?",
+        default=0,
+        const=1,
+        type=int,
+        help="set debug level (0=none, 1=basic, 2=extra)",
+    )
 
     args = parser.parse_args()
 
-    if args.debug:
-        log.set_debug()
+    log.set_debug_level(args.debug)
 
     if args.quiet:
         log.set_quiet()

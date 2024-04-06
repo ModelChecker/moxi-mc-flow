@@ -8,7 +8,7 @@ from src import log, parse_smv, smv
 FILE_NAME = pathlib.Path(__file__).name
 
 PARENT_PATH = pathlib.Path(__file__).parent
-PANDA_PATH = PARENT_PATH.parent / "PANDA" / "PANDAcore" / "PANDA"
+PANDA_PATH = PARENT_PATH / "PANDA" / "PANDAcore" / "PANDA"
 FORMULA_PATH = PARENT_PATH / "__tmp__"
 PANDA_OUTPUT_PATH = PARENT_PATH / "__tmp__.smv"
 
@@ -16,6 +16,7 @@ PANDA_OUTPUT_PATH = PARENT_PATH / "__tmp__.smv"
 def map_propositions(
     formula: smv.Expr, context: smv.Context
 ) -> dict[smv.LTLProposition, str]:
+    """Returns a mapping of each LTL proposition in `formula` (ex: `i = 4`, `i + j < 5`) to a symbol that's used in the input to PANDA. This is necessary since PANDA only handles boolean variables."""
     prop = {}
 
     cnt = 0
@@ -32,6 +33,7 @@ def map_propositions(
 def modify_ltl_formula(
     formula: smv.Expr, context: smv.Context, props: dict[smv.LTLProposition, str]
 ) -> None:
+    """Removes all smv.LTLProposition nodes from `formula`."""
     for expr in smv.postorder(formula, context, True):
         if isinstance(expr, smv.UnOp) and isinstance(expr.arg, smv.LTLProposition):
             expr.arg = smv.Identifier(props[expr.arg])
@@ -44,30 +46,28 @@ def modify_ltl_formula(
 
 
 def process_panda_output(content: str, props: set[str], formula_name: str) -> str:
+    """Replaces the SPEC at the end of the PANDA output from:
+        `SPEC f & EG TRUE`
+    to:
+        `__PANDASPEC__ f`
+    """
     new = content
 
-    new = re.sub(r"SPEC", "JUSTICE TRUE\n\nINVARSPEC", new)
+    new = re.sub(r"SPEC", "JUSTICE TRUE\n\n__PANDASPEC__", new)
     new = re.sub(r"& EG TRUE", "", new)
-
-    param_list = ",".join([p for p in props])
-    new = re.sub(r"main", f"{formula_name}({param_list})", new)  # TODO: label
-
-    # remove declared propositions -- we changed these to parameters
-    new = re.sub(r"VAR.*(?=VAR\s)", "", new, count=1, flags=re.DOTALL)
 
     return new
 
 
 def run_panda(props: set[str], formula_name: str) -> Optional[smv.ModuleDeclaration]:
+    """Runs PANDA on the file at `FORMULA_PATH` to generate an SMV-encoded automata of that LTL formula, then processes, parses, and returns the SMV output."""
     command = [str(PANDA_PATH), "-n", str(FORMULA_PATH)]
-    print(" ".join(command))
+    log.debug(2, " ".join(command), FILE_NAME)
     proc = subprocess.run(command, capture_output=True)
 
     panda_output = proc.stdout.decode()
 
     processed_output = process_panda_output(panda_output, props, formula_name)
-
-    print(processed_output)
 
     with open(PANDA_OUTPUT_PATH, "w") as f:
         f.write(processed_output)
@@ -81,15 +81,13 @@ def run_panda(props: set[str], formula_name: str) -> Optional[smv.ModuleDeclarat
     return result.modules[0]
 
 
-def unmap_propositions():
-    pass
-
-
-def get_ltlspec_modules(
+def handle_ltlspecs(
     module: smv.ModuleDeclaration, context: smv.Context
-) -> list[smv.ModuleDeclaration]:
-    ltl_modules = []
-
+) -> None:
+    """For every LTLSPEC in `module`, runs PANDA on that spec and composes the output SMV module with `module`. The result is an SMV module with a `__PANDASPEC__` property that holds if the corresponding LTLSPEC in the original module holds. 
+    
+    We have to use a custom `__PANDASPEC__` property instead of a SPEC/CTLSPEC since we don't support SPEC/CTLSPEC generally. So, to keep that functionality separate/open-ended, we introduce __PANDASPEC__ as an INVARSPEC that also considers FAIRNESS/JUSTICE properties, since the __PANDASPEC__ will always be a property of the form AG !f.
+    """
     for ltlspec in [
         e for e in module.elements if isinstance(e, smv.LTLSpecDeclaration)
     ]:
@@ -101,26 +99,15 @@ def get_ltlspec_modules(
 
         ltl_module = run_panda(set(props.values()), ltlspec.name)
         if ltl_module:
-            context.init_module(ltl_module)
-            ltl_modules.append(ltl_module)
+            [module.elements.append(el) for el in ltl_module.elements]
 
-        new_var_decl = smv.VarDeclaration([], "VAR")
-        for name in props.values():
-            new_var_decl.var_list.append((smv.Identifier(name), smv.Boolean()))
-
-        new_var_decl.var_list.append(
-            (
-                smv.Identifier("__" + ltlspec.name),
-                smv.ModuleType(ltlspec.name, [p for p, _ in new_var_decl.var_list]),
+        for prop,name in props.items():
+            module.elements.append(
+                smv.InvarDeclaration(smv.BinOp("=", smv.Identifier(name), prop.expr))
             )
-        )
-
-        module.elements.append(new_var_decl)
 
     # clean up temporary files
     if FORMULA_PATH.exists():
         FORMULA_PATH.unlink()
     if PANDA_OUTPUT_PATH.exists():
         PANDA_OUTPUT_PATH.unlink()
-
-    return ltl_modules

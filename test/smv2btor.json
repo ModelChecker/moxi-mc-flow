@@ -1,0 +1,10 @@
+{
+    "script": "translate",
+    "options": ["btor2", "--validate"],
+    "tests": [
+        {
+            "input": "",
+            "expected_output": ""
+        }
+    ] 
+}

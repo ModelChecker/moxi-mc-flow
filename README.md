@@ -2,6 +2,15 @@
 
 Repository for python translators from SMV to MoXI to BTOR2 and their witnesses. 
 
+# Notes
+ 
+AVR witnesses do not adhere to BTORT2 witness format, esp. for arrays. Run 
+
+`python modelcheck.py examples/smv/nuxmv/vis/arrays/FIFOs.smv avr --quiet`
+
+to see this, there are hyphens in the array definitions. Basically, we don't support avr witness
+translation for files with arrays.
+
 ## Translation
 To translate, use the `translate.py` script. For example:
 

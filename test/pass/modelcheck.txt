@@ -1,3 +1,0 @@
-../examples/mcil/ThreeBitCounter.mcil
-../examples/mcil/NonDetArbiter.mcil
-../examples/mcil/Delay.mcil

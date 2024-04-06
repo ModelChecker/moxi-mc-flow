@@ -1,0 +1,48 @@
+1 sort bitvec 8
+2 sort bitvec 1
+3 state 1 t.init
+4 state 1 t.cur
+5 state 1 t.next
+6 state 1 DoubleDelay::A::s.init
+7 state 1 DoubleDelay::A::s.cur
+8 state 1 DoubleDelay::A::s.next
+9 state 1 i.cur
+10 state 1 i.next
+11 state 1 o.init
+12 state 1 o.cur
+13 state 1 o.next
+14 state 1 DoubleDelay::B::s.init
+15 state 1 DoubleDelay::B::s.cur
+16 state 1 DoubleDelay::B::s.next
+17 init 1 4 3
+18 init 1 7 6
+19 init 1 12 11
+20 init 1 15 14
+21 next 1 4 5
+22 next 1 7 8
+23 next 1 9 10
+24 next 1 12 13
+25 next 1 15 16
+26 constd 1 0
+27 eq 2 3 26
+28 constraint 27 ; init DoubleDelay::A
+29 eq 2 5 7
+30 constraint 29 ; trans DoubleDelay::A
+31 eq 2 7 9
+32 constraint 31 ; inv DoubleDelay::A
+33 eq 2 11 26
+34 constraint 33 ; init DoubleDelay::B
+35 eq 2 13 15
+36 constraint 35 ; trans DoubleDelay::B
+37 eq 2 15 4
+38 constraint 37 ; inv DoubleDelay::B
+39 constd 2 1
+40 constraint 39 ; init DoubleDelay
+41 constd 2 0
+42 constd 1 2
+43 eq 2 12 42
+44 state 2 rch2__FLAG__
+45 init 2 44 41
+46 ite 2 44 39 43
+47 next 2 44 46
+48 bad 44

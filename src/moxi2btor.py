@@ -698,7 +698,7 @@ def to_btor2_check_system(
             check, query, context, sort_map, var_map, expr_map
         )
 
-        log.debug("Reducing BTOR2 program", FILE_NAME)
+        log.debug(2, "Reducing BTOR2 program", FILE_NAME)
         reduced_btor2_prog = btor.assign_nids(btor2_prog)
 
         btor2_programs[query_symbol] = btor.BtorProgram(reduced_btor2_prog)
@@ -725,7 +725,7 @@ def translate(
     if not well_sorted:
         log.error("Failed sort check", FILE_NAME)
         return None
-    log.debug("Translating to BTOR2", FILE_NAME)
+    log.debug(2, "Translating to BTOR2", FILE_NAME)
 
     # BTOR2 only supports bit vectors and their operations and
     # does not support functions, so we force all other types to

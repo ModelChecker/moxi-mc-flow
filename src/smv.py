@@ -118,7 +118,7 @@ class Enumeration(Type):
         )
 
     def __repr__(self) -> str:
-        return f"enum({','.join({str(s) for s in self.summands})})"
+        return f"enum({','.join({str(s) for s in sorted(self.summands)})})"
 
 
 class Array(Type):
@@ -405,15 +405,16 @@ class ComplexIdentifier(Expr):
 class Identifier(ComplexIdentifier):
     def __init__(self, ident: str, loc: Optional[log.FileLocation] = None):
         super().__init__(ident, loc)
+        self.in_next_expr = False
 
     def __repr__(self) -> str:
         return f"{self.ident}"
 
     def __eq__(self, __o: object) -> bool:
-        return type(__o) == Identifier and __o.ident == self.ident
+        return type(__o) == Identifier and __o.ident == self.ident and self.in_next_expr == __o.in_next_expr
 
     def __hash__(self) -> int:
-        return hash(self.ident)
+        return hash((self.ident, self.in_next_expr))
 
 
 class ModuleAccess(ComplexIdentifier):
@@ -633,6 +634,14 @@ class LTLSpecDeclaration(ModuleElement):
         return f"LTLSPEC {self.formula}"
 
 
+class PandaSpecDeclaration(ModuleElement):
+    def __init__(self, formula: Expr):
+        self.formula = formula
+
+    def __repr__(self) -> str:
+        return f"__PANDASPEC__ {self.formula}"
+
+
 # module elements -------------------------
 
 
@@ -678,10 +687,11 @@ class Context:
         self.init: list[Expr] = []
         self.invar: list[Expr] = []
         self.trans: list[Expr] = []
-        self.invarspecs: list[Expr] = []
 
         # enum1: {s1, s2, s3}; enum2: {t1, t2} --> [[s1, s2, s3], [t1, t2]] (assume they're unique)
         self.enums: dict[str, Enumeration] = {}
+        self.declared_enums: set[str] = set()
+
         # {s1 |-> enum1, s2 |-> enum1, s3 |-> enum1, t1 |-> enum2, t2 |-> enum2} (populated in translation)
         self.reverse_enums: dict[str, list[str]] = {}
 
@@ -765,6 +775,10 @@ def postorder(expr: Expr, context: Context, traverse_defs: bool):
 
         if seen:
             yield cur
+
+            if isinstance(cur, FunCall) and cur.name == "next":
+                context.in_next_expr = False
+
             continue
         elif id(cur) in visited:
             continue
@@ -778,6 +792,8 @@ def postorder(expr: Expr, context: Context, traverse_defs: bool):
             ) if traverse_defs and ident in context.get_cur_defs():
                 stack.append((False, context.get_cur_defs()[ident]))
             case FunCall(args=args):
+                if cur.name == "next":
+                    context.in_next_expr = True
                 [stack.append((False, arg)) for arg in args]
             case UnOp(arg=arg):
                 stack.append((False, arg))
@@ -1190,6 +1206,8 @@ def type_check_expr(
                 # print(f"{context.module_params[cur_module.name]}, {expr.ident}")
                 # print(expr.ident in context.module_params[cur_module.name])
 
+                expr.in_next_expr = context.in_next_expr
+
                 if ident in context.vars[cur_module.name]:
                     expr.type = context.vars[cur_module.name][ident]
                 elif ident in context.defs[cur_module.name]:
@@ -1241,7 +1259,7 @@ def type_check_expr(
 
 
 def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
-    log.debug(f"Type checking module '{module.name}'", FILE_NAME)
+    log.debug(2, f"Type checking module '{module.name}'", FILE_NAME)
 
     status = True
 
@@ -1251,6 +1269,9 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
 
     context.vars[module.name] = {}
     context.defs[module.name] = {}
+
+    if module.name not in context.module_params:
+        context.module_params[module.name] = {}
 
     # Forward references are allowed....ugh
     # First we go thru each element of the module and collect every declared variable/define
@@ -1270,8 +1291,12 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
                             )
                             status = False
 
+                        if repr(smv_type) in context.declared_enums:
+                            continue
+
                         new_sym: str = fresh_symbol("enum")
                         context.enums[new_sym] = smv_type
+                        context.declared_enums.add(repr(smv_type))
 
                         set_list: list[str | int] = list(smv_type.summands)
                         str_set_list: list[str] = [str(s) for s in set_list]
@@ -1293,7 +1318,7 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
             for var_name, smv_type in var_decl.var_list
             if isinstance(smv_type, ModuleType)
         ]:
-            log.debug(
+            log.debug(2, 
                 f"Module instantiation of '{smv_type.module_name}' ({var_name})",
                 FILE_NAME,
             )
@@ -1329,7 +1354,7 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
                 status = status and type_check_module(target_module, context)
                 context.cur_module = module
 
-                log.debug(f"Done with module '{target_module.name}'", FILE_NAME)
+                log.debug(2, f"Done with module '{target_module.name}'", FILE_NAME)
 
                 continue
 
@@ -1362,7 +1387,7 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
                 for define in reversed(define_list):
                     # TODO: is the check below helpful?
                     if define.expr.type == AnyType():
-                        log.debug(f"Type checking DEFINE {define.name}", FILE_NAME)
+                        log.debug(2, f"Type checking DEFINE {define.name}", FILE_NAME)
                         status = status and type_check_expr(
                             define.expr, context, module
                         )
@@ -1378,11 +1403,14 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
             case InvarDeclaration(formula=formula):
                 status = status and type_check_expr(formula, context, module)
                 context.invar.append(formula)
+            case JusticeDeclaration(formula=formula):
+                status = status and type_check_expr(formula, context, module)
             case InvarspecDeclaration(formula=formula):
                 status = status and type_check_expr(formula, context, module)
-                context.invarspecs.append(formula)
             case LTLSpecDeclaration(formula=formula):
-                log.debug(f"Typing checking {formula}", FILE_NAME)
+                log.debug(2, f"Typing checking {formula}", FILE_NAME)
+                status = status and type_check_expr(formula, context, module)
+            case PandaSpecDeclaration(formula=formula):
                 status = status and type_check_expr(formula, context, module)
             case _:
                 pass
