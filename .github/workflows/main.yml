@@ -10,11 +10,11 @@ jobs:
         python-version: "3.11"
     - name: Install dependencies
       run: |
-        git clone git@github.com:aman-goel/avr.git
+        git clone https://github.com/aman-goel/avr.git
         cd avr
         git checkout hwmcc20
         cd ../
-        git clone git@github.com:Boolector/btor2tools.git
+        git clone https://github.com/Boolector/btor2tools.git
         cd btor2tools
         ./configure.sh
         cd build
