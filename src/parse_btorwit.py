@@ -8,7 +8,7 @@ class Lexer(sly.Lexer):
 
     tokens = { NEWLINE, NUMBER, SYMBOL, LBRACK, RBRACK, STAR,
                STATE_HEADER, INPUT_HEADER, BAD_PROP, JUSTICE_PROP, 
-               RW_DOT, RW_SAT }
+               RW_DOT, RW_SAT, RW_UNSAT }
 
     # String containing ignored characters between tokens
     ignore = r" "
@@ -34,6 +34,7 @@ class Lexer(sly.Lexer):
     # Reserved keywords
     SYMBOL["."] = RW_DOT
     SYMBOL["sat"] = RW_SAT
+    SYMBOL["unsat"] = RW_SAT
 
     # Extra action for newlines
     def NEWLINE(self, t):

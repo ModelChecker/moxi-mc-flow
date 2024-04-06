@@ -11,7 +11,7 @@ from src import btorwit2moxiwit, moxiwit2nuxmvwit, util, log
 
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
-WORK_DIR = FILE_DIR / "__workdir__"
+WORK_DIR = FILE_DIR / f"__workdir__.{os.getpid()}"
 
 btormc_path = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
 avr_path = FILE_DIR / "avr"
@@ -140,6 +140,7 @@ def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax:
 
     return 0
 
+
 def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, kind: bool) -> int:
     log.debug(1, f"Running pono over {btor_path}", FILE_NAME)
     # label = btor_path.stem
@@ -165,15 +166,17 @@ def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kma
 
     btor_witness_bytes = proc.stdout
     btor_witness_path = btor_path.with_suffix(".btor2.cex")
-    with open(btor_witness_path, "wb") as f:
-        f.write(btor_witness_bytes)
 
     if btor_witness_bytes.startswith(b'sat'):
         print("sat")
+        with open(btor_witness_path, "wb") as f:
+            f.write(btor_witness_bytes)
     elif btor_witness_bytes.startswith(b'unsat'):
         print("unsat")
+        btor_witness_path.touch()
     else:
         print("unknown")
+        btor_witness_path.touch()
 
     return 0
 
@@ -200,8 +203,8 @@ def model_check(
         log.error(f"Source is not a file ({input_path})", FILE_NAME)
         return 1
     
-    util.rm(output_path)
-    util.cleandir(WORK_DIR)
+    util.rm(output_path, quiet=False)
+    util.cleandir(WORK_DIR, quiet=True)
 
     src_path = WORK_DIR / input_path.name
     btor2_output_path = WORK_DIR / "btor2" 
@@ -302,7 +305,7 @@ def model_check(
         witness_path.replace(output_path)
         log.debug(1, f"Wrote witness to {output_path}", FILE_NAME)
 
-    util.rm(WORK_DIR)
+    util.rm(WORK_DIR, quiet=True)
 
     return 0
 

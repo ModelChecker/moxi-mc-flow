@@ -405,15 +405,16 @@ class ComplexIdentifier(Expr):
 class Identifier(ComplexIdentifier):
     def __init__(self, ident: str, loc: Optional[log.FileLocation] = None):
         super().__init__(ident, loc)
+        self.in_next_expr = False
 
     def __repr__(self) -> str:
         return f"{self.ident}"
 
     def __eq__(self, __o: object) -> bool:
-        return type(__o) == Identifier and __o.ident == self.ident
+        return type(__o) == Identifier and __o.ident == self.ident and self.in_next_expr == __o.in_next_expr
 
     def __hash__(self) -> int:
-        return hash(self.ident)
+        return hash((self.ident, self.in_next_expr))
 
 
 class ModuleAccess(ComplexIdentifier):
@@ -1204,6 +1205,8 @@ def type_check_expr(
             case Identifier(ident=ident):
                 # print(f"{context.module_params[cur_module.name]}, {expr.ident}")
                 # print(expr.ident in context.module_params[cur_module.name])
+
+                expr.in_next_expr = context.in_next_expr
 
                 if ident in context.vars[cur_module.name]:
                     expr.type = context.vars[cur_module.name][ident]

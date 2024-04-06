@@ -15,6 +15,15 @@ make
 popd
 popd
 
+# btor2tools
+git clone git@github.com:Boolector/btor2tools.git
+pushd btor2tools
+./configure.sh
+pushd build
+make
+popd
+popd
+
 # Pono (CAV artifact)
 # wget https://figshare.com/ndownloader/files/28213749
 # tar -xvf 28213749
@@ -23,3 +32,15 @@ popd
 # docker build --no-cache -t pono-artifact ./docker
 # popd
 
+# make sure to run on Ubuntu
+# sudo apt-get install libgmp-dev default-jre
+# git clone https://github.com/stanford-centaur/pono.git
+# cd pono
+# git checkout hwmcc2020
+# ./contrib/setup-bison.sh 
+# ./contrib/setup-smt-switch.sh # install gmp and JRE
+# ./contrib/setup-btor2tools.sh
+# sed -i '199,203 s/^/#/' CMakeLists.txt
+# ./configure.sh
+# cd build
+# make

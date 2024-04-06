@@ -2466,7 +2466,7 @@ def to_qfbv(program: Program, int_width: int):
             command.logic = "QF_ABV"
         if isinstance(command, DefineSort):
             # FIXME: Need to check for any Int parameters of the definition
-            raise NotImplementedError
+            pass
         elif isinstance(command, DeclareConst) and command.sort.symbol in SORT_MAP:
             command.sort = SORT_MAP[command.sort.symbol]
         elif isinstance(command, DeclareFun):
