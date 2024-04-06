@@ -1,0 +1,26 @@
+on: push
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+    - name: Install dependencies
+      run: |
+        git clone git@github.com:aman-goel/avr.git
+        cd avr
+        git checkout hwmcc20
+        cd ../
+        git clone git@github.com:Boolector/btor2tools.git
+        cd btor2tools
+        ./configure.sh
+        cd build
+        make
+        cd ../
+    - name: mc-moxi
+      run: |
+        cd test/
+        python3 test.py mc-moxi
