@@ -1,7 +1,7 @@
 {
     "script": "../modelcheck.py",
     "options": [
-        "avr", "--quiet", "--no-witness"
+        "avr", "--no-witness"
     ],
     "tests": [
         {
