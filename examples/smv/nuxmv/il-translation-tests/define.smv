@@ -1,4 +1,25 @@
+--- Exercises the various facets of nuXmv's DEFINE and FUN constructs
 MODULE main
+--- DEFINE constructs correspond to MoXI let-bindings
 DEFINE
-var1 := expr1
-var2 := expr2
+    CONJ := a & b ;
+    DISJ := a | b ;
+    XOR := a xor b ;
+VAR
+    a : boolean ; b : boolean ;
+INIT
+    CONJ = FALSE
+TRANS
+    DISJ = TRUE
+INVAR
+    XOR = TRUE
+--- FUN constructs translate to `declare-fun` constructs in MoXI
+FUN
+    foo : boolean -> boolean
+    into : boolean -> word[1]
+    out : word[1] -> boolean
+VAR
+    b2 : boolean ;
+    w : word[1] ;
+INVAR
+    into(out(w)) = w & out(into(b2)) = b2

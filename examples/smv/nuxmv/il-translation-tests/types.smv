@@ -1,0 +1,32 @@
+--- This exercises the various nuXmv types available to the translator.
+
+MODULE main
+--- Booleans
+VAR
+    bool_ty1 : boolean ; bool_ty2 : boolean ;
+INVAR
+    bool_ty1 = FALSE & bool_ty2 = TRUE ;
+
+--- Enumeration types
+VAR
+    c : {RED, GREEN, BLUE} ; 
+
+INVAR   
+    c = RED | c = GREEN | c = BLUE
+
+--- Words
+VAR
+    b_w1 : unsigned word[32] ; b_w2 : signed word[32] ;
+    d_w1 : unsigned word[32] ; d_w2 : signed word[32] ;
+INIT
+    b_w1 = 0ub32_1431655765 & b_w2 = 0sb32_2863311530 &
+    d_w1 = 0ud32_12345 & d_w2 = 0sd32_54321 ; -- coerce ints into BVs
+
+--- Ranges
+VAR
+    r1 : 1 .. 10;
+    r2 : 1 .. 5;
+INIT
+    r1 = 1 & r2 = 4
+
+--- Function types (in define.smv)

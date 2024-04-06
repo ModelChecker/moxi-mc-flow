@@ -523,7 +523,7 @@ class Parser(sly.Parser):
 
     @_("IDENT COLON function_domain RIGHTARROW type_specifier")
     def function_declaration(self, p):
-        return smv.Function(name=p[0], type=(p.function_domain, p.type_specifier), loc=self.loc(p))
+        return smv.Function(name=p[0], type=(p.function_domain, p.type_specifier))
     
     @_("function_domain STAR type_specifier", "type_specifier")
     def function_domain(self, p):

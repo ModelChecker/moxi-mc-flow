@@ -1,5 +1,0 @@
-MODULE main
-FAIRNESS
-constraint1 ;
-constraint2 ;
-constraint3 & constraint4 ;

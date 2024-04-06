@@ -218,7 +218,7 @@ def translate_expr(
                     # Skip over any module variables that come up in traversal
                     # These are all module accesses -- relevant for type checking but not here
                     pass
-                elif ident in context.vars[module.name]:
+                elif module.name in context.vars and ident in context.vars[module.name]:
                     # print(f"{ident}: var case")
                     expr_map[expr] = moxi.Variable(
                         sort=translate_type(context.vars[module.name][ident], context),
@@ -231,7 +231,7 @@ def translate_expr(
                         sort=moxi.Sort.Enum(context.reverse_enums[ident][0]),
                         value=ident,
                     )
-                elif expr.ident in context.module_params[module.name]:
+                elif module.name in context.module_params and expr.ident in context.module_params[module.name]:
                     # print(f"{ident}: param case")
                     ttype = translate_type(
                         context.module_params[module.name][expr.ident], context
@@ -587,10 +587,10 @@ def gather_local(
                     result.append((var_name.ident + "." + var_symbol, var_sort))
                     context.module_locals[var_name.ident].append(local_var)
 
-    for ltlspec in [
-        e for e in smv_module.elements if isinstance(e, smv.LTLSpecDeclaration)
-    ]:
-        pass
+    # for ltlspec in [
+    #     e for e in smv_module.elements if isinstance(e, smv.LTLSpecDeclaration)
+    # ]:
+    #     pass
 
     return result
 
@@ -655,7 +655,7 @@ def specialize_vars_in_expr(module_name: str, expr: moxi.Expr) -> moxi.Expr:
         case moxi.Variable():
             return specialize_variable(module_name, expr)
         case moxi.Apply(sort=sort, identifier=identifier, children=children):
-            schildren = []
+            schildren : list[moxi.Expr] = []
             for child in children:
                 schildren.append(specialize_vars_in_expr(module_name, child))
             return moxi.Apply(sort=sort, identifier=identifier, children=schildren)
@@ -1023,7 +1023,7 @@ def gather_invarspecs(
 def translate_module(
     smv_module: smv.ModuleDeclaration, context: smv.Context
 ) -> list[moxi.Command]:
-    commands = []
+    commands : list[moxi.Command] = []
 
     module_name = smv_module.name
 
@@ -1133,6 +1133,18 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
         moxi.DeclareEnumSort(symbol, [str(s) for s in enum.summands])
         for symbol, enum in context.enums.items()
         if enum.is_symbolic()
+    ]
+
+    commands += [
+        moxi.DeclareConst(symbol=symbol, sort=translate_type(smv.SymbolicConstant(symbol=symbol), smv_context=context))
+        for symbol in context.constants
+    ]
+
+    commands += [
+        moxi.DeclareFun(symbol=symbol, 
+                        inputs=[translate_type(t, context) for t in type[0]], 
+                        output=translate_type(type[1], context))
+        for symbol, type in context.functions.items()
     ]
 
     for module in context.get_module_dep_order(smv_program.main):

@@ -679,6 +679,7 @@ class Context:
         self.invar: list[Expr] = []
         self.trans: list[Expr] = []
         self.invarspecs: list[Expr] = []
+        self.functions : dict[str, tuple[list[Type], Type]] = {}
 
         # enum1: {s1, s2, s3}; enum2: {t1, t2} --> [[s1, s2, s3], [t1, t2]] (assume they're unique)
         self.enums: dict[str, Enumeration] = {}
@@ -731,7 +732,7 @@ class Context:
     def get_module_dep_order(self, main: ModuleDeclaration) -> list[ModuleDeclaration]:
         stack: list[tuple[bool, ModuleDeclaration]] = []
         visited: set[ModuleDeclaration] = set()
-        dep_order = collections.deque()
+        dep_order : collections.deque[ModuleDeclaration] = collections.deque()
 
         stack.append((False, main))
 
@@ -962,7 +963,13 @@ def type_check_expr(
 
                 expr.type = const_type.type
             case FunCall(name=name, args=args):
-                return error(f"Unsupported function {name}", expr)
+                if name not in context.functions:
+                    return error(f"Unsupported function {name}", expr)
+                else:
+                    dom, rng = context.functions[name]
+                    for (arg, ty) in zip(args, dom):
+                        arg.type = ty
+                    expr.type = rng
             case UnOp(op=op, arg=arg):
                 if isinstance(arg.type, (Real, Clock)):
                     return error(
@@ -1194,7 +1201,7 @@ def type_check_expr(
                     expr.type = context.vars[cur_module.name][ident]
                 elif ident in context.defs[cur_module.name]:
                     expr.type = context.defs[cur_module.name][ident].type
-                elif expr.ident in context.module_params[cur_module.name]:
+                elif cur_module.name in context.module_params and expr.ident in context.module_params[cur_module.name]:
                     expr.type = context.module_params[cur_module.name][expr.ident]
                 else:
                     # TODO:
@@ -1366,6 +1373,9 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
                         status = status and type_check_expr(
                             define.expr, context, module
                         )
+            case FunctionDeclaration(function_list=function_list):
+                for function in function_list:
+                    context.functions[function.name] = function.type
             case AssignDeclaration(assign_list=assign_list):
                 for assign in assign_list:
                     status = status and type_check_expr(assign.rhs, context, module)

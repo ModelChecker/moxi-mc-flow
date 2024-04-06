@@ -1,5 +1,22 @@
+--- Exercises the various facets of nuXmv's ASSIGN construct
+--- Follows nuXmv semantics (Section 2.3.9)
+--- That is, ASSIGN declarations can be equivalently expressed as INIT/TRANS/INVAR as follows:
+----- `ASSIGN init(a) := exp` is equivalent to `INIT a = exp`
+----- `ASSIGN next(a) := exp` is equivalent to `TRANS next(a) = exp`
+----- `ASSIGN a := exp`       is equivalent to `INVAR a = exp`
+
 MODULE main
+VAR 
+    foo11 : boolean; foo21 : boolean; foo31 : boolean;
+    bar11 : boolean; bar21 : boolean; bar31 : boolean;
+
+    foo12 : boolean; foo22 : boolean; foo32 : boolean;
+    bar12 : boolean; bar22 : boolean; bar32 : boolean;
 ASSIGN
-init(foo1) := bar1 ;
-next(foo2) := bar2 ;
-foo3 := bar3 ;
+init(foo11) := bar11 ;
+next(foo21) := bar21 ;
+foo3 := bar31 ;
+
+INIT foo12 = bar12
+TRANS next(foo22) = bar22
+INVAR foo32 = bar32
