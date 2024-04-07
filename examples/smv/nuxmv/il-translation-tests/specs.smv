@@ -1,0 +1,10 @@
+--- Example demonstrating nuXmv spec translation
+MODULE main
+VAR
+    invar : boolean; fairness : boolean; justice : boolean;
+INVARSPEC
+    invar
+FAIRNESS
+    fairness
+JUSTICE
+    justice

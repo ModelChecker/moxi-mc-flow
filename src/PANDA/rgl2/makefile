@@ -60,8 +60,8 @@ opt: CFLAGS := $(CFLAGS) -O6 -DNDEBUG
 opt: all 
 
 depend:
-	cd src; makedepend -pobjs/ -- -DNDEBUG -I/usr/include/ -I/usr/lib/gcc-lib/i586-suse-linux/3.3.5/include -I/usr/lib/gcc/i586-suse-linux/4.1.2/include -I/usr/include/linux $(INCLUDES:%=-I$(PWD)/%) \
-$(CXXINCLUDES:%=-I$(PWD)/%) -- -f ../makefile.deps $(CFILES) $(CPPFILES)
+	mkdir -p objs/; cd src; makedepend -pobjs/ -- -DNDEBUG -I/usr/lib/gcc/x86_64-linux-gnu/9/include/ $(INCLUDES:%=-I$(PWD)/%) \
+	$(CXXINCLUDES:%=-I$(PWD)/%) -- -f ../makefile.deps $(CFILES) $(CPPFILES)
 
 #doc:
 #	doxygen rgl.dox

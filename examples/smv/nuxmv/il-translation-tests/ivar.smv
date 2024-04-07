@@ -1,6 +1,0 @@
-MODULE main
-IVAR
-x : boolean;
-y : boolean;
-z : integer;
-w : word[32];

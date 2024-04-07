@@ -1,6 +1,0 @@
-MODULE main
-FUN
-foo : integer -> integer ;
-bar : boolean -> boolean ;
-foo2 : integer * integer -> boolean ;
-bar2 : boolean * boolean -> boolean ;

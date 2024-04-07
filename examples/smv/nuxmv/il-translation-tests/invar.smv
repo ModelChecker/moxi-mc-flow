@@ -1,3 +1,0 @@
-MODULE main
-INVAR
-constraint1 & constraint2 & constraint3 ;

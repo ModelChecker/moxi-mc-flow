@@ -5,33 +5,26 @@ from src import log, moxi, panda, parse_smv, smv
 
 FILE_NAME = pathlib.Path(__file__).name
 
-# TODO: Simplify expression handling with function map
-# fn_map: dict[tuple[str, OpType], str] = {
-#     ("&", OpType.BOOL_SORT): "and", ("&", OpType.BITVEC_SORT): "bvand",
-#     ("|", OpType.BOOL_SORT): "or", ("|", OpType.BITVEC_SORT): "bvor",
-#     ("xor", OpType.BOOL_SORT): "xor", ("xor", OpType.BITVEC_SORT): "bvxor",
-#     # ("xnor", moxi.Sort.Bool()): "xnor", ("xnor", moxi.Sort.BitVec): "bvxor",
-#     ("->", OpType.BOOL_SORT): "=>",
-#     ("!=", OpType.BOOL_SORT): "distinct",
-#     (">=", OpType.INT_SORT): ">=", (">=", OpType.BITVEC_SORT): "bvuge",
-#     ("<=", OpType.INT_SORT): "<=", ("<=", OpType.BITVEC_SORT): "bvule",
-#     ("<", OpType.INT_SORT): "<", ("<", OpType.BITVEC_SORT): "bvult",
-#     (">", OpType.INT_SORT): ">", (">", OpType.BITVEC_SORT): "bvugt",
-#     ("+", OpType.INT_SORT): "+", ("+", OpType.BITVEC_SORT): "bvadd",
-#     ("*", OpType.INT_SORT): "*", ("*", OpType.BITVEC_SORT): "bvmul",
-# }
-
-
 def translate_type(smv_type: smv.Type, smv_context: smv.Context) -> moxi.Sort:
+    """
+    Translates an SMV type to an IL sort given a current SMV context.
+
+    SMV booleans/ints translate straightforwardly
+    SMV real/clock unsupported
+    SMV words (of width w) translate to MoXI bitvecs of width w
+    SMV arrays with element type t translate to MoXI arrays with translated element types 
+    SMV module types cannot occur in general expressions
+    SMV enums are handled specially (see comment) -- this is the only branch requiring the context.
+    """
     match smv_type:
         case smv.Boolean():
             return moxi.Sort.Bool()
         case smv.Integer():
             return moxi.Sort.Int()
         case smv.Real():
-            raise ValueError("nuXmv `real` type not supported in the IL (yet?)")
+            raise ValueError("nuXmv `real` type not immediately supported in MoXI")
         case smv.Clock():
-            raise ValueError("nuXmv `clock` type not supported in the IL (yet?)")
+            raise ValueError("nuXmv `clock` type not immediately supported in MoXI")
         case smv.Word(width=w):
             return moxi.Sort.BitVec(int(w))
         case smv.Array(subtype=t):
@@ -218,7 +211,7 @@ def translate_expr(
                     # Skip over any module variables that come up in traversal
                     # These are all module accesses -- relevant for type checking but not here
                     pass
-                elif ident in context.vars[module.name]:
+                elif module.name in context.vars and ident in context.vars[module.name]:
                     # print(f"{ident}: var case")
                     expr_map[expr] = moxi.Variable(
                         sort=translate_type(context.vars[module.name][ident], context),
@@ -231,7 +224,7 @@ def translate_expr(
                         sort=moxi.Sort.Enum(context.reverse_enums[ident][0]),
                         value=ident,
                     )
-                elif expr.ident in context.module_params[module.name]:
+                elif module.name in context.module_params and expr.ident in context.module_params[module.name]:
                     # print(f"{ident}: param case")
                     ttype = translate_type(
                         context.module_params[module.name][expr.ident], context
@@ -477,6 +470,11 @@ def conjoin_list(expr_list: list[moxi.Expr]) -> moxi.Expr:
 def gather_input(
     smv_module: smv.ModuleDeclaration, context: smv.Context
 ) -> list[tuple[str, moxi.Sort]]:
+    """
+    Input variables are either:
+    1) Module parameters
+    2) IVAR declarations
+    """
     result: list[tuple[str, moxi.Sort]] = []
 
     for param in smv_module.parameters:
@@ -511,6 +509,11 @@ def gather_input(
 def gather_local(
     smv_module: smv.ModuleDeclaration, context: smv.Context
 ) -> list[tuple[str, moxi.Sort]]:
+    """
+    Local modules are exactly the temporaries created for submodule rewiring.
+    We don't directly pass in our input values into the submodule's inputs (or the submodule's outputs as our outputs)
+    -- we instead construct local variables corresponding to all of these, instantiate them accordingly, and pass them into the submodules.
+    """
     result: list[tuple[str, moxi.Sort]] = []
     for e in [e for e in smv_module.elements if isinstance(e, smv.VarDeclaration)]:
         for var_name, smv_var_type in e.var_list:
@@ -540,12 +543,22 @@ def gather_local(
                     result.append((var_name.ident + "." + var_symbol, var_sort))
                     context.module_locals[var_name.ident].append(local_var)
 
+    # for ltlspec in [
+    #     e for e in smv_module.elements if isinstance(e, smv.LTLSpecDeclaration)
+    # ]:
+    #     pass
+
     return result
 
 
 def gather_output(
     smv_module: smv.ModuleDeclaration, context: smv.Context
 ) -> list[tuple[str, moxi.Sort]]:
+    """
+    VAR/FROZENVAR constructs correspond to output variables in MoXI.
+    Locally DEFINEd constructs are turned into output variables too.
+    Moreover, outputs of submodules are lifted to constitute outputs of the supermodule.
+    """
     result: list[tuple[str, moxi.Sort]] = []
 
     for module_element in smv_module.elements:
@@ -603,7 +616,7 @@ def specialize_vars_in_expr(module_name: str, expr: moxi.Expr) -> moxi.Expr:
         case moxi.Variable():
             return specialize_variable(module_name, expr)
         case moxi.Apply(sort=sort, identifier=identifier, children=children):
-            schildren = []
+            schildren : list[moxi.Expr] = []
             for child in children:
                 schildren.append(specialize_vars_in_expr(module_name, child))
             return moxi.Apply(sort=sort, identifier=identifier, children=schildren)
@@ -617,6 +630,11 @@ def gather_init(
     context: smv.Context,
     expr_map: dict[smv.Expr, moxi.Expr],
 ) -> moxi.Expr:
+    """
+    Initial constraints handle the following 2 (1, depending on how you look at it) situations:
+    1) INIT declarations - straightforward (nuXmv initial constraints ~> MoXI init constraints)
+    2) ASSIGN `init` declarations - same as (1), since nuXmv semantics (2.3.9) indicate `ASSIGN init(a) := b` is the same as `INIT next(a) = b`
+    """
     init_list: list[moxi.Expr] = []
 
     for init_decl in [
@@ -663,6 +681,12 @@ def gather_trans(
     context: smv.Context,
     expr_map: dict[smv.Expr, moxi.Expr],
 ) -> moxi.Expr:
+    """
+    Transition constraints handle the following 3 (or 2, depending on how you look at it) situations:
+    1) TRANS declarations - straightforward (nuXmv transitions ~> MoXI transitions)
+    2) ASSIGN `next` declarations - same as (1), since nuXmv semantics (2.3.9) indicate `ASSIGN next(a) := b` is the same as `TRANS next(a) = b`
+    3) FROZENVAR declarations - we enforce the FROZENVAR constraint (that declared variables maintain the same value in subsequent states) by enforcing that `var' = var` in the transition relation.
+    """
     trans_list: list[moxi.Expr] = []
 
     for trans_decl in [
@@ -701,6 +725,31 @@ def gather_trans(
                         )
 
                         trans_list.append(trans_expr)
+            case smv.VarDeclaration(modifier="FROZENVAR", var_list=var_list):
+                for var_name, _ in var_list:
+                    var_ident = var_name.ident
+                    trans_list.append(
+                        moxi.Apply.Eq(
+                            [
+                                moxi.Variable(
+                                    sort=translate_type(
+                                        context.vars[smv_module.name][var_ident],
+                                        context,
+                                    ),
+                                    symbol=var_ident,
+                                    prime=False,
+                                ),
+                                moxi.Variable(
+                                    sort=translate_type(
+                                        context.vars[smv_module.name][var_ident],
+                                        context,
+                                    ),
+                                    symbol=var_ident,
+                                    prime=True,
+                                ),
+                            ]
+                        )
+                    )
             case _:
                 pass
 
@@ -712,6 +761,14 @@ def gather_inv(
     context: smv.Context,
     expr_map: dict[smv.Expr, moxi.Expr],
 ) -> moxi.Expr:
+    """
+    MoXI invariants (:inv) are used for the following functionalities:
+    1) INVAR declarations - this is what you'd expect (nuXmv invariants -> MoXI invariants)
+    2) ASSIGN declarations - same as (1) since nuXmv semantics (2.3.9) indicate `ASSIGN a := b` is the same as `INVAR a = b`
+    3) Enumerations - since integer enums are otherwise generalized to be any integer, we recover the constraints of the enum by asserting them here.
+    4) Local definitions via DEFINEs
+    4) Submodule parameter rewiring
+    """
     inv_list: list[moxi.Expr] = []
 
     # things marked explicitly as INVAR
@@ -751,31 +808,6 @@ def gather_inv(
                         inv_expr = moxi.Apply.Eq([lhs_expr, expr_map[assign_decl.rhs]])
 
                         inv_list.append(inv_expr)
-            case smv.VarDeclaration(modifier="FROZENVAR", var_list=var_list):
-                for var_name, _ in var_list:
-                    var_ident = var_name.ident
-                    inv_list.append(
-                        moxi.Apply.Eq(
-                            [
-                                moxi.Variable(
-                                    sort=translate_type(
-                                        context.vars[smv_module.name][var_ident],
-                                        context,
-                                    ),
-                                    symbol=var_ident,
-                                    prime=False,
-                                ),
-                                moxi.Variable(
-                                    sort=translate_type(
-                                        context.vars[smv_module.name][var_ident],
-                                        context,
-                                    ),
-                                    symbol=var_ident,
-                                    prime=True,
-                                ),
-                            ]
-                        )
-                    )
             case smv.VarDeclaration(var_list=var_list):
                 # All integer enums must be constrained where they are declared
                 # Example:
@@ -917,6 +949,17 @@ def gather_inv(
 def gather_subsystems(
     smv_module: smv.ModuleDeclaration, smv_context: smv.Context
 ) -> dict[str, tuple[str, list[str]]]:
+    """
+    Subsystems in SMV are declared same as other variables, in the VAR section.
+    ```   MODULE foo
+          VAR
+              x : integer; y : boolean; 
+              bar : module_bar(x, y); --- SUBMODULE! 
+    ```
+
+    As such, skim through all smv.VarDeclarations (VAR sections) and if any of the variables
+    have smv.ModuleType, register them and their parameters into the returned subsystems dict.
+    """
     subsystems: dict[str, tuple[str, list[str]]] = {}
 
     for e in [e for e in smv_module.elements if isinstance(e, smv.VarDeclaration)]:
@@ -934,16 +977,38 @@ def gather_subsystems(
 
     return subsystems
 
-
-def gather_consts(smv_module: smv.ModuleDeclaration) -> list[moxi.Command]:
-    return []
-
+def gather_fairness(
+        smv_module: smv.ModuleDeclaration,
+        context: smv.Context,
+        expr_map: dict[smv.Expr, moxi.Expr],
+) -> dict[str, moxi.Expr]:
+    """
+    Return the negation of the translation of the FAIRNESS/JUSTICE formula.
+    Moreover, assign a name, "fair_X", by which this property will be referred to in the CheckSystem query.
+    """
+    fairness_dict: dict[str, moxi.Expr] = {}
+    spec_num = 1
+    for fairness_decl in [
+        e for e in smv_module.elements if (isinstance(e, smv.FairnessDeclaration) or isinstance(e, smv.JusticeDeclaration))
+    ]:
+        smv_expr = fairness_decl.formula
+        translate_expr(smv_expr, context, expr_map, in_let_expr=False, module=smv_module)
+        fairness_dict[f"fair_{spec_num}"] = cast(
+            moxi.Expr,
+            moxi.Apply(moxi.Sort.Bool(), moxi.Identifier("not", []), [expr_map[smv_expr]])
+        )
+        spec_num += 1
+    return fairness_dict
 
 def gather_invarspecs(
     smv_module: smv.ModuleDeclaration,
     context: smv.Context,
     expr_map: dict[smv.Expr, moxi.Expr],
 ) -> dict[str, moxi.Expr]:
+    """
+    Return the negation of the translation of the INVARSPEC formula.
+    Moreover, assign a name, "rch_X", by which this property will be referred to in the CheckSystem query.
+    """
     invarspec_dict: dict[str, moxi.Expr] = {}
 
     spec_num = 1
@@ -1016,7 +1081,24 @@ def gather_pandaspecs(
 def translate_module(
     smv_module: smv.ModuleDeclaration, context: smv.Context
 ) -> list[moxi.Command]:
-    commands = []
+    """
+    Modules are translated by sweeps over the SMV spec.
+    In particular, the sweeps are responsible for gathering system definitions comprising MoXI's DefineSystem
+     - input variables via gather_input()
+     - output variables via gather_output()
+     - local variables via gather_local()
+     - initial constraints via gather_init()
+     - transition constraints via gather_trans()
+     - invariant constraints via gather_inv()
+     - subsystem instantiations via gather_subsystems()
+    
+    A second set of sweeps are responsible for the system queries comprising MoXI's CheckSystem:
+     - fairness properties via gather_fairness()
+     - reachable queries via gather_invarspecs()
+
+    The function necessarily returns one DefineSystem command with an optional CheckSystem command.
+    """
+    commands : list[moxi.Command] = []
 
     module_name = smv_module.name
 
@@ -1095,6 +1177,9 @@ def translate_module(
 
 
 def infer_logic(commands: list[moxi.Command]) -> Optional[moxi.SetLogic]:
+    """
+    Infers SMT logic based on sorts of occurring variables - if a single Int variable is found, set to QF_LIA, otherwise QF_ABV
+    """
     for def_sys in [s for s in commands if isinstance(s, moxi.DefineSystem)]:
         variables = def_sys.input + def_sys.output + def_sys.local
         for _, sort in variables:
@@ -1108,6 +1193,12 @@ def infer_logic(commands: list[moxi.Command]) -> Optional[moxi.SetLogic]:
 
 
 def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]:
+    """
+    - Performs type-checking on input smv_program
+    - Modules translated in backwards order (depending on what shows up in the specification)
+    - Mines any declare-enum-sort/declare-fun commands depending on what's found in their respective contexts (context.enums, context.functions)
+    - Infers corresponding SMT logics depending on what variable sorts show up in the program (integers automatically set to QF_LIA, otherwise work with QF_ABV)
+    """
     if not smv_program.main:
         log.error("No module 'main', cannot translate.", FILE_NAME)
         return None
@@ -1133,6 +1224,14 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
         moxi.DeclareEnumSort(symbol, [str(s) for s in enum.summands])
         for symbol, enum in context.enums.items()
         if enum.is_symbolic()
+    ]
+
+
+    commands += [
+        moxi.DeclareFun(symbol=symbol, 
+                        inputs=[translate_type(t, context) for t in type[0]], 
+                        output=translate_type(type[1], context))
+        for symbol, type in context.functions.items()
     ]
 
     for module in context.get_module_dep_order(smv_program.main):
