@@ -999,7 +999,7 @@ def gather_fairness(
     fairness_dict: dict[str, moxi.Expr] = {}
     spec_num = 1
     for fairness_decl in [
-        e for e in smv_module.elements if isinstance(e, smv.FairnessDeclaration)
+        e for e in smv_module.elements if (isinstance(e, smv.FairnessDeclaration) or isinstance(e, smv.JusticeDeclaration))
     ]:
         smv_expr = fairness_decl.formula
         translate_expr(smv_expr, context, expr_map, in_let_expr=False, module=smv_module)
@@ -1087,6 +1087,13 @@ def translate_module(
     fairness: dict[str, moxi.Expr] = gather_fairness(smv_module, context, expr_map)
     reachable: dict[str, moxi.Expr] = gather_invarspecs(smv_module, context, expr_map)
 
+    query_dict: dict[str, list[str]] = {}
+    if len(reachable.keys()) > 0:
+        query_dict.update({f"qry_{r}" : [r] for r in reachable.keys()})
+
+    if len(fairness.keys()) > 0:
+        query_dict.update({f"qry_{r}" : [r] for r in fairness.keys()})
+
     if len(reachable) == 0:
         check_system: list[moxi.Command] = []
     else:
@@ -1100,7 +1107,7 @@ def translate_module(
                 fairness=fairness,
                 reachable=reachable,
                 current={},
-                query={f"qry_{r}": [r] for r in reachable.keys()},
+                query=query_dict,
                 queries=[],
             )
         ]
