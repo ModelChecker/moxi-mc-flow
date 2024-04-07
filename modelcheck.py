@@ -11,7 +11,8 @@ from src import btorwit2moxiwit, moxiwit2nuxmvwit, util, log
 
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
-WORK_DIR = FILE_DIR / f"__workdir__.{os.getpid()}"
+WORK_DIR_PARENT = FILE_DIR / "__workdir__"
+WORK_DIR = WORK_DIR_PARENT / str(os.getpid())
 
 btormc_path = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
 avr_path = FILE_DIR / "avr"
@@ -101,7 +102,7 @@ def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax:
     except subprocess.TimeoutExpired:
         print("timeout")
         return 1
-    
+
     end_mc = time.perf_counter()
 
     if proc.returncode:
@@ -198,12 +199,13 @@ def model_check(
 ) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
     # does not output valid witness output (header is missing), so we don't use it.
-    # NOTE: for a model checker like avr, this might be necessary for full traces
+    # NOTE: for a model checker like avr/pono, this might be necessary for full traces
     if not input_path.is_file():
         log.error(f"Source is not a file ({input_path})", FILE_NAME)
         return 1
     
     util.rm(output_path, quiet=False)
+    util.mkdir(WORK_DIR_PARENT)
     util.cleandir(WORK_DIR, quiet=True)
 
     src_path = WORK_DIR / input_path.name
@@ -244,10 +246,12 @@ def model_check(
         command.append(str(debug))
 
     log.debug(1, f"Translating {input_path}", FILE_NAME)
-    proc = subprocess.run(command, capture_output=not debug)
+    proc = subprocess.run(command, capture_output=True)
+
+    if debug:
+        print(proc.stdout.decode())
 
     if proc.returncode:
-        print(proc.returncode)
         if not debug:
             log.error(proc.stderr.decode("utf-8")[:-1], FILE_NAME) # [:-1] removes trailing "\n"
         log.error(f"Translation failure for {input_path}", FILE_NAME)
@@ -346,6 +350,8 @@ if __name__ == "__main__":
         help="runs cpp on input if SMV")
     parser.add_argument("--quiet", action="store_true", 
         help="silence output")
+    parser.add_argument("--workdir",
+        help="parent directory for work directoy (default=__workdir__)")
     parser.add_argument(
         "--debug",
         nargs="?",
@@ -378,6 +384,10 @@ if __name__ == "__main__":
     output_path = input_path.with_suffix(".witness").absolute()
     if args.output:
         output_path = pathlib.Path(args.output).absolute()
+
+    if args.workdir:
+        WORK_DIR_PARENT = pathlib.Path(args.workdir)
+        WORK_DIR = WORK_DIR_PARENT / str(os.getpid())
         
     retcode = model_check(
         input_path=input_path, 

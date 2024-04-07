@@ -6,9 +6,6 @@ import enum
 import sys
 from typing import NamedTuple, Optional
 
-OUT = sys.stdout
-ERR = sys.stderr
-
 debug_level = 0
 enable_quiet = False
 
@@ -77,7 +74,7 @@ def debug(
     formatted_message = format(
         message, "DEBUG", Color.OKBLUE, module, location
     )
-    OUT.write(formatted_message)
+    sys.stdout.write(formatted_message)
 
 
 def info(
@@ -88,7 +85,7 @@ def info(
     if enable_quiet:
         return
     formatted_message = format(message, "INFO", None, module, location)
-    OUT.write(formatted_message)
+    sys.stdout.write(formatted_message)
 
 
 def warning(
@@ -99,7 +96,7 @@ def warning(
     if enable_quiet:
         return
     formatted_message = format(message, "WARNING", Color.WARN, module, location)
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def error(
@@ -107,10 +104,8 @@ def error(
     module: str,
     location: Optional[FileLocation] = None,
 ) -> None:
-    if enable_quiet:
-        return
     formatted_message = format(message, "ERROR", Color.FAIL, module, location)
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def internal(
@@ -118,7 +113,5 @@ def internal(
     module: str,
     location: Optional[FileLocation] = None,
 ) -> None:
-    if enable_quiet:
-        return
     formatted_message = format(message, "BUG", Color.FAIL, module, location)
-    ERR.write(formatted_message)
+    sys.stderr.write(formatted_message)

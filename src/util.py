@@ -19,6 +19,12 @@ def rm(dir: pathlib.Path, quiet: bool):
         shutil.rmtree(dir)
 
 
+def mkdir(dir: pathlib.Path):
+    if dir.is_dir():
+        return
+    os.mkdir(dir)
+
+
 def cleandir(dir: pathlib.Path, quiet: bool) -> None:
     """Remove and create fresh `dir`"""
     rm(dir, quiet)

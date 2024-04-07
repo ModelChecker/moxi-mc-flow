@@ -68,8 +68,9 @@ BtorVarType = tuple[
     Optional[btor.BtorStateVar], btor.BtorStateVar, Optional[btor.BtorStateVar]
 ]
 
-# A VarMap maps variables in a system context to BTOR2 variables. BTOR2 variables are tuples by default (to handle
-# initial, current, and next values) for output and state variables, whereas inputs are just a single variable.
+# A VarMap maps variables in a system context to BTOR2 variables. BTOR2 variables are tuples by
+# default (to handle initial, current, and next values) for output and state variables, whereas
+# inputs are just a single variable.
 VarMap = dict[tuple[str, moxi.SystemContext], BtorVarType]
 
 
@@ -140,9 +141,9 @@ def build_var_map_expr(
 ) -> None:
     """Iteratively recurse `node` and map each `(moxi.Var, moxi.SystemContext)` pair to a `BtorVarType`. Assumes that the sort of every sub-expression in `node` is present in `sort_map`."""
     for expr in moxi.postorder(node, context):
-        if not (
-            isinstance(expr, moxi.Variable)
-            and (expr.symbol, context.system_context) not in var_map
+        if (
+            not isinstance(expr, moxi.Variable)
+            or (expr.symbol, context.system_context) in var_map
         ):
             continue
 
@@ -377,23 +378,23 @@ def to_btor2_annotations(
     4. Annotates Boolean variables with a `B`, moxi. since distinguishes between Booleans and bit vectors of length 1 and BTOR2 does not.
     """
     btor2_annotations: list[btor.BtorNode] = []
-    handled: set[str] = set()
+    handled: set[tuple[str,str]] = set()
     const_vars = get_const_vars(context, var_map)
 
     for var_symbol, sys_ctx, cur in [
         (var_symbol, sys_ctx, cur)
         for (var_symbol, sys_ctx), (_, cur, _) in var_map.items()
     ]:
-        # Note: var_map may have repeat values (i.e., renamed variables point to
-        # same btor.Btor variables)
-        if cur.symbol in handled:
-            continue
-        handled.add(cur.symbol)
-
         top = sys_ctx.get_top()
         if not top:
             raise ValueError(f"System context for {var_symbol} is empty")
         (_, system) = top
+        
+        # Note: var_map may have repeat values (i.e., renamed variables point to
+        # same btor.Btor variables)
+        if (var_symbol, system.symbol) in handled:
+            continue
+        handled.add((var_symbol, system.symbol))
 
         sort = system.get_sort(var_symbol)
         if not sort and cur in const_vars:
@@ -446,12 +447,7 @@ def to_btor2_annotations(
         # Add input var symbols. moxi. allows for primed inputs in certain spots,
         # so we can't use btor.BtorInputVar in our translation. Only use vars in
         # `check`, all others are mapped to other vars or are locals.
-        top_level_system = sys_ctx.get_bottom()
-        if (
-            var_symbol in check.input_symbols
-            and top_level_system
-            and top_level_system[0] == system.symbol
-        ):
+        if var_symbol in check.input_symbols:
             bool_encoding = f"I {cur.with_no_suffix()}"
             sort_comment = btor.BtorNode()
             sort_comment.set_comment_no_space(bool_encoding)

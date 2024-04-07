@@ -1,10 +1,12 @@
 from pathlib import Path
 import argparse
 import sys
+import json
 
 from src import log
 from src import moxi
 from src import parse_moxi
+from src import json2moxi
 
 FILE_NAME = Path(__file__).name
 
@@ -13,7 +15,15 @@ def main(input_path: Path, echo: bool) -> int:
         log.error(f"{input_path} is not a valid file.", FILE_NAME)
         return 1
 
-    program = parse_moxi.parse(input_path)
+    if input_path.suffix == ".moxi":
+        program = parse_moxi.parse(input_path)
+    elif input_path.suffix == ".json":
+        with open(input_path, "r") as file:
+            contents = json.load(file)
+            program = json2moxi.from_json(contents)
+    else:
+        log.error(f"File extension not recognized ({input_path.suffix})\n\tSupported file extensions: .moxi, .json", FILE_NAME)
+        return 1
 
     if not program:
         log.error("Failed parsing", FILE_NAME)
