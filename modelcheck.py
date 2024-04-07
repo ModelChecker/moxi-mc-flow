@@ -379,8 +379,6 @@ if __name__ == "__main__":
     if args.output:
         output_path = pathlib.Path(args.output).absolute()
         
-    WORK_DIR = FILE_DIR / f"__workdir__{input_path.name}"
-
     retcode = model_check(
         input_path=input_path, 
         output_path=output_path, 
