@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "declare-sort.json",
     "title": "DeclareSort",
-    "description": "A sort declaration in the IL (taken from SMTlib)",
+    "description": "A sort declaration in MoXI (taken from SMTlib)",
     "type": "object",
     "properties": {
         "command": {

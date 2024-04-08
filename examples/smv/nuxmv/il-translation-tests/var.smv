@@ -1,7 +1,11 @@
+--- This exercises the various ways to define variables in nuXmv.
 MODULE main
 VAR
-x : boolean;
-y : boolean;
-z : integer;
-w32 : word[32];
-w22 : word[22];
+    x : boolean;
+    w22 : word[22];
+IVAR
+    y : boolean;
+    w32 : word[32];
+FROZENVAR
+    w1 : word[1];
+    enum : {A, B, C};

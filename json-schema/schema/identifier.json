@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "identifier.json",
     "title": "Identifier",
-    "description": "Indexed and non-indexed IL Identifiers",
+    "description": "Indexed and non-indexed MoXI Identifiers",
     "type": "object",
     "properties": {
         "symbol": {

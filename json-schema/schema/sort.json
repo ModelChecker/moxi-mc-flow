@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "sort.json",
     "title": "Sort",
-    "description": "IL Sorts",
+    "description": "MoXI Sorts",
     "type": "object",
     "properties": {
         "identifier": {
