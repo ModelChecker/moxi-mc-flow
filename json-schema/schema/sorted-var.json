@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "sorted-var.json",
     "title": "Sorted Variable",
-    "description": "IL Sorted Identifier",
+    "description": "MoXI Sorted Identifier",
     "type": "object",
     "properties": {
         "symbol": {

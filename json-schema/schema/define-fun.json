@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "define-fun.json",
     "title": "DefineFun",
-    "description": "A function definition in the IL (taken from SMTlib)",
+    "description": "A function definition in MoXI (taken from SMTlib)",
     "type": "object",
     "properties": {
         "command": {

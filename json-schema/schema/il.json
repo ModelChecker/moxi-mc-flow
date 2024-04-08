@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "il.json",
     "title": "ILFile",
-    "description": "An IL specification",
+    "description": "A MoXI specification",
     "type": "array",
     "items": { 
         "oneOf": [

@@ -2,7 +2,7 @@
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "declare-const.json",
     "title": "DeclareConst",
-    "description": "A const declaration in the IL (taken from SMTlib)",
+    "description": "A const declaration in MoXI (taken from SMTlib)",
     "type": "object",
     "properties": {
         "command": {
