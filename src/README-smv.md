@@ -141,7 +141,7 @@ We can translate this into
 
 ```
 (declare-fun into (Bool) (_ BitVec 1))
-(declare-fun out (Bool) (_ BitVec 1))
+(declare-fun out (_ BitVec 1) (Bool))
 ```
 
 ### INIT Constraints
