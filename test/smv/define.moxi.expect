@@ -1,0 +1,11 @@
+(set-logic QF_ABV)
+(declare-fun foo (Bool) Bool)
+(declare-fun into (Bool) (_ BitVec 1))
+(declare-fun out ((_ BitVec 1)) Bool)
+(define-system main 
+   :input () 
+   :output ((a Bool) (b Bool) (b2 Bool) (w (_ BitVec 1))) 
+   :local () 
+   :init (= (let ((CONJ (and a b))) CONJ) false) 
+   :trans (= (let ((DISJ (or a b))) DISJ) true) 
+   :inv (and (= (let ((XOR (xor a b))) XOR) true) (and (= (into (out w)) w) (= (out (into b2)) b2))) )

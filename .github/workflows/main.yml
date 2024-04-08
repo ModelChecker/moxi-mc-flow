@@ -24,4 +24,20 @@ jobs:
     - name: mc-moxi
       run: |
         cd test/
-        python3 test.py mc-moxi.json
+        python3 test.py mc-moxi-avr.json
+    - name: sortcheck
+      run: |
+        cd test/
+        python3 test.py sortcheck.json
+    - name: moxi2btor
+      run: |
+        cd test/
+        python3 test.py moxi2btor.json
+    - name: smv2moxi
+      run: |
+        cd test/
+        python3 test.py smv2moxi.json
+    - name: smv2btor
+      run: |
+        cd test/
+        python3 test.py smv2btor.json

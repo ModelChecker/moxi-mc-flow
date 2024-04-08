@@ -18,18 +18,17 @@ from src import (
 
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
-SMV2MOXI_DIR = FILE_DIR / "smv2moxi"
-MOXI2BTOR_DIR = FILE_DIR / "moxi2btor"
 
-CATBTOR = FILE_DIR / "btor2tools" / "build" / "bin" / "catbtor"
+CATBTOR = FILE_DIR / ".." / "catbtor"
 SORTCHECK = FILE_DIR / "sortcheck.py"
+JSON_SCHEMA = FILE_DIR / ".." / "json-schema" / "schema"
 
 PASS = 0
 FAIL = 1
 
 
 def run_sortcheck(src_path: pathlib.Path) -> int:
-    proc = subprocess.run(["python3", SORTCHECK, src_path], capture_output=True)
+    proc = subprocess.run(["python3", str(SORTCHECK), src_path], capture_output=True)
 
     if proc.returncode:
         log.error(proc.stderr.decode("utf-8"), FILE_NAME)
@@ -40,7 +39,7 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
 
 
 def run_catbtor(src_path: pathlib.Path) -> int:
-    proc = subprocess.run([CATBTOR, src_path], capture_output=True)
+    proc = subprocess.run([str(CATBTOR), src_path], capture_output=True)
 
     if proc.returncode:
         log.error(proc.stderr.decode("utf-8"), FILE_NAME)
@@ -111,12 +110,12 @@ def main(
             if moxi2btor.translate_file(input_path, output_path, int_width, do_pickle):
                 return FAIL
         case (".json", "moxi"):
-            if json2moxi.main(input_path, output_path, False, False, int_width):
+            if json2moxi.main(input_path, output_path, JSON_SCHEMA, False, False, int_width):
                 return FAIL
         case (".json", "btor2"):
             moxi_path = input_path.with_suffix(".moxi")
 
-            if json2moxi.main(input_path, moxi_path, False, False, int_width):
+            if json2moxi.main(input_path, moxi_path, JSON_SCHEMA, False, False, int_width):
                 return FAIL
 
             if moxi2btor.translate_file(moxi_path, output_path, int_width, do_pickle):
@@ -176,6 +175,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
     parser.add_argument("--sortcheck", help="path to sortcheck.py for MoXI validation")
+    parser.add_argument("--jsonschema", help="path to `json-schema` directory for JSON validation")
     parser.add_argument(
         "--intwidth",
         default=32,
@@ -223,6 +223,9 @@ if __name__ == "__main__":
 
     if args.sortcheck:
         SORTCHECK = pathlib.Path(args.sortcheck)
+
+    if args.jsonschema:
+        JSON_SCHEMA = pathlib.Path(args.jsonschema)
 
     if args.profile:
         cProfile.run(

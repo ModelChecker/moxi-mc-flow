@@ -1,0 +1,960 @@
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.1.prop1-back-serstep.btor.smv	sat	1.414928
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.1.prop1-func-interl.btor.smv	sat	2.580762
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.2.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.2.prop1-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.3.prop1-back-serstep.btor.smv	sat	8.753962
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.3.prop1-func-interl.btor.smv	sat	6.673416
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.4.prop1-back-serstep.btor.smv	sat	10.652959
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.4.prop1-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.5.prop1-back-serstep.btor.smv	sat	5.670624
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.5.prop1-func-interl.btor.smv	sat	8.229684
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.6.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/adding.6.prop1-func-interl.btor.smv	sat	19.704446
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.1.prop1-back-serstep.btor.smv	sat	1.63504
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.1.prop1-func-interl.btor.smv	sat	1.739955
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.3.prop1-back-serstep.btor.smv	sat	1.56591
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.3.prop1-func-interl.btor.smv	sat	3.418787
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.5.prop1-back-serstep.btor.smv	sat	2.596763
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.5.prop1-func-interl.btor.smv	sat	127.267318
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.6.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.6.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.7.prop1-back-serstep.btor.smv	sat	2.756837
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.7.prop1-func-interl.btor.smv	sat	403.296532
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.8.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/anderson.8.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.2.prop1-back-serstep.btor.smv	sat	2.415835
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.2.prop1-func-interl.btor.smv	sat	3.056895
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.3.prop1-back-serstep.btor.smv	sat	4.556086
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.3.prop1-func-interl.btor.smv	sat	6.875624
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.5.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.6.prop1-back-serstep.btor.smv	sat	14.868644
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.6.prop1-func-interl.btor.smv	sat	8.364411
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/at.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.1.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.2.prop1-back-serstep.btor.smv	sat	1.535533
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.2.prop1-func-interl.btor.smv	sat	2.303694
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.4.prop1-back-serstep.btor.smv	sat	1.999663
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.4.prop1-func-interl.btor.smv	sat	6.790519
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.5.prop1-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.6.prop1-back-serstep.btor.smv	sat	3.661894
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.6.prop1-func-interl.btor.smv	sat	59.085429
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.8.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bakery.8.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/blocks.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/blocks.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/blocks.3.prop1-back-serstep.btor.smv	sat	19.798056
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/blocks.3.prop1-func-interl.btor.smv	sat	12.670952
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/blocks.4.prop1-back-serstep.btor.smv	sat	3395.797905
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/blocks.4.prop1-func-interl.btor.smv	sat	485.594079
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bridge.1.prop1-back-serstep.btor.smv	sat	10.410211
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bridge.1.prop1-func-interl.btor.smv	sat	3.016235
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bridge.2.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bridge.2.prop1-func-interl.btor.smv	sat	24.069894
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bridge.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/bridge.3.prop1-func-interl.btor.smv	sat	153.318719
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.2.prop1-back-serstep.btor.smv	sat	2.051366
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.2.prop1-func-interl.btor.smv	sat	3.575954
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.3.prop1-back-serstep.btor.smv	sat	2.49953
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.3.prop1-func-interl.btor.smv	sat	4.400701
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.4.prop1-back-serstep.btor.smv	sat	2.878616
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.4.prop1-func-interl.btor.smv	sat	4.53395
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.5.prop1-back-serstep.btor.smv	sat	2.427775
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.5.prop1-func-interl.btor.smv	sat	4.500037
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.6.prop1-back-serstep.btor.smv	sat	2.569659
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp.6.prop1-func-interl.btor.smv	sat	5.445827
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.1.prop1-back-serstep.btor.smv	sat	21.614816
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.1.prop1-func-interl.btor.smv	sat	77.820646
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.1.prop2-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.1.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.1.prop3-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.1.prop3-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.2.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.2.prop1-func-interl.btor.smv	sat	3465.579128
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.2.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.2.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.2.prop3-back-serstep.btor.smv	sat	2360.502606
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.2.prop3-func-interl.btor.smv	sat	1147.263679
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.3.prop1-back-serstep.btor.smv	sat	21.960183
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.3.prop1-func-interl.btor.smv	sat	28.305359
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.3.prop2-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.3.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.3.prop3-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.3.prop3-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.4.prop1-back-serstep.btor.smv	sat	154.371132
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.4.prop1-func-interl.btor.smv	sat	162.176433
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.4.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.4.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.4.prop3-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.4.prop3-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.5.prop1-back-serstep.btor.smv	sat	79.584039
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.5.prop1-func-interl.btor.smv	sat	336.879334
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.5.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.5.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.5.prop3-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.5.prop3-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.6.prop1-back-serstep.btor.smv	sat	527.516208
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.6.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.6.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.6.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.6.prop3-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/brp2.6.prop3-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.1.prop2-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.1.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.2.prop1-back-serstep.btor.smv	sat	5.345608
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.2.prop1-func-interl.btor.smv	sat	3.663408
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.2.prop2-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.2.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.3.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.3.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.4.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.4.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.5.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.5.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.6.prop1-back-serstep.btor.smv	sat	8.072864
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.6.prop1-func-interl.btor.smv	sat	4.342617
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.6.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.6.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.7.prop1-back-serstep.btor.smv	sat	12.433763
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.7.prop1-func-interl.btor.smv	sat	4.222372
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.7.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cambridge.7.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.2.prop1-back-serstep.btor.smv	sat	2.102635
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.2.prop1-func-interl.btor.smv	sat	2.737134
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.5.prop1-back-serstep.btor.smv	sat	2.454575
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.5.prop1-func-interl.btor.smv	sat	5.895145
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.6.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/collision.6.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cyclic_scheduler.1.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cyclic_scheduler.1.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cyclic_scheduler.2.prop1-back-serstep.btor.smv	sat	2.285582
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cyclic_scheduler.2.prop1-func-interl.btor.smv	sat	2.021219
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cyclic_scheduler.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cyclic_scheduler.3.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cyclic_scheduler.4.prop1-back-serstep.btor.smv	sat	2.616516
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/cyclic_scheduler.4.prop1-func-interl.btor.smv	sat	5.307024
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.1.prop1-back-serstep.btor.smv	sat	3.915498
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.1.prop1-func-interl.btor.smv	sat	3.60686
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.2.prop1-back-serstep.btor.smv	sat	5.198526
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.2.prop1-func-interl.btor.smv	sat	1.759032
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.3.prop1-back-serstep.btor.smv	sat	1.968859
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.3.prop1-func-interl.btor.smv	sat	3.232117
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.4.prop1-back-serstep.btor.smv	sat	3.403319
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.4.prop1-func-interl.btor.smv	sat	1.736425
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.5.prop1-back-serstep.btor.smv	sat	1.918567
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/driving_phils.5.prop1-func-interl.btor.smv	sat	1.660281
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.2.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.3.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator.5.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator_planning.1.prop1-back-serstep.btor.smv	sat	1.846631
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator_planning.1.prop1-func-interl.btor.smv	sat	2.589857
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator_planning.2.prop1-back-serstep.btor.smv	sat	2.231587
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator_planning.2.prop1-func-interl.btor.smv	sat	3.68407
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator_planning.3.prop1-back-serstep.btor.smv	sat	1.83975
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/elevator_planning.3.prop1-func-interl.btor.smv	sat	1.985503
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.1.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.1.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.2.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.2.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.3.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.3.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.4.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.4.prop1-func-interl.btor.smv	sat	47.453744
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.5.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/exit.5.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/extinction.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/extinction.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/extinction.2.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/extinction.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/extinction.3.prop1-back-serstep.btor.smv	sat	28.260284
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/extinction.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/extinction.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/extinction.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.1.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.1.prop2-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.1.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.1.prop3-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.1.prop3-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.2.prop2-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.2.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.2.prop3-back-serstep.btor.smv	sat	9.728918
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.2.prop3-func-interl.btor.smv	sat	266.528482
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.3.prop2-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.3.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.3.prop3-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.3.prop3-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.4.prop2-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.4.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.4.prop3-back-serstep.btor.smv	sat	561.731248
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.4.prop3-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.5.prop2-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.5.prop2-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.5.prop3-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/firewire_tree.5.prop3-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.2.prop1-back-serstep.btor.smv	sat	2.199816
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.2.prop1-func-interl.btor.smv	sat	2.135942
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.3.prop1-back-serstep.btor.smv	sat	2.189701
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.3.prop1-func-interl.btor.smv	sat	2.494005
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.5.prop1-back-serstep.btor.smv	sat	2.75962
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.5.prop1-func-interl.btor.smv	sat	3.892412
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.6.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.6.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.7.prop1-back-serstep.btor.smv	sat	2.545135
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/fischer.7.prop1-func-interl.btor.smv	sat	3.098896
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.1.prop1-func-interl.btor.smv	sat	970.521662
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.2.prop1-back-serstep.btor.smv	sat	24.942065
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.2.prop1-func-interl.btor.smv	sat	30.566751
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.3.prop1-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.4.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/frogs.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.1.prop1-back-serstep.btor.smv	sat	35.636521
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.1.prop1-func-interl.btor.smv	sat	79.948134
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.1.prop2-back-serstep.btor.smv	sat	2.321733
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.1.prop2-func-interl.btor.smv	sat	2.386457
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.1.prop3-back-serstep.btor.smv	sat	5.64994
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.1.prop3-func-interl.btor.smv	sat	3.555334
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.1.prop4-back-serstep.btor.smv	sat	5.285565
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.1.prop4-func-interl.btor.smv	sat	4.030084
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.2.prop2-back-serstep.btor.smv	sat	2.295485
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.2.prop2-func-interl.btor.smv	sat	2.353862
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.2.prop3-back-serstep.btor.smv	sat	2.835792
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.2.prop3-func-interl.btor.smv	sat	4.274689
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.2.prop4-back-serstep.btor.smv	sat	4.165433
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/gear.2.prop4-func-interl.btor.smv	sat	4.067275
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/hanoi.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/hanoi.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/hanoi.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/hanoi.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/hanoi.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/hanoi.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/hanoi.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/hanoi.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.1.prop1-back-serstep.btor.smv	sat	1.943699
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.1.prop1-func-interl.btor.smv	sat	1.605182
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.2.prop1-back-serstep.btor.smv	sat	1.726417
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.2.prop1-func-interl.btor.smv	sat	1.912115
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.3.prop1-back-serstep.btor.smv	sat	2.295365
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.3.prop1-func-interl.btor.smv	sat	1.888189
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.4.prop1-back-serstep.btor.smv	sat	1.97048
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.4.prop1-func-interl.btor.smv	sat	1.805845
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.5.prop1-back-serstep.btor.smv	sat	4.44971
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.5.prop1-func-interl.btor.smv	sat	1.943793
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.6.prop1-back-serstep.btor.smv	sat	4.097706
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.6.prop1-func-interl.btor.smv	sat	1.994152
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.7.prop1-back-serstep.btor.smv	sat	1.988633
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/iprotocol.7.prop1-func-interl.btor.smv	sat	1.95496
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/krebs.1.prop1-back-serstep.btor.smv	sat	1.594663
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/krebs.1.prop1-func-interl.btor.smv	sat	1.555312
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/krebs.2.prop1-back-serstep.btor.smv	sat	6.499657
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/krebs.2.prop1-func-interl.btor.smv	sat	4.411441
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/krebs.3.prop1-back-serstep.btor.smv	sat	41.373139
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/krebs.3.prop1-func-interl.btor.smv	sat	42.922757
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/krebs.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/krebs.4.prop1-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.2.prop1-back-serstep.btor.smv	sat	2.380472
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.2.prop1-func-interl.btor.smv	sat	39.543291
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.3.prop1-back-serstep.btor.smv	sat	1.985591
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.3.prop1-func-interl.btor.smv	sat	9.67116
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.6.prop1-back-serstep.btor.smv	sat	3.793074
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.6.prop1-func-interl.btor.smv	sat	500.596748
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.8.prop1-back-serstep.btor.smv	sat	6.484217
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport.8.prop1-func-interl.btor.smv	sat	109.87689
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.3.prop1-back-serstep.btor.smv	sat	3.555409
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.3.prop1-func-interl.btor.smv	sat	7.066278
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lamport_nonatomic.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.1.prop1-back-serstep.btor.smv	sat	1.657382
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.1.prop1-func-interl.btor.smv	sat	5.09358
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.3.prop1-back-serstep.btor.smv	sat	1.958776
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.3.prop1-func-interl.btor.smv	sat	8.074088
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.6.prop1-back-serstep.btor.smv	sat	2.514579
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.6.prop1-func-interl.btor.smv	sat	4.999016
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.7.prop1-back-serstep.btor.smv	sat	4.203727
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.7.prop1-func-interl.btor.smv	sat	20.639038
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.8.prop1-back-serstep.btor.smv	sat	2.492187
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lann.8.prop1-func-interl.btor.smv	sat	16.507111
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.4.prop1-back-serstep.btor.smv	sat	302.013523
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.5.prop1-back-serstep.btor.smv	sat	417.369148
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.6.prop1-back-serstep.btor.smv	sat	3588.080844
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_election.6.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.2.prop1-back-serstep.btor.smv	sat	1.731865
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.2.prop1-func-interl.btor.smv	sat	5.017496
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.4.prop1-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.6.prop1-back-serstep.btor.smv	sat	2.077806
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.6.prop1-func-interl.btor.smv	sat	15.467119
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/leader_filters.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.6.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.6.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.8.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lifts.8.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/loyd.1.prop1-back-serstep.btor.smv	sat	4.987914
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/loyd.1.prop1-func-interl.btor.smv	sat	5.39589
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/loyd.2.prop1-back-serstep.btor.smv	sat	39.531724
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/loyd.2.prop1-func-interl.btor.smv	sat	22.69643
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/loyd.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/loyd.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lup.1.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lup.1.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lup.2.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lup.2.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lup.3.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lup.3.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lup.4.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/lup.4.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.6.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/mcs.6.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/msmie.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/msmie.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/msmie.2.prop1-back-serstep.btor.smv	sat	2.947746
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/msmie.2.prop1-func-interl.btor.smv	sat	4.951834
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/msmie.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/msmie.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/msmie.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/msmie.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.1.prop1-back-serstep.btor.smv	sat	2.120801
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.1.prop1-func-interl.btor.smv	sat	1.897775
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.1.prop2-back-serstep.btor.smv	sat	2.116988
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.1.prop2-func-interl.btor.smv	sat	1.990619
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.1.prop3-back-serstep.btor.smv	sat	2.021065
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.1.prop3-func-interl.btor.smv	sat	3.426843
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.1.prop4-back-serstep.btor.smv	sat	1.841814
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.1.prop4-func-interl.btor.smv	sat	1.798943
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.2.prop1-back-serstep.btor.smv	sat	2.631274
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.2.prop1-func-interl.btor.smv	sat	3.720544
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.2.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.2.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.2.prop3-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.2.prop3-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.2.prop4-back-serstep.btor.smv	sat	2.864717
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.2.prop4-func-interl.btor.smv	sat	2.333387
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.3.prop1-back-serstep.btor.smv	sat	2.490776
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.3.prop1-func-interl.btor.smv	sat	2.627023
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.3.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.3.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.3.prop3-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.3.prop3-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.3.prop4-back-serstep.btor.smv	sat	2.833814
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.3.prop4-func-interl.btor.smv	sat	2.463783
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.4.prop1-back-serstep.btor.smv	sat	3.535813
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.4.prop1-func-interl.btor.smv	sat	3.076258
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.4.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.4.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.4.prop3-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.4.prop3-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.4.prop4-back-serstep.btor.smv	sat	3.183755
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/needham.4.prop4-func-interl.btor.smv	sat	2.93287
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.1.prop1-back-serstep.btor.smv	sat	4.347286
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.1.prop1-func-interl.btor.smv	sat	1.855844
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.2.prop1-func-interl.btor.smv	sat	769.136104
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.3.prop1-func-interl.btor.smv	sat	71.796807
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.5.prop1-back-serstep.btor.smv	sat	26.903666
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.5.prop1-func-interl.btor.smv	sat	5.354283
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.6.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peg_solitaire.6.prop1-func-interl.btor.smv	sat	26.080095
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.2.prop1-back-serstep.btor.smv	sat	1.669859
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.2.prop1-func-interl.btor.smv	sat	6.03976
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.3.prop1-back-serstep.btor.smv	sat	1.552965
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.3.prop1-func-interl.btor.smv	sat	2.619055
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.5.prop1-back-serstep.btor.smv	sat	2.455456
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.5.prop1-func-interl.btor.smv	sat	168.400969
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.6.prop1-back-serstep.btor.smv	sat	2.11108
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.6.prop1-func-interl.btor.smv	sat	9.703365
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/peterson.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.1.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.1.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.1.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.1.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.1.prop5-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.1.prop5-func-interl.btor.smv	sat	2007.139884
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.1.prop6-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.1.prop6-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.2.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.2.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.2.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.2.prop2-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.2.prop5-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.2.prop5-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.2.prop6-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.2.prop6-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.3.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.3.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.3.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.3.prop5-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.3.prop5-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.3.prop6-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.3.prop6-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.4.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.4.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.4.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.4.prop5-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.4.prop5-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.4.prop6-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.4.prop6-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.5.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.5.prop2-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.5.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.5.prop5-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.5.prop5-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.5.prop6-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.5.prop6-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.6.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.6.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.6.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.6.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.6.prop5-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.6.prop5-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.6.prop6-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.6.prop6-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.7.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.7.prop2-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.7.prop5-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.7.prop5-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.7.prop6-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.7.prop6-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.8.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.8.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.8.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.8.prop2-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.8.prop5-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.8.prop5-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.8.prop6-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pgm_protocol.8.prop6-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/plc.1.prop2-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/plc.1.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/plc.2.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/plc.2.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/plc.3.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/plc.3.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/plc.4.prop2-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/plc.4.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pouring.1.prop1-back-serstep.btor.smv	sat	20.259495
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pouring.1.prop1-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pouring.2.prop1-back-serstep.btor.smv	sat	14.38868
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/pouring.2.prop1-func-interl.btor.smv	sat	14.623447
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.1.prop1-back-serstep.btor.smv	sat	1.628821
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.1.prop1-func-interl.btor.smv	sat	1.589599
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.2.prop1-back-serstep.btor.smv	sat	5.856787
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.2.prop1-func-interl.btor.smv	sat	1413.590729
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.3.prop1-back-serstep.btor.smv	sat	1.826098
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.3.prop1-func-interl.btor.smv	sat	1.855697
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.4.prop1-back-serstep.btor.smv	sat	9.387169
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.4.prop1-func-interl.btor.smv	sat	815.258889
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.5.prop1-back-serstep.btor.smv	sat	1.890859
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.5.prop1-func-interl.btor.smv	sat	1.785515
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.6.prop1-back-serstep.btor.smv	sat	2.240059
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/production_cell.6.prop1-func-interl.btor.smv	sat	1.883154
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.1.prop1-back-serstep.btor.smv	sat	1.578633
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.1.prop1-func-interl.btor.smv	sat	1.895127
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.2.prop1-back-serstep.btor.smv	sat	1.501081
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.2.prop1-func-interl.btor.smv	sat	1.74028
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.3.prop1-back-serstep.btor.smv	sat	2.605172
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.3.prop1-func-interl.btor.smv	sat	2.006255
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.4.prop1-back-serstep.btor.smv	sat	1.738324
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.4.prop1-func-interl.btor.smv	sat	1.661275
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.5.prop1-back-serstep.btor.smv	sat	1.572931
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/protocols.5.prop1-func-interl.btor.smv	sat	1.576836
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/reader_writer.1.prop1-back-serstep.btor.smv	sat	1.960718
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/reader_writer.1.prop1-func-interl.btor.smv	sat	1.875588
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/reader_writer.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/reader_writer.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/reader_writer.3.prop1-back-serstep.btor.smv	sat	2.677097
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/reader_writer.3.prop1-func-interl.btor.smv	sat	3.070418
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.1.prop1-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.1.prop1-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.1.prop2-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.1.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.1.prop3-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.1.prop3-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.2.prop1-back-serstep.btor.smv	sat	1.655784
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.2.prop1-func-interl.btor.smv	sat	1.712024
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.2.prop2-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.2.prop2-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.2.prop3-back-serstep.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/resistance.2.prop3-func-interl.btor.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.4.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.4.prop1-func-interl.btor.smv	sat	104.312631
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.5.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.6.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.6.prop1-func-interl.btor.smv	sat	135.986289
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rether.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rushhour.1.prop1-back-serstep.btor.smv	sat	475.411688
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rushhour.1.prop1-func-interl.btor.smv	sat	261.221791
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rushhour.2.prop1-back-serstep.btor.smv	sat	1405.542888
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rushhour.2.prop1-func-interl.btor.smv	sat	252.989897
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rushhour.3.prop1-back-serstep.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rushhour.3.prop1-func-interl.btor.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rushhour.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/rushhour.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/schedule_world.1.prop1-back-serstep.btor.smv	sat	1.910849
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/schedule_world.1.prop1-func-interl.btor.smv	sat	1.66455
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/schedule_world.2.prop1-back-serstep.btor.smv	sat	1.826759
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/schedule_world.2.prop1-func-interl.btor.smv	sat	1.95607
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/schedule_world.3.prop1-back-serstep.btor.smv	sat	1.787782
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/schedule_world.3.prop1-func-interl.btor.smv	sat	1.6822
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/sokoban.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/sokoban.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/sokoban.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/sokoban.2.prop1-func-interl.btor.smv	sat	2001.358113
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/sokoban.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/sokoban.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.1.prop1-back-serstep.btor.smv	sat	17.833175
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.1.prop1-func-interl.btor.smv	sat	16.885619
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.5.prop1-back-serstep.btor.smv	sat	45.400244
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.5.prop1-func-interl.btor.smv	sat	64.817053
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.6.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.6.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/synapse.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.1.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.1.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.2.prop1-back-serstep.btor.smv	sat	2.294064
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.2.prop1-func-interl.btor.smv	sat	16.958051
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.3.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.3.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.4.prop1-back-serstep.btor.smv	sat	3.118451
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.4.prop1-func-interl.btor.smv	sat	41.642837
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/szymanski.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.1.prop1-back-serstep.btor.smv	sat	2.978631
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.1.prop1-func-interl.btor.smv	sat	7.710562
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.3.prop1-back-serstep.btor.smv	sat	4.18805
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.3.prop1-func-interl.btor.smv	sat	15.084477
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.5.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.5.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.6.prop1-back-serstep.btor.smv	sat	3.434407
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.6.prop1-func-interl.btor.smv	sat	27.693966
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.7.prop1-back-serstep.btor.smv	sat	3.85737
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.7.prop1-func-interl.btor.smv	sat	25.667499
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.8.prop1-back-serstep.btor.smv	sat	3.161913
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/telephony.8.prop1-func-interl.btor.smv	sat	40.67571
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.1.prop1-back-serstep.btor.smv	sat	10.269177
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.1.prop1-func-interl.btor.smv	sat	9.335328
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.2.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.2.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.3.prop1-back-serstep.btor.smv	sat	51.804211
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.3.prop1-func-interl.btor.smv	sat	49.100749
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.4.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.4.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.5.prop1-back-serstep.btor.smv	sat	264.824613
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.5.prop1-func-interl.btor.smv	sat	135.869914
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.6.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.6.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.7.prop1-back-serstep.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/beem/QF_BV/train-gate.7.prop1-func-interl.btor.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/MADWiFi-encode_ie_ok.c.smv	sat	1.40636
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/NetBSD_loop.c.smv	sat	1.361107
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/SpamAssassin-loop.c.smv	sat	1.504259
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/SpamAssassin-loop_ok.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/apache-escape-absolute.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/apache-get-tag.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/bind_expands_vars2.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/bound.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/down.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/fragtest_simple.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/gulwani_cegar1.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/gulwani_cegar2.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/gulwani_fig1a.c.smv	sat	3.189411
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/id_build.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/ken-imp.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/mergesort.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-if.c.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-if1.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-if2.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-if3.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-if4.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-if5.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-if6.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-if7.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-if8.c.smv	sat	1.377853
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nest-len.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested1.c.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested2.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested3.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested4.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested5.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested6.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested7.c.smv	sat	1.88237
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested8.c.smv	sat	1.422425
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/nested9.c.smv	sat	1.473891
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/puzzle1.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/rajamani_1.c.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/sendmail-close-angle.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/sendmail-mime-fromqp.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/sendmail-mime7to8_arr_three_chars_no_test_ok.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/seq-len.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/seq-proc.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/seq-sim.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/seq-z3.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/seq.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/seq2.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/seq3.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/seq4.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/simple.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/simple_if.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/simple_nest.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/split.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/string_concat-noarr.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/svd-some-loop.c.smv	sat	2.33729
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/svd.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/svd1.c.smv	sat	1.886314
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/svd2.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/svd3.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/svd4.c.smv	sat	2.856085
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/up-nested.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/up.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/up2.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/up3.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/up4.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/invgen/QF_BV/up5.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/bubblesort-1.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/bubblesort-2.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/bubblesort-3.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/bubblesort_init-1.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/bubblesort_init-2.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/bubblesort_init-3.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/simple_array_inversion-1.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/simple_array_inversion-2.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/simple_array_inversion-3.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/simple_array_inversion-4.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/simple_array_inversion-5.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/simple_array_inversion-6.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/simple_array_inversion-7.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/simple_array_inversion-8.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/software/QF_BV/simple_array_inversion-9.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/byte_add_unsafe.c.smv	sat	2.118772
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/byte_add_1_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/byte_add_2_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/cdaudio_simpl1.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/cdaudio_simpl1_BUG.cil.smv	sat	14.306994
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/diskperf_simpl1.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/floppy_simpl3.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/floppy_simpl3_BUG.cil.smv	sat	5.890611
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/floppy_simpl4.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/floppy_simpl4_BUG.cil.smv	sat	11.180729
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/gcd_1_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/gcd_2_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/gcd_3_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/gcd_4_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/interleave_bits_safe.c.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/jain_1_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/jain_2_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/jain_4_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/jain_5_safe.c.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/jain_6_safe.c.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/jain_7_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/kbfiltr_simpl1.cil.smv	sat	2.068783
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/kbfiltr_simpl2.cil.smv	sat	2.143044
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/kbfiltr_simpl2_BUG.cil.smv	sat	2.783218
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/modulus_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/num_conversion_1_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/num_conversion_2_safe.c.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/parity_safe.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/soft_float_1_safe.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/soft_float_2_safe.c.cil.c.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/soft_float_3_safe.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/soft_float_4_safe.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/soft_float_5_safe.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_1.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_1_BUG.cil.smv	sat	2.274324
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_1_safe.BV.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_1_unsafe.BV.c.cil.c.smv	sat	3.826645
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_2.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_2_BUG.cil.smv	sat	2.233971
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_2_safe.BV.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_2_unsafe.BV.c.cil.c.smv	sat	10.912227
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_3.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_3_BUG.cil.smv	sat	2.218102
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_3_safe.BV.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_3_unsafe.BV.c.cil.c.smv	sat	5.590487
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_4.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_clnt_4_BUG.cil.smv	sat	2.489744
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_1.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_1_BUG.cil.smv	sat	2.360174
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_1_safe.BV.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_1_unsafe.BV.c.cil.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_2.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_2_BUG.cil.smv	sat	2.09573
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_2_safe.BV.c.cil.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_2_unsafe.BV.c.cil.c.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_3.cil.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_3_safe.BV.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_3_unsafe.BV.c.cil.c.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_4.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_6.cil.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_7.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_8.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_9.cil.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_10.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_11.cil.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_12.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_13.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_14.cil.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_15.cil.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/svcomp/QF_BV/s3_srvr_16.cil.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/bist_cell.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/kundu-bug-1.smv	sat	54.812312
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/kundu-bug-2.smv	sat	66.083062
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/kundu.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/mem_slave_tlm.1.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/mem_slave_tlm.2.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/mem_slave_tlm.3.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/mem_slave_tlm.4.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/mem_slave_tlm.5.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/pc_sfifo_1.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/pc_sfifo_2.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/pc_sfifo_3.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/pipeline-bug.smv	sat	73.566107
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/pipeline.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.1.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.2.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.3.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.4.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.5.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.6.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.7.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.8.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.9.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.10.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.11.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.12.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/token_ring.13.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/toy-bug-1.smv	sat	46.487076
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/toy-bug-2.smv	sat	46.833901
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/toy.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.1.smv	sat	2.508503
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.2.smv	sat	11.511637
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.3.smv	sat	49.773513
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.4.smv	sat	86.878168
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.5.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.6.smv	sat	571.382914
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.7.smv	sat	1068.628914
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.8.smv	memout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.9.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.10.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.11.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.12.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/systemc/QF_BV/transmitter.13.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p01.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p03.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p06.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p07.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p08.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p09.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p10.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p11.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p12.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p13.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p14.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p15.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p20.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/itc99_b13_p22.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/pj_icu_icctl_p1.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/pj_icu_icctl_p2.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/sdlx_control.smv	sat	2.303377
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/QF_BV/usb_phy_1.smv	sat	3.147639
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/arrays/itc99_b12_p1.smv	sat	1.626184
+pono-bmc	/home/moxi-mc-flow/benchmarks/vcegar/arrays/itc99_b12_p2.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/bcuvis32.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/fru32_p1.smv	sat	1.345325
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/fru32_p2.smv	sat	1.710508
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/fru32_p3.smv	sat	1.460748
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/ibuf.smv	sat	1.393433
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/rotate32.smv	sat	1.327651
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/spinner32.smv	sat	1.42525
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/s1269b_p1.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/s1269b_p2.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/s1269b_p3.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/s1269b_p4.smv	sat	1.602646
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/s1269b_p5.smv	sat	2.011898
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/vMiim_p1.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/vMiim_p2.smv	sat	1.593437
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/QF_BV/vlunc.smv	sat	1.359842
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/FIFOs.smv	sat	1.363762
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/am2901.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/am2910_p1.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/am2910_p2.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/am2910_p3.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/am2910_p4.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/bpbs_p1.smv	sat	1.492281
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/bpbs_p2.smv	sat	1.513909
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/bpbs_p3.smv	sat	1.523452
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/bpbs_p4.smv	sat	8.564023
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/buf_bug.smv	sat	1.504579
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/bufferAlloc.smv	sat	1.455788
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/field5.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/palu.smv	sat	2.393717
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/twoFifo1_p1.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/twoFifo1_p2.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/twoFifo1_p3.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/two_p1.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/two_p2.smv	sat	1.329391
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p01.smv	sat	1.690729
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p02.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p03.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p04.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p05.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p06.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p07.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p08.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p09.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p10.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p11.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p12.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p13.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p14.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p15.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsaR_p16.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsa16a_p1.smv	sat	1.467736
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsa16a_p2.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsa16a_p3.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsa16a_p4.smv	timeout	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsa16a_p5.smv	crash	
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsa16a_p6.smv	sat	1.686021
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsa16a_p7.smv	sat	1.514257
+pono-bmc	/home/moxi-mc-flow/benchmarks/vis/arrays/vsa16a_p8.smv	sat	1.654134

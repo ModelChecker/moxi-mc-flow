@@ -1,0 +1,18 @@
+MODULE Delay(i,o)
+INIT 
+  (o = 0ud8_0);
+TRANS 
+  (next(o) = i);
+
+MODULE main
+IVAR
+i: unsigned 
+   word[8];
+VAR
+o: unsigned 
+   word[8];
+D: Delay(i,o);
+
+
+INVARSPEC 
+! (o = 0ud8_2);

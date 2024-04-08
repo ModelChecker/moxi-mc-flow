@@ -447,7 +447,12 @@ def to_btor2_annotations(
         # Add input var symbols. moxi. allows for primed inputs in certain spots,
         # so we can't use btor.BtorInputVar in our translation. Only use vars in
         # `check`, all others are mapped to other vars or are locals.
-        if var_symbol in check.input_symbols:
+        top_level_system = sys_ctx.get_bottom()
+        if (
+            var_symbol in check.input_symbols
+            and top_level_system
+            and top_level_system[0] == system.symbol
+        ):
             bool_encoding = f"I {cur.with_no_suffix()}"
             sort_comment = btor.BtorNode()
             sort_comment.set_comment_no_space(bool_encoding)

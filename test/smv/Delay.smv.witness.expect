@@ -1,0 +1,14 @@
+-- specification qry_rch_1 is false
+-- as demonstrated by the following execution sequence
+Trace Description: nuxmv2btor counterexample
+Trace Type: Counterexample
+  -> State: 1.1 <-
+    D.i = 0ud8_2
+    D.o = 0ud8_0
+    o = 0ud8_0
+  -> Input: 1.2 <-
+    i = 0ud8_0
+  -> State: 1.2 <-
+    D.i = 0ud8_0
+    D.o = 0ud8_2
+    o = 0ud8_2

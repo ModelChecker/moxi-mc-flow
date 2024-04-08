@@ -1,0 +1,17 @@
+(check-system-response DoubleDelay
+:query (q.qry :result sat :trace q.qry_trace)
+:trace (q.qry_trace :prefix q.qry_trail)
+:trail (q.qry_trail 
+	(0 (i #b00000001) (o #b00000000) (t #b00000000))
+	(1 (i #b00000000) (o #b00000000) (t #b00000001))
+	(2 (i #b00000000) (o #b00000001) (t #b00000000)))
+)
+
+(check-system-response DoubleDelay
+:query (q.qry :result sat :trace q.qry_trace)
+:trace (q.qry_trace :prefix q.qry_trail)
+:trail (q.qry_trail 
+	(0 (i #b00000010) (o #b00000000) (t #b00000000))
+	(1 (i #b00000000) (o #b00000000) (t #b00000010))
+	(2 (i #b00000000) (o #b00000010) (t #b00000000)))
+)

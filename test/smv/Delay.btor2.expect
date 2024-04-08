@@ -1,0 +1,42 @@
+; I i
+1 sort bitvec 8
+2 sort bitvec 1
+3 state 1 D.o.init
+4 state 1 D.o.cur
+5 state 1 D.o.next
+6 state 1 D.i.init
+7 state 1 D.i.cur
+8 state 1 D.i.next
+9 state 1 o.init
+10 state 1 o.cur
+11 state 1 o.next
+12 state 1 i.cur
+13 state 1 i.next
+14 init 1 4 3
+15 init 1 7 6
+16 init 1 10 9
+17 next 1 4 5
+18 next 1 7 8
+19 next 1 10 11
+20 next 1 12 13
+21 constd 1 0
+22 eq 2 3 21
+23 constraint 22 ; init main::D
+24 eq 2 5 7
+25 constraint 24 ; trans main::D
+26 constd 2 1
+27 constraint 26 ; inv main::D
+28 eq 2 4 10
+29 eq 2 7 12
+30 and 2 29 28
+31 constraint 30 ; inv main
+32 constd 2 0
+33 constd 1 2
+34 eq 2 10 33
+35 not 2 34
+36 not 2 35
+37 state 2 rch_1__FLAG__
+38 init 2 37 32
+39 ite 2 37 26 36
+40 next 2 37 39
+41 bad 37

@@ -1,0 +1,9 @@
+(set-logic QF_ABV)
+(declare-enum-sort enum1 (A B C))
+(define-system main 
+   :input ((y Bool) (w32 (_ BitVec 32))) 
+   :output ((x Bool) (w22 (_ BitVec 22)) (w1 (_ BitVec 1)) (enum enum1)) 
+   :local () 
+   :init true 
+   :trans (and (= w1 w1') (= enum enum')) 
+   :inv true )

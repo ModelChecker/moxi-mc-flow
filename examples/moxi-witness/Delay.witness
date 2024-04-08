@@ -1,7 +1,0 @@
-(check-system-response Delay
-:query (q :result sat :trace q_trace)
-:trace (q_trace :prefix q_trail)
-:trail (q_trail 
-	(0 (o  false) (i  true))
-	(1 (o  true) (i  false)))
-)

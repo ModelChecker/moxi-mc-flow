@@ -1,0 +1,70 @@
+{
+    "script": "../modelcheck.py",
+    "options": ["pono", "--quiet", "--timeout", "10", "--no-witness"],
+    "tests": [
+        {
+            "input": "smv/QF_ABV/FIFOs.smv",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "smv/QF_ABV/vsa16a_p1.smv",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "smv/QF_BV/anderson.3.prop1-back-serstep.btor.smv",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "smv/QF_BV/gulwani_fig1a.c.smv",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "smv/QF_BV/iprotocol.1.prop1-func-interl.btor.smv",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "smv/QF_BV/adding.1.prop1-back-serstep.btor.smv",
+            "expected_stdout": "sat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "smv/QF_ABV/am2910_p4.smv",
+            "expected_stdout": "unsat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "smv/QF_ABV/vsaR_p02.smv",
+            "expected_stdout": "unsat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "smv/QF_BV/lup.1.prop1-func-interl.btor.smv",
+            "expected_stdout": "unsat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "smv/QF_BV/pgm_protocol.1.prop1-func-interl.btor.smv",
+            "expected_stdout": "unsat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "smv/QF_BV/resistance.1.prop1-func-interl.btor.smv",
+            "expected_stdout": "unsat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "smv/QF_BV/apache-escape-absolute.c.smv",
+            "expected_stdout": "unsat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "smv/QF_BV/apache-get-tag.c.smv",
+            "expected_stdout": "unsat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "smv/QF_BV/ken-imp.c.smv",
+            "expected_stdout": "unsat"
+        }
+    ] 
+}

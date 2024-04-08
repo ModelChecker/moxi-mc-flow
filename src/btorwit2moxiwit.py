@@ -294,8 +294,16 @@ def main(
             query_symbol = program_path.stem
 
             # check for empty witness
-            # this means the query was unsat
+            # this means the query was unknown
             if witness_content == "":
+                query_responses.append(
+                    moxi_witness.QueryResponse(
+                        query_symbol, moxi_witness.QueryResult.UNKNOWN, None, None, None
+                    )
+                )
+                continue
+
+            if witness_content.startswith("unsat"):
                 query_responses.append(
                     moxi_witness.QueryResponse(
                         query_symbol, moxi_witness.QueryResult.UNSAT, None, None, None

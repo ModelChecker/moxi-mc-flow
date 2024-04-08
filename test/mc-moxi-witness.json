@@ -1,0 +1,48 @@
+{
+    "script": "../modelcheck.py",
+    "options": [
+        "btormc"
+    ],
+    "tests": [
+        {
+            "input": "moxi/Delay.moxi",
+            "output": "moxi/Delay.moxi.witness",
+            "expected_output": [
+                [
+                    "moxi/Delay.moxi.witness.expect",
+                    "moxi/Delay.moxi.witness"
+                ]
+            ]
+        },
+        {
+            "input": "moxi/ThreeBitCounter.moxi",
+            "output": "moxi/ThreeBitCounter.moxi.witness",
+            "expected_output": [
+                [
+                    "moxi/ThreeBitCounter.moxi.witness.expect",
+                    "moxi/ThreeBitCounter.moxi.witness"
+                ]
+            ]
+        },
+        {
+            "input": "moxi/StateProgression.moxi",
+            "output": "moxi/StateProgression.moxi.witness",
+            "expected_output": [
+                [
+                    "moxi/StateProgression.moxi.witness.expect",
+                    "moxi/StateProgression.moxi.witness"
+                ]
+            ]
+        },
+        {
+            "input": "moxi/QF_BV/DoubleDelayTwoCheck.moxi",
+            "output": "moxi/QF_BV/DoubleDelayTwoCheck.moxi.witness",
+            "expected_output": [
+                [
+                    "moxi/QF_BV/DoubleDelayTwoCheck.witness.expect",
+                    "moxi/QF_BV/DoubleDelayTwoCheck.moxi.witness"
+                ]
+            ]
+        }
+    ] 
+}

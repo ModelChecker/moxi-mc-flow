@@ -1,10 +1,22 @@
 {
-    "script": "translate",
+    "script": "../translate.py",
     "options": ["btor2", "--validate"],
     "tests": [
         {
-            "input": "",
-            "expected_output": ""
+            "input": "smv/Delay.smv",
+            "output": "smv/Delay.btor2",
+            "expected_output": [
+                ["smv/Delay.btor2.expect",
+                 "smv/Delay.btor2/main.1/qry_rch_1.btor2"]
+            ]
+        },
+        {
+            "input": "smv/QF_BV/ken-imp.c.smv",
+            "output": "smv/QF_BV/ken-imp.c.btor2",
+            "expected_output": [
+                ["smv/QF_BV/ken-imp.c.btor2.expect",
+                 "smv/QF_BV/ken-imp.c.btor2/main.1/qry_rch_1.btor2"]
+            ]
         }
     ] 
 }

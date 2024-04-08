@@ -1,5 +1,4 @@
 import json
-import os
 import pathlib
 import re
 import sys
@@ -74,16 +73,15 @@ def from_json_expr(contents: dict, enums: dict[str, str]) -> moxi.Expr:
     return moxi.Variable(moxi.Sort.NoSort(), symbol, prime)
 
 
-def from_json(contents: dict) -> Optional[moxi.Program]:
-    dirname = os.path.dirname(__file__)
+def from_json(schema_path: pathlib.Path, contents: dict) -> Optional[moxi.Program]:
+    print(schema_path)
+    with open(schema_path / "moxi.json", "r") as f:
+        moxi_schema = json.load(f)
 
-    with open(f"{dirname}/../json-schema/schema/il.json", "r") as f:
-        il_schema = json.load(f)
-
-    resolver = jsonschema.RefResolver(f"file://{dirname}/../json-schema/schema/", {})
+    resolver = jsonschema.RefResolver("file://" + str(schema_path) + "/", {})
 
     try:
-        jsonschema.validate(contents, il_schema, resolver=resolver)
+        jsonschema.validate(contents, moxi_schema, resolver=resolver)
     except exceptions.SchemaError as se:
         log.error(f"JSON schema invalid {se}", FILE_NAME)
         return None
@@ -228,6 +226,7 @@ def from_json(contents: dict) -> Optional[moxi.Program]:
 def main(
     input_path: pathlib.Path,
     output_path: pathlib.Path,
+    schema_path: pathlib.Path,
     do_sort_check: bool,
     do_qfbv: bool,
     int_width: int,
@@ -238,7 +237,7 @@ def main(
 
     with open(input_path, "r") as file:
         contents = json.load(file)
-        program = from_json(contents)
+        program = from_json(schema_path, contents)
 
     if not program:
         sys.stderr.write("Failed parsing")

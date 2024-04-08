@@ -1,0 +1,55 @@
+{
+    "script": "../modelcheck.py",
+    "options": [
+        "pono", "--quiet", "--timeout", "10", "--no-witness"
+    ],
+    "tests": [
+        {
+            "options": ["--kind"],
+            "input": "moxi/NonDetArbiter.moxi",
+            "expected_stdout": "unsat"
+        },
+        {
+            "input": "moxi/StateProgression.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/ThreeBitCounter.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_ABV/Arrays.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_ABV/ConstArray.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_BV/Consts.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_BV/DoubleDelayTwoRch.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_BV/Let.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_BV/ModCounter.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "moxi/QF_BV/Temporal.moxi",
+            "expected_stdout": "unsat"
+        },
+        {
+            "options": ["--kind"],
+            "input": "moxi/QF_BV/ThreeBitCounter.moxi",
+            "expected_stdout": "unsat"
+        }
+    ] 
+}

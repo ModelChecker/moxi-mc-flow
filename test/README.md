@@ -1,50 +1,45 @@
 # Testing
 
-To run tests, use the `test.py` script. The scripts requires a set of files that should pass, a set of files that should fail, and a test to run. 
+To run tests, use the `test.py` script. The script takes a `.json` file as a
+config that tells it what commands to run and what the expected output should
+be. For example:
 
-The sets of files can either be a directory or a file that lists absolute paths of files. For example, to generate your own such a list of files, use 
-```bash
-find ../examples/mcil -type f > pass/sortcheck.txt
-```
-The directories `pass` and `fail` include such files, relative to `test/`.
+    python3 test.py mc-moxi-pono.json
+    python3 test.py sortcheck.json
+    python3 test.py smv2btor.json
 
-The usage below lists the supported tests:
-```bash
-usage: test.py [-h] [--translate TRANSLATE] [--modelcheck MODELCHECK]
-               [--sortcheck SORTCHECK] [--catbtor CATBTOR]
-               [--resultsdir RESULTSDIR] [--timeout TIMEOUT]
-               passfiles failfiles
-               {nuxmv2btor,nuxmv2mcil,mcil2btor,sortcheck,modelcheck}
+The JSON configuration files require a single JSON object that has a python
+"script" to define what to use for each test, an optional array of options to
+run with each test, and an array that defines the tests to run. Each test is a
+JSON object with an optional extra set of options to pass to the script, defined
+as an array "options", then an input file, a path to a desired output location,
+and some expected output. The expected outputs can be one of three forms:
 
-positional arguments:
-  passfiles             directory of or file that lists input files that
-                        should pass
-  failfiles             directory of or file that lists input files that
-                        should fail
-  {nuxmv2btor,nuxmv2mcil,mcil2btor,sortcheck,modelcheck}
-                        test to run
+1. "expected_returncode": an integer value that is compared the returncode of
+   the script executed on the input.
+2. "expected_stdout": a path to a file that is diffed with the stdout of the
+   script executed on the input.
+3. "expected_output": an array of pairs of files, where the first file has the
+   expected contents and the second is the path to the actua output. This is
+   usually the same as the path given in the "output" attribute.
 
-options:
-  -h, --help            show this help message and exit
-  --translate TRANSLATE
-                        path to translate.py
-  --modelcheck MODELCHECK
-                        path to modelcheck.py
-  --sortcheck SORTCHECK
-                        path to sortcheck.py
-  --catbtor CATBTOR     path to catbtor
-  --resultsdir RESULTSDIR
-                        directory to output test logs and copyback data
-  --timeout TIMEOUT     max seconds before timeout
-```
+Altogether, a file is of the form:
 
-Example invocations:
+    {
+        "script": "path/to/script",
+        "options": ["list", "of", "options"],
+        "tests": [
+            "options": ["test-specific", "options"],
+            "input": "path/to/input/relative/to/test.py",
+            "output": "path/to/deisired/output/relative/to/test.py",
+            "expected_returncode": 0,
+            "expected_stdout": "diffed with stdout",
+            "expected_output": [
+                ["path/to/expected/output",
+                 "path/to/actual/output (likely to same as output above)"]
+            ]
+        ]
+    }
 
-```bash
-python test.py pass/mcil2btor.txt fail/mcil2btor.txt mcil2btor --resultsdir results-mcil2btor
-```
-
-```bash
-touch empty
-python test.py ../examples/mcil empty sortcheck --resultsdir results-sortcheck
-```
+The script will print each instruction run and if that test passes or not. If
+the test fails, the result of the diff is printed to stdout.

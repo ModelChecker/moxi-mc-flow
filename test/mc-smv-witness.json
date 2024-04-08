@@ -1,0 +1,18 @@
+{
+    "script": "../modelcheck.py",
+    "options": [
+        "btormc"
+    ],
+    "tests": [
+        {
+            "input": "smv/Delay.smv",
+            "output": "smv/Delay.smv.witness",
+            "expected_output": [
+                [
+                    "smv/Delay.smv.witness.expect",
+                    "smv/Delay.smv.witness"
+                ]
+            ]
+        }
+    ] 
+}

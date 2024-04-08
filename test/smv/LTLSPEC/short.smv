@@ -1,0 +1,16 @@
+MODULE main
+VAR
+  request : {Tr, Fa};
+  state : {ready, busy};
+  nondet : boolean;
+ASSIGN
+  init(state) := ready;
+  next(state) := case
+                   state = ready & (request = Tr): busy;
+                   nondet : ready; -- cheat nondeterministic choice
+                   TRUE : busy;
+                 esac;
+
+JUSTICE (state = busy)
+LTLSPEC
+  G((request = Tr) -> (F (state = busy)))

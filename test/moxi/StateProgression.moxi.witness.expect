@@ -1,0 +1,8 @@
+(check-system-response system
+:query (q :result sat :trace q_trace)
+:trace (q_trace :prefix q_trail)
+:trail (q_trail 
+	(0 (out Start))
+	(1 (out Active))
+	(2 (out Done)))
+)

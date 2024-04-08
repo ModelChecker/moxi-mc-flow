@@ -1,0 +1,7 @@
+(check-system-response main
+:query (qry_rch_1 :result sat :trace qry_rch_1_trace)
+:trace (qry_rch_1_trace :prefix qry_rch_1_trail)
+:trail (qry_rch_1_trail 
+	(0 (D.i #b00000010) (D.o #b00000000) (o #b00000000) (i #b00000010))
+	(1 (D.i #b00000000) (D.o #b00000010) (o #b00000010) (i #b00000000)))
+)

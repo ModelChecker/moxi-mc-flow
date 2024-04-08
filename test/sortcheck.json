@@ -2,7 +2,191 @@
     "script": "../sortcheck.py",
     "tests": [
         {
-            "input": "../examples/moxi/QF_ABV/Arrays.moxi",
+            "input": "json/ModCounter.json",
+            "expected_returncode": 0
+        },
+        {
+            "input": "json/StateProgression.json",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/Delay.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/NonDetArbiter.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/StateProgression.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/ThreeBitCounter.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_ABV/Arrays.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_ABV/ConstArray.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/Consts.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/DoubleDelay.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/DoubleDelayTwoCheck.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/DoubleDelayTwoQuery.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/DoubleDelayTwoRch.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/Let.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/ModCounter.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/ModCounterFair.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/QuadrupleDelay.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/Temporal.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/ThreeBitCounter.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/ThreeBitCounterBad.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/DoubleDelay1.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/DoubleDelay2.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/LightStatusModified.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/SmallSystems.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/StutteringClockedCopy.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/TimedSwitch1.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/TimedSwitch2.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/TimedSwitch3.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/TrafficLight1.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/TrafficLight3.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/TrafficLightEnum.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LIA/TrafficLightEnum2.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/DoubleDelay1.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/DoubleDelay2.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/LightStatusModified.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/SmallSystems.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/StutteringClockedCopy.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/TimedSwitch1.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/TimedSwitch2.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/TimedSwitch3.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/TrafficLight1.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/TrafficLight3.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/TrafficLightEnum.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_LRA/TrafficLightEnum2.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_NIA/Silly.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_NRA/Silly1.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_NRA/Silly2.moxi",
             "expected_returncode": 0
         }
     ]

@@ -14,9 +14,9 @@ FILE_DIR = pathlib.Path(__file__).parent
 WORK_DIR_PARENT = FILE_DIR / "__workdir__"
 WORK_DIR = WORK_DIR_PARENT / str(os.getpid())
 
-btormc_path = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
-avr_path = FILE_DIR / "avr"
-pono_path = FILE_DIR / "pono" / "build" / "pono"
+btormc_path = FILE_DIR / ".." / "btormc"
+avr_path = FILE_DIR / ".." / "avr"
+pono_path = FILE_DIR / ".." / "pono" 
 translate_path = FILE_DIR / "translate.py"
 
 
@@ -115,27 +115,24 @@ def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax:
     with open(str(avr_results_path / "result.pr"), "r") as f:
         result_str = f.read()
 
+    btor_witness_path = absolute_btor_path.with_suffix(".btor2.cex")
+    os.chdir("..")
+
     if result_str == "avr-v":
         print("sat")
+        avr_witness_path = [c for c in avr_results_path.glob("cex.witness")]
+        avr_witness_path[0].rename(str(btor_witness_path))
     elif result_str == "avr-h":
         print("unsat")
+        avr_proof_path = [c for c in avr_results_path.glob("inv.txt")]
+        if len(avr_proof_path) > 0:
+            avr_proof_path[0].rename(str(btor_witness_path.parent / "inv.txt"))
+        with open(str(btor_witness_path), "w") as f:
+            f.write("unsat")
     else:
         print("crash")
-        return 1
-
-    avr_witness_path = [c for c in avr_results_path.glob("cex.witness")]
-    btor_witness_path = absolute_btor_path.with_suffix(".btor2.cex")
-    
-    avr_proof_path = [c for c in avr_results_path.glob("inv.txt")]
-
-    os.chdir("..")
-    if len(avr_witness_path) > 0:
-        avr_witness_path[0].rename(str(btor_witness_path))
-    else:
         btor_witness_path.touch()
-
-    if len(avr_proof_path) > 0:
-        avr_proof_path[0].rename(str(btor_witness_path.parent / "inv.txt"))
+        return 1
 
     log.debug(1, f"AVR witness created at {btor_witness_path}", FILE_NAME)
 
@@ -174,7 +171,8 @@ def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kma
             f.write(btor_witness_bytes)
     elif btor_witness_bytes.startswith(b'unsat'):
         print("unsat")
-        btor_witness_path.touch()
+        with open(btor_witness_path, "wb") as f:
+            f.write(btor_witness_bytes)
     else:
         print("unknown")
         btor_witness_path.touch()

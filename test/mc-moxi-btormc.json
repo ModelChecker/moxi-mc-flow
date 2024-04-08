@@ -1,0 +1,40 @@
+{
+    "script": "../modelcheck.py",
+    "options": [
+        "btormc", "--quiet", "--timeout", "10", "--no-witness"
+    ],
+    "tests": [
+        {
+            "input": "moxi/StateProgression.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/ThreeBitCounter.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_ABV/Arrays.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_ABV/ConstArray.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_BV/Consts.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_BV/DoubleDelayTwoRch.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_BV/Let.moxi",
+            "expected_stdout": "sat"
+        },
+        {
+            "input": "moxi/QF_BV/ModCounter.moxi",
+            "expected_stdout": "sat"
+        }
+    ] 
+}

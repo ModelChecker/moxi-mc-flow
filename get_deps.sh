@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # AVR
 git clone git@github.com:aman-goel/avr.git
 pushd avr/
@@ -25,7 +27,6 @@ popd
 popd
 
 # make sure to run on Ubuntu
-sudo apt-get install libgmp-dev default-jre
 git clone https://github.com/stanford-centaur/pono.git
 cd pono
 git checkout hwmcc2020
@@ -38,4 +39,5 @@ cd build
 make
 
 # PANDA deps
-sudo apt-get install gcc-multilib xutils-dev
+# sudo apt-get install gcc-multilib xutils-dev
+# then fix src/PANDA/rgl2/makefile.deps and src/PANDA/rgl2/makefile includes

@@ -53,7 +53,7 @@ def run_diff(
     return (status, diff)
 
 
-def run_test(script: str, options: list[str], test: dict) -> bool:
+def run_test(script: str, options: list[str], test: dict, keep: bool) -> bool:
     """Runs and prints status of `test` where `test` looks something like:
 
     `{
@@ -69,22 +69,35 @@ def run_test(script: str, options: list[str], test: dict) -> bool:
     if "options" in test:
         command += test["options"]
 
+    if "output" in test:
+        command += ["--output", test["output"]]
+
     print(" ".join(command))
 
     proc = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     try:
-        if "expected_result" in test:
+        if "expected_stdout" in test:
             # Both stdout and stderr are captured in proc.stdout
             test_output = proc.stdout.decode().splitlines()
-            expected_output = test["expected_result"].splitlines()
+            expected_output = test["expected_stdout"].splitlines()
 
             status, diff = run_diff(
-                expected_output, test_output, test["input"], test["expected_result"]
+                expected_output, test_output, test["input"], test["expected_stdout"]
             )
-        elif "expected_btor2" in test:
-            # `expected` is a list of pairs of files that should be the same
-            expected = cast(list[tuple[str,str]], test["expected_btor2"])
+        if "expected_returncode" in test:
+            # Both stdout and stderr are captured in proc.stdout
+            test_returncode = proc.returncode
+            expected_returncode = test["expected_returncode"]
+            
+            if test_returncode != expected_returncode:
+                status = False
+                diff = f"Expected {expected_returncode}, got {test_returncode}"
+        if "expected_output" in test:
+            # `expected_output` is a list of pairs of files 
+            # each pair of files should be the same
+            # this test should also have `output` as a field as well
+            expected = cast(list[tuple[str,str]], test["expected_output"])
 
             for expect,out in expected:
                 with open(out, "r") as f:
@@ -96,7 +109,12 @@ def run_test(script: str, options: list[str], test: dict) -> bool:
                     expected_output, test_output, test["input"], expect
                 )
 
-            shutil.rmtree(pathlib.Path("tmp").absolute())
+                if not keep:
+                    output_path = pathlib.Path(out)
+                    if output_path.is_file():
+                        output_path.unlink()
+                    elif output_path.is_dir():
+                        shutil.rmtree(output_path)
     except FileNotFoundError:
         print_fail(f"{test['input']}: file does not exist")
         return False
@@ -104,7 +122,7 @@ def run_test(script: str, options: list[str], test: dict) -> bool:
     if status:
         print_pass(f"{test['input']}")
     else:
-        print_fail(f"{test['input']}\nCommand: {' '.join(command)}\n{diff}")
+        print_fail(f"{test['input']}\n{diff}")
 
     return status
 
@@ -112,6 +130,7 @@ def run_test(script: str, options: list[str], test: dict) -> bool:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="config file that defines the tests to run")
+    parser.add_argument("--keep", action="store_true", help="keep intermediate files")
     args = parser.parse_args()
 
     with open(args.config, "r") as f:
@@ -132,7 +151,7 @@ if __name__ == "__main__":
         print("'tests' attribute not in test config, exiting")
         sys.exit(1)
 
-    if any([not run_test(script, options, test) for test in config["tests"]]):
+    if any([not run_test(script, options, test, args.keep) for test in config["tests"]]):
         sys.exit(1)
         
     sys.exit(0)
