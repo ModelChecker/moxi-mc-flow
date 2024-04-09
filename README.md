@@ -1,106 +1,49 @@
-# IlToBtor2Python
+# moxi-mc-flow
 
 Repository for python translators from SMV to MoXI to BTOR2 and their witnesses. 
 
-# Notes
- 
-AVR witnesses do not adhere to BTORT2 witness format, esp. for arrays. Run 
-
-`python modelcheck.py examples/smv/nuxmv/vis/arrays/FIFOs.smv avr --quiet`
-
-to see this, there are hyphens in the array definitions. Basically, we don't support avr witness
-translation for files with arrays.
-
 ## Translation
-To translate, use the `translate.py` script. For example:
+To run the `translate.py` script, simply feed in a file with a `.smv`, `.moxi`,
+or `.json` file extension and select language to translate to (moxi, moxi-json,
+or btor2). You can ask catbtor or sortcheck.py to validate the output with the
+`--validate` flag. You may need to point the script to the location of `catbtor`
+with the `catbtor` flag. Some example invocations (from `/home/moxi-mc-flow`):
 
-```bash
-python3 translate.py examples/moxi/QF_BV/ThreeBitCounter.moxi btor2 --output ThreeBitCounter.btor2
-```
-```bash
-python3 translate.py examples/smv/nuxmv/invgen/QF_BV/apache-escape-absolute.c.smv moxi --output apa
-che-escape-absolute.c.moxi
-```
+    python3 translate.py test/smv/Delay.smv moxi --output Delay.moxi --validate
 
-Refer to the usage for more information:
-```bash
-usage: translate.py [-h] [--output OUTPUT] [--keep KEEP] [--validate] [--pickle] [--cpp] [--catbtor CATBTOR]
-                    [--sortcheck SORTCHECK] [--intwidth INTWIDTH] [--debug] [--quiet] [--profile]
-                    input {moxi,moxi-json,btor2}
+    python3 translate.py test/smv/Delay.smv btor2 --output Delay.btor2 --validate --catbtor ../catbtor
 
-positional arguments:
-  input                 input program to translate, language is inferred from file extension
-  {moxi,moxi-json,btor2}
-                        target language
+    python3 translate.py test/moxi/QF_BV/ThreeBitCounter.moxi btor2 --output ThreeBitCounter.btor2 --validate --catbtor ../catbtor
 
-options:
-  -h, --help            show this help message and exit
-  --output OUTPUT       target location; should be a directory if targetlang is 'btor2', a filename otherwise
-  --keep KEEP           path to write intermediate translation file(s)
-  --validate            validate output; uses catbtor if targetlan is btor2, sortcheck.py if targetlang is moxi or moxi-
-                        json
-  --pickle              if targetlang is `btor2`, dump pickled BTOR2; needed for witness translations
-  --cpp                 runs cpp on input if input is SMV
-  --catbtor CATBTOR     path to catbtor for BTOR2 validation
-  --sortcheck SORTCHECK
-                        path to sortcheck.py for MoXI validation
-  --intwidth INTWIDTH   bit width to translate Int types to when translating to BTOR2
-  --debug               output debug messages
-  --quiet               disable output
-  --profile             runs using cProfile if true
-```
+You can also cast Int types to bit vectors of specified widths if using a logic
+with Int sorts, for example:
+
+    python3 translate.py test/moxi/QF_LIA/TrafficLightEnum2.moxi btor2 --output TrafficLightEnum2.btor2 --validate --catbtor ../catbtor --intwidth 64 
+
+Refer to the usage information for more options:
+
+    python3 translate.py --help
 
 ## Model Checking
-To run model checking on a file, run the `get_deps.sh` script to fetch the HWMCC20 versions of `avr` and the latest version of `boolector` (for `btormc`). Then use the `modelcheck.py` script. For example, to model check a MoXI file using `btormc`:
-```bash
-python3 modelcheck.py examples/moxi/QF_BV/ThreeBitCounter.moxi btormc --output ThreeBitCounter.witness
-```
+To run the `modelcheck.py` script, feed it a `.smv`, `.moxi`, or `.json` file
+and a backend solver to use for model checking. The supported backends are AVR,
+Pono, and BtorMC. See the notes about witness generation.
 
-To model check the same file using `avr` with k-induction:
-```bash
-python3 modelcheck.py examples/moxi/QF_BV/ThreeBitCounter.moxi avr --output ThreeBitCounter.witness --kind
-```
+    python3 modelcheck.py test/smv/Delay.smv btormc --output Delay.smv.witness
 
-To copy back all translated (intermediate) files:
-```bash
-python3 modelcheck.py examples/moxi/QF_BV/ThreeBitCounter.moxi btormc --output ThreeBitCounter --copyback
-```
+    python3 modelcheck.py test/moxi/Delay.moxi btormc --output Delay.moxi.witness
 
-To model check an SMV file:
-```bash
-python3 modelcheck.py examples/smv/nuxmv/beem/QF_BV/adding.1.prop1-back-serstep.btor.smv btormc --output adding.1.prop1-back-serstep.btor.smv.witness
-```
+The script runs the BMC algorithm of the selected model checker by default, the
+`--kind` flag will set the checker to use it's k-induction algorithm (see notes
+about btormc with kind):
 
-Refer to the usage for more information:
-```bash
-usage: modelcheck.py [-h] [--output OUTPUT] [--avr-path AVR_PATH] [--btormc-path BTORMC_PATH] [--pono-path PONO_PATH]
-                     [--translate-path TRANSLATE_PATH] [--copyback] [--intwidth INTWIDTH] [--catbtor CATBTOR]
-                     [--sortcheck SORTCHECK] [--kmax KMAX] [--timeout TIMEOUT] [--kind] [--cpp] [--debug] [--quiet]
-                     input {btormc,avr,pono}
+    python3 modelcheck.py test/smv/QF_BV/lup.1.prop1-func-interl.btor.smv pono --kind --output lup.1.prop1-func-interl.btor.smv.witness
 
-positional arguments:
-  input                 input program to model check via translation to btor2
-  {btormc,avr,pono}     model checker to use
+You can ask the script to copy back all intermediate translation files with the
+`--copyback` option:
 
-options:
-  -h, --help            show this help message and exit
-  --output OUTPUT       location of output check-system response
-  --avr-path AVR_PATH   path to avr directory
-  --btormc-path BTORMC_PATH
-                        path to btormc binary
-  --pono-path PONO_PATH
-                        path to pono binary
-  --translate-path TRANSLATE_PATH
-                        path to translate.py script
-  --copyback            copy all intermediate translations and results to output location
-  --intwidth INTWIDTH   bit width to translate Int types to (default=32)
-  --catbtor CATBTOR     path to catbtor for BTOR2 validation
-  --sortcheck SORTCHECK
-                        path to sortcheck.py for MoXI validation
-  --kmax KMAX           max bound for BMC (default=1000)
-  --timeout TIMEOUT     timeout in seconds (default=3600)
-  --kind                enable k-induction
-  --cpp                 runs cpp on input if SMV
-  --debug               output debug messages
-  --quiet               silence output
-```
+    python3 modelcheck.py test/smv/Delay.smv btormc --output Delay.smv.out --copyback
+
+Refer to the usage information for more options:
+
+    python3 modelcheck.py --help
