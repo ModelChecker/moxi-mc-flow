@@ -2231,7 +2231,9 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
                 if len(signature) != len(target_signature):
                     log.error(
-                        f"subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}",
+                        f"subsystem signature does not match target system ({sys_symbol})."
+                        f"\n\t{', '.join([f'({v}: {s})' for v,s in context.defined_systems[sys_symbol].input])}"
+                        f"\n\t{', '.join([f'({v}: {s})' for v,s in context.defined_systems[sys_symbol].output])}",
                         FILE_NAME,
                         cmd.loc,
                     )
@@ -2241,7 +2243,9 @@ def sort_check(program: Program) -> tuple[bool, Context]:
                 for (_, cmd_sort), (_, target_sort) in zip(signature, target_signature):
                     if cmd_sort != target_sort:
                         log.error(
-                            f"subsystem signature does not match target system ({sys_symbol}).\n\t{context.defined_systems[sys_symbol].input + context.defined_systems[sys_symbol].output}\n\t{signature}",
+                            f"subsystem signature does not match target system ({sys_symbol})."
+                            f"\n\t{', '.join([f'({v}: {s})' for v,s in context.defined_systems[sys_symbol].input])}"
+                            f"\n\t{', '.join([f'({v}: {s})' for v,s in context.defined_systems[sys_symbol].output])}",
                             FILE_NAME,
                             cmd.loc,
                         )

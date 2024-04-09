@@ -2,6 +2,22 @@
     "script": "../sortcheck.py",
     "tests": [
         {
+            "input": "moxi/Bad/DoubleDelayBadSubsys.moxi",
+            "expected_returncode": 1
+        },
+        {
+            "input": "moxi/Bad/DoubleDelayBadVar.moxi",
+            "expected_returncode": 1
+        },
+        {
+            "input": "moxi/Bad/TemporalBadLogic.moxi",
+            "expected_returncode": 1
+        },
+        {
+            "input": "moxi/Bad/ThreeBitCounterBadFun.moxi",
+            "expected_returncode": 1
+        },
+        {
             "input": "json/ModCounter.json",
             "expected_returncode": 0
         },

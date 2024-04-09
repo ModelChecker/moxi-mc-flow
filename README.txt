@@ -5,8 +5,6 @@ Cesare Tinelli, Moshe Y. Vardi and Kristin Yvonne Rozier
 
 Badges claimed: available, functional, reusable
 
-DOI: 
-    
 -------------------------------------------------------------------------------
 Abstract
 
@@ -20,10 +18,50 @@ reference sort checker for MoXI files, as well as a JSON schema that can be used
 to validate MoXI files in a JSON format. 
 
 -------------------------------------------------------------------------------
+Getting Started
+
+1. Install docker (or a compatible alternative) on your machine. Docker is free
+and open-source and can be downloaded from [https://www.docker.com]
+
+2. Import the included tarball From a terminal shell in the same directory as
+the downloaded artifact, the `moxi.tar` file can be imported with the command:
+    `docker load < moxi.tar`
+
+3. Start the container The tarball loads an "image" from which "containers" can
+be run. View the loaded images with `docker images` then start a new container
+(or instance of the image) with:
+    `docker run -it --rm moxi-mc-flow`
+the flags `-it` give you an interactive terminal with the container while `--rm`
+removes the container (but not the image) when you exit. If you'd rather keep a
+persistent container to save changes, remove this flag.
+
+4. You will now have a bash shell at the home directory of the artifact.
+
+Note: If you removed the `--rm` flag, after exiting the shell the container will
+still be running in the background until you issue a `docker stop` command for
+the container
+
+-------------------------------------------------------------------------------
+Smoke Test
+
+The script `/home/scripts/run_modelcheck.sh` executes
+`/home/moxi-mc-flow/modelcheck.py` on a subset of SMV benchmarks and MoXI files
+and checks that the result is as expected. This script exercises all three
+provided scripts, translating SMV -> MoXI -> BTOR2 and back, and uses all
+available model checkers. To run this, execute:
+
+    ./scripts/run_modelcheck.sh
+
+Every test should output [PASS], meaning that the sat/unsat result is as
+expected and, in some cases, the generated witness is as expected. The expected
+results/files can be found in the `moxi-mc-flow/test/` directory, in the `.json`
+test config files and `.expect` files.
+
+-------------------------------------------------------------------------------
 Requirements
 
-The following dependencies have been installed on this container for use by the
-artifact:
+The following dependencies have been installed on the docker container for use
+by the artifact:
     - AVR (https://github.com/aman-goel/avr, `hwmcc2020` branch, 
                                                             commit: c13e626)
     - Pono (https://github.com/stanford-centaur/pono, `hwmcc2020` branch, 
@@ -43,7 +81,7 @@ All replication steps (except for experimental evaluation) should take less than
 ten minutes to complete. The full experimental evaluation runs a set of 960
 model-checking benchmarks with seven different backend combinations and a
 timeout of one hour for each benchmark. We provide a version of this script with
-a 5 second timeout that took ~8 hours to complete on a machine with an 8 core
+a 5 second timeout that took ~5 hours to complete on a machine with an 8 core
 Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz and 32 GB memory.
 
 -------------------------------------------------------------------------------
@@ -75,7 +113,7 @@ Organization
 |   |   |
 |   |   |- run_jsonschema.sh        JSON schema testing script
 |   |   |
-|   |   |- run_modelcheck.sh        modelcheck.py test script
+|   |   |- run_modelcheck.sh        modelcheck.py test script (**smoke test**)
 |   |   |
 |   |   |- run_sortcheck.sh         sortcheck.py test script
 |   |   |
@@ -128,11 +166,6 @@ For a MoXI example with a wide collection of supported features, see
 `test/moxi/QF_BV/DoubleDelayTwoCheck.moxi` for how multiple check system
 commands and `test/moxi/QF_BV/DoubleDelayTwoQuery.moxi` for how multiple queries
 are handled.
-
-(**SMOKE TEST**) The script `run_modelcheck.sh` executes `modelcheck.py` on a
-subset of SMV benchmarks and MoXI files and checks that the result is as
-expected. This script exercises all three scripts, translating SMV -> MoXI ->
-BTOR2 and back, and uses all available model checkers. 
 
 --------------------------------------
 Reference Sort Checker
@@ -256,10 +289,10 @@ implementation (https://github.com/Boolector/boolector/issues/220)
 Support
 
 If you believe you have found a case of unsound output from any script, please
-run the script with the debug level 2 (`--debug 2`) and provide the output to
+run the script with the debug level 1 (`--debug 1`) and provide the output to
 the authors for analysis. For example:
 
-    python3 translate.py test/smv/Delay.smv moxi --output Delay.moxi --validate --debug 2 
+    python3 translate.py test/smv/Delay.smv moxi --output Delay.moxi --validate --debug 1 
 
 The debug output contains no identifying information, please ask the chairs to
 assist in passing along you anonymized feedback. Thank you.

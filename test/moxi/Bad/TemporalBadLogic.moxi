@@ -1,0 +1,66 @@
+(set-logic QF_LIA)
+
+(define-system NonDetArbiter
+ :input ( (r1 Bool) (r2 Bool) )
+ :output ( (g1 Bool) (g2 Bool) )
+ :local ( (s Bool) )
+ :init ( (and (not g1) (not g2)) )  ; nothing is granted initially
+ :trans (and
+  (=> (and (not r1') (not r2'))
+      (and (not g1') (not g2')))
+(and 
+  (=> (and r1' (not r2'))
+      (and g1' (not g2')))
+(and
+  (=> (and (not r1') r2')
+      (and (not g1') g2'))
+  (=> (and r1' r2')
+      ; the unconstrained value of `s` is used as non-deterministic choice
+      (ite s' (and g1' (not g2'))
+        (and (not g1') g2')))
+  )))
+)
+
+(define-system Historically :input ((b Bool)) :output ((hb Bool)) 
+ :init (= hb b) 
+ :trans (= hb' (and b' hb))
+)
+
+(define-system Before :input ((b Bool)) :output ((bb Bool)) 
+ :init (= bb false) 
+ :trans (= bb' b)
+)
+
+(define-system Count :input ((b Bool)) :output ((c (_ BitVec 8))) 
+ :init (= c (ite b #b00000001 #b00000000))
+ :trans (= c' (bvadd c (ite b #b00000001 #b00000000)))
+)
+
+(define-system Monitor :input ((r1 Bool) (r2 Bool)) :output ((g1 Bool) (g2 Bool))  
+ :local ((a1 Bool) (a2 Bool) (b Bool) (h1 Bool) (h2 Bool) (bf Bool) (c (_ BitVec 8)))
+ :subsys (A (NonDetArbiter r1 r2 g1 g2))
+ :subsys (H1 (Historically a1 h1))
+ :subsys (H2 (Historically a2 h2))
+ :subsys (C (Count g1 c))
+ :subsys (B (Before b bf))
+ :inv (and
+   ; a1 <=> no requests
+   (= a1 (and (not r1) (not r2)))
+   (and
+   ; a2 <=> no grants
+   (= a2 (and (not g1) (not g2)))
+   ; b <=> c is 4
+   (= b (= c #b00000100)))
+ )
+)
+
+(check-system Monitor :input ((r1 Bool) (r2 Bool)) :output ((g1 Bool) (g2 Bool))
+ :local ((a1 Bool) (a2 Bool) (b Bool) (h1 Bool) (h2 Bool) (bf Bool) (c (_ BitVec 8)))
+ ; no concurrent requests
+ :assumption (A (not (and r1 r2))) 
+ ; neg of: if there have been no requests, there have been no grants 
+ :reachable (P1 (not (=> h1 h2))) 
+ ; neg of: a request is granted at most 4 times
+ :reachable (P2 (not (=> bf (not g1)))) 
+ :query (Q1 (A P1))
+)
