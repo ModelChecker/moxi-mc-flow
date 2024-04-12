@@ -281,7 +281,7 @@ def main(
         program_paths = [prog for prog in check_system_path.glob("*.btor2")]
         pickle_paths = [p.with_suffix(".btor2.pickle") for p in program_paths]
 
-        system_symbol = check_system_path.suffix[1:]
+        system_symbol = check_system_path.suffixes[0][1:]
 
         query_responses: list[moxi_witness.QueryResponse] = []
 
