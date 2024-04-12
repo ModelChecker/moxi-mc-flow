@@ -277,11 +277,11 @@ def main(
 
     check_system_responses: list[moxi_witness.CheckSystemResponse] = []
 
-    for check_system_path in input_path.iterdir():
+    for check_system_path in sorted(input_path.iterdir()):
         program_paths = [prog for prog in check_system_path.glob("*.btor2")]
         pickle_paths = [p.with_suffix(".btor2.pickle") for p in program_paths]
 
-        system_symbol = check_system_path.stem
+        system_symbol = check_system_path.suffix[1:]
 
         query_responses: list[moxi_witness.QueryResponse] = []
 

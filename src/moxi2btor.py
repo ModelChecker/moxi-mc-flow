@@ -769,6 +769,7 @@ def translate(
 def translate_file(
     input_path: Path,
     output_path: Path,
+    schema_path: Path,
     int_width: int,
     do_pickle: bool,
 ) -> int:
@@ -778,7 +779,7 @@ def translate_file(
 
     if input_path.suffix == ".json":
         with open(str(input_path), "r") as file:
-            program = json2moxi.from_json(json.load(file))
+            program = json2moxi.from_json(schema_path, json.load(file))
     elif input_path.suffix == ".moxi":
         program = parse_moxi.parse(input_path)
     elif input_path.suffix == ".pickle":

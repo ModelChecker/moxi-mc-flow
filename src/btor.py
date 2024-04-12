@@ -491,7 +491,7 @@ def write_btor2_program_set(
         if symbol not in program_index:
             program_index[symbol] = 1
 
-        program_output_path = output_path / f"{symbol}.{program_index[symbol]}"
+        program_output_path = output_path / f"{program_index[symbol]}.{symbol}"
 
         program_index[symbol] += 1
 

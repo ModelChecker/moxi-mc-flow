@@ -107,7 +107,7 @@ def main(
             if moxi2json.main(input_path, output_path, False, False):
                 return FAIL
         case (".moxi", "btor2"):
-            if moxi2btor.translate_file(input_path, output_path, int_width, do_pickle):
+            if moxi2btor.translate_file(input_path, output_path, JSON_SCHEMA, int_width, do_pickle):
                 return FAIL
         case (".json", "moxi"):
             if json2moxi.main(input_path, output_path, JSON_SCHEMA, False, False, int_width):
@@ -118,7 +118,7 @@ def main(
             if json2moxi.main(input_path, moxi_path, JSON_SCHEMA, False, False, int_width):
                 return FAIL
 
-            if moxi2btor.translate_file(moxi_path, output_path, int_width, do_pickle):
+            if moxi2btor.translate_file(moxi_path, output_path, JSON_SCHEMA, int_width, do_pickle):
                 return FAIL
 
             if keep:
