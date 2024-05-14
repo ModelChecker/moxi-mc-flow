@@ -139,6 +139,7 @@ btor2tools/
 boolector/
 avr/
 pono/
+pono-dir/
 btor2tools/
 nuXmv-2.0.0-Linux/
 deps/btormc
