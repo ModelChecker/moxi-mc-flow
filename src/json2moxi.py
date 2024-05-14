@@ -74,7 +74,6 @@ def from_json_expr(contents: dict, enums: dict[str, str]) -> moxi.Expr:
 
 
 def from_json(schema_path: pathlib.Path, contents: dict) -> Optional[moxi.Program]:
-    print(schema_path)
     with open(schema_path / "moxi.json", "r") as f:
         moxi_schema = json.load(f)
 

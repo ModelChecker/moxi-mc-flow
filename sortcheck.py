@@ -11,7 +11,7 @@ from src import json2moxi
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
 
-JSON_SCHEMA = FILE_DIR / ".." / "json-schema" / "schema"
+JSON_SCHEMA = FILE_DIR / "json-schema" / "schema"
 
 def main(input_path: pathlib.Path, echo: bool) -> int:
     if not input_path.is_file():
