@@ -40,7 +40,7 @@ git checkout hwmcc2020
 ./contrib/setup-smt-switch.sh # install gmp and JRE
 ./contrib/setup-btor2tools.sh
 sed -i '199,203 s/^/#/' CMakeLists.txt
-./configure.sh
+./configure.sh --static
 pushd build
 make
 cp pono ../../

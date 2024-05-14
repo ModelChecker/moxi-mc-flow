@@ -88,6 +88,8 @@ Organization
 
 |- Home directory
 |   |
+|   |- benchmarks/         Files for experimental data
+|   |
 |   |- deps/               Dependencies
 |   |   |
 |   |   |- avr/            AVR (model checker)
@@ -104,20 +106,6 @@ Organization
 |   |
 |   |- json-schema/        JSON Schema definition
 |   |
-|   |- moxi-mc-flow/       Source for the translation scripts
-|   |   |
-|   |   |- benchmarks/     Files for experimental data
-|   |   |
-|   |   |- src/            Translators source code
-|   |   |
-|   |   |- test/           Test and example files for each script
-|   |   |
-|   |   |- modelcheck.py   Model checking script
-|   |   |
-|   |   |- sortcheck.py    MoXI reference sort checking script
-|   |   |
-|   |   |- translate.py    Translation script
-|   |
 |   |- scripts/            Scripts for running tests
 |   |   |
 |   |   |- run_benchmarks_full.sh   Full benchmarking script (1 hour timeout)
@@ -132,11 +120,21 @@ Organization
 |   |   |
 |   |   |- run_translate.sh         translate.py test script
 |   |
-|   |- Dockerfile         File used to build the image
+|   |- src/            Translators source code
 |   |
-|   |- LICENSE.txt        Artifact license
+|   |- test/           Test and example files for each script
 |   |
-|   |- README.txt         Artifact replication and evaluation instructions
+|   |- Dockerfile      File used to build the image
+|   |
+|   |- LICENSE.txt     Artifact license
+|   |
+|   |- README.txt      Artifact replication and evaluation instructions
+|   |
+|   |- modelcheck.py   Model checking script
+|   |
+|   |- sortcheck.py    MoXI reference sort checking script
+|   |
+|   |- translate.py    Translation script
 
 -------------------------------------------------------------------------------
 Replication Instructions (Functional badge)
@@ -210,8 +208,8 @@ the file, result, and time for each run. After running each benchmark, it then
 runs `check.py` to verify no solvers disagreed on a result, i.e., one claimed
 sat/unsat and another claimed the opposite for a benchmark. 
 
-Keep in mind that the results are meant to be relative to nuXmv, i.e., they show
-that the toolchain provided is correct and performant *with respect to* nuXmv.
+Keep in mind that the results should be interpreted relative to nuXmv, i.e.,
+they show that the toolchain is correct and performant *with respect to* nuXmv.
 So, though many tests with not finish within the timeout or memout limits, the
 data show that the avr, btormc, and pono scripts agree with and solve a similar
 number of sat/unsat instances compared to nuXmv.
@@ -232,19 +230,18 @@ Running the Toolchain (Reusable badge)
 To run the `translate.py` script, simply feed in a file with a `.smv`, `.moxi`,
 or `.json` file extension and select language to translate to (moxi, moxi-json,
 or btor2). You can ask catbtor or sortcheck.py to validate the output with the
-`--validate` flag. You may need to point the script to the location of `catbtor`
-with the `catbtor` flag. Some example invocations (from `/home/moxi-mc-flow`):
+`--validate` flag. Some example invocations (from `/home/moxi-mc-flow`):
 
     python3 translate.py test/smv/Delay.smv moxi --output Delay.moxi --validate
 
-    python3 translate.py test/smv/Delay.smv btor2 --output Delay.btor2 --validate --catbtor ../catbtor
+    python3 translate.py test/smv/Delay.smv btor2 --output Delay.btor2 --validate
 
-    python3 translate.py test/moxi/QF_BV/ThreeBitCounter.moxi btor2 --output ThreeBitCounter.btor2 --validate --catbtor ../catbtor
+    python3 translate.py test/moxi/QF_BV/ThreeBitCounter.moxi btor2 --output ThreeBitCounter.btor2 --validate
 
 You can also cast Int types to bit vectors of specified widths if using a logic
 with Int sorts, for example:
 
-    python3 translate.py test/moxi/QF_LIA/TrafficLightEnum2.moxi btor2 --output TrafficLightEnum2.btor2 --validate --catbtor ../catbtor --intwidth 64 
+    python3 translate.py test/moxi/QF_LIA/TrafficLightEnum2.moxi btor2 --output TrafficLightEnum2.btor2 --validate --intwidth 64 
 
 To run the `modelcheck.py` script, feed it a `.smv`, `.moxi`, or `.json` file
 and a backend solver to use for model checking. The supported backends are AVR,
