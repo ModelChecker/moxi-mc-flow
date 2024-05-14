@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-pushd /home/moxi-mc-flow/test/
+pushd $(dirname "$0")/../test/
 
 echo "-----------------------------------------------------"
 echo "Testing smv2moxi"

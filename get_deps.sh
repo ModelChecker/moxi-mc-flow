@@ -16,22 +16,25 @@ pushd boolector
 ./configure.sh 
 pushd build 
 make
+cp bin/btormc ../../
 popd
 popd
 
 # btor2tools
 git clone git@github.com:Boolector/btor2tools.git
 pushd btor2tools
-./configure.sh
+./configure.sh --static
 pushd build
 make
+cp bin/catbtor ../../
 popd
 popd
 
 # Pono
 # make sure to run on Ubuntu
 git clone https://github.com/stanford-centaur/pono.git
-pushd pono
+mv pono pono-dir
+pushd pono-dir
 git checkout hwmcc2020
 ./contrib/setup-bison.sh 
 ./contrib/setup-smt-switch.sh # install gmp and JRE
@@ -40,6 +43,7 @@ sed -i '199,203 s/^/#/' CMakeLists.txt
 ./configure.sh
 pushd build
 make
+cp pono ../../
 popd
 popd
 
@@ -49,5 +53,6 @@ sudo apt-get install gcc-multilib xutils-dev
 # nuXmv
 wget https://nuxmv.fbk.eu/theme/download.php?file=nuXmv-2.0.0-linux64.tar.gz
 tar -xvf download.php?file=nuXmv-2.0.0-linux64.tar.gz
+cp nuXmv-2.0.0-Linux/bin/nuXmv .
 
 popd

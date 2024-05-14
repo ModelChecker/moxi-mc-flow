@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-pushd /home/moxi-mc-flow/benchmarks/
+pushd $(dirname "$0")/../benchmarks/
 
 # Any process over 8GB virtual memory will be killed ("memout")
 ulimit -v 8000000

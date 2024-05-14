@@ -9,14 +9,15 @@ WORKDIR $HOME
 
 COPY Dockerfile .
 COPY README.txt .
+COPY LICENSE.txt .
 
 # src/test files
-COPY src/ moxi-mc-flow/src/
-COPY test/ moxi-mc-flow/test/
-COPY benchmarks/ moxi-mc-flow/benchmarks/
-COPY sortcheck.py moxi-mc-flow/
-COPY modelcheck.py moxi-mc-flow/
-COPY translate.py moxi-mc-flow/
+COPY src/ src/
+COPY test/ test/
+COPY benchmarks/ benchmarks/
+COPY sortcheck.py .
+COPY modelcheck.py .
+COPY translate.py .
 
 COPY json-schema json-schema/
 
@@ -31,17 +32,11 @@ RUN chmod +x scripts/run_sortcheck.sh
 RUN chmod +x scripts/run_jsonschema.sh
 
 # dependencies
-COPY deps/nuXmv-2.0.0-Linux/bin/nuXmv deps/
-COPY deps/avr/ deps/avr/
-COPY deps/boolector/build/bin/btormc deps/
-COPY deps/pono/build/pono deps/
-COPY deps/pono/build/libpono.so /usr/lib
-COPY deps/btor2tools/build/bin/catbtor deps/
-COPY deps/btor2tools/build/lib/libbtor2parser.so /usr/lib
-
-# LICENSES
-COPY LICENSE.txt .
 COPY deps/LICENSE* deps/
+COPY deps/catbtor deps/
+COPY deps/nuXmv deps/
+COPY deps/btormc deps/
+COPY deps/pono deps/
 
 WORKDIR $HOME
 CMD ["/bin/bash"]
