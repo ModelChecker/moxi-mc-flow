@@ -143,6 +143,7 @@ hwmcc20benchmarks/
 btor2tools/
 kind2/
 nuXmv-2.0.0-Linux/
+deps/
 
 .DS_Store
 

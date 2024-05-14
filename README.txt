@@ -88,25 +88,37 @@ Organization
 
 |- Home directory
 |   |
-|   |- avr/               AVR (model checker)
+|   |- deps/               Dependencies
+|   |   |
+|   |   |- avr/            AVR (model checker)
+|   |   |
+|   |   |- LICENSE-*.txt   License information
+|   |   |
+|   |   |- btormc          BtorMC binary (model checker)
+|   |   |
+|   |   |- catbtor         catbtor binary for validating BTOR2 programs
+|   |   |
+|   |   |- nuXmv           nuXmv version 2.0 binary (model checker)
+|   |   |
+|   |   |- pono            Pono binary (model checker)
 |   |
-|   |- LICENSE/           License information
+|   |- json-schema/        JSON Schema definition
 |   |
-|   |- moxi-mc-flow/      Source for the translation scripts
+|   |- moxi-mc-flow/       Source for the translation scripts
 |   |   |
-|   |   |- benchmarks/    Files for experimental data
+|   |   |- benchmarks/     Files for experimental data
 |   |   |
-|   |   |- src/           Translators source code
+|   |   |- src/            Translators source code
 |   |   |
-|   |   |- test/          Test and example files for each script
+|   |   |- test/           Test and example files for each script
 |   |   |
-|   |   |- modelcheck.py  Model checking script
+|   |   |- modelcheck.py   Model checking script
 |   |   |
-|   |   |- sortcheck.py   MoXI reference sort checking script
+|   |   |- sortcheck.py    MoXI reference sort checking script
 |   |   |
-|   |   |- translate.py   Translation script
+|   |   |- translate.py    Translation script
 |   |
-|   |- scripts/           Useful scripts for running tests
+|   |- scripts/            Scripts for running tests
 |   |   |
 |   |   |- run_benchmarks_full.sh   Full benchmarking script (1 hour timeout)
 |   |   |
@@ -120,13 +132,9 @@ Organization
 |   |   |
 |   |   |- run_translate.sh         translate.py test script
 |   |
-|   |- btormc             BtorMC binary (model checker)
+|   |- Dockerfile         File used to build the image
 |   |
-|   |- catbtor            catbtor binary for validating BTOR2 programs
-|   |
-|   |- nuXmv              nuXmv version 2.0 binary (model checker)
-|   |
-|   |- pono               Pono binary (model checker)
+|   |- LICENSE.txt        Artifact license
 |   |
 |   |- README.txt         Artifact replication and evaluation instructions
 

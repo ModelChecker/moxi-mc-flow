@@ -1,4 +1,6 @@
 #!/bin/bash
+mkdir -p deps
+pushd deps/
 
 # AVR
 git clone git@github.com:aman-goel/avr.git
@@ -26,17 +28,20 @@ make
 popd
 popd
 
+# Pono
 # make sure to run on Ubuntu
 git clone https://github.com/stanford-centaur/pono.git
-cd pono
+pushd pono
 git checkout hwmcc2020
 ./contrib/setup-bison.sh 
 ./contrib/setup-smt-switch.sh # install gmp and JRE
 ./contrib/setup-btor2tools.sh
 sed -i '199,203 s/^/#/' CMakeLists.txt
 ./configure.sh
-cd build
+pushd build
 make
+popd
+popd
 
 # PANDA deps
 sudo apt-get install gcc-multilib xutils-dev
@@ -44,3 +49,5 @@ sudo apt-get install gcc-multilib xutils-dev
 # nuXmv
 wget https://nuxmv.fbk.eu/theme/download.php?file=nuXmv-2.0.0-linux64.tar.gz
 tar -xvf download.php?file=nuXmv-2.0.0-linux64.tar.gz
+
+popd

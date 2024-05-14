@@ -19,7 +19,7 @@ from src import (
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
 
-CATBTOR = FILE_DIR / ".." / "catbtor"
+CATBTOR = FILE_DIR / ".." / "deps" / "catbtor"
 SORTCHECK = FILE_DIR / "sortcheck.py"
 JSON_SCHEMA = FILE_DIR / ".." / "json-schema" / "schema"
 
