@@ -3,19 +3,19 @@
     "options": ["moxi", "--validate"],
     "tests": [
         {
-            "input": "smv/LTLSPEC/counter.smv",
-            "output": "smv/LTLSPEC/counter.moxi",
+            "input": "smv/counter.smv",
+            "output": "smv/counter.moxi",
             "expected_output": [
-                ["smv/LTLSPEC/counter.moxi.expect",
-                 "smv/LTLSPEC/counter.moxi"]
+                ["smv/counter.moxi.expect",
+                 "smv/counter.moxi"]
             ]
         },
         {
-            "input": "smv/LTLSPEC/short.smv",
-            "output": "smv/LTLSPEC/short.moxi",
+            "input": "smv/short.smv",
+            "output": "smv/short.moxi",
             "expected_output": [
-                ["smv/LTLSPEC/short.moxi.expect",
-                 "smv/LTLSPEC/short.moxi"]
+                ["smv/short.moxi.expect",
+                 "smv/short.moxi"]
             ]
         },
         {
