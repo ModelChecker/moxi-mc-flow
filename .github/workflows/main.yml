@@ -33,6 +33,7 @@ jobs:
         cd build
         make
         cp bin/catbtor ../../
+        sudo cp lib/libbtor2parser.so /lib
 
     - name: mc-moxi
       run: |

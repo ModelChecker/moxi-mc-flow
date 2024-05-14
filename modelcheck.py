@@ -14,9 +14,9 @@ FILE_DIR = pathlib.Path(__file__).parent
 WORK_DIR_PARENT = FILE_DIR / "__workdir__"
 WORK_DIR = WORK_DIR_PARENT / str(os.getpid())
 
-btormc_path = FILE_DIR / ".." / "deps" / "btormc"
-avr_path = FILE_DIR / ".." / "deps" / "avr"
-pono_path = FILE_DIR / ".." / "deps" / "pono" 
+btormc_path = FILE_DIR / "deps" / "btormc"
+avr_path = FILE_DIR / "deps" / "avr"
+pono_path = FILE_DIR / "deps" / "pono" 
 translate_path = FILE_DIR / "translate.py"
 
 
