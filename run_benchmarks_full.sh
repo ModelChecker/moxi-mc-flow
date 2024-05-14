@@ -2,6 +2,9 @@
 
 pushd /home/moxi-mc-flow/benchmarks/
 
+# Any process over 8GB virtual memory will be killed ("memout")
+ulimit -v 8000000
+
 mkdir results_full
 
 python3 benchmark.py btormc bmc --results results_full/btormc-bmc.csv

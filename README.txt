@@ -3,10 +3,6 @@ CAV'24 Submission #3209 Symbolic Model-Checking Intermediate-Language Tool Suite
 Chris Johannsen, Karthik Nukala, Rohit Dureja, Ahmed Irfan, Natarajan Shankar,
 Cesare Tinelli, Moshe Y. Vardi and Kristin Yvonne Rozier
 
-Badges claimed: available, functional, reusable
-
-DOI: 10.5281/zenodo.10946779
-
 -------------------------------------------------------------------------------
 Abstract
 
@@ -22,7 +18,7 @@ to validate MoXI files in a JSON format.
 -------------------------------------------------------------------------------
 Getting Started
 
-1. Install docker (or a compatible alternative) on your machine. Docker is free
+1. Install Docker (or a compatible alternative) on your machine. Docker is free
 and open-source and can be downloaded from [https://www.docker.com]
 
 2. Import the included tarball From a terminal shell in the same directory as
@@ -32,7 +28,7 @@ the downloaded artifact, the `moxi.tar` file can be imported with the command:
 3. Start the container The tarball loads an "image" from which "containers" can
 be run. View the loaded images with `docker images` then start a new container
 (or instance of the image) with:
-    `docker run -it --rm moxi-mc-flow`
+    `docker run -it --rm moxi-mc-flow:artifact`
 the flags `-it` give you an interactive terminal with the container while `--rm`
 removes the container (but not the image) when you exit. If you'd rather keep a
 persistent container to save changes, remove this flag.
@@ -82,9 +78,10 @@ schema validator:
 All replication steps (except for experimental evaluation) should take less than
 ten minutes to complete. The full experimental evaluation runs a set of 960
 model-checking benchmarks with seven different backend combinations and a
-timeout of one hour for each benchmark. We provide a version of this script with
-a 5 second timeout that took ~5 hours to complete on a machine with an 8 core
-Intel(R) Core(TM) i7-6700K CPU @ 4.00GHz and 32 GB memory.
+timeout of one hour for each benchmark. This script took ~3 days to complete on
+a 50 core server. We provide a version of this script with a 5 second timeout
+that took ~5 hours to complete on a machine with an 8 core Intel(R) Core(TM)
+i7-6700K CPU @ 4.00GHz and 32 GB memory. 
 
 -------------------------------------------------------------------------------
 Organization
@@ -92,6 +89,8 @@ Organization
 |- Home directory
 |   |
 |   |- avr/               AVR (model checker)
+|   |
+|   |- LICENSE/           License information
 |   |
 |   |- moxi-mc-flow/      Source for the translation scripts
 |   |   |
@@ -109,7 +108,7 @@ Organization
 |   |
 |   |- scripts/           Useful scripts for running tests
 |   |   |
-|   |   |- run_benchmarks_full.sh   Full benchmarking script (8 hour timeout)
+|   |   |- run_benchmarks_full.sh   Full benchmarking script (1 hour timeout)
 |   |   |
 |   |   |- run_benchmarks_short.sh  Short benchmarking script (5 sec timeout)
 |   |   |
@@ -124,8 +123,6 @@ Organization
 |   |- btormc             BtorMC binary (model checker)
 |   |
 |   |- catbtor            catbtor binary for validating BTOR2 programs
-|   |
-|   |- LICENSE.txt        License information
 |   |
 |   |- nuXmv              nuXmv version 2.0 binary (model checker)
 |   |
@@ -203,7 +200,13 @@ timeout. For the avr/pono/btormc runs, the scripts use the `modelcheck.py`
 script to run the solver/algorithm over each smv file in benchmarks. They report
 the file, result, and time for each run. After running each benchmark, it then
 runs `check.py` to verify no solvers disagreed on a result, i.e., one claimed
-sat/unsat and another claimed the opposite for a benchmark.
+sat/unsat and another claimed the opposite for a benchmark. 
+
+Keep in mind that the results are meant to be relative to nuXmv, i.e., they show
+that the toolchain provided is correct and performant *with respect to* nuXmv.
+So, though many tests with not finish within the timeout or memout limits, the
+data show that the avr, btormc, and pono scripts agree with and solve a similar
+number of sat/unsat instances compared to nuXmv.
 
 By default, the script uses 4 processes. If you omit the flag, the script will
 use as many processes as there are cores available. You can change this by
@@ -211,9 +214,9 @@ editing the --nprocs option in `scripts/run_benchmarks_short.sh`, for example:
 
     python3 benchmark.py btormc bmc --results results_full/btormc-bmc.csv --nprocs 2
 
-The script uses the nuXmv binary at `/home/nuXmv` to test the nuXmv versions with the
-commands listed in `benchmarks/nuxmv-kind.cmd` and `benchmarks/nuxmv-bmc.cmd`
-respectively. 
+The script uses the nuXmv binary at `/home/nuXmv` to test the nuXmv versions
+with the commands listed in `benchmarks/nuxmv-kind.cmd` and
+`benchmarks/nuxmv-bmc.cmd` respectively. 
 
 -------------------------------------------------------------------------------
 Running the Toolchain (Reusable badge)
@@ -283,6 +286,9 @@ runs.
 - The timeout time for benchmarking is only for the model checker call. For
 example, with a timeout of 10, a call to modelcheck.py could take 12 seconds if
 the translation took 3 seconds and the model checking call took 9 seconds.
+
+- Memouts are reported based on the underlying process being killed due to the
+call to `ulimit -v 8000000` in each benchmarking script.
 
 - We do not benchmark btormc using kind since there is a bug in its
 implementation (https://github.com/Boolector/boolector/issues/220)

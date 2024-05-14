@@ -1,11 +1,23 @@
 # moxi-mc-flow
 
-Repository for python translators from SMV to MoXI to BTOR2 and their witnesses. 
+Python translators from SMV to MoXI to BTOR2 and their witnesses. 
 
-## Translation
-To run the `translate.py` script, simply feed in a file with a `.smv`, `.moxi`,
-or `.json` file extension and select language to translate to (moxi, moxi-json,
-or btor2). You can ask catbtor or sortcheck.py to validate the output with the
+![Toolchain](toolchain.png "Toolchain")
+
+## Building
+
+To build the artifact, run `./get_deps.sh` to install all depencencies, then run
+
+    docker build . -t moxi-mc-flow:artifact
+
+to build the Docker image and save it with name `moxi-mc-flow:artifact`. This
+method has been tested on Ubuntu 20.04.6 LTS.
+
+## Running the translators
+
+To run the `translate.py` script, feed in a file with a `.smv`, `.moxi`, or
+`.json` file extension and select language to translate to (moxi, moxi-json, or
+btor2). You can ask catbtor or sortcheck.py to validate the output with the
 `--validate` flag. You may need to point the script to the location of `catbtor`
 with the `catbtor` flag. Some example invocations (from `/home/moxi-mc-flow`):
 
@@ -24,7 +36,8 @@ Refer to the usage information for more options:
 
     python3 translate.py --help
 
-## Model Checking
+## Running a model checker
+
 To run the `modelcheck.py` script, feed it a `.smv`, `.moxi`, or `.json` file
 and a backend solver to use for model checking. The supported backends are AVR,
 Pono, and BtorMC. See the notes about witness generation.

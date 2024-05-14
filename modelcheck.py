@@ -341,7 +341,7 @@ if __name__ == "__main__":
     parser.add_argument("--kmax", default=1000, type=int, 
         help="max bound for BMC (default=1000)")
     parser.add_argument("--timeout", default=3600, type=int, 
-        help="timeout in seconds (default=3600)")
+        help="timeout in seconds for model checker (default=3600)")
     parser.add_argument("--kind", action="store_true", 
         help="enable k-induction")
     parser.add_argument("--cpp", action="store_true", 

@@ -1,9 +1,9 @@
 """Runs the benchmarks for te CAV 2024 paper.
 
-For each .smv file in each in the directories relative to this script, runs the selected solver
-(nuXmv, avr, btormc, pono) on each of the files, stores whether that file was 'sat', 'unsat',
-'timeout', 'unknown' and its runtime, and writes those results to a csv file along with
-the time of execution. 
+For each .smv file in each in the directories relative to this script, runs the
+selected solver (nuXmv, avr, btormc, pono) on each of the files, stores whether
+that file was 'sat', 'unsat', 'timeout', 'memout', 'unknown' and its runtime,
+and writes those results to a csv file along with the time of execution. 
 """
 import multiprocessing as mp
 import pathlib
@@ -33,7 +33,7 @@ def run_nuxmv(cmd: list[str]):
 
     try:
         start = time.perf_counter()
-        proc = subprocess.run(cmd, capture_output=True, timeout=timeout)
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
         end = time.perf_counter()
     except subprocess.TimeoutExpired:
         print(f"{file}: timeout")
@@ -42,14 +42,15 @@ def run_nuxmv(cmd: list[str]):
             f.write('\t'.join(results) + "\n") 
         return
 
-    stdout = proc.stdout.decode()
-
-    if stdout.find("is false") > 0:
+    if proc.stdout.find("is false") > 0:
         print(f"{file}: sat")
         results = (f"{args.modelchecker}-{args.algorithm}", str(file), "sat", str(end - start))
-    elif stdout.find("is true") > 0:
+    elif proc.stdout.find("is true") > 0:
         print(f"{file}: unsat")
         results = (f"{args.modelchecker}-{args.algorithm}", str(file), "unsat", str(end - start))
+    elif proc.returncode > 0:
+        print(f"{file}: memout")
+        results = (f"{args.modelchecker}-{args.algorithm}", str(file), "memout", str(end - start))
     else:
         print(f"{file}: unknown")
         results = (f"{args.modelchecker}-{args.algorithm}", str(file), "unknown", str(end - start))
@@ -80,6 +81,12 @@ def run_modelcheck(cmd: list[str]):
     elif proc.stdout.find("sat") >= 0:
         print(f"{file}: sat")
         results = (f"{args.modelchecker}-{args.algorithm}", str(file), "sat", str(end - start))
+    elif proc.stdout.find("timeout") >= 0:
+        print(f"{file}: timeout")
+        results = (f"{args.modelchecker}-{args.algorithm}", str(file), "timeout")
+    elif proc.returncode > 0:
+        print(f"{file}: memout")
+        results = (f"{args.modelchecker}-{args.algorithm}", str(file), "memout", str(end - start))
     else:
         print(f"{file}: unknown")
         results = (f"{args.modelchecker}-{args.algorithm}", str(file), "unknown", str(end - start))
@@ -117,6 +124,7 @@ def benchmark(modelchecker: str, algorithm: str, nprocs: Optional[int]) -> int:
                 str(file), "btormc",
                 "--no-witness", "--quiet",
                 "--workdir", workdir,
+                "--timeout", str(timeout)
             ]
             for file in FILE_DIR.rglob("*.smv")
         ]
@@ -131,6 +139,7 @@ def benchmark(modelchecker: str, algorithm: str, nprocs: Optional[int]) -> int:
                 str(file), "avr",
                 "--no-witness", "--quiet",
                 "--workdir", workdir,
+                "--timeout", str(timeout)
             ] + (["--kind"] if algorithm == "kind" else [])
             for file in FILE_DIR.rglob("*.smv")
         ]
@@ -145,6 +154,7 @@ def benchmark(modelchecker: str, algorithm: str, nprocs: Optional[int]) -> int:
                 str(file), "pono", 
                 "--no-witness", "--quiet",
                 "--workdir", workdir,
+                "--timeout", str(timeout)
             ] + (["--kind"] if algorithm == "kind" else [])
             for file in FILE_DIR.rglob("*.smv")
         ]

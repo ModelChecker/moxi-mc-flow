@@ -39,5 +39,8 @@ cd build
 make
 
 # PANDA deps
-# sudo apt-get install gcc-multilib xutils-dev
-# then fix src/PANDA/rgl2/makefile.deps and src/PANDA/rgl2/makefile includes
+sudo apt-get install gcc-multilib xutils-dev
+
+# nuXmv
+wget https://nuxmv.fbk.eu/theme/download.php?file=nuXmv-2.0.0-linux64.tar.gz
+tar -xvf download.php?file=nuXmv-2.0.0-linux64.tar.gz
