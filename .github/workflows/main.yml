@@ -32,7 +32,7 @@ jobs:
         ./configure.sh
         cd build
         make
-        cp build/bin/catbtor ../../
+        cp bin/catbtor ../../
 
     - name: mc-moxi
       run: |
