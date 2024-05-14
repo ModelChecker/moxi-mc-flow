@@ -140,7 +140,9 @@ pono/
 pono-hwmcc/
 avr-hwmcc/
 hwmcc20benchmarks/
+btor2tools/
 kind2/
+nuXmv-2.0.0-Linux/
 
 .DS_Store
 
