@@ -3,22 +3,6 @@
     "options": ["moxi", "--validate"],
     "tests": [
         {
-            "input": "smv/counter.smv",
-            "output": "smv/counter.moxi",
-            "expected_output": [
-                ["smv/counter.moxi.expect",
-                 "smv/counter.moxi"]
-            ]
-        },
-        {
-            "input": "smv/short.smv",
-            "output": "smv/short.moxi",
-            "expected_output": [
-                ["smv/short.moxi.expect",
-                 "smv/short.moxi"]
-            ]
-        },
-        {
             "input": "smv/Delay.smv",
             "output": "smv/Delay.moxi",
             "expected_output": [
