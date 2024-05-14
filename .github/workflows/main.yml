@@ -8,35 +8,52 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.11"
-    - name: Install dependencies
+
+    - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip jsonschema
-        git clone https://github.com/aman-goel/avr.git
-        cd avr
-        git checkout hwmcc20
-        cd ../
-        git clone https://github.com/Boolector/btor2tools.git
-        cd btor2tools
+
+    - name: Checkout AVR
+      uses: actions/checkout@v4
+      with:
+        repository: aman-goel/avr
+        path: deps/avr
+        ref: hwmcc20
+
+    - name: Checkout btor2tools
+      uses: actions/checkout@v4
+      with:
+        repository: Boolector/btor2tools
+        path: deps/btor2tools
+
+    - name: Install btor2tools
+      run: |
+        cd deps/btor2tools
         ./configure.sh
         cd build
         make
-        cd ../
+        cp build/bin/catbtor ../../
+
     - name: mc-moxi
       run: |
         cd test/
         python3 test.py mc-moxi-avr.json
+
     - name: sortcheck
       run: |
         cd test/
         python3 test.py sortcheck.json
+
     - name: moxi2btor
       run: |
         cd test/
         python3 test.py moxi2btor.json
+
     - name: smv2moxi
       run: |
         cd test/
         python3 test.py smv2moxi.json
+
     - name: smv2btor
       run: |
         cd test/
