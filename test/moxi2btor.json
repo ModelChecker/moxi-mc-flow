@@ -7,7 +7,7 @@
             "output": "moxi/QF_ABV/Arrays.btor2",
             "expected_output": [
                 ["moxi/QF_ABV/Arrays.btor2.expect", 
-                 "moxi/QF_ABV/Arrays.btor2/ArrayExample.1/q.btor2"]
+                 "moxi/QF_ABV/Arrays.btor2/1.ArrayExample/q.btor2"]
             ]
         },
         {
@@ -15,17 +15,17 @@
             "output": "moxi/QF_ABV/ConstArray.btor2",
             "expected_output": [
                 ["moxi/QF_ABV/ConstArray.btor2.expect", 
-                 "moxi/QF_ABV/ConstArray.btor2/ArrayExample.1/q.btor2"]
+                 "moxi/QF_ABV/ConstArray.btor2/1.ArrayExample/q.btor2"]
             ]
         },
         {
             "input": "moxi/QF_BV/DoubleDelayTwoCheck.moxi",
-            "output": "moxi/QF_ABV/DoubleDelayTwoCheck.btor2",
+            "output": "moxi/QF_BV/DoubleDelayTwoCheck.btor2",
             "expected_output": [
                 ["moxi/QF_BV/DoubleDelayTwoCheck.1.btor2.expect", 
-                 "moxi/QF_ABV/DoubleDelayTwoCheck.btor2/DoubleDelay.1/q.qry.btor2"],
+                 "moxi/QF_BV/DoubleDelayTwoCheck.btor2/1.DoubleDelay/q.qry.btor2"],
                  ["moxi/QF_BV/DoubleDelayTwoCheck.2.btor2.expect", 
-                  "moxi/QF_ABV/DoubleDelayTwoCheck.btor2/DoubleDelay.2/q.qry.btor2"]
+                  "moxi/QF_BV/DoubleDelayTwoCheck.btor2/2.DoubleDelay/q.qry.btor2"]
             ]
         }
     ] 

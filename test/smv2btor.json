@@ -7,7 +7,7 @@
             "output": "smv/Delay.btor2",
             "expected_output": [
                 ["smv/Delay.btor2.expect",
-                 "smv/Delay.btor2/main.1/qry_rch_1.btor2"]
+                 "smv/Delay.btor2/1.main/qry_rch_1.btor2"]
             ]
         },
         {
@@ -15,7 +15,7 @@
             "output": "smv/QF_BV/ken-imp.c.btor2",
             "expected_output": [
                 ["smv/QF_BV/ken-imp.c.btor2.expect",
-                 "smv/QF_BV/ken-imp.c.btor2/main.1/qry_rch_1.btor2"]
+                 "smv/QF_BV/ken-imp.c.btor2/1.main/qry_rch_1.btor2"]
             ]
         }
     ] 
