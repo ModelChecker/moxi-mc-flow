@@ -128,21 +128,25 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-btor2tools/
-boolector/
 out
 __pycache__/
 .vscode/
 __workdir__/
 resultsdir/
+
+# Dependencies
+btor2tools/
+boolector/
 avr/
 pono/
-pono-hwmcc/
-avr-hwmcc/
-hwmcc20benchmarks/
 btor2tools/
-kind2/
 nuXmv-2.0.0-Linux/
+deps/btormc
+deps/catbtor
+deps/download.php?file=nuXmv-2.0.0-linux64.tar.gz
+deps/nuXmv
+deps/pono
+
 
 .DS_Store
 
