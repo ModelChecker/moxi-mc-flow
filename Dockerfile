@@ -33,7 +33,7 @@ RUN chmod +x scripts/run_jsonschema.sh
 
 # dependencies
 COPY deps/LICENSE* deps/
-COPY deps/avr deps/
+COPY deps/avr deps/avr
 COPY deps/catbtor deps/
 COPY deps/nuXmv deps/
 COPY deps/btormc deps/

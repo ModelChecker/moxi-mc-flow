@@ -43,7 +43,7 @@ the container
 Smoke Test
 
 The script `/home/scripts/run_modelcheck.sh` executes
-`/home/moxi-mc-flow/modelcheck.py` on a subset of SMV benchmarks and MoXI files
+`/home/modelcheck.py` on a subset of SMV benchmarks and MoXI files
 and checks that the result is as expected. This script exercises all three
 provided scripts, translating SMV -> MoXI -> BTOR2 and back, and uses all
 available model checkers. To run this, execute:
@@ -52,7 +52,7 @@ available model checkers. To run this, execute:
 
 Every test should output [PASS], meaning that the sat/unsat result is as
 expected and, in some cases, the generated witness is as expected. The expected
-results/files can be found in the `moxi-mc-flow/test/` directory, in the `.json`
+results/files can be found in the `/home/test/` directory, in the `.json`
 test config files and `.expect` files.
 
 -------------------------------------------------------------------------------
@@ -149,7 +149,7 @@ set of files and diffs the resulting witness against an expected output
 (`.expect` files in `test/`). 
 
 The following is a list of SMV language features claimed in the paper and the
-test files (relative to `moxi-mc-flow/`) that exercise said feature:
+test files (relative to `/home/`) that exercise said feature:
 
 - VAR:       test/smv/QF_BV/ken-imp.c.smv
 - IVAR:      test/smv/QF_BV/ken-imp.c.smv
@@ -175,7 +175,7 @@ are handled.
 --------------------------------------
 Reference Sort Checker
 
-`run_sortcheck.sh` sort checks all the files in `moxi-mc-flow/examples/moxi/`,
+`run_sortcheck.sh` sort checks all the files in `/home/examples/moxi/`,
 which include directories for the following logics sortcheck.py supports: QF_BV,
 QF_ABV, QF_LIA, QF_LRA, QF_NIA, QF_NRA.
 
@@ -230,7 +230,8 @@ Running the Toolchain (Reusable badge)
 To run the `translate.py` script, simply feed in a file with a `.smv`, `.moxi`,
 or `.json` file extension and select language to translate to (moxi, moxi-json,
 or btor2). You can ask catbtor or sortcheck.py to validate the output with the
-`--validate` flag. Some example invocations (from `/home/moxi-mc-flow`):
+`--validate` flag. You can point the script to a different location of `catbtor` with
+the `catbtor` flag. Some example invocations (from `/home/moxi-mc-flow`):
 
     python3 translate.py test/smv/Delay.smv moxi --output Delay.moxi --validate
 
