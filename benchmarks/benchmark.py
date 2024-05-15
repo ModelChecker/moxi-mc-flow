@@ -64,18 +64,14 @@ def run_modelcheck(cmd: list[str]):
 
     print(" ".join(cmd))
 
-    try:
-        start = time.perf_counter()
-        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
-        end = time.perf_counter()
-    except subprocess.TimeoutExpired:
+    start = time.perf_counter()
+    proc = subprocess.run(cmd, capture_output=True, text=True)
+    end = time.perf_counter()
+
+    if end - start > timeout:
         print(f"{file}: timeout")
         results = (f"{args.modelchecker}-{args.algorithm}", str(file), "timeout")
-        with open(results_path, "a") as f:
-            f.write('\t'.join(results) + "\n") 
-        return
-
-    if proc.stdout.find("unsat") >= 0:
+    elif proc.stdout.find("unsat") >= 0:
         print(f"{file}: unsat")
         results = (f"{args.modelchecker}-{args.algorithm}", str(file), "unsat", str(end - start))
     elif proc.stdout.find("sat") >= 0:

@@ -244,7 +244,15 @@ def model_check(
         command.append(str(debug))
 
     log.debug(1, f"Translating {input_path}", FILE_NAME)
-    proc = subprocess.run(command, capture_output=True)
+
+    try:
+        proc = subprocess.run(command, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print("timeout")
+        return 1
+
+    end_translate = time.perf_counter()
+    time_elapsed = end_translate - start_total
 
     if debug:
         print(proc.stdout.decode())
@@ -258,15 +266,15 @@ def model_check(
     for check_system_path in btor2_output_path.iterdir():
         for btor_path in check_system_path.glob("*.btor2"):
             if model_checker == "btormc":
-                retcode = run_btormc(btormc_path, btor_path, timeout, kmax, kind)
+                retcode = run_btormc(btormc_path, btor_path, int(timeout - time_elapsed), kmax, kind)
                 if retcode:
                     return retcode
             elif model_checker == "avr":
-                retcode = run_avr(avr_path, btor_path, timeout, kmax, kind)
+                retcode = run_avr(avr_path, btor_path, int(timeout - time_elapsed), kmax, kind)
                 if retcode:
                     return retcode
             elif model_checker == "pono":
-                retcode = run_pono(pono_path, btor_path, timeout, kmax, kind)
+                retcode = run_pono(pono_path, btor_path, int(timeout - time_elapsed), kmax, kind)
                 if retcode:
                     return retcode
             else:
@@ -334,8 +342,6 @@ if __name__ == "__main__":
         help="copy all intermediate translations and results to output location")
     parser.add_argument("--intwidth", default=32, type=int, 
         help="bit width to translate Int types to (default=32)")
-    # parser.add_argument("--fulltrace", action="store_true", 
-    #     help="return traces with all variable values for every state")
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
     parser.add_argument("--sortcheck", help="path to sortcheck.py for MoXI validation")
     parser.add_argument("--kmax", default=1000, type=int, 
