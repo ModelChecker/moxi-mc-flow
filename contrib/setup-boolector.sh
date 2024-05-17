@@ -9,6 +9,12 @@ pushd boolector
 ./configure.sh 
 pushd build 
 make
+
+if [[ $? -ne 0 ]]; then 
+    echo "Failed building boolector"
+    exit 1
+fi
+
 cp bin/btormc ../../
 popd
 popd

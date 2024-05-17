@@ -5,4 +5,10 @@ pushd $DEPS_DIR
 wget https://nuxmv.fbk.eu/theme/download.php?file=nuXmv-2.0.0-linux64.tar.gz
 tar -xvf download.php?file=nuXmv-2.0.0-linux64.tar.gz
 cp nuXmv-2.0.0-Linux/bin/nuXmv .
+
+if [[ $? -ne 0 ]]; then 
+    echo "Failed installing nuXmv"
+    exit 1
+fi
+
 popd

@@ -17,6 +17,7 @@ make
 if [[ $? -ne 0 ]]; then 
     echo "Failed building pono"
     echo "Are GMP and JRE installed?"
+    exit 1
 fi
 
 cp pono ../../
