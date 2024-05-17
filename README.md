@@ -4,33 +4,51 @@ Translators from SMV to MoXI to BTOR2 and their witnesses.
 
 ![Toolchain](toolchain.png "Toolchain")
 
+## Requirements
+
+The following programs/packages are required to run the toolchain and install all the dependencies:
+
+- Python 3.11 (or later)
+- jsonschema (Python pip package)
+- make
+- curl
+- cmake
+- Flex (for Pono)
+- Bison (for Pono)
+- GMP (for Pono)
+- JRE (for Pono)
+
+The build method has been tested on Ubuntu 20.04 LTS. The dependencies (except Python 3.11 and jsonschema) can be
+installed on Ubuntu via:
+
+    sudo apt-get install build-essential curl cmake flex bison libgmp3-dev default-jre
+
 ## Building
 
-To build the artifact, run `./contrib/setup-all.sh` to install all depencencies, then run
+To build the artifact, run `./contrib/setup-all.sh` to install all depencencies, then install
+[Docker](https://docs.docker.com/engine/install/) and run
 
     docker build . -t moxi-mc-flow:artifact
 
-to build the Docker image and save it with name `moxi-mc-flow:artifact`. The
-build method has been tested on Ubuntu 20.04.6 LTS. 
+to build the Docker image and save it with name `moxi-mc-flow:artifact`. 
 
 ## Running the translators
 
 To run the `translate.py` script, feed in a file with a `.smv`, `.moxi`, or
 `.json` file extension and select language to translate to (moxi, moxi-json, or
 btor2). You can ask catbtor or sortcheck.py to validate the output with the
-`--validate` flag. You may need to point the script to the location of `catbtor`
-with the `catbtor` flag. Some example invocations (from `/home/moxi-mc-flow`):
+`--validate` flag. Some example invocations (from `/home/moxi-mc-flow`):
 
     python3 translate.py test/smv/Delay.smv moxi --output Delay.moxi --validate
 
-    python3 translate.py test/smv/Delay.smv btor2 --output Delay.btor2 --validate --catbtor ../catbtor
+    python3 translate.py test/smv/Delay.smv btor2 --output Delay.btor2 --validate
 
-    python3 translate.py test/moxi/QF_BV/ThreeBitCounter.moxi btor2 --output ThreeBitCounter.btor2 --validate --catbtor ../catbtor
+    python3 translate.py test/moxi/QF_BV/ThreeBitCounter.moxi btor2 --output ThreeBitCounter.btor2 --validate
 
 You can also cast Int types to bit vectors of specified widths if using a logic
 with Int sorts, for example:
 
-    python3 translate.py test/moxi/QF_LIA/TrafficLightEnum2.moxi btor2 --output TrafficLightEnum2.btor2 --validate --catbtor ../catbtor --intwidth 64 
+    python3 translate.py test/moxi/QF_LIA/TrafficLightEnum2.moxi btor2 --output TrafficLightEnum2.btor2 --validate --intwidth 64 
 
 Refer to the usage information for more options:
 
