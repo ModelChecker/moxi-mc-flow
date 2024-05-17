@@ -1,17 +1,19 @@
 # moxi-mc-flow
 
-Python translators from SMV to MoXI to BTOR2 and their witnesses. 
+Translators from SMV to MoXI to BTOR2 and their witnesses. 
 
 ![Toolchain](toolchain.png "Toolchain")
 
 ## Building
 
-To build the artifact, run `./get_deps.sh` to install all depencencies, then run
+To build the artifact, run `./contrib/setup-all.sh` to install all depencencies, then run
 
     docker build . -t moxi-mc-flow:artifact
 
-to build the Docker image and save it with name `moxi-mc-flow:artifact`. This
-method has been tested on Ubuntu 20.04.6 LTS.
+to build the Docker image and save it with name `moxi-mc-flow:artifact`. The
+build method has been tested on Ubuntu 20.04.6 LTS. Of note,
+[`smt-switch`](https://github.com/stanford-centaur/smt-switch), a dependency for
+`pono`, appears to require Ubuntu.
 
 ## Running the translators
 
