@@ -11,9 +11,7 @@ To build the artifact, run `./contrib/setup-all.sh` to install all depencencies,
     docker build . -t moxi-mc-flow:artifact
 
 to build the Docker image and save it with name `moxi-mc-flow:artifact`. The
-build method has been tested on Ubuntu 20.04.6 LTS. Of note,
-[`smt-switch`](https://github.com/stanford-centaur/smt-switch), a dependency for
-`pono`, appears to require Ubuntu.
+build method has been tested on Ubuntu 20.04.6 LTS. 
 
 ## Running the translators
 
