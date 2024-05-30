@@ -9,9 +9,9 @@ Translators from SMV to MoXI to BTOR2 and their witnesses. This repository provi
 
 ## Publications
 
-- Johannsen, C., Nukala, K., Dureja, R., Irfan, A., Shankar, N., Tinelli, C., Vardi, M.Y., Rozier, K.Y.: Symbolic
-Model-Checking Intermediate-Language Tool Suite. In: Proceedings of 36th International Conference on Computer Aided
-Verification (CAV). LNCS, Springer (July 2024)
+- Johannsen, C., Nukala, K., Dureja, R., Irfan, A., Shankar, N., Tinelli, C., Vardi, M.Y., Rozier, K.Y.: The MoXI Model
+Exchange Tool Suite. In: Proceedings of 36th International Conference on Computer Aided Verification (CAV). LNCS,
+Springer (July 2024)
 - Rozier, K.Y., Dureja, R., Irfan, A., Johannsen, C., Nukala, K., Shankar, N., Tinelli, C., Vardi, M.Y.: Moxi: An
 intermediate language for symbolic model checking. In: Proceedings of the 30th International Symposium on Model Checking
 Software (SPIN). LNCS, Springer (April 2024)
@@ -86,8 +86,6 @@ Refer to the usage information for more options:
 
 ## Notes
 
-- We do not support the CONSTANT and COMPASSION SMV features. This claim will be removed from the final version.
-
 - No model checker (`AVR`, `Pono`, `BtorMC`) supports the justice keyword in BTOR2, but we do support the translation.
 So, a file with a `:fairness` formula will run properly with `translate.py`, but not with `modelcheck.py`.
 
@@ -108,5 +106,5 @@ modelcheck.py could take 12 seconds if the translation took 3 seconds and the mo
 - Memouts are reported based on the underlying process being killed due to the call to `ulimit -v 8000000` in each
 benchmarking script.
 
-- We do not benchmark btormc using k-induction since there is a bug in its implementation
+- We cannot run btormc using k-induction since there is a bug in its implementation
 (https://github.com/Boolector/boolector/issues/220)
