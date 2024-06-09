@@ -14,6 +14,7 @@ from src import (
     moxi2json,
     parse_smv,
     smv2moxi,
+    vmt2moxi
 )
 
 FILE_NAME = pathlib.Path(__file__).name
@@ -31,6 +32,7 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
     proc = subprocess.run(["python3", str(SORTCHECK), src_path], capture_output=True)
 
     if proc.returncode:
+        log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
         log.error(proc.stderr.decode("utf-8"), FILE_NAME)
         return FAIL
 
@@ -103,6 +105,11 @@ def main(
             if keep:
                 with open(str(keep), "w") as f:
                     f.write(str(moxi_program))
+        case (".vmt", "moxi"):
+            if vmt2moxi.translate_file(input_path, output_path):
+                return FAIL
+        case (".vmt", "btor2"):
+            pass
         case (".moxi", "moxi-json"):
             if moxi2json.main(input_path, output_path, False, False):
                 return FAIL

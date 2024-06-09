@@ -32,8 +32,8 @@ def from_json_sort(contents: dict) -> moxi.Sort:
     return moxi.Sort(identifier, params)
 
 
-def from_json_expr(contents: dict, enums: dict[str, str]) -> moxi.Expr:
-    args: list[moxi.Expr] = []
+def from_json_expr(contents: dict, enums: dict[str, str]) -> moxi.Term:
+    args: list[moxi.Term] = []
     if "args" in contents:
         args = [from_json_expr(a, enums) for a in contents["args"]]
 

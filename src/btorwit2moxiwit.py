@@ -110,7 +110,7 @@ def to_moxi_array(
     index_sort: moxi.Sort,
     element_sort: moxi.Sort,
     bool_vars: set[int],
-) -> moxi.Expr:
+) -> moxi.Term:
     """Return an `moxi.Expr` equivalent to `btor2_array_assigns`, using a constant array as a base term and performing a series of stores on that array. The constant array is either the element of an array assignment with index `*`, or the first array assignment's element if no such assignment exists. Assume that there is at most one assignment with index `*`."""
     # default_assign holds an assignment of the form:
     #   id [*] element
