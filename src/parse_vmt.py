@@ -155,7 +155,7 @@ class Parser(sly.Parser):
         if ":live-property" in p[7].attrs:
             self.live_props[p[7].attrs[":live-property"]] = p[7]
 
-        self.funs[p[2]] = p[7]
+        self.funs[p[2]] = (p[6], p[7])
     
     @_("LPAREN CMD_ASSERT SYMBOL RPAREN")
     def command(self, p):

@@ -20,7 +20,7 @@ class Program:
         trans: list[moxi.Term],
         invar: dict[int, moxi.Term],
         live: dict[int, moxi.Term],
-        funs: dict[str, moxi.Term]
+        funs: dict[str, tuple[moxi.Sort, moxi.Term]]
     ):
         # If a var is in `vars` but not `prev`, then var is an input
         # Otherwise, var is an output
@@ -33,5 +33,5 @@ class Program:
         self.invar_properties: dict[int, moxi.Term] = invar
         self.live_properties: dict[int, moxi.Term] = live
 
-        self.funs: dict[str, moxi.Term] = funs
+        self.funs: dict[str, tuple[moxi.Sort, moxi.Term]] = funs
 

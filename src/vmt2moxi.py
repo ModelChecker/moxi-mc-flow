@@ -3,6 +3,7 @@ Module for translating VMT-LIB to MoXI.
 
 (Note: we ignore the ':predicate' annotation)
 """
+
 import pathlib
 from typing import Optional, cast
 
@@ -56,10 +57,11 @@ def defines_to_lets(
         for child in cur.children:
             stack.append((False, child))
         if isinstance(cur, moxi.Variable) and cur.symbol in vmt_program.funs:
-            stack.append((False, vmt_program.funs[cur.symbol]))
+            _, fun_term = vmt_program.funs[cur.symbol]
+            stack.append((False, fun_term))
 
     new_term = term
-    for t, sym in reversed([(vmt_program.funs[s], s) for s in dependent_defines]):
+    for (_, t), sym in reversed([(vmt_program.funs[s], s) for s in dependent_defines]):
         new_term = moxi.LetTerm(moxi.Sort.NoSort(), [(sym, t)], new_term)
 
     return new_term
@@ -78,25 +80,47 @@ def resolve_next_vars(
         t.replace(primed_var)
 
 
-def translate(vmt_program: vmt.Program) -> Optional[moxi.Program]:
+def translate(
+    vmt_program: vmt.Program, with_lets: bool = False
+) -> Optional[moxi.Program]:
     input_vars = [
         (v, s)
         for v, s in vmt_program.vars
         if v not in vmt_program.next and v not in vmt_program.prev
     ]
     output_vars = [(v, s[1]) for v, s in vmt_program.next.items()]
-    local_vars = []  # unused
+    if with_lets:
+        local_vars = [] # unused
+    else:
+        local_vars = [(v, s) for v, (s, _) in vmt_program.funs.items()]
 
     context = moxi.Context()
 
+    # Init term
     moxi_init_term = moxi.conjoin_list(vmt_program.init_terms)
-    moxi_init_term = defines_to_lets(moxi_init_term, context, vmt_program)
+    if with_lets:
+        moxi_init_term = defines_to_lets(moxi_init_term, context, vmt_program)
     moxi.remove_term_attrs(moxi_init_term, context)
 
+    # Trans term
     moxi_trans_term = moxi.conjoin_list(vmt_program.trans_terms)
-    moxi_trans_term = defines_to_lets(moxi_trans_term, context, vmt_program)
+    if with_lets:
+        moxi_trans_term = defines_to_lets(moxi_trans_term, context, vmt_program)
     resolve_next_vars(moxi_trans_term, context, vmt_program.prev)
     moxi.remove_term_attrs(moxi_trans_term, context)
+
+    # Inv term
+    if with_lets:
+        moxi_inv_term = moxi.Constant.Bool(True)
+    else:
+        moxi_inv_term = moxi.conjoin_list(
+            [
+                moxi.Apply.Eq([moxi.Variable(srt, sym, False), trm])
+                for sym, (srt, trm) in vmt_program.funs.items()
+            ]
+        )
+        resolve_next_vars(moxi_inv_term, context, vmt_program.prev)
+        moxi.remove_term_attrs(moxi_inv_term, context)
 
     system = moxi.DefineSystem(
         "main",
@@ -105,14 +129,17 @@ def translate(vmt_program: vmt.Program) -> Optional[moxi.Program]:
         local_vars,
         moxi_init_term,
         moxi_trans_term,
-        moxi.Constant.Bool(True),
+        moxi_inv_term,
         {},
     )
 
     # Build CheckSystem command
     reachable = {}
-    for num,invar_prop in vmt_program.invar_properties.items():
-        moxi_invar_prop = defines_to_lets(invar_prop, context, vmt_program)
+    for num, invar_prop in vmt_program.invar_properties.items():
+        if with_lets:
+            moxi_invar_prop = defines_to_lets(invar_prop, context, vmt_program)
+        else:
+            moxi_invar_prop = invar_prop
         resolve_next_vars(moxi_invar_prop, context, vmt_program.prev)
         moxi.remove_term_attrs(moxi_invar_prop, context)
         reachable[f"rch_{num}"] = cast(moxi.Term, moxi.Apply.Not(moxi_invar_prop))
@@ -123,20 +150,27 @@ def translate(vmt_program: vmt.Program) -> Optional[moxi.Program]:
     }
     [moxi.remove_term_attrs(t, context) for t in fairness.values()]
 
-    query = {
-        f"qry_{lbl}": [lbl] for lbl,_ in reachable.items()
-    } | {
-        f"qry_{lbl}": [lbl] for lbl,_ in fairness.items()
+    query = {f"qry_{lbl}": [lbl] for lbl, _ in reachable.items()} | {
+        f"qry_{lbl}": [lbl] for lbl, _ in fairness.items()
     }
 
     check = moxi.CheckSystem(
-        "main", input_vars, output_vars, local_vars, {}, fairness, reachable, {}, query, []
+        "main",
+        input_vars,
+        output_vars,
+        local_vars,
+        {},
+        fairness,
+        reachable,
+        {},
+        query,
+        [],
     )
 
     return moxi.Program([moxi.SetLogic("ALL"), system, check])
 
 
-def translate_file(input_path: pathlib.Path, output_path: pathlib.Path) -> int:
+def translate_file(input_path: pathlib.Path, output_path: pathlib.Path, with_lets: bool) -> int:
     if not input_path.is_file():
         log.error(f"{input_path} is not a valid file.", FILE_NAME)
         return 1
@@ -147,7 +181,7 @@ def translate_file(input_path: pathlib.Path, output_path: pathlib.Path) -> int:
         log.error("Failed parsing", FILE_NAME)
         return 1
 
-    moxi_program = translate(program)
+    moxi_program = translate(program, with_lets)
 
     if not moxi_program:
         log.error("Failed translation", FILE_NAME)

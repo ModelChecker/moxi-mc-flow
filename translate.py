@@ -59,6 +59,7 @@ def main(
     validate: bool,
     do_pickle: bool,
     do_cpp: bool,
+    with_lets: bool,
     int_width: int,
 ) -> int:
     if not input_path.is_file():
@@ -106,7 +107,7 @@ def main(
                 with open(str(keep), "w") as f:
                     f.write(str(moxi_program))
         case (".vmt", "moxi"):
-            if vmt2moxi.translate_file(input_path, output_path):
+            if vmt2moxi.translate_file(input_path, output_path, with_lets):
                 return FAIL
         case (".vmt", "btor2"):
             pass
@@ -189,6 +190,7 @@ if __name__ == "__main__":
         type=int,
         help="bit width to translate Int types to when translating to BTOR2",
     )
+    parser.add_argument("--with-lets", action="store_true", help="uses lt bindings instead of local vars for translations from vmt to moxi")
     parser.add_argument("--quiet", action="store_true", help="disable output")
     parser.add_argument(
         "--profile", action="store_true", help="runs using cProfile if true"
@@ -249,6 +251,7 @@ if __name__ == "__main__":
         args.validate,
         args.pickle,
         args.cpp,
+        args.with_lets,
         args.intwidth,
     )
     sys.exit(returncode)
