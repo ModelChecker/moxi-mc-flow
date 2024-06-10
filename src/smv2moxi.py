@@ -65,11 +65,11 @@ def translate_type(smv_type: smv.Type, smv_context: smv.Context) -> moxi.Sort:
 
 
 def case_to_ite(
-    case_expr: smv.CaseExpr, context: smv.Context, expr_map: dict[smv.Expr, moxi.Expr]
-) -> moxi.Expr:
+    case_expr: smv.CaseExpr, context: smv.Context, expr_map: dict[smv.Expr, moxi.Term]
+) -> moxi.Term:
     """Recursively translate a case expression to a series of cascaded ite expressions."""
 
-    def _case_to_ite(branches: list[tuple[smv.Expr, smv.Expr]], i: int) -> moxi.Expr:
+    def _case_to_ite(branches: list[tuple[smv.Expr, smv.Expr]], i: int) -> moxi.Term:
         (cond, branch) = branches[i]
 
         if i >= len(branches) - 1:
@@ -94,7 +94,7 @@ def get_define_let_var(symbol: str) -> moxi.Variable:
 
 def build_define_expr(
     expr: smv.Identifier, context: smv.Context, module: smv.ModuleDeclaration
-) -> moxi.Expr:
+) -> moxi.Term:
     log.debug(2, f"building define expr {expr}", FILE_NAME)
 
     def dependent_defines(ident: str, context: smv.Context) -> list[smv.Identifier]:
@@ -159,7 +159,7 @@ def build_define_expr(
         in_let_expr=True,
         module=module,
     )
-    ret = moxi.LetExpr(
+    ret = moxi.LetTerm(
         moxi.Sort.NoSort(),
         [(expr.ident, emap[context.defs[module.name][expr.ident]])],
         get_define_let_var(expr.ident),
@@ -174,7 +174,7 @@ def build_define_expr(
             in_let_expr=True,
             module=module,
         )
-        ret = moxi.LetExpr(
+        ret = moxi.LetTerm(
             moxi.Sort.NoSort(),
             [(d.ident, emap[context.defs[module.name][d.ident]])],
             ret,
@@ -186,7 +186,7 @@ def build_define_expr(
 def translate_expr(
     smv_expr: smv.Expr,
     context: smv.Context,
-    expr_map: dict[smv.Expr, moxi.Expr],
+    expr_map: dict[smv.Expr, moxi.Term],
     in_let_expr: bool,
     module: smv.ModuleDeclaration,
 ) -> None:
@@ -458,15 +458,6 @@ def translate_expr(
                 raise ValueError(f"unhandled expression {expr}, {expr.__class__}")
 
 
-def conjoin_list(expr_list: list[moxi.Expr]) -> moxi.Expr:
-    if len(expr_list) == 0:
-        return moxi.Constant.Bool(True)
-    elif len(expr_list) == 1:
-        return expr_list[0]
-    else:
-        return moxi.Apply.And(expr_list)
-
-
 def gather_input(
     smv_module: smv.ModuleDeclaration, context: smv.Context
 ) -> list[tuple[str, moxi.Sort]]:
@@ -611,12 +602,12 @@ def specialize_variable(module_name: str, var: moxi.Variable) -> moxi.Variable:
     )
 
 
-def specialize_vars_in_expr(module_name: str, expr: moxi.Expr) -> moxi.Expr:
+def specialize_vars_in_expr(module_name: str, expr: moxi.Term) -> moxi.Term:
     match expr:
         case moxi.Variable():
             return specialize_variable(module_name, expr)
         case moxi.Apply(sort=sort, identifier=identifier, children=children):
-            schildren : list[moxi.Expr] = []
+            schildren : list[moxi.Term] = []
             for child in children:
                 schildren.append(specialize_vars_in_expr(module_name, child))
             return moxi.Apply(sort=sort, identifier=identifier, children=schildren)
@@ -628,14 +619,14 @@ def specialize_vars_in_expr(module_name: str, expr: moxi.Expr) -> moxi.Expr:
 def gather_init(
     smv_module: smv.ModuleDeclaration,
     context: smv.Context,
-    expr_map: dict[smv.Expr, moxi.Expr],
-) -> moxi.Expr:
+    expr_map: dict[smv.Expr, moxi.Term],
+) -> moxi.Term:
     """
     Initial constraints handle the following 2 (1, depending on how you look at it) situations:
     1) INIT declarations - straightforward (nuXmv initial constraints ~> MoXI init constraints)
     2) ASSIGN `init` declarations - same as (1), since nuXmv semantics (2.3.9) indicate `ASSIGN init(a) := b` is the same as `INIT next(a) = b`
     """
-    init_list: list[moxi.Expr] = []
+    init_list: list[moxi.Term] = []
 
     for init_decl in [
         e for e in smv_module.elements if isinstance(e, smv.InitDeclaration)
@@ -673,21 +664,21 @@ def gather_init(
             case _:
                 pass
 
-    return conjoin_list(init_list)
+    return moxi.conjoin_list(init_list)
 
 
 def gather_trans(
     smv_module: smv.ModuleDeclaration,
     context: smv.Context,
-    expr_map: dict[smv.Expr, moxi.Expr],
-) -> moxi.Expr:
+    expr_map: dict[smv.Expr, moxi.Term],
+) -> moxi.Term:
     """
     Transition constraints handle the following 3 (or 2, depending on how you look at it) situations:
     1) TRANS declarations - straightforward (nuXmv transitions ~> MoXI transitions)
     2) ASSIGN `next` declarations - same as (1), since nuXmv semantics (2.3.9) indicate `ASSIGN next(a) := b` is the same as `TRANS next(a) = b`
     3) FROZENVAR declarations - we enforce the FROZENVAR constraint (that declared variables maintain the same value in subsequent states) by enforcing that `var' = var` in the transition relation.
     """
-    trans_list: list[moxi.Expr] = []
+    trans_list: list[moxi.Term] = []
 
     for trans_decl in [
         e for e in smv_module.elements if isinstance(e, smv.TransDeclaration)
@@ -753,14 +744,14 @@ def gather_trans(
             case _:
                 pass
 
-    return conjoin_list(trans_list) if len(trans_list) > 0 else moxi.Constant.Bool(True)
+    return moxi.conjoin_list(trans_list) if len(trans_list) > 0 else moxi.Constant.Bool(True)
 
 
 def gather_inv(
     smv_module: smv.ModuleDeclaration,
     context: smv.Context,
-    expr_map: dict[smv.Expr, moxi.Expr],
-) -> moxi.Expr:
+    expr_map: dict[smv.Expr, moxi.Term],
+) -> moxi.Term:
     """
     MoXI invariants (:inv) are used for the following functionalities:
     1) INVAR declarations - this is what you'd expect (nuXmv invariants -> MoXI invariants)
@@ -769,7 +760,7 @@ def gather_inv(
     4) Local definitions via DEFINEs
     4) Submodule parameter rewiring
     """
-    inv_list: list[moxi.Expr] = []
+    inv_list: list[moxi.Term] = []
 
     # things marked explicitly as INVAR
     # print("inv - looking for INVAR")
@@ -943,7 +934,7 @@ def gather_inv(
                     pass
 
     # print("inv - done")
-    return conjoin_list(inv_list) if len(inv_list) > 0 else moxi.Constant.Bool(True)
+    return moxi.conjoin_list(inv_list) if len(inv_list) > 0 else moxi.Constant.Bool(True)
 
 
 def gather_subsystems(
@@ -980,13 +971,13 @@ def gather_subsystems(
 def gather_fairness(
         smv_module: smv.ModuleDeclaration,
         context: smv.Context,
-        expr_map: dict[smv.Expr, moxi.Expr],
-) -> dict[str, moxi.Expr]:
+        expr_map: dict[smv.Expr, moxi.Term],
+) -> dict[str, moxi.Term]:
     """
     Return the negation of the translation of the FAIRNESS/JUSTICE formula.
     Moreover, assign a name, "fair_X", by which this property will be referred to in the CheckSystem query.
     """
-    fairness_dict: dict[str, moxi.Expr] = {}
+    fairness_dict: dict[str, moxi.Term] = {}
     spec_num = 1
     for fairness_decl in [
         e for e in smv_module.elements if (isinstance(e, smv.FairnessDeclaration) or isinstance(e, smv.JusticeDeclaration))
@@ -994,7 +985,7 @@ def gather_fairness(
         smv_expr = fairness_decl.formula
         translate_expr(smv_expr, context, expr_map, in_let_expr=False, module=smv_module)
         fairness_dict[f"fair_{spec_num}"] = cast(
-            moxi.Expr,
+            moxi.Term,
             moxi.Apply(moxi.Sort.Bool(), moxi.Identifier("not", []), [expr_map[smv_expr]])
         )
         spec_num += 1
@@ -1003,13 +994,13 @@ def gather_fairness(
 def gather_invarspecs(
     smv_module: smv.ModuleDeclaration,
     context: smv.Context,
-    expr_map: dict[smv.Expr, moxi.Expr],
-) -> dict[str, moxi.Expr]:
+    expr_map: dict[smv.Expr, moxi.Term],
+) -> dict[str, moxi.Term]:
     """
     Return the negation of the translation of the INVARSPEC formula.
     Moreover, assign a name, "rch_X", by which this property will be referred to in the CheckSystem query.
     """
-    invarspec_dict: dict[str, moxi.Expr] = {}
+    invarspec_dict: dict[str, moxi.Term] = {}
 
     spec_num = 1
     for invarspec_decl in [
@@ -1021,7 +1012,7 @@ def gather_invarspecs(
         )
 
         invarspec_dict[f"rch_{spec_num}"] = cast(
-            moxi.Expr,
+            moxi.Term,
             moxi.Apply(
                 moxi.Sort.Bool(), moxi.Identifier("not", []), [expr_map[smv_expr]]
             ),
@@ -1035,9 +1026,9 @@ def gather_invarspecs(
 def gather_justice(
     smv_module: smv.ModuleDeclaration,
     context: smv.Context,
-    expr_map: dict[smv.Expr, moxi.Expr],
-) -> dict[str, moxi.Expr]:
-    justice_dict: dict[str, moxi.Expr] = {}
+    expr_map: dict[smv.Expr, moxi.Term],
+) -> dict[str, moxi.Term]:
+    justice_dict: dict[str, moxi.Term] = {}
 
     spec_num = 1
     for justice_decl in [
@@ -1058,9 +1049,9 @@ def gather_justice(
 def gather_pandaspecs(
     smv_module: smv.ModuleDeclaration,
     context: smv.Context,
-    expr_map: dict[smv.Expr, moxi.Expr],
-) -> dict[str, moxi.Expr]:
-    pandaspec_dict: dict[str, moxi.Expr] = {}
+    expr_map: dict[smv.Expr, moxi.Term],
+) -> dict[str, moxi.Term]:
+    pandaspec_dict: dict[str, moxi.Term] = {}
 
     spec_num = 1
     for pandaspec_decl in [
@@ -1145,9 +1136,9 @@ def translate_module(
     # account for this with encoded LTLSPECs, we use special __PANDASPEC__s to denote an INVARSPEC
     # that respects JUSTICE constraints.
 
-    reachable: dict[str, moxi.Expr] = gather_invarspecs(smv_module, context, expr_map)
-    justice: dict[str, moxi.Expr] = gather_justice(smv_module, context, expr_map)
-    panda: dict[str, moxi.Expr] = gather_pandaspecs(smv_module, context, expr_map)
+    reachable: dict[str, moxi.Term] = gather_invarspecs(smv_module, context, expr_map)
+    justice: dict[str, moxi.Term] = gather_justice(smv_module, context, expr_map)
+    panda: dict[str, moxi.Term] = gather_pandaspecs(smv_module, context, expr_map)
 
     if len(reachable) == 0 and len(panda) == 0:
         check_system: list[moxi.Command] = []

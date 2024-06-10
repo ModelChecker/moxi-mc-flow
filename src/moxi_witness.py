@@ -23,7 +23,7 @@ class Model:
 
 
 class Assignment:
-    def __init__(self, symbol: str, value: moxi.Expr) -> None:
+    def __init__(self, symbol: str, value: moxi.Term) -> None:
         self.symbol = symbol
         self.value = value
 

@@ -1,5 +1,6 @@
 # type: ignore
 import pathlib
+import re
 from typing import Optional
 
 from src import sly
@@ -32,7 +33,8 @@ class Lexer(sly.Lexer):
     HEXADECIMAL = r"#x[A-F0-9]+"
     BINARY      = r"#b[01]+"
 
-    SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@#$%^&*_+=<>.?/-]*'?"
+    SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@#$%^&*_+=<>.?/-]*'?|" \
+               r"\|[^\\\|]*\|"
     KEYWORD  = r":" + SYMBOL
 
     # LBRACK = r"\["
@@ -238,10 +240,10 @@ class Parser(sly.Parser):
             p[0][attr].update(value)
         elif attr.get_value_type() == list:
             p[0][attr] += value
-        elif attr.get_value_type() == moxi.Expr and isinstance(attr, moxi.CommandAttribute.TRANS):
+        elif attr.get_value_type() == moxi.Term and isinstance(attr, moxi.CommandAttribute.TRANS):
             p[0][attr] = moxi.Apply.Or([p[0][attr], value], self.loc(p))
             # p[0][attr] = moxi.Apply(moxi.Sort.NoSort(), moxi.Identifier("or", []), [p[0][attr], value], self.loc(p))
-        elif attr.get_value_type() == moxi.Expr and isinstance(attr, moxi.CommandAttribute.INV):
+        elif attr.get_value_type() == moxi.Term and isinstance(attr, moxi.CommandAttribute.INV):
             p[0][attr] = moxi.Apply.And([p[0][attr], value], self.loc(p))
             # p[0][attr] = moxi.Apply(moxi.Sort.NoSort(), moxi.Identifier("and", []), [p[0][attr], value], self.loc(p))
         else:
@@ -409,6 +411,15 @@ class Parser(sly.Parser):
 
     @_("identifier")
     def term(self, p):
+        if re.match(r"bv\d+", p[0].symbol):
+            if len(p[0].indices) != 1:
+                log.error(f"Error, bit vector constants must have one index ({p[0]}).", FILE_NAME, self.loc(p))
+                self.status = False
+                return moxi.Constant(moxi.Sort.BitVec(0), 0)
+
+            width = int(p[0].indices[0]) 
+            return moxi.Constant(moxi.Sort.BitVec(width), int(p[0].symbol[2:]))
+        
         if len(p[0].indices) > 0:
             log.error(f"Error, simple term identifiers cannot be indexed ({p[0]}).", FILE_NAME, self.loc(p))
             self.status = False
@@ -451,7 +462,7 @@ class Parser(sly.Parser):
 
     @_("LPAREN RW_LET LPAREN bound_var_list RPAREN term RPAREN")
     def term(self, p):
-        return moxi.LetExpr(moxi.Sort.NoSort(), p[3], p[5], self.loc(p))
+        return moxi.LetTerm(moxi.Sort.NoSort(), p[3], p[5], self.loc(p))
 
     @_("LPAREN qualified_identifier term RPAREN")
     def term(self, p):

@@ -12,7 +12,7 @@ def to_xmv_word_const(moxi_bitvec: moxi.Constant) -> smv.WordConstant:
     return smv.WordConstant(f"0ud{width}_{value}")
 
 
-def to_xmv_expr(moxi_expr: moxi.Expr, symbol: str) -> smv.Expr:
+def to_xmv_expr(moxi_expr: moxi.Term, symbol: str) -> smv.Expr:
     if isinstance(moxi_expr, moxi.Constant) and moxi.is_bool_sort(moxi_expr.sort):
         return smv.BooleanConstant(moxi_expr.value)
     elif isinstance(moxi_expr, moxi.Constant) and moxi.is_bitvec_sort(moxi_expr.sort):

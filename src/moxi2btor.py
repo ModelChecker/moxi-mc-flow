@@ -62,7 +62,7 @@ moxi_fun_map: dict[str, btor.BtorOperator] = {
 SortMap = dict[moxi.Sort, btor.BtorSort]
 
 # An ExprMap maps moxi.Exprs to btor.BtorExprs
-ExprMap = dict[moxi.Expr, btor.BtorExpr]
+ExprMap = dict[moxi.Term, btor.BtorExpr]
 
 BtorVarType = tuple[
     Optional[btor.BtorStateVar], btor.BtorStateVar, Optional[btor.BtorStateVar]
@@ -109,7 +109,7 @@ def moxisort2btorsort(
 
 
 def build_sort_map_expr(
-    node: moxi.Expr, context: moxi.Context, sort_map: SortMap
+    node: moxi.Term, context: moxi.Context, sort_map: SortMap
 ) -> SortMap:
     """Iteratively recurse `node` and map each `moxi.Sort` to a `btor.BtorSort`."""
     for expr in moxi.postorder(node, context):
@@ -125,10 +125,10 @@ def build_sort_map_cmd(
     if isinstance(cmd, moxi.DefineSystem):
         for subsystem in cmd.subsystems.values():
             build_sort_map_cmd(subsystem, context, sort_map)
-        for expr in cmd.get_exprs():
+        for expr in cmd.get_terms():
             build_sort_map_expr(expr, context, sort_map)
     elif isinstance(cmd, moxi.CheckSystem):
-        for expr in cmd.get_exprs():
+        for expr in cmd.get_terms():
             build_sort_map_expr(expr, context, sort_map)
     else:
         raise NotImplementedError
@@ -137,7 +137,7 @@ def build_sort_map_cmd(
 
 
 def build_var_map_expr(
-    node: moxi.Expr, context: moxi.Context, sort_map: SortMap, var_map: VarMap
+    node: moxi.Term, context: moxi.Context, sort_map: SortMap, var_map: VarMap
 ) -> None:
     """Iteratively recurse `node` and map each `(moxi.Var, moxi.SystemContext)` pair to a `BtorVarType`. Assumes that the sort of every sub-expression in `node` is present in `sort_map`."""
     for expr in moxi.postorder(node, context):
@@ -200,7 +200,7 @@ def build_var_map_cmd(
 
         context.pop_system()
 
-        for expr in cmd.get_exprs():
+        for expr in cmd.get_terms():
             build_var_map_expr(expr, context, sort_map, var_map)
 
         context.pop_system()
@@ -214,14 +214,14 @@ def build_var_map_cmd(
 
             context.pop_system()
 
-        for expr in cmd.get_exprs():
+        for expr in cmd.get_terms():
             build_var_map_expr(expr, context, sort_map, var_map)
     else:
         raise NotImplementedError
 
 
 def build_expr_map(
-    node: moxi.Expr,
+    node: moxi.Term,
     context: moxi.Context,
     is_init_expr: bool,
     sort_map: SortMap,
@@ -300,14 +300,14 @@ def build_expr_map(
                 (idx1, idx2),
                 btor2_args,
             )
-        elif isinstance(expr, moxi.LetExpr):
-            expr_map[expr] = expr_map[expr.get_expr()]
+        elif isinstance(expr, moxi.LetTerm):
+            expr_map[expr] = expr_map[expr.get_term()]
         else:
             raise NotImplementedError(f"Unsupported expression '{expr}'")
 
 
 def to_btor2_constraint(
-    expr: moxi.Expr,
+    expr: moxi.Term,
     context: moxi.Context,
     is_init_expr: bool,
     sort_map: SortMap,

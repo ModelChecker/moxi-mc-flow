@@ -1,0 +1,87 @@
+{
+    "script": "../translate.py",
+    "options": ["moxi", "--validate"],
+    "tests": [
+        {
+            "input": "vmt/_6countern.vmt",
+            "output": "vmt/_6countern.moxi",
+            "expected_output": [
+                ["vmt/_6countern.moxi.expect",
+                 "vmt/_6countern.moxi"]
+            ]
+        },
+        {
+            "input": "vmt/array_max-1.vmt",
+            "output": "vmt/array_max-1.moxi",
+            "expected_output": [
+                ["vmt/array_max-1.moxi.expect",
+                 "vmt/array_max-1.moxi"]
+            ]
+        },
+        {
+            "input": "vmt/dillig12.c.vmt",
+            "output": "vmt/dillig12.c.moxi",
+            "expected_output": [
+                ["vmt/dillig12.c.moxi.expect",
+                 "vmt/dillig12.c.moxi"]
+            ]
+        },
+        {
+            "input": "vmt/DRAGON_all2.vmt",
+            "output": "vmt/DRAGON_all2.moxi",
+            "expected_output": [
+                ["vmt/DRAGON_all2.moxi.expect",
+                 "vmt/DRAGON_all2.moxi"]
+            ]
+        },
+        {
+            "options": ["--with-lets"],
+            "input": "vmt/fib_bench_safe_v1.vmt",
+            "output": "vmt/fib_bench_safe_v1.moxi",
+            "expected_output": [
+                ["vmt/fib_bench_safe_v1.moxi.expect",
+                 "vmt/fib_bench_safe_v1.moxi"]
+            ]
+        },
+        {
+            "input": "vmt/rajamani_1.c.vmt",
+            "output": "vmt/rajamani_1.c.moxi",
+            "expected_output": [
+                ["vmt/rajamani_1.c.moxi.expect",
+                 "vmt/rajamani_1.c.moxi"]
+            ]
+        },
+        {
+            "input": "vmt/s3_srvr_2_BUG.cil.vmt",
+            "output": "vmt/s3_srvr_2_BUG.cil.moxi",
+            "expected_output": [
+                ["vmt/s3_srvr_2_BUG.cil.moxi.expect",
+                 "vmt/s3_srvr_2_BUG.cil.moxi"]
+            ]
+        },
+        {
+            "input": "vmt/s3_srvr_11.cil.vmt",
+            "output": "vmt/s3_srvr_11.cil.moxi",
+            "expected_output": [
+                ["vmt/s3_srvr_11.cil.moxi.expect",
+                 "vmt/s3_srvr_11.cil.moxi"]
+            ]
+        },
+        {
+            "input": "vmt/svd-some-loop.c.vmt",
+            "output": "vmt/svd-some-loop.c.moxi",
+            "expected_output": [
+                ["vmt/svd-some-loop.c.moxi.expect",
+                 "vmt/svd-some-loop.c.moxi"]
+            ]
+        },
+        {
+            "input": "vmt/transmitter.13.vmt",
+            "output": "vmt/transmitter.13.moxi",
+            "expected_output": [
+                ["vmt/transmitter.13.moxi.expect",
+                 "vmt/transmitter.13.moxi"]
+            ]
+        }
+    ] 
+}

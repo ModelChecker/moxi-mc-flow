@@ -13,7 +13,9 @@ from src import (
     moxi2btor,
     moxi2json,
     parse_smv,
+    parse_vmt,
     smv2moxi,
+    vmt2moxi
 )
 
 FILE_NAME = pathlib.Path(__file__).name
@@ -31,6 +33,7 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
     proc = subprocess.run(["python3", str(SORTCHECK), src_path], capture_output=True)
 
     if proc.returncode:
+        log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
         log.error(proc.stderr.decode("utf-8"), FILE_NAME)
         return FAIL
 
@@ -57,6 +60,7 @@ def main(
     validate: bool,
     do_pickle: bool,
     do_cpp: bool,
+    with_lets: bool,
     int_width: int,
 ) -> int:
     if not input_path.is_file():
@@ -87,6 +91,32 @@ def main(
                 return 1
 
             moxi_program = smv2moxi.translate(input_path.name, xmv_program)
+            if not moxi_program:
+                log.error(
+                    f"Failed translating specification in {input_path}", FILE_NAME
+                )
+                return 1
+
+            btor2_program_set = moxi2btor.translate(moxi_program, int_width)
+
+            if not btor2_program_set:
+                return FAIL
+
+            btor.write_btor2_program_set(btor2_program_set, output_path, do_pickle)
+
+            if keep:
+                with open(str(keep), "w") as f:
+                    f.write(str(moxi_program))
+        case (".vmt", "moxi"):
+            if vmt2moxi.translate_file(input_path, output_path, with_lets):
+                return FAIL
+        case (".vmt", "btor2"):
+            vmt_program = parse_vmt.parse(input_path)
+            if not vmt_program:
+                log.error(f"Failed parsing specification in {input_path}", FILE_NAME)
+                return 1
+
+            moxi_program = vmt2moxi.translate(vmt_program, with_lets)
             if not moxi_program:
                 log.error(
                     f"Failed translating specification in {input_path}", FILE_NAME
@@ -182,6 +212,7 @@ if __name__ == "__main__":
         type=int,
         help="bit width to translate Int types to when translating to BTOR2",
     )
+    parser.add_argument("--with-lets", action="store_true", help="uses lt bindings instead of local vars for translations from vmt to moxi")
     parser.add_argument("--quiet", action="store_true", help="disable output")
     parser.add_argument(
         "--profile", action="store_true", help="runs using cProfile if true"
@@ -242,6 +273,7 @@ if __name__ == "__main__":
         args.validate,
         args.pickle,
         args.cpp,
+        args.with_lets,
         args.intwidth,
     )
     sys.exit(returncode)

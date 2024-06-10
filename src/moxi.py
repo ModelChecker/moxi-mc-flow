@@ -1,6 +1,7 @@
 """
-Representation of IL
+Representation of MoXI
 """
+
 from __future__ import annotations
 
 from collections import deque
@@ -53,7 +54,7 @@ class CommandAttribute(Enum):
         elif self.value == ":queries":
             return list
         elif self.value == ":init" or self.value == ":trans" or self.value == ":inv":
-            return Expr
+            return Term
 
         raise NotImplementedError
 
@@ -93,7 +94,7 @@ class Identifier:
         return not self.is_indexed() and self.symbol == __symbol
 
     def __eq__(self, __value: object) -> bool:
-        """Two ILIdentifiers are equal if they have the same symbol and indices."""
+        """Two Identifiers are equal if they have the same symbol and indices."""
         if isinstance(__value, str):
             return self.is_symbol(__value)
 
@@ -234,33 +235,34 @@ def is_any_sort(sort: Sort) -> bool:
     return sort.identifier.is_symbol("__Any__")
 
 
-class Expr:
+class Term:
     def __init__(
-        self, sort: Sort, children: list[Expr], loc: Optional[log.FileLocation] = None
+        self, sort: Sort, children: list[Term], loc: Optional[log.FileLocation] = None
     ):
         self.loc = loc
         self.sort = sort
         self.children = children
 
+        self.attrs: dict[str, str | int] = {}
         self.field: Optional[tuple[Command, str, str]] = None
 
-        self.parents: list[Expr] = []
+        self.parents: list[Term] = []
         for child in children:
             child.parents.append(self)
 
     def get_sort_symbol(self) -> str:
         return self.sort.symbol
 
-    def replace(self, new: Expr) -> None:
-        """Replaces `self` with `new` using `self.parents` or `self.field` if `self` is a top-level expression (i.e., has no parents)."""
+    def replace(self, new: Term) -> None:
+        """Replaces `self` with `new` using `self.parents` or `self.field` if `self` is a top-level term (i.e., has no parents)."""
         if not self.parents:
             if not self.field:
-                raise ValueError(f"No field set for top-level expression '{self}'")
+                raise ValueError(f"No field set for top-level term '{self}'")
 
             cmd, field_name, symbol = self.field
             cmd_field = getattr(cmd, field_name)
 
-            if isinstance(cmd_field, Expr):
+            if isinstance(cmd_field, Term):
                 setattr(cmd, field_name, new)
             elif isinstance(cmd_field, dict):
                 cmd_field[symbol] = new
@@ -269,17 +271,23 @@ class Expr:
             parent.children[parent.children.index(self)] = new
             new.parents.append(parent)
 
+    def add_attribute(self, attr: str, arg: str | int) -> None:
+        self.attrs[attr] = arg
+
     def __hash__(self) -> int:
         return id(self)
 
     def __str__(self) -> str:
-        return expr2str(self)
+        return term2str(self, with_attr=True)
+
+    def str_no_attrs(self) -> str:
+        return term2str(self, with_attr=False)
 
     def to_json(self) -> dict:
         return {}
 
 
-class Constant(Expr):
+class Constant(Term):
     def __init__(self, sort: Sort, value: Any, loc: Optional[log.FileLocation] = None):
         super().__init__(sort, [], loc)
         self.value = value
@@ -330,8 +338,8 @@ class VarType(Enum):
     LOGIC = 4
 
 
-class Variable(Expr):
-    """An ILVar requires a sort and symbol."""
+class Variable(Term):
+    """A Variable requires a sort and symbol."""
 
     def __init__(
         self,
@@ -346,10 +354,10 @@ class Variable(Expr):
         self.prime = prime
 
     def __eq__(self, __value: object) -> bool:
-        """Two ILVars are equal if they have the same symbol."""
+        """Two Variables are equal if they have the same symbol."""
         return (
             isinstance(__value, Variable)
-            and self.symbol != __value.symbol
+            and self.symbol == __value.symbol
             and self.prime == __value.prime
         )
         # and self.var_type != __value.var_type)
@@ -367,12 +375,12 @@ class Variable(Expr):
 _EMPTY_VAR = Variable(Sort.NoSort(), "", False)
 
 
-class Apply(Expr):
+class Apply(Term):
     def __init__(
         self,
         sort: Sort,
         identifier: Identifier,
-        children: list[Expr],
+        children: list[Term],
         loc: Optional[log.FileLocation] = None,
     ):
         super().__init__(sort, children, loc)
@@ -384,96 +392,104 @@ class Apply(Expr):
         return {"identifier": identifier, "args": args}
 
     @classmethod
-    def Eq(cls, args: list[Expr], loc: Optional[log.FileLocation] = None) -> Apply:
+    def Eq(cls, args: list[Term], loc: Optional[log.FileLocation] = None) -> Apply:
         return Apply(Sort.Bool(), Identifier("=", []), args, loc)
 
     @classmethod
-    def And(cls, args: list[Expr], loc: Optional[log.FileLocation] = None) -> Apply:
+    def Not(cls, arg: Term, loc: Optional[log.FileLocation] = None) -> Apply:
+        return Apply(Sort.Bool(), Identifier("not", []), [arg], loc)
+
+    @classmethod
+    def And(cls, args: list[Term], loc: Optional[log.FileLocation] = None) -> Apply:
         return Apply(Sort.Bool(), Identifier("and", []), args, loc)
 
     @classmethod
-    def Or(cls, args: list[Expr], loc: Optional[log.FileLocation] = None) -> Apply:
+    def Or(cls, args: list[Term], loc: Optional[log.FileLocation] = None) -> Apply:
         return Apply(Sort.Bool(), Identifier("or", []), args, loc)
 
     @classmethod
-    def IntNeg(cls, arg: Expr, loc: Optional[log.FileLocation] = None) -> Apply:
+    def IntNeg(cls, arg: Term, loc: Optional[log.FileLocation] = None) -> Apply:
         return Apply(Sort.Int(), Identifier("-", []), [arg], loc)
 
     @classmethod
     def Select(
-        cls, array: Expr, index: Expr, loc: Optional[log.FileLocation] = None
+        cls, array: Term, index: Term, loc: Optional[log.FileLocation] = None
     ) -> Apply:
         return Apply(Sort.NoSort(), Identifier("select", []), [array, index], loc)
 
     @classmethod
     def Store(
         cls,
-        array: Expr,
-        index: Expr,
-        value: Expr,
+        array: Term,
+        index: Term,
+        value: Term,
         loc: Optional[log.FileLocation] = None,
     ) -> Apply:
         return Apply(Sort.NoSort(), Identifier("store", []), [array, index, value], loc)
 
 
-class LetExpr(Expr):
-    """LetExpr tree structure looks like:
+class LetTerm(Term):
+    """LetTerm tree structure looks like:
 
-    LetExpr
+    LetTerm
     ____|___________________________
     |        |        |            |
     v        v        v            v
-    Expr Bind Expr ... Expr
+    Term Bind Term ... Term
 
-    where from the right we have each bound variable expression, then a dummy class to do variable binding during traversal, then the argument expression. We visit these in that order when performing the standard reverse postorder traversal.
+    where from the right we have each bound variable term, then a dummy class to do variable binding during traversal, then the argument term. We visit these in that order when performing the standard reverse postorder traversal.
     """
 
     def __init__(
         self,
         sort: Sort,
-        binders: list[tuple[str, Expr]],
-        expr: Expr,
+        binders: list[tuple[str, Term]],
+        term: Term,
         loc: Optional[log.FileLocation] = None,
     ):
-        super().__init__(sort, [expr] + [Bind()] + [b[1] for b in binders], loc)
+        super().__init__(sort, [term] + [Bind()] + [b[1] for b in binders], loc)
         self.vars = [b[0] for b in binders]
 
-    def get_expr(self) -> Expr:
+    def get_term(self) -> Term:
         return self.children[0]
 
-    def get_binders(self) -> list[tuple[str, Expr]]:
+    def get_binders(self) -> list[tuple[str, Term]]:
         return [(v, e) for v, e in zip(self.vars, self.children[2:])]
 
 
-class Bind(Expr):
-    """Class used for binding variables in `let` expressions during traversal."""
+class Bind(Term):
+    """Class used for binding variables in `let` terms during traversal."""
 
     def __init__(self, loc: Optional[log.FileLocation] = None):
         super().__init__(Sort.NoSort(), [], loc)
 
-    def get_binders(self) -> list[tuple[str, Expr]]:
+    def get_binders(self) -> list[tuple[str, Term]]:
         if not len(self.parents) == 1:
             raise ValueError("Bind can only have 1 parent.")
 
         parent = self.parents[0]
 
-        if not isinstance(parent, LetExpr):
-            raise ValueError("Bind must have LetExpr parent.")
+        if not isinstance(parent, LetTerm):
+            raise ValueError("Bind must have LetTerm parent.")
 
         return parent.get_binders()
 
 
-def expr2str(expr: Expr) -> str:
-    queue: deque[tuple[bool, Expr | tuple[str, Expr]]] = deque()
+def term2str(term: Term, with_attr: bool = True) -> str:
+    queue: deque[tuple[bool, Term | tuple[str, Term]]] = deque()
     s = ""
 
-    queue.append((False, expr))
+    queue.append((False, term))
 
     while len(queue) > 0:
         (handled, cur) = queue.pop()
 
         if handled:
-            s = (s[:-1] + ") ") if isinstance(cur, (Apply, LetExpr, tuple)) else s
+            if with_attr and isinstance(cur, Term):
+                for attr, value in cur.attrs.items():
+                    s += f"{attr} {value} "
+
+            s = (s[:-1] + ") ") if isinstance(cur, (Apply, LetTerm, tuple)) else s
             continue
 
         # first time seeing this node
@@ -481,13 +497,17 @@ def expr2str(expr: Expr) -> str:
             s += f"((as {cur.identifier} {cur.sort}) "
         elif isinstance(cur, Apply):
             s += f"({cur.identifier} "
-        elif isinstance(cur, LetExpr):
+        elif isinstance(cur, LetTerm):
             s += "(let ("
         elif isinstance(cur, Bind):
             s = s[:-1] + ") "
         elif isinstance(cur, Constant) and is_bitvec_sort(cur.sort):
-            format_str = f"#b{'{'}0:0{cur.sort.identifier.indices[0]}b{'}'} "
-            s += format_str.format(cur.value)
+            width = cur.sort.identifier.indices[0]
+            if width <= 64:
+                format_str = f"#b{'{'}0:0{cur.sort.identifier.indices[0]}b{'}'} "
+                s += format_str.format(cur.value)
+            else:
+                s += f"(_ bv{width} {cur.value})"
         elif isinstance(cur, Constant) and isinstance(cur.value, bool):
             s += str(cur.value).lower() + " "
         elif isinstance(cur, Constant):
@@ -503,8 +523,8 @@ def expr2str(expr: Expr) -> str:
         queue.append((True, cur))
 
         # add children to stack
-        if isinstance(cur, LetExpr):
-            queue.append((False, cur.get_expr()))
+        if isinstance(cur, LetTerm):
+            queue.append((False, cur.get_term()))
             queue.append((False, cur.children[1]))
             for v, e in reversed(cur.get_binders()):
                 queue.append((False, (v, e)))
@@ -521,7 +541,7 @@ def expr2str(expr: Expr) -> str:
     return s
 
 
-def rename_vars(expr: Expr, vars: dict[Variable, Expr], context: Context) -> Expr:
+def rename_vars(expr: Term, vars: dict[Variable, Term], context: Context) -> Term:
     """Returns a copy of `expr` where each `Var` present in `vars` is replaced with its mapped value. Useful for inlining function calls."""
     new_expr = copy(expr)
 
@@ -532,7 +552,7 @@ def rename_vars(expr: Expr, vars: dict[Variable, Expr], context: Context) -> Exp
     return new_expr
 
 
-def is_const_array_expr(expr: Expr) -> bool:
+def is_const_array_expr(expr: Term) -> bool:
     """Returns true if `expr` is of the form: `(as const (Array X Y) x)`"""
     return (
         isinstance(expr, Apply)
@@ -545,11 +565,29 @@ def to_json_sorted_var(symbol: str, sort: Sort) -> dict:
     return {"symbol": symbol, "sort": sort.to_json()}
 
 
+def conjoin_list(expr_list: list[Term]) -> Term:
+    if len(expr_list) == 0:
+        return Constant.Bool(True)
+    elif len(expr_list) == 1:
+        return expr_list[0]
+    else:
+        return Apply.And(expr_list)
+
+
+def disjoin_list(expr_list: list[Term]) -> Term:
+    if len(expr_list) == 0:
+        return Constant.Bool(True)
+    elif len(expr_list) == 1:
+        return expr_list[0]
+    else:
+        return Apply.Or(expr_list)
+
+
 class Command:
     def __init__(self, loc: Optional[log.FileLocation] = None) -> None:
         self.loc = loc
 
-    def get_exprs(self) -> list[Expr]:
+    def get_terms(self) -> list[Term]:
         return []
 
     def to_json(self) -> dict:
@@ -664,7 +702,7 @@ class DefineFun(Command):
         symbol: str,
         input: list[tuple[str, Sort]],
         output: Sort,
-        body: Expr,
+        body: Term,
         loc: Optional[log.FileLocation] = None,
     ) -> None:
         super().__init__(loc)
@@ -675,7 +713,7 @@ class DefineFun(Command):
 
         self.body.field = (self, "body", "")
 
-    def get_exprs(self) -> list[Expr]:
+    def get_terms(self) -> list[Term]:
         return [self.body]
 
     def __str__(self) -> str:
@@ -754,9 +792,9 @@ class DefineSystem(SystemCommand):
         input: list[tuple[str, Sort]],
         output: list[tuple[str, Sort]],
         local: list[tuple[str, Sort]],
-        init: Expr,
-        trans: Expr,
-        inv: Expr,
+        init: Term,
+        trans: Term,
+        inv: Term,
         subsystems: dict[str, tuple[str, list[str]]],
         loc: Optional[log.FileLocation] = None,
     ):
@@ -776,7 +814,7 @@ class DefineSystem(SystemCommand):
     def get_subsys_params(self, symbol: str) -> list[str]:
         return self.subsystem_signatures[symbol][1]
 
-    def get_exprs(self) -> list[Expr]:
+    def get_terms(self) -> list[Term]:
         return [self.init, self.trans, self.inv]
 
     def __str__(self) -> str:
@@ -826,10 +864,10 @@ class CheckSystem(SystemCommand):
         input: list[tuple[str, Sort]],
         output: list[tuple[str, Sort]],
         local: list[tuple[str, Sort]],
-        assumption: dict[str, Expr],
-        fairness: dict[str, Expr],
-        reachable: dict[str, Expr],
-        current: dict[str, Expr],
+        assumption: dict[str, Term],
+        fairness: dict[str, Term],
+        reachable: dict[str, Term],
+        current: dict[str, Term],
         query: dict[str, list[str]],
         queries: list[dict[str, list[str]]],
         loc: Optional[log.FileLocation] = None,
@@ -851,7 +889,7 @@ class CheckSystem(SystemCommand):
         for symbol, expr in current.items():
             expr.field = (self, "current", symbol)
 
-    def get_exprs(self) -> list[Expr]:
+    def get_terms(self) -> list[Term]:
         return (
             [a for a in self.assumption.values()]
             + [f for f in self.fairness.values()]
@@ -955,8 +993,8 @@ class Program:
     def __init__(self, commands: list[Command]):
         self.commands: list[Command] = commands
 
-    def get_exprs(self) -> list[Expr]:
-        return [e for cmd in self.commands for e in cmd.get_exprs()]
+    def get_terms(self) -> list[Term]:
+        return [t for cmd in self.commands for t in cmd.get_terms()]
 
     def get_check_system_cmds(self) -> list[CheckSystem]:
         return [cmd for cmd in self.commands if isinstance(cmd, CheckSystem)]
@@ -966,6 +1004,15 @@ class Program:
 
     def to_json(self) -> list:
         return [cmd.to_json() for cmd in self.commands]
+
+
+class SetOption(Command):
+    def __init__(self, option: str, loc: Optional[log.FileLocation] = None):
+        super().__init__(loc)
+        self.option = option
+
+    def __str__(self) -> str:
+        return f"(set-option {self.option})"
 
 
 class Exit(Command):
@@ -1079,6 +1126,13 @@ REAL_RANK_TABLE: RankTable = {
     ("<", 0): lambda A: ([Sort.Real() for _ in range(0, A)], Sort.Bool()),
     (">=", 0): lambda A: ([Sort.Real() for _ in range(0, A)], Sort.Bool()),
     (">", 0): lambda A: ([Sort.Real() for _ in range(0, A)], Sort.Bool()),
+}
+
+
+REAL_INT_RANK_TABLE: RankTable = {
+    ("to_real", 0): lambda _: ([Sort.Int()], Sort.Real()),
+    ("to_int", 0): lambda _: ([Sort.Real()], Sort.Int()),
+    ("is_int", 0): lambda _: ([Sort.Real()], Sort.Bool()),
 }
 
 
@@ -1337,6 +1391,39 @@ def sort_check_apply_real(node: Apply) -> bool:
     return sort_check_apply_rank(node, rank)
 
 
+def sort_check_apply_real_int(node: Apply) -> bool:
+    # "to_int", "to_real", "is_int"
+    identifier = node.identifier
+    identifier_class = identifier.get_class()
+
+    if identifier_class not in REAL_INT_RANK_TABLE:
+        return False
+
+    rank = REAL_INT_RANK_TABLE[identifier_class](None)
+    return sort_check_apply_rank(node, rank)
+
+
+def sort_check_apply_all(node: Apply) -> bool:
+    identifier_class = (node.identifier.symbol, node.identifier.num_indices())
+
+    if identifier_class in CORE_RANK_TABLE:
+        return sort_check_apply_core(node)
+    elif identifier_class in BITVEC_RANK_TABLE:
+        return sort_check_apply_bitvec(node)
+    elif identifier_class in ARRAY_RANK_TABLE:
+        return sort_check_apply_arrays(node)
+    elif identifier_class in INT_RANK_TABLE and identifier_class in REAL_RANK_TABLE:
+        return sort_check_apply_int(node) or sort_check_apply_real(node)
+    elif identifier_class in INT_RANK_TABLE:
+        return sort_check_apply_int(node)
+    elif identifier_class in REAL_RANK_TABLE:
+        return sort_check_apply_real(node)
+    elif identifier_class in REAL_INT_RANK_TABLE:
+        return sort_check_apply_real_int(node)
+
+    return False
+
+
 def sort_check_apply_qf_bv(node: Apply) -> bool:
     identifier_class = (node.identifier.symbol, node.identifier.num_indices())
 
@@ -1441,7 +1528,7 @@ def sort_check_apply_qf_lra(node: Apply) -> bool:
         if not status:
             return status
 
-        # TODO: Special case for LRA (from SMT-LIB):
+        # Special case for LRA (from SMT-LIB):
         # Terms with _concrete_ coefficients are also allowed, that is, terms
         # of the form c, (* c x), or (* x c)  where x is a free constant and
         # c is an integer or rational coefficient.
@@ -1510,14 +1597,14 @@ def sort_check_apply_qf_nra(node: Apply) -> bool:
 
     if identifier_class in CORE_RANK_TABLE:
         return sort_check_apply_core(node)
-    elif identifier_class in INT_RANK_TABLE:
+    elif identifier_class in REAL_RANK_TABLE:
         return sort_check_apply_real(node)
 
     return False
 
 
 class Logic:
-    """An ILLogic has a name, a set of sort symbols, a set of function symbols, and a sort_check function"""
+    """An logic has a name, a set of sort symbols, a set of function symbols, and a sort_check function"""
 
     def __init__(
         self,
@@ -1536,6 +1623,18 @@ class Logic:
 
 NO_LOGIC = Logic(
     "Not Set", {("Bool", 0)}, set(CORE_RANK_TABLE.keys()), sort_check_apply_core
+)
+
+ALL = Logic(
+    "All",
+    {("Bool", 0), ("BitVec", 1), ("Array", 0), ("Int", 0), ("Real", 0)},
+    CORE_RANK_TABLE.keys()
+    | BITVEC_RANK_TABLE.keys()
+    | ARRAY_RANK_TABLE.keys()
+    | INT_RANK_TABLE.keys()
+    | REAL_RANK_TABLE.keys()
+    | REAL_INT_RANK_TABLE.keys(),
+    sort_check_apply_all,
 )
 
 QF_BV = Logic(
@@ -1581,6 +1680,7 @@ QF_NRA = Logic(
 )
 
 LOGIC_TABLE: dict[str, Logic] = {
+    "ALL": ALL,
     "QF_BV": QF_BV,
     "QF_ABV": QF_ABV,
     "QF_LIA": QF_LIA,
@@ -1703,7 +1803,7 @@ class Context:
         self.sort_symbols: set[str] = set()
 
         self.declared_functions: dict[str, Rank] = {}
-        self.defined_functions: dict[str, tuple[Rank, Expr]] = {}
+        self.defined_functions: dict[str, tuple[Rank, Term]] = {}
         self.defined_function_input_vars: dict[str, list[Variable]] = {}
 
         self.declared_consts: dict[str, Sort] = {}
@@ -1718,11 +1818,11 @@ class Context:
         self.local_vars: set[str] = set()
         self.var_sorts: dict[str, Sort] = {}
 
-        self.bound_let_vars: dict[str, Expr] = {}
+        self.bound_let_vars: dict[str, Term] = {}
 
         self.cur_command: Optional[Command] = None
 
-        self.const_arrays: set[tuple[Sort, Constant, Expr]] = set()
+        self.const_arrays: set[tuple[Sort, Constant, Term]] = set()
 
         self.symbols: set[str] = set()
 
@@ -1781,7 +1881,7 @@ class Context:
         self.defined_systems[symbol] = system
         self.symbols.add(symbol)
 
-    def add_bound_let_var(self, symbol: str, expr: Expr) -> None:
+    def add_bound_let_var(self, symbol: str, expr: Term) -> None:
         self.bound_let_vars[symbol] = expr
         self.symbols.add(symbol)
 
@@ -1814,8 +1914,6 @@ class Context:
     def push_system(
         self, symbol: str, new_system: SystemCommand, params: list[str]
     ) -> None:
-        # print(f"Pushing: {symbol} ({type(new_system).__name__})")
-
         # Remove symbols from current top of system stack and maintain rename_map
         top = self.system_context.get_top()
         if top:
@@ -1837,9 +1935,7 @@ class Context:
         if top:
             (cs, cur_system) = top
             self.set_system_vars(cur_system.input, cur_system.output, cur_system.local)
-            # print(f"Popping: {old_symbol} (Current: {cs})")
         elif self.cur_check_system:
-            # print(f"Popping: {old_symbol}")
             pass
 
         return (old_symbol, old_system)
@@ -1881,10 +1977,6 @@ class Context:
         else:
             target_signature = target_system.signature
 
-        # print(f"Mapping:")
-        # print(f"{''.join([f'{s:13}' for s in signature])}")
-        # print(f"{''.join([f'{s:13}' for s in target_signature])}")
-
         for cmd_var, target_var in zip(signature, target_signature):
             self.rename_map[(target_var, target_context)] = (
                 cmd_var,
@@ -1892,15 +1984,15 @@ class Context:
             )
 
 
-def postorder(expr: Expr, context: Context):
+def postorder(expr: Term, context: Context):
     """Perform an iterative postorder traversal of `expr`, maintaining `context`."""
-    stack: list[tuple[bool, Expr]] = []
+    stack: list[tuple[bool, Term]] = []
     stack.append((False, expr))
 
     while len(stack) > 0:
         (seen, cur) = stack.pop()
 
-        if seen and isinstance(cur, LetExpr):
+        if seen and isinstance(cur, LetTerm):
             for v, e in cur.get_binders():
                 context.remove_bound_let_var(v)
             yield cur
@@ -1915,12 +2007,18 @@ def postorder(expr: Expr, context: Context):
                 stack.append((False, child))
 
 
+def remove_term_attrs(term: Term, context: Context):
+    """Removes all attributes from `term` and all sub-terms of `term`."""
+    for t in postorder(term, context):
+        t.attrs = {}
+
+
 def sort_check(program: Program) -> tuple[bool, Context]:
     context: Context = Context()
     status: bool = True
 
     def sort_check_expr(
-        node: Expr, context: Context, no_prime: bool, is_init_expr: bool
+        node: Term, context: Context, no_prime: bool, is_init_expr: bool
     ) -> bool:
         """Return true if node is well-sorted where `no_prime` is true if primed variables are disabled and `prime_input` is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions)."""
         for expr in postorder(node, context):
@@ -1951,7 +2049,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
                 if expr.prime and no_prime:
                     log.error(
-                        f"Primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}",
+                        f"Primed variables only allowed in system transition or invariant relation ({expr.symbol}).",
                         FILE_NAME,
                         expr.loc,
                     )
@@ -1970,7 +2068,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
                 if expr.prime and no_prime:
                     log.error(
-                        f"primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}",
+                        f"primed variables only allowed in system transition or invariant relation ({expr.symbol}).",
                         FILE_NAME,
                         expr.loc,
                     )
@@ -1989,7 +2087,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
                 if expr.prime and no_prime:
                     log.error(
-                        f"primed variables only allowed in system transition or invariant relation ({expr.symbol}).\n\t{context.cur_command}",
+                        f"primed variables only allowed in system transition or invariant relation ({expr.symbol}).",
                         FILE_NAME,
                         expr.loc,
                     )
@@ -2048,7 +2146,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
                 expr.sort = output
             elif isinstance(expr, Variable):
                 log.error(
-                    f"symbol '{expr.symbol}' not declared.\n\t{context.cur_command}",
+                    f"symbol '{expr.symbol}' not declared.",
                     FILE_NAME,
                     expr.loc,
                 )
@@ -2076,7 +2174,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
                         return False
                 else:
                     log.error(
-                        f"symbol '{expr.identifier.symbol}' not recognized ({expr}).\n\t{context.cur_command}",
+                        f"symbol '{expr.identifier.symbol}' not recognized ({expr}).",
                         FILE_NAME,
                         expr.loc,
                     )
@@ -2090,12 +2188,12 @@ def sort_check(program: Program) -> tuple[bool, Context]:
                     const_expr = cast(Constant, expr.children[0])
                     context.const_arrays.add((expr.sort, const_expr, expr))
 
-            elif isinstance(expr, LetExpr):
+            elif isinstance(expr, LetTerm):
                 # TODO: check for variable name clashes
-                expr.sort = expr.get_expr().sort
+                expr.sort = expr.get_term().sort
             else:
                 log.error(
-                    f"expr type '{expr.__class__}' not recognized ({expr}).\n\t{context.cur_command}",
+                    f"expr type '{expr.__class__}' not recognized ({expr}).",
                     FILE_NAME,
                     expr.loc,
                 )
@@ -2124,7 +2222,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
         elif isinstance(cmd, DefineSort):
             if cmd.symbol in context.symbols:
                 log.error(
-                    f"symbol '{cmd.symbol}' already in use.\n\t{cmd}",
+                    f"symbol '{cmd.symbol}' already in use.",
                     FILE_NAME,
                     cmd.loc,
                 )
@@ -2133,9 +2231,11 @@ def sort_check(program: Program) -> tuple[bool, Context]:
             # TODO
             context.add_defined_sort(cmd.definition)
         elif isinstance(cmd, DeclareEnumSort):
-            for conflict in [s for s in [cmd.symbol] + cmd.values if s in context.symbols]:
+            for conflict in [
+                s for s in [cmd.symbol] + cmd.values if s in context.symbols
+            ]:
                 log.error(
-                    f"symbol '{conflict}' already in use.\n\t{cmd}",
+                    f"symbol '{conflict}' already in use.",
                     FILE_NAME,
                     cmd.loc,
                 )
@@ -2145,7 +2245,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
         elif isinstance(cmd, DeclareConst):
             if cmd.symbol in context.symbols:
                 log.error(
-                    f"symbol '{cmd.symbol}' already in use.\n\t{cmd}",
+                    f"symbol '{cmd.symbol}' already in use.",
                     FILE_NAME,
                     cmd.loc,
                 )
@@ -2155,7 +2255,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
         elif isinstance(cmd, DeclareFun):
             if cmd.symbol in context.symbols:
                 log.error(
-                    f"symbol '{cmd.symbol}' already in use.\n\t{cmd}",
+                    f"symbol '{cmd.symbol}' already in use.",
                     FILE_NAME,
                     cmd.loc,
                 )
@@ -2167,7 +2267,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
         elif isinstance(cmd, DefineFun):
             if cmd.symbol in context.symbols:
                 log.error(
-                    f"symbol '{cmd.symbol}' already in use.\n\t{cmd}",
+                    f"symbol '{cmd.symbol}' already in use.",
                     FILE_NAME,
                     cmd.loc,
                 )
@@ -2204,7 +2304,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
                 if sys_symbol not in context.defined_systems:
                     log.error(
-                        f"system '{sys_symbol}' not defined in context.\n\t{cmd}",
+                        f"system '{sys_symbol}' not defined in context.",
                         FILE_NAME,
                         cmd.loc,
                     )
@@ -2216,7 +2316,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
                 for symbol in signature_symbols:
                     if symbol not in context.var_sorts:
                         log.error(
-                            f"variable '{symbol}' not declared.\n\t{cmd}",
+                            f"variable '{symbol}' not declared.",
                             FILE_NAME,
                             cmd.loc,
                         )
@@ -2262,9 +2362,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
             context.pop_system()
         elif isinstance(cmd, CheckSystem):
             if cmd.symbol not in context.defined_systems:
-                log.error(
-                    f"system '{cmd.symbol}' undefined.\n\t{cmd}", FILE_NAME, cmd.loc
-                )
+                log.error(f"system '{cmd.symbol}' undefined.", FILE_NAME, cmd.loc)
                 status = False
                 continue
 
@@ -2375,8 +2473,8 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
 
 def inline_funs(program: Program, context: Context) -> None:
-    """Perform function inlining on each expression in `program`."""
-    for top_expr in program.get_exprs():
+    """Perform function inlining on each term in `program`."""
+    for top_expr in program.get_terms():
         for expr in postorder(top_expr, context):
             if (
                 isinstance(expr, Apply)
@@ -2396,7 +2494,7 @@ def inline_funs(program: Program, context: Context) -> None:
 
 def to_binary_applys(program: Program, context: Context) -> None:
     """Replace all multi-arity functions (=, and, or, <, etc.) to binary versions."""
-    for top_expr in program.get_exprs():
+    for top_expr in program.get_terms():
         for expr in postorder(top_expr, context):
             if (
                 isinstance(expr, Apply)
@@ -2452,7 +2550,7 @@ def to_qfbv(program: Program, int_width: int):
         "<=": Identifier("bvsle", []),
     }
 
-    def to_qfbv_expr(expr: Expr):
+    def to_qfbv_expr(expr: Term):
         if isinstance(expr, Apply):
             if len(expr.children) == 1 and expr.identifier.symbol in UNARY_OPERATOR_MAP:
                 expr.identifier = UNARY_OPERATOR_MAP[expr.identifier.symbol]
@@ -2517,6 +2615,6 @@ def to_qfbv(program: Program, int_width: int):
                 command.var_sorts[var.symbol] = var.sort
 
         context = Context()
-        for expr1 in command.get_exprs():
+        for expr1 in command.get_terms():
             for expr2 in postorder(expr1, context):
                 to_qfbv_expr(expr2)
