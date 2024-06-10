@@ -94,7 +94,7 @@ class Identifier:
         return not self.is_indexed() and self.symbol == __symbol
 
     def __eq__(self, __value: object) -> bool:
-        """Two ILIdentifiers are equal if they have the same symbol and indices."""
+        """Two Identifiers are equal if they have the same symbol and indices."""
         if isinstance(__value, str):
             return self.is_symbol(__value)
 
@@ -339,7 +339,7 @@ class VarType(Enum):
 
 
 class Variable(Term):
-    """An ILVar requires a sort and symbol."""
+    """A Variable requires a sort and symbol."""
 
     def __init__(
         self,
@@ -354,7 +354,7 @@ class Variable(Term):
         self.prime = prime
 
     def __eq__(self, __value: object) -> bool:
-        """Two ILVars are equal if they have the same symbol."""
+        """Two Variables are equal if they have the same symbol."""
         return (
             isinstance(__value, Variable)
             and self.symbol == __value.symbol
@@ -1126,7 +1126,13 @@ REAL_RANK_TABLE: RankTable = {
     ("<", 0): lambda A: ([Sort.Real() for _ in range(0, A)], Sort.Bool()),
     (">=", 0): lambda A: ([Sort.Real() for _ in range(0, A)], Sort.Bool()),
     (">", 0): lambda A: ([Sort.Real() for _ in range(0, A)], Sort.Bool()),
+}
+
+
+REAL_INT_RANK_TABLE: RankTable = {
     ("to_real", 0): lambda _: ([Sort.Int()], Sort.Real()),
+    ("to_int", 0): lambda _: ([Sort.Real()], Sort.Int()),
+    ("is_int", 0): lambda _: ([Sort.Real()], Sort.Bool()),
 }
 
 
@@ -1385,6 +1391,18 @@ def sort_check_apply_real(node: Apply) -> bool:
     return sort_check_apply_rank(node, rank)
 
 
+def sort_check_apply_real_int(node: Apply) -> bool:
+    # "to_int", "to_real", "is_int"
+    identifier = node.identifier
+    identifier_class = identifier.get_class()
+
+    if identifier_class not in REAL_INT_RANK_TABLE:
+        return False
+
+    rank = REAL_INT_RANK_TABLE[identifier_class](None)
+    return sort_check_apply_rank(node, rank)
+
+
 def sort_check_apply_all(node: Apply) -> bool:
     identifier_class = (node.identifier.symbol, node.identifier.num_indices())
 
@@ -1400,6 +1418,8 @@ def sort_check_apply_all(node: Apply) -> bool:
         return sort_check_apply_int(node)
     elif identifier_class in REAL_RANK_TABLE:
         return sort_check_apply_real(node)
+    elif identifier_class in REAL_INT_RANK_TABLE:
+        return sort_check_apply_real_int(node)
 
     return False
 
@@ -1508,7 +1528,7 @@ def sort_check_apply_qf_lra(node: Apply) -> bool:
         if not status:
             return status
 
-        # TODO: Special case for LRA (from SMT-LIB):
+        # Special case for LRA (from SMT-LIB):
         # Terms with _concrete_ coefficients are also allowed, that is, terms
         # of the form c, (* c x), or (* x c)  where x is a free constant and
         # c is an integer or rational coefficient.
@@ -1584,7 +1604,7 @@ def sort_check_apply_qf_nra(node: Apply) -> bool:
 
 
 class Logic:
-    """An ILLogic has a name, a set of sort symbols, a set of function symbols, and a sort_check function"""
+    """An logic has a name, a set of sort symbols, a set of function symbols, and a sort_check function"""
 
     def __init__(
         self,
@@ -1612,7 +1632,8 @@ ALL = Logic(
     | BITVEC_RANK_TABLE.keys()
     | ARRAY_RANK_TABLE.keys()
     | INT_RANK_TABLE.keys()
-    | REAL_RANK_TABLE.keys(),
+    | REAL_RANK_TABLE.keys()
+    | REAL_INT_RANK_TABLE.keys(),
     sort_check_apply_all,
 )
 
