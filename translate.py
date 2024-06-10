@@ -13,6 +13,7 @@ from src import (
     moxi2btor,
     moxi2json,
     parse_smv,
+    parse_vmt,
     smv2moxi,
     vmt2moxi
 )
@@ -110,7 +111,28 @@ def main(
             if vmt2moxi.translate_file(input_path, output_path, with_lets):
                 return FAIL
         case (".vmt", "btor2"):
-            pass
+            vmt_program = parse_vmt.parse(input_path)
+            if not vmt_program:
+                log.error(f"Failed parsing specification in {input_path}", FILE_NAME)
+                return 1
+
+            moxi_program = vmt2moxi.translate(vmt_program, with_lets)
+            if not moxi_program:
+                log.error(
+                    f"Failed translating specification in {input_path}", FILE_NAME
+                )
+                return 1
+
+            btor2_program_set = moxi2btor.translate(moxi_program, int_width)
+
+            if not btor2_program_set:
+                return FAIL
+
+            btor.write_btor2_program_set(btor2_program_set, output_path, do_pickle)
+
+            if keep:
+                with open(str(keep), "w") as f:
+                    f.write(str(moxi_program))
         case (".moxi", "moxi-json"):
             if moxi2json.main(input_path, output_path, False, False):
                 return FAIL
