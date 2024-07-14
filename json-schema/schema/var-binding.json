@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "binder.json",
+    "title": "Variable binding",
+    "description": "MoXI variable binding",
+    "type": "object",
+    "properties": {
+        "symbol": {
+            "type": "string"
+        },
+        "term": {
+            "$ref": "term.json"
+        }
+    },
+    "required": ["symbol", "term"],
+    "additionalProperties": false
+}

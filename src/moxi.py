@@ -119,7 +119,10 @@ class Identifier:
         return s[:-1] + ")"
 
     def to_json(self) -> dict:
-        return {"symbol": self.symbol, "indices": self.indices}
+        if self.is_simple():
+            return {"symbol": self.symbol}
+        else:
+            return {"symbol": self.symbol, "indices": self.indices}
 
 
 class Sort:
@@ -283,8 +286,8 @@ class Term:
     def str_no_attrs(self) -> str:
         return term2str(self, with_attr=False)
 
-    def to_json(self) -> dict:
-        return {}
+    def to_json(self, context: Context) -> dict:
+        return term2json(self, context)
 
 
 class Constant(Term):
@@ -326,15 +329,12 @@ class Constant(Term):
     ) -> Constant:
         return Constant(Sort.Enum(symbol), value, loc)
 
-    def to_json(self) -> dict:
-        return {"identifier": str(self)}
-
 
 class VarType(Enum):
     NONE = 0
-    INPUT = (1,)
-    OUTPUT = (2,)
-    LOCAL = (3,)
+    INPUT = 1
+    OUTPUT = 2
+    LOCAL = 3
     LOGIC = 4
 
 
@@ -365,12 +365,6 @@ class Variable(Term):
     def __hash__(self) -> int:
         return hash(self.symbol)
 
-    def to_json(self) -> dict:
-        return {"identifier": self.symbol + ("'" if self.prime else "")}
-
-    def to_json_sorted_var(self) -> dict:
-        return {"symbol": self.symbol, "sort": self.sort.to_json()}
-
 
 _EMPTY_VAR = Variable(Sort.NoSort(), "", False)
 
@@ -385,11 +379,6 @@ class Apply(Term):
     ):
         super().__init__(sort, children, loc)
         self.identifier = identifier
-
-    def to_json(self) -> dict:
-        identifier = self.identifier.to_json()
-        args = [c.to_json() for c in self.children]
-        return {"identifier": identifier, "args": args}
 
     @classmethod
     def Eq(cls, args: list[Term], loc: Optional[log.FileLocation] = None) -> Apply:
@@ -435,7 +424,7 @@ class LetTerm(Term):
     ____|___________________________
     |        |        |            |
     v        v        v            v
-    Term Bind Term ... Term
+    Term     Bind     Term ...     Term
 
     where from the right we have each bound variable term, then a dummy class to do variable binding during traversal, then the argument term. We visit these in that order when performing the standard reverse postorder traversal.
     """
@@ -447,8 +436,8 @@ class LetTerm(Term):
         term: Term,
         loc: Optional[log.FileLocation] = None,
     ):
-        super().__init__(sort, [term] + [Bind()] + [b[1] for b in binders], loc)
-        self.vars = [b[0] for b in binders]
+        super().__init__(sort, [term, Bind()] + [b[1] for b in reversed(binders)], loc)
+        self.vars = [b[0] for b in reversed(binders)]
 
     def get_term(self) -> Term:
         return self.children[0]
@@ -526,7 +515,7 @@ def term2str(term: Term, with_attr: bool = True) -> str:
         if isinstance(cur, LetTerm):
             queue.append((False, cur.get_term()))
             queue.append((False, cur.children[1]))
-            for v, e in reversed(cur.get_binders()):
+            for v, e in cur.get_binders():
                 queue.append((False, (v, e)))
         elif isinstance(cur, tuple):
             (_, e) = cur
@@ -541,23 +530,64 @@ def term2str(term: Term, with_attr: bool = True) -> str:
     return s
 
 
-def rename_vars(expr: Term, vars: dict[Variable, Term], context: Context) -> Term:
-    """Returns a copy of `expr` where each `Var` present in `vars` is replaced with its mapped value. Useful for inlining function calls."""
-    new_expr = copy(expr)
+def term2json(term: Term, context: Context) -> dict:
+    json_map: dict[Term, dict] = {}
 
-    for subexpr in postorder(new_expr, context):
-        if subexpr in vars:
-            subexpr.replace(vars[subexpr])
+    for subterm in postorder(term, context):
+        if subterm in json_map:
+            continue
 
-    return new_expr
+        if isinstance(subterm, Constant):
+            json_map[subterm] = {
+                "identifier": str(subterm)
+            }
+        elif isinstance(subterm, Variable):
+            json_map[subterm] = {
+                "identifier": subterm.symbol + ("'" if subterm.prime else "")
+            }
+        if isinstance(subterm, Apply) and subterm.identifier.is_symbol("const"):
+            json_map[subterm] = {
+                "identifier": {
+                    "qualifier": "as",
+                    "symbol": "const",
+                    "sort": subterm.sort.to_json()
+                }, 
+                "args": [json_map[c] for c in subterm.children]
+            }
+        elif isinstance(subterm, Apply):
+            json_map[subterm] = {
+                "identifier": subterm.identifier.to_json(), 
+                "args": [json_map[c] for c in subterm.children]
+            }
+        elif isinstance(subterm, LetTerm):
+            json_map[subterm] = {
+                "identifier": {
+                    "symbol": "let",
+                    "binders": [{"symbol": s, "term": json_map[t]} for s,t in subterm.get_binders()]
+                },
+                "args": [json_map[subterm.get_term()]]
+            }
+
+    return json_map[term]
 
 
-def is_const_array_expr(expr: Term) -> bool:
-    """Returns true if `expr` is of the form: `(as const (Array X Y) x)`"""
+def rename_vars(term: Term, vars: dict[Variable, Term], context: Context) -> Term:
+    """Returns a copy of `term` where each `Var` present in `vars` is replaced with its mapped value. Useful for inlining function calls."""
+    new_term = copy(term)
+
+    for subterm in postorder(new_term, context):
+        if subterm in vars:
+            subterm.replace(vars[subterm])
+
+    return new_term
+
+
+def is_const_array_term(term: Term) -> bool:
+    """Returns true if `term` is of the form: `(as const (Array X Y) x)`"""
     return (
-        isinstance(expr, Apply)
-        and expr.identifier.is_symbol("const")
-        and is_array_sort(expr.sort)
+        isinstance(term, Apply)
+        and term.identifier.is_symbol("const")
+        and is_array_sort(term.sort)
     )
 
 
@@ -565,22 +595,22 @@ def to_json_sorted_var(symbol: str, sort: Sort) -> dict:
     return {"symbol": symbol, "sort": sort.to_json()}
 
 
-def conjoin_list(expr_list: list[Term]) -> Term:
-    if len(expr_list) == 0:
+def conjoin_list(term_list: list[Term]) -> Term:
+    if len(term_list) == 0:
         return Constant.Bool(True)
-    elif len(expr_list) == 1:
-        return expr_list[0]
+    elif len(term_list) == 1:
+        return term_list[0]
     else:
-        return Apply.And(expr_list)
+        return Apply.And(term_list)
 
 
-def disjoin_list(expr_list: list[Term]) -> Term:
-    if len(expr_list) == 0:
+def disjoin_list(term_list: list[Term]) -> Term:
+    if len(term_list) == 0:
         return Constant.Bool(True)
-    elif len(expr_list) == 1:
-        return expr_list[0]
+    elif len(term_list) == 1:
+        return term_list[0]
     else:
-        return Apply.Or(expr_list)
+        return Apply.Or(term_list)
 
 
 class Command:
@@ -590,7 +620,7 @@ class Command:
     def get_terms(self) -> list[Term]:
         return []
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {}
 
 
@@ -603,7 +633,7 @@ class DeclareSort(Command):
     def __str__(self) -> str:
         return f"(declare-sort {self.symbol} {self.arity})"
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {"command": "declare-sort", "symbol": self.symbol, "arity": self.arity}
 
 
@@ -624,7 +654,7 @@ class DefineSort(Command):
         parameters_str = " ".join(self.parameters)
         return f"(define-sort {self.symbol} ({parameters_str}) {self.definition})"
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {
             "command": "define-sort",
             "symbol": self.symbol,
@@ -645,7 +675,7 @@ class DeclareEnumSort(Command):
         values_str = " ".join(self.values)
         return f"(declare-enum-sort {self.symbol} ({values_str}))"
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {
             "command": "declare-enum-sort",
             "symbol": self.symbol,
@@ -662,7 +692,7 @@ class DeclareConst(Command):
     def __str__(self) -> str:
         return f"(declare-const {self.symbol} {self.sort})"
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {
             "command": "declare-const",
             "symbol": self.symbol,
@@ -687,7 +717,7 @@ class DeclareFun(Command):
         input_str = " ".join([str(i) for i in self.inputs])
         return f"(declare-fun {self.symbol} ({input_str}) {self.output_sort})"
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {
             "command": "declare-fun",
             "symbol": self.symbol,
@@ -722,13 +752,13 @@ class DefineFun(Command):
             f"(define-fun {self.symbol} ({input_str}) {self.output_sort} {self.body})"
         )
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {
             "command": "define-fun",
             "symbol": self.symbol,
             "input": [to_json_sorted_var(symbol, sort) for symbol, sort in self.input],
             "output": self.output_sort.to_json(),
-            "body": self.body.to_json(),
+            "body": self.body.to_json(context),
         }
 
 
@@ -740,7 +770,7 @@ class SetLogic(Command):
     def __str__(self) -> str:
         return f"(set-logic {self.logic})"
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {"command": "set-logic", "logic": self.logic}
 
 
@@ -838,7 +868,7 @@ class DefineSystem(SystemCommand):
 
         return s + ")"
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {
             "command": "define-system",
             "symbol": self.symbol,
@@ -847,9 +877,9 @@ class DefineSystem(SystemCommand):
                 to_json_sorted_var(symbol, sort) for symbol, sort in self.output
             ],
             "local": [to_json_sorted_var(symbol, sort) for symbol, sort in self.local],
-            "init": self.init.to_json(),
-            "trans": self.trans.to_json(),
-            "inv": self.inv.to_json(),
+            "init": self.init.to_json(context),
+            "trans": self.trans.to_json(context),
+            "inv": self.inv.to_json(context),
             "subsys": [
                 {"symbol": s, "target": {"symbol": t, "arguments": v}}
                 for s, (t, v) in self.subsystem_signatures.items()
@@ -880,14 +910,14 @@ class CheckSystem(SystemCommand):
         self.query = query
         self.queries = queries
 
-        for symbol, expr in assumption.items():
-            expr.field = (self, "assumption", symbol)
-        for symbol, expr in fairness.items():
-            expr.field = (self, "fairness", symbol)
-        for symbol, expr in reachable.items():
-            expr.field = (self, "reachable", symbol)
-        for symbol, expr in current.items():
-            expr.field = (self, "current", symbol)
+        for symbol, term in assumption.items():
+            term.field = (self, "assumption", symbol)
+        for symbol, term in fairness.items():
+            term.field = (self, "fairness", symbol)
+        for symbol, term in reachable.items():
+            term.field = (self, "reachable", symbol)
+        for symbol, term in current.items():
+            term.field = (self, "current", symbol)
 
     def get_terms(self) -> list[Term]:
         return (
@@ -904,26 +934,26 @@ class CheckSystem(SystemCommand):
 
         assumption_str = "".join(
             [
-                f"\n   :assumption ({symbol} {expr})"
-                for symbol, expr in self.assumption.items()
+                f"\n   :assumption ({symbol} {term})"
+                for symbol, term in self.assumption.items()
             ]
         )
         fairness_str = "".join(
             [
-                f"\n   :fairness ({symbol} {expr})"
-                for symbol, expr in self.fairness.items()
+                f"\n   :fairness ({symbol} {term})"
+                for symbol, term in self.fairness.items()
             ]
         )
         reachable_str = "".join(
             [
-                f"\n   :reachable ({symbol} {expr})"
-                for symbol, expr in self.reachable.items()
+                f"\n   :reachable ({symbol} {term})"
+                for symbol, term in self.reachable.items()
             ]
         )
         current_str = "".join(
             [
-                f"\n   :current ({symbol} {expr})"
-                for symbol, expr in self.current.items()
+                f"\n   :current ({symbol} {term})"
+                for symbol, term in self.current.items()
             ]
         )
         query_str = "".join(
@@ -959,7 +989,7 @@ class CheckSystem(SystemCommand):
 
         return s + ")"
 
-    def to_json(self) -> dict:
+    def to_json(self, context: Context) -> dict:
         return {
             "command": "check-system",
             "symbol": self.symbol,
@@ -969,17 +999,17 @@ class CheckSystem(SystemCommand):
             ],
             "local": [to_json_sorted_var(symbol, sort) for symbol, sort in self.local],
             "assumption": [
-                {"symbol": s, "formula": a.to_json()}
+                {"symbol": s, "formula": a.to_json(context)}
                 for s, a in self.assumption.items()
             ],
             "fairness": [
-                {"symbol": s, "formula": f.to_json()} for s, f in self.fairness.items()
+                {"symbol": s, "formula": f.to_json(context)} for s, f in self.fairness.items()
             ],
             "reachable": [
-                {"symbol": s, "formula": r.to_json()} for s, r in self.reachable.items()
+                {"symbol": s, "formula": r.to_json(context)} for s, r in self.reachable.items()
             ],
             "current": [
-                {"symbol": s, "formula": c.to_json()} for s, c in self.current.items()
+                {"symbol": s, "formula": c.to_json(context)} for s, c in self.current.items()
             ],
             "query": [{"symbol": s, "formulas": q} for s, q in self.query.items()],
             "queries": [
@@ -1002,8 +1032,8 @@ class Program:
     def __str__(self) -> str:
         return "\n".join(str(cmd) for cmd in self.commands)
 
-    def to_json(self) -> list:
-        return [cmd.to_json() for cmd in self.commands]
+    def to_json(self, context: Context) -> list:
+        return [cmd.to_json(context) for cmd in self.commands]
 
 
 class SetOption(Command):
@@ -1881,8 +1911,8 @@ class Context:
         self.defined_systems[symbol] = system
         self.symbols.add(symbol)
 
-    def add_bound_let_var(self, symbol: str, expr: Term) -> None:
-        self.bound_let_vars[symbol] = expr
+    def add_bound_let_var(self, symbol: str, term: Term) -> None:
+        self.bound_let_vars[symbol] = term
         self.symbols.add(symbol)
 
     def remove_bound_let_var(self, symbol: str) -> None:
@@ -1984,10 +2014,10 @@ class Context:
             )
 
 
-def postorder(expr: Term, context: Context):
-    """Perform an iterative postorder traversal of `expr`, maintaining `context`."""
+def postorder(term: Term, context: Context):
+    """Perform an iterative postorder traversal of `term`, maintaining `context`."""
     stack: list[tuple[bool, Term]] = []
-    stack.append((False, expr))
+    stack.append((False, term))
 
     while len(stack) > 0:
         (seen, cur) = stack.pop()
@@ -2017,191 +2047,195 @@ def sort_check(program: Program) -> tuple[bool, Context]:
     context: Context = Context()
     status: bool = True
 
-    def sort_check_expr(
-        node: Term, context: Context, no_prime: bool, is_init_expr: bool
+    def sort_check_term(
+        node: Term, context: Context, no_prime: bool, is_init_term: bool
     ) -> bool:
         """Return true if node is well-sorted where `no_prime` is true if primed variables are disabled and `prime_input` is true if input variable are allowed to be primed (true for check-system assumptions and reachability conditions)."""
-        for expr in postorder(node, context):
-            if isinstance(expr, Constant):
-                if expr.sort.symbol not in context.sort_symbols:
+        # print("-------------------")
+        # print(node)
+        # print("-------------------")
+        for term in postorder(node, context):
+            # print(term)
+
+            if isinstance(term, Constant):
+                if term.sort.symbol not in context.sort_symbols:
                     log.error(
-                        f"Unrecognized sort '{expr.sort}' ({expr}).\n\t"
+                        f"Unrecognized sort '{term.sort}' ({term}).\n\t"
                         f"Current logic: {context.logic.symbol}",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
 
-                if is_int_sort(expr.sort) and context.logic in {QF_LRA, QF_NRA}:
-                    expr.sort = Sort.Real()
-                    expr.value = float(expr.value)
-            elif isinstance(expr, Variable) and expr.symbol in context.input_vars:
-                expr.sort = context.var_sorts[expr.symbol]
+                if is_int_sort(term.sort) and context.logic in {QF_LRA, QF_NRA}:
+                    term.sort = Sort.Real()
+                    term.value = float(term.value)
+            elif isinstance(term, Variable) and term.symbol in context.input_vars:
+                term.sort = context.var_sorts[term.symbol]
 
-                if expr.sort.symbol not in context.sort_symbols:
+                if term.sort.symbol not in context.sort_symbols:
                     log.error(
-                        f"Unrecognized sort '{expr.sort}' ({expr}).\n\t"
+                        f"Unrecognized sort '{term.sort}' ({term}).\n\t"
                         f"Current logic: {context.logic.symbol}",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
 
-                if expr.prime and no_prime:
+                if term.prime and no_prime:
                     log.error(
-                        f"Primed variables only allowed in system transition or invariant relation ({expr.symbol}).",
+                        f"Primed variables only allowed in system transition or invariant relation ({term.symbol}).",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
-            elif isinstance(expr, Variable) and expr.symbol in context.output_vars:
-                expr.sort = context.var_sorts[expr.symbol]
+            elif isinstance(term, Variable) and term.symbol in context.output_vars:
+                term.sort = context.var_sorts[term.symbol]
 
-                if expr.sort.symbol not in context.sort_symbols:
+                if term.sort.symbol not in context.sort_symbols:
                     log.error(
-                        f"Unrecognized sort '{expr.sort}' ({expr}).\n\t"
+                        f"Unrecognized sort '{term.sort}' ({term}).\n\t"
                         f"Current logic: {context.logic.symbol}",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
 
-                if expr.prime and no_prime:
+                if term.prime and no_prime:
                     log.error(
-                        f"primed variables only allowed in system transition or invariant relation ({expr.symbol}).",
+                        f"primed variables only allowed in system transition or invariant relation ({term.symbol}).",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
-            elif isinstance(expr, Variable) and expr.symbol in context.local_vars:
-                expr.sort = context.var_sorts[expr.symbol]
+            elif isinstance(term, Variable) and term.symbol in context.local_vars:
+                term.sort = context.var_sorts[term.symbol]
 
-                if expr.sort.symbol not in context.sort_symbols:
+                if term.sort.symbol not in context.sort_symbols:
                     log.error(
-                        f"Unrecognized sort '{expr.sort}' ({expr}).\n\t"
+                        f"Unrecognized sort '{term.sort}' ({term}).\n\t"
                         f"Current logic: {context.logic.symbol}",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
 
-                if expr.prime and no_prime:
+                if term.prime and no_prime:
                     log.error(
-                        f"primed variables only allowed in system transition or invariant relation ({expr.symbol}).",
+                        f"primed variables only allowed in system transition or invariant relation ({term.symbol}).",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
-            elif isinstance(expr, Variable) and expr.symbol in context.bound_let_vars:
-                if expr.prime:
+            elif isinstance(term, Variable) and term.symbol in context.bound_let_vars:
+                if term.prime:
                     log.error(
-                        f"bound variables cannot be primed ({expr})",
+                        f"bound variables cannot be primed ({term})",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
 
-                expr.sort = context.bound_let_vars[expr.symbol].sort
-            elif isinstance(expr, Variable) and expr.symbol in context.var_sorts:
-                if expr.prime:
+                term.sort = context.bound_let_vars[term.symbol].sort
+            elif isinstance(term, Variable) and term.symbol in context.var_sorts:
+                if term.prime:
                     log.error(
-                        f"only system variables be primed ({expr})", FILE_NAME, expr.loc
+                        f"only system variables be primed ({term})", FILE_NAME, term.loc
                     )
                     return False
 
-                expr.sort = context.var_sorts[expr.symbol]
+                term.sort = context.var_sorts[term.symbol]
 
-                if expr.sort.symbol not in context.sort_symbols:
+                if term.sort.symbol not in context.sort_symbols:
                     log.error(
-                        f"Unrecognized sort '{expr.sort}' ({expr}).\n\t"
+                        f"Unrecognized sort '{term.sort}' ({term}).\n\t"
                         f"Current logic: {context.logic.symbol}",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
-            elif isinstance(expr, Variable) and expr.symbol in context.declared_consts:
-                if expr.prime:
-                    log.error(f"consts cannot be primed ({expr})", FILE_NAME, expr.loc)
+            elif isinstance(term, Variable) and term.symbol in context.declared_consts:
+                if term.prime:
+                    log.error(f"consts cannot be primed ({term})", FILE_NAME, term.loc)
                     return False
 
-                expr.sort = context.declared_consts[expr.symbol]
+                term.sort = context.declared_consts[term.symbol]
             elif (
-                isinstance(expr, Variable) and expr.symbol in context.defined_functions
+                isinstance(term, Variable) and term.symbol in context.defined_functions
             ):
-                if expr.prime:
-                    log.error(f"consts cannot be primed ({expr})", FILE_NAME, expr.loc)
+                if term.prime:
+                    log.error(f"consts cannot be primed ({term})", FILE_NAME, term.loc)
                     return False
 
                 # constants defined using define-fun
-                ((inputs, output), _) = context.defined_functions[expr.symbol]
+                ((inputs, output), _) = context.defined_functions[term.symbol]
 
                 if len(inputs) != 0:
                     log.error(
-                        f"function signature does not match definition.\n\t{expr}\n\t{expr.symbol}",
+                        f"function signature does not match definition.\n\t{term}\n\t{term.symbol}",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
 
-                expr.sort = output
-            elif isinstance(expr, Variable):
+                term.sort = output
+            elif isinstance(term, Variable):
                 log.error(
-                    f"symbol '{expr.symbol}' not declared.",
+                    f"symbol '{term.symbol}' not declared.",
                     FILE_NAME,
-                    expr.loc,
+                    term.loc,
                 )
                 return False
-            elif isinstance(expr, Apply):
-                if expr.identifier.get_class() in context.logic.function_symbols:
-                    if not context.logic.sort_check(expr):
+            elif isinstance(term, Apply):
+                if term.identifier.get_class() in context.logic.function_symbols:
+                    if not context.logic.sort_check(term):
                         log.error(
                             f"function signature does not match definition.\n\t"
-                            f"{expr}\n\t"
-                            f"{expr.identifier} {[str(a.sort) for a in expr.children]}",
+                            f"{term}\n\t"
+                            f"{term.identifier} {[str(a.sort) for a in term.children]}",
                             FILE_NAME,
-                            expr.loc,
+                            term.loc,
                         )
                         return False
-                elif expr.identifier.symbol in context.defined_functions:
-                    (rank, _) = context.defined_functions[expr.identifier.symbol]
+                elif term.identifier.symbol in context.defined_functions:
+                    (rank, _) = context.defined_functions[term.identifier.symbol]
 
-                    if not sort_check_apply_rank(expr, rank):
+                    if not sort_check_apply_rank(term, rank):
                         log.error(
-                            f"function call does not match definition.\n\t{expr}\n\t{expr.identifier} {[str(a.sort) for a in expr.children]}",
+                            f"function call does not match definition.\n\t{term}\n\t{term.identifier} {[str(a.sort) for a in term.children]}",
                             FILE_NAME,
-                            expr.loc,
+                            term.loc,
                         )
                         return False
                 else:
                     log.error(
-                        f"symbol '{expr.identifier.symbol}' not recognized ({expr}).",
+                        f"symbol '{term.identifier.symbol}' not recognized ({term}).",
                         FILE_NAME,
-                        expr.loc,
+                        term.loc,
                     )
                     return False
 
                 # constant arrays must be handled separately, maintain a list of
                 # them
-                if is_const_array_expr(expr):
-                    # this is a safe cast since expr is well-sorted, see sort check
+                if is_const_array_term(term):
+                    # this is a safe cast since term is well-sorted, see sort check
                     # of "const" in sort_check_apply_core
-                    const_expr = cast(Constant, expr.children[0])
-                    context.const_arrays.add((expr.sort, const_expr, expr))
-
-            elif isinstance(expr, LetTerm):
+                    const_term = cast(Constant, term.children[0])
+                    context.const_arrays.add((term.sort, const_term, term))
+            elif isinstance(term, LetTerm):
                 # TODO: check for variable name clashes
-                expr.sort = expr.get_term().sort
+                term.sort = term.get_term().sort
             else:
                 log.error(
-                    f"expr type '{expr.__class__}' not recognized ({expr}).",
+                    f"term type '{term.__class__}' not recognized ({term}).",
                     FILE_NAME,
-                    expr.loc,
+                    term.loc,
                 )
                 return False
 
         return True
 
-    # end sort_check_expr
+    # end sort_check_term
 
     for cmd in program.commands:
         context.cur_command = cmd
@@ -2275,8 +2309,8 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
             context.add_vars(cmd.input)
 
-            status = status and sort_check_expr(
-                cmd.body, context, no_prime=True, is_init_expr=False
+            status = status and sort_check_term(
+                cmd.body, context, no_prime=True, is_init_term=False
             )
 
             context.remove_vars(cmd.input)
@@ -2288,14 +2322,14 @@ def sort_check(program: Program) -> tuple[bool, Context]:
             context.push_system(cmd.symbol, cmd, [])
             # context.add_system_vars(cmd.input, cmd.output, cmd.local)
 
-            status = status and sort_check_expr(
-                cmd.init, context, no_prime=True, is_init_expr=True
+            status = status and sort_check_term(
+                cmd.init, context, no_prime=True, is_init_term=True
             )
-            status = status and sort_check_expr(
-                cmd.trans, context, no_prime=False, is_init_expr=False
+            status = status and sort_check_term(
+                cmd.trans, context, no_prime=False, is_init_term=False
             )
-            status = status and sort_check_expr(
-                cmd.inv, context, no_prime=False, is_init_expr=False
+            status = status and sort_check_term(
+                cmd.inv, context, no_prime=False, is_init_term=False
             )
 
             for name, subsystem in cmd.subsystem_signatures.items():
@@ -2439,24 +2473,24 @@ def sort_check(program: Program) -> tuple[bool, Context]:
                     pass
                 # cmd.rename_map[v1] = v2
 
-            for expr in cmd.assumption.values():
-                status = status and sort_check_expr(
-                    expr, context, False, is_init_expr=False
+            for term in cmd.assumption.values():
+                status = status and sort_check_term(
+                    term, context, False, is_init_term=False
                 )
 
-            for expr in cmd.reachable.values():
-                status = status and sort_check_expr(
-                    expr, context, False, is_init_expr=False
+            for term in cmd.reachable.values():
+                status = status and sort_check_term(
+                    term, context, False, is_init_term=False
                 )
 
-            for expr in cmd.fairness.values():
-                status = status and sort_check_expr(
-                    expr, context, False, is_init_expr=False
+            for term in cmd.fairness.values():
+                status = status and sort_check_term(
+                    term, context, False, is_init_term=False
                 )
 
-            for expr in cmd.current.values():
-                status = status and sort_check_expr(
-                    expr, context, False, is_init_expr=False
+            for term in cmd.current.values():
+                status = status and sort_check_term(
+                    term, context, False, is_init_term=False
                 )
 
             cmd.var_sorts.update(
@@ -2474,61 +2508,61 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
 def inline_funs(program: Program, context: Context) -> None:
     """Perform function inlining on each term in `program`."""
-    for top_expr in program.get_terms():
-        for expr in postorder(top_expr, context):
+    for top_term in program.get_terms():
+        for term in postorder(top_term, context):
             if (
-                isinstance(expr, Apply)
-                and expr.identifier.symbol in context.defined_functions
+                isinstance(term, Apply)
+                and term.identifier.symbol in context.defined_functions
             ):
-                fun_symbol = expr.identifier.symbol
+                fun_symbol = term.identifier.symbol
 
                 _, fun_def = context.defined_functions[fun_symbol]
                 fun_def_input_vars = context.defined_function_input_vars[fun_symbol]
 
                 var_map = {
-                    arg: val for arg, val in zip(fun_def_input_vars, expr.children)
+                    arg: val for arg, val in zip(fun_def_input_vars, term.children)
                 }
 
-                expr.replace(rename_vars(fun_def, var_map, context))
+                term.replace(rename_vars(fun_def, var_map, context))
 
 
 def to_binary_applys(program: Program, context: Context) -> None:
     """Replace all multi-arity functions (=, and, or, <, etc.) to binary versions."""
-    for top_expr in program.get_terms():
-        for expr in postorder(top_expr, context):
+    for top_term in program.get_terms():
+        for term in postorder(top_term, context):
             if (
-                isinstance(expr, Apply)
-                and expr.identifier.check({"and", "or", "xor", "=", "distinct"}, 0)
-                and len(expr.children) > 2
+                isinstance(term, Apply)
+                and term.identifier.check({"and", "or", "xor", "=", "distinct"}, 0)
+                and len(term.children) > 2
             ):
-                new_expr = Apply(
-                    expr.sort, expr.identifier, [expr.children[-2], expr.children[-1]]
+                new_term = Apply(
+                    term.sort, term.identifier, [term.children[-2], term.children[-1]]
                 )
-                for i in range(3, len(expr.children) + 1):
-                    new_expr = Apply(
-                        expr.sort, expr.identifier, [expr.children[-i], new_expr]
+                for i in range(3, len(term.children) + 1):
+                    new_term = Apply(
+                        term.sort, term.identifier, [term.children[-i], new_term]
                     )
 
-                expr.replace(new_expr)
+                term.replace(new_term)
             elif (
-                isinstance(expr, Apply)
-                and expr.identifier.check({"<=", "<", ">=", ">"}, 0)
-                and len(expr.children) == 3
+                isinstance(term, Apply)
+                and term.identifier.check({"<=", "<", ">=", ">"}, 0)
+                and len(term.children) == 3
             ):
-                new_expr = Apply(
-                    expr.sort,
-                    expr.identifier,
+                new_term = Apply(
+                    term.sort,
+                    term.identifier,
                     [
-                        expr.children[0],
+                        term.children[0],
                         Apply(
-                            expr.sort,
-                            expr.identifier,
-                            [expr.children[1], expr.children[2]],
+                            term.sort,
+                            term.identifier,
+                            [term.children[1], term.children[2]],
                         ),
                     ],
                 )
 
-                expr.replace(new_expr)
+                term.replace(new_term)
 
 
 def to_qfbv(program: Program, int_width: int):
@@ -2550,18 +2584,18 @@ def to_qfbv(program: Program, int_width: int):
         "<=": Identifier("bvsle", []),
     }
 
-    def to_qfbv_expr(expr: Term):
-        if isinstance(expr, Apply):
-            if len(expr.children) == 1 and expr.identifier.symbol in UNARY_OPERATOR_MAP:
-                expr.identifier = UNARY_OPERATOR_MAP[expr.identifier.symbol]
+    def to_qfbv_term(term: Term):
+        if isinstance(term, Apply):
+            if len(term.children) == 1 and term.identifier.symbol in UNARY_OPERATOR_MAP:
+                term.identifier = UNARY_OPERATOR_MAP[term.identifier.symbol]
             elif (
-                len(expr.children) == 2
-                and expr.identifier.symbol in BINARY_OPERATOR_MAP
+                len(term.children) == 2
+                and term.identifier.symbol in BINARY_OPERATOR_MAP
             ):
-                expr.identifier = BINARY_OPERATOR_MAP[expr.identifier.symbol]
+                term.identifier = BINARY_OPERATOR_MAP[term.identifier.symbol]
 
-        if expr.sort in SORT_MAP:
-            expr.sort = SORT_MAP[expr.sort]
+        if term.sort in SORT_MAP:
+            term.sort = SORT_MAP[term.sort]
 
     for command in program.commands:
         if isinstance(command, SetLogic):
@@ -2615,6 +2649,6 @@ def to_qfbv(program: Program, int_width: int):
                 command.var_sorts[var.symbol] = var.sort
 
         context = Context()
-        for expr1 in command.get_terms():
-            for expr2 in postorder(expr1, context):
-                to_qfbv_expr(expr2)
+        for term1 in command.get_terms():
+            for term2 in postorder(term1, context):
+                to_qfbv_term(term2)

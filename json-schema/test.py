@@ -27,7 +27,7 @@ define_sort_schema = json.load(define_sort_file)
 declare_const_file = open("schema/declare-const.json")
 declare_const_schema = json.load(declare_const_file)
 
-expr_file = open("schema/expr.json")
+expr_file = open("schema/term.json")
 expr_schema = json.load(expr_file)
 
 declare_fun_file = open("schema/declare-fun.json")
@@ -182,12 +182,31 @@ expr_test4 = {
     "identifier": {"symbol": "extract", "indices": [1, 2]}, 
     "args": [{"identifier": "n"}]
 }
+expr_test5 = {
+    "identifier": {
+        "symbol": "let",
+        "binders": [{"symbol": "x", "term": {"identifier": "+", "args": [{"identifier": 5}, {"identifier": 3}]}}]
+    },
+    "args": [
+        {
+            "identifier": "-",
+            "args": [{"identifier": "x"}, {"identifier": 1}]
+        }
+    ]
+}
+expr_test6 = {
+    "identifier": {"qualifier": "as", "symbol": "const", "sort": {"identifier": "Array", "parameters": [{"identifier": {"symbol": "BitVec", "indices": [8]}}, {"identifier": {"symbol": "BitVec", "indices": [4]}}]}},
+    "args": [{"identifier": "#b000"}]
+}
+
 
 expr_tests = [
     (expr_test1, expr_schema, "expr_test1", True),
     (expr_test2, expr_schema, "expr_test2", True),
     (expr_test3, expr_schema, "expr_test3", True),
-    (expr_test4, expr_schema, "expr_test4", True)
+    (expr_test4, expr_schema, "expr_test4", True),
+    (expr_test5, expr_schema, "expr_test5", True),
+    (expr_test6, expr_schema, "expr_test6", True)
 ]
 
 test_all(expr_tests, heading="expr", resolver=resolver)
@@ -478,14 +497,14 @@ declare_enum_sort_state = {
     "values": [ "Ready", "Busy" ]
 }
 
-short_il = [
+short_moxi = [
     declare_enum_sort_request,
     declare_enum_sort_state,
     def_system_test1,
     check_system_test1
 ]
 
-std_il = [
+std_moxi = [
     {
         "command": "define-system",
         "symbol": "Cnt",
@@ -566,9 +585,9 @@ std_il = [
 ]
 
 
-il_tests = [
-    (short_il, moxi_schema, "short_il", True),
-    (std_il, moxi_schema, "short_il", True)
+moxi_tests = [
+    (short_moxi, moxi_schema, "short_moxi", True),
+    (std_moxi, moxi_schema, "short_moxi", True)
 ]
 
-test_all(il_tests, resolver=resolver, heading="il")
+test_all(moxi_tests, resolver=resolver, heading="il")

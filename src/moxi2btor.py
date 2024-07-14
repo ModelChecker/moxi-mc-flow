@@ -270,7 +270,7 @@ def build_expr_map(
             expr_map[expr] = btor.BtorConst(sort_map[expr.sort], value)
         elif isinstance(expr, moxi.Constant):
             expr_map[expr] = btor.BtorConst(sort_map[expr.sort], expr.value)
-        elif moxi.is_const_array_expr(expr):
+        elif moxi.is_const_array_term(expr):
             pass
         elif isinstance(expr, moxi.Apply) and expr.identifier.symbol in moxi_fun_map:
             if len(expr.children) > 3:

@@ -23,7 +23,7 @@
         },
         "body": { 
             "description": "Function body",
-            "$ref": "expr.json" 
+            "$ref": "term.json" 
         }
     },
     "required": [ "command", "symbol", "inputs", "output", "body" ],
