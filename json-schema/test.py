@@ -176,8 +176,14 @@ test_all(declare_const_tests, heading="declare-const", resolver=resolver)
 
 expr_test1 = { "identifier": "n" }
 expr_test2 = { "identifier": "*", "args": [ {"identifier": "n"}, {"identifier": "n"}] }
-expr_test3 = { "identifier": "!", "args": [{"identifier": "n"}] }
-expr_test4 = { "identifier": "*", "args": [ {"identifier": "-", "args": [ {"identifier": "n"} ]}, { "identifier": "n"} ] }
+expr_test3 = { "identifier": "!", "args": [ {"identifier": "n"} ] }
+expr_test4 = { 
+    "identifier": "*", 
+    "args": [ 
+        {"identifier": "-", "args": [ {"identifier": "n"} ]}, 
+        {"identifier": "n"} 
+    ] 
+}
 expr_test4 = { 
     "identifier": {"symbol": "extract", "indices": [1, 2]}, 
     "args": [{"identifier": "n"}]
@@ -195,7 +201,17 @@ expr_test5 = {
     ]
 }
 expr_test6 = {
-    "identifier": {"qualifier": "as", "symbol": "const", "sort": {"identifier": "Array", "parameters": [{"identifier": {"symbol": "BitVec", "indices": [8]}}, {"identifier": {"symbol": "BitVec", "indices": [4]}}]}},
+    "identifier": {
+        "qualifier": "as", 
+        "symbol": "const", 
+        "sort": {
+            "identifier": "Array", 
+            "parameters": [
+                {"identifier": {"symbol": "BitVec", "indices": [8]}}, 
+                {"identifier": {"symbol": "BitVec", "indices": [4]}}
+            ]
+        }
+    },
     "args": [{"identifier": "#b000"}]
 }
 
