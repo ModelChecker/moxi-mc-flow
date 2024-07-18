@@ -774,7 +774,11 @@ def translate_file(
     do_pickle: bool,
 ) -> int:
     if not input_path.is_file():
-        log.error(f"{input_path} is not a valid file.", FILE_NAME)
+        log.error(f"'{input_path}' is not a valid file.", FILE_NAME)
+        return 1
+
+    if output_path.exists():
+        log.error(f"Output path '{output_path}' already exists.", FILE_NAME)
         return 1
 
     if input_path.suffix == ".json":

@@ -5,14 +5,13 @@ import sys
 import os
 import shutil
 import time
+import tempfile
 from typing import Optional
 
-from src import btorwit2moxiwit, moxiwit2nuxmvwit, util, log
+from src import btorwit2moxiwit, moxiwit2nuxmvwit, log
 
 FILE_NAME = pathlib.Path(__file__).name
 FILE_DIR = pathlib.Path(__file__).parent
-WORK_DIR_PARENT = FILE_DIR / "__workdir__"
-WORK_DIR = WORK_DIR_PARENT / str(os.getpid())
 
 btormc_path = FILE_DIR / "deps" / "btormc"
 avr_path = FILE_DIR / "deps" / "avr"
@@ -183,11 +182,12 @@ def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kma
 def model_check(
     input_path: pathlib.Path, 
     output_path: pathlib.Path, 
+    workdir: pathlib.Path,
     model_checker: str, 
     sortcheck: Optional[str],
     catbtor: Optional[str],
     copyback: bool,
-    no_witness: bool,
+    witness: bool,
     int_width: int,
     timeout: int,
     kmax: int,
@@ -201,17 +201,17 @@ def model_check(
     if not input_path.is_file():
         log.error(f"Source is not a file ({input_path})", FILE_NAME)
         return 1
-    
-    util.rm(output_path, quiet=False)
-    util.mkdir(WORK_DIR_PARENT)
-    util.cleandir(WORK_DIR, quiet=True)
 
-    src_path = WORK_DIR / input_path.name
-    btor2_output_path = WORK_DIR / "btor2" 
-    moxi_path = WORK_DIR / input_path.with_suffix(".moxi").name
-    moxi_witness_path = WORK_DIR / input_path.with_suffix(".moxi.witness").name
-    moxi_witness_pickle_path = WORK_DIR / input_path.with_suffix(".moxi.witness.pickle").name
-    nuxmv_witness_path = WORK_DIR / input_path.with_suffix(".smv.witness").name
+    if (copyback or witness) and output_path.exists():
+        log.error(f"Output path '{output_path}' already exists.", FILE_NAME)
+        return 1
+    
+    src_path = workdir / input_path.name
+    btor2_output_path = workdir / "btor2" 
+    moxi_path = workdir / input_path.with_suffix(".moxi").name
+    moxi_witness_path = workdir / input_path.with_suffix(".moxi.witness").name
+    moxi_witness_pickle_path = workdir / input_path.with_suffix(".moxi.witness.pickle").name
+    nuxmv_witness_path = workdir / input_path.with_suffix(".smv.witness").name
 
     if input_path.suffix == ".smv":
         witness_path = nuxmv_witness_path
@@ -255,7 +255,7 @@ def model_check(
     time_elapsed = end_translate - start_total
 
     if debug:
-        print(proc.stdout.decode())
+        print(proc.stderr.decode())
 
     if proc.returncode:
         if not debug:
@@ -301,21 +301,12 @@ def model_check(
 
     log.debug(1, f"End-to-end done in {end_total-start_total}s", FILE_NAME)
 
-    if output_path.is_file():
-        output_path.unlink()
-    elif output_path.is_dir():
-        shutil.rmtree(output_path)
-
     if copyback:
-        shutil.copytree(WORK_DIR, output_path)
+        shutil.copytree(workdir, output_path)
         log.debug(1, f"Wrote files to {output_path}", FILE_NAME)
-    elif no_witness:
-        witness_path.unlink()
-    else:
-        witness_path.replace(output_path)
+    elif witness:
+        shutil.copy(witness_path, output_path)
         log.debug(1, f"Wrote witness to {output_path}", FILE_NAME)
-
-    util.rm(WORK_DIR, quiet=True)
 
     return 0
 
@@ -354,8 +345,6 @@ if __name__ == "__main__":
         help="runs cpp on input if SMV")
     parser.add_argument("--quiet", action="store_true", 
         help="silence output")
-    parser.add_argument("--workdir",
-        help="parent directory for work directoy (default=__workdir__)")
     parser.add_argument(
         "--debug",
         nargs="?",
@@ -388,25 +377,24 @@ if __name__ == "__main__":
     output_path = input_path.with_suffix(".witness").absolute()
     if args.output:
         output_path = pathlib.Path(args.output).absolute()
-
-    if args.workdir:
-        WORK_DIR_PARENT = pathlib.Path(args.workdir)
-        WORK_DIR = WORK_DIR_PARENT / str(os.getpid())
         
-    retcode = model_check(
-        input_path=input_path, 
-        output_path=output_path, 
-        model_checker=args.modelchecker, 
-        sortcheck=args.sortcheck,
-        catbtor=args.catbtor,
-        copyback=args.copyback, 
-        no_witness=args.no_witness, 
-        int_width=args.intwidth, 
-        timeout=args.timeout,
-        kmax=args.kmax,
-        kind=args.kind,
-        cpp=args.cpp,
-        debug=args.debug
-    )
+    with tempfile.TemporaryDirectory() as workdir_name:
+        workdir = pathlib.Path(workdir_name)
+        retcode = model_check(
+            input_path=input_path, 
+            output_path=output_path, 
+            workdir=workdir,
+            model_checker=args.modelchecker, 
+            sortcheck=args.sortcheck,
+            catbtor=args.catbtor,
+            copyback=args.copyback, 
+            witness=not args.no_witness, 
+            int_width=args.intwidth, 
+            timeout=args.timeout,
+            kmax=args.kmax,
+            kind=args.kind,
+            cpp=args.cpp,
+            debug=args.debug
+        )
 
     sys.exit(retcode)

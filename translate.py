@@ -3,6 +3,8 @@ import cProfile
 import pathlib
 import subprocess
 import sys
+import tempfile
+import shutil
 from pstats import SortKey
 from typing import Optional
 
@@ -33,11 +35,10 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
     proc = subprocess.run(["python3", str(SORTCHECK), src_path], capture_output=True)
 
     if proc.returncode:
-        log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
         log.error(proc.stderr.decode("utf-8"), FILE_NAME)
         return FAIL
 
-    log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
+    log.debug(1, proc.stderr.decode("utf-8")[:-1], FILE_NAME)
     return PASS
 
 
@@ -48,7 +49,7 @@ def run_catbtor(src_path: pathlib.Path) -> int:
         log.error(proc.stderr.decode("utf-8"), FILE_NAME)
         return FAIL
 
-    log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
+    log.debug(1, proc.stderr.decode("utf-8")[:-1], FILE_NAME)
     return PASS
 
 
@@ -56,6 +57,7 @@ def main(
     input_path: pathlib.Path,
     target_lang: str,
     output_path: pathlib.Path,
+    workdir: pathlib.Path,
     keep: Optional[pathlib.Path],
     validate: bool,
     do_pickle: bool,
@@ -66,13 +68,17 @@ def main(
     if not input_path.is_file():
         log.error(f"Source is not a file ({input_path})", FILE_NAME)
         return 1
+    
+    if keep and keep.exists():
+        log.error(f"Output location already exists ({keep})", FILE_NAME)
+        return 1
 
     match (input_path.suffix, target_lang):
         case (".smv", "moxi"):
             if smv2moxi.translate_file(input_path, output_path, do_cpp):
                 return FAIL
         case (".smv", "moxi-json"):
-            moxi_path = input_path.with_suffix(".moxi")
+            moxi_path = workdir / input_path.with_suffix(".moxi").name
 
             if smv2moxi.translate_file(input_path, moxi_path, do_cpp):
                 return FAIL
@@ -81,9 +87,7 @@ def main(
                 return FAIL
 
             if keep:
-                moxi_path.rename(keep)
-            else:
-                moxi_path.unlink()
+                shutil.copy(moxi_path, keep)
         case (".smv", "btor2"):
             xmv_program = parse_smv.parse(input_path, do_cpp)
             if not xmv_program:
@@ -143,7 +147,7 @@ def main(
             if json2moxi.main(input_path, output_path, JSON_SCHEMA, False, False, int_width):
                 return FAIL
         case (".json", "btor2"):
-            moxi_path = input_path.with_suffix(".moxi")
+            moxi_path = workdir / input_path.with_suffix(".moxi").name
 
             if json2moxi.main(input_path, moxi_path, JSON_SCHEMA, False, False, int_width):
                 return FAIL
@@ -153,11 +157,9 @@ def main(
 
             if keep:
                 moxi_path.rename(keep)
-            else:
-                moxi_path.unlink()
         case _:
             log.error(
-                f"Translation unsupported: {input_path.suffix} to { target_lang}",
+                f"Translation unsupported: {input_path.suffix} to {target_lang}",
                 FILE_NAME,
             )
             return 1
@@ -258,6 +260,11 @@ if __name__ == "__main__":
     if args.jsonschema:
         JSON_SCHEMA = pathlib.Path(args.jsonschema)
 
+    if args.keep:
+        keep = pathlib.Path(args.keep)
+    else:
+        keep = None
+
     if args.profile:
         cProfile.run(
             "main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)",
@@ -265,15 +272,18 @@ if __name__ == "__main__":
         )
         sys.exit(0)
 
-    returncode = main(
-        input_path,
-        args.targetlang,
-        output_path,
-        args.keep,
-        args.validate,
-        args.pickle,
-        args.cpp,
-        args.with_lets,
-        args.intwidth,
-    )
+    with tempfile.TemporaryDirectory() as workdir_name:
+        workdir = pathlib.Path(workdir_name)
+        returncode = main(
+            input_path,
+            args.targetlang,
+            output_path,
+            workdir,
+            keep,
+            args.validate,
+            args.pickle,
+            args.cpp,
+            args.with_lets,
+            args.intwidth,
+        )
     sys.exit(returncode)

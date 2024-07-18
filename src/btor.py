@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Optional
 import pickle
 
-from src import util
+from src import util, log
 
 FILE_NAME = Path(__file__).name
 
@@ -484,7 +484,10 @@ def assign_nids(program: list[BtorNode]) -> list[BtorNode]:
 def write_btor2_program_set(
     program_set: BtorProgramSet, output_path: Path, do_pickle: bool
 ) -> bool:
-    util.cleandir(output_path, quiet=False)
+    status = util.mkdir(output_path)
+    if not status:
+        log.error(f"Error making output directory '{output_path}'", FILE_NAME)
+        return False
 
     program_index: dict[str, int] = {}
     for symbol, programs in program_set:
