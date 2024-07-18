@@ -1756,9 +1756,13 @@ QF_NRA = Logic(
 LOGIC_TABLE: dict[str, Logic] = {
     "ALL": ALL,
     "QF_BV": QF_BV,
+    "QF_UFBV": QF_UFBV,
     "QF_ABV": QF_ABV,
+    "QF_AUFBV": QF_AUFBV,
     "QF_LIA": QF_LIA,
     "QF_NIA": QF_NIA,
+    "QF_UFLIA": QF_UFLIA,
+    "QF_UFNIA": QF_UFNIA,
     "QF_LRA": QF_LRA,
     "QF_NRA": QF_NRA,
 }
