@@ -1,0 +1,121 @@
+[
+    {
+        "command": "set-logic",
+        "logic": "QF_ABV"
+    },
+    {
+        "command": "declare-enum-sort",
+        "symbol": "enum1",
+        "values": [
+            "A",
+            "B",
+            "C"
+        ]
+    },
+    {
+        "command": "define-system",
+        "symbol": "main",
+        "input": [
+            {
+                "symbol": "y",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "w32",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            }
+        ],
+        "output": [
+            {
+                "symbol": "x",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "w22",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            22
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "w1",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            1
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "enum",
+                "sort": {
+                    "identifier": {
+                        "symbol": "enum1"
+                    }
+                }
+            }
+        ],
+        "local": [],
+        "init": {
+            "identifier": "true"
+        },
+        "trans": {
+            "identifier": {
+                "symbol": "and"
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "w1"
+                        },
+                        {
+                            "identifier": "w1'"
+                        }
+                    ]
+                },
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "enum"
+                        },
+                        {
+                            "identifier": "enum'"
+                        }
+                    ]
+                }
+            ]
+        },
+        "inv": {
+            "identifier": "true"
+        },
+        "subsys": []
+    }
+]

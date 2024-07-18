@@ -1645,17 +1645,19 @@ class Logic:
         sort_symbols: set[IdentifierClass],
         function_symbols: set[IdentifierClass],
         sort_check: Callable[[Apply], bool],
+        uf: bool
     ):
         self.symbol = symbol
         self.sort_symbols = sort_symbols
         self.function_symbols = function_symbols
         self.sort_check = sort_check
+        self.uf = uf
 
         self.symbols = sort_symbols | function_symbols
 
 
 NO_LOGIC = Logic(
-    "Not Set", {("Bool", 0)}, set(CORE_RANK_TABLE.keys()), sort_check_apply_core
+    "Not Set", {("Bool", 0)}, set(CORE_RANK_TABLE.keys()), sort_check_apply_core, False
 )
 
 ALL = Logic(
@@ -1668,6 +1670,7 @@ ALL = Logic(
     | REAL_RANK_TABLE.keys()
     | REAL_INT_RANK_TABLE.keys(),
     sort_check_apply_all,
+    True
 )
 
 QF_BV = Logic(
@@ -1675,6 +1678,15 @@ QF_BV = Logic(
     {("Bool", 0), ("BitVec", 1)},
     CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys(),
     sort_check_apply_qf_bv,
+    False
+)
+
+QF_UFBV = Logic(
+    "QF_UFBV",
+    {("Bool", 0), ("BitVec", 1)},
+    CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys(),
+    sort_check_apply_qf_bv,
+    True
 )
 
 QF_ABV = Logic(
@@ -1682,6 +1694,15 @@ QF_ABV = Logic(
     {("Bool", 0), ("BitVec", 1), ("Array", 0)},
     CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys() | ARRAY_RANK_TABLE.keys(),
     sort_check_apply_qf_abv,
+    False
+)
+
+QF_AUFBV = Logic(
+    "QF_AUFBV",
+    {("Bool", 0), ("BitVec", 1), ("Array", 0)},
+    CORE_RANK_TABLE.keys() | BITVEC_RANK_TABLE.keys() | ARRAY_RANK_TABLE.keys(),
+    sort_check_apply_qf_abv,
+    True
 )
 
 QF_LIA = Logic(
@@ -1689,6 +1710,7 @@ QF_LIA = Logic(
     {("Bool", 0), ("Int", 0)},
     CORE_RANK_TABLE.keys() | INT_RANK_TABLE.keys(),
     sort_check_apply_qf_lia,
+    False
 )
 
 QF_NIA = Logic(
@@ -1696,6 +1718,23 @@ QF_NIA = Logic(
     {("Bool", 0), ("Int", 0)},
     CORE_RANK_TABLE.keys() | INT_RANK_TABLE.keys(),
     sort_check_apply_qf_nia,
+    False
+)
+
+QF_UFLIA = Logic(
+    "QF_UFLIA",
+    {("Bool", 0), ("Int", 0)},
+    CORE_RANK_TABLE.keys() | INT_RANK_TABLE.keys(),
+    sort_check_apply_qf_lia,
+    True
+)
+
+QF_UFNIA = Logic(
+    "QF_UFNIA",
+    {("Bool", 0), ("Int", 0)},
+    CORE_RANK_TABLE.keys() | INT_RANK_TABLE.keys(),
+    sort_check_apply_qf_nia,
+    True
 )
 
 QF_LRA = Logic(
@@ -1703,6 +1742,7 @@ QF_LRA = Logic(
     {("Bool", 0), ("Int", 0), ("Real", 0)},
     CORE_RANK_TABLE.keys() | REAL_RANK_TABLE.keys(),
     sort_check_apply_qf_lra,
+    False
 )
 
 QF_NRA = Logic(
@@ -1710,6 +1750,7 @@ QF_NRA = Logic(
     {("Bool", 0), ("Int", 0), ("Real", 0)},
     CORE_RANK_TABLE.keys() | REAL_RANK_TABLE.keys(),
     sort_check_apply_qf_nra,
+    False
 )
 
 LOGIC_TABLE: dict[str, Logic] = {
@@ -2210,6 +2251,16 @@ def sort_check(program: Program) -> tuple[bool, Context]:
                             term.loc,
                         )
                         return False
+                elif term.identifier.symbol in context.declared_functions:
+                    rank = context.declared_functions[term.identifier.symbol]
+
+                    if not sort_check_apply_rank(term, rank):
+                        log.error(
+                            f"function call does not match definition.\n\t{term}\n\t{term.identifier} {[str(a.sort) for a in term.children]}",
+                            FILE_NAME,
+                            term.loc,
+                        )
+                        return False
                 else:
                     log.error(
                         f"symbol '{term.identifier.symbol}' not recognized ({term}).",
@@ -2290,6 +2341,14 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
             context.add_declared_const(cmd.symbol, cmd.sort)
         elif isinstance(cmd, DeclareFun):
+            if not context.logic.uf:
+                log.error(
+                    f"active logic ({context.logic.symbol}) does not support uninterpreted functions.",
+                    FILE_NAME,
+                    cmd.loc,
+                )
+                status = False
+
             if cmd.symbol in context.symbols:
                 log.error(
                     f"symbol '{cmd.symbol}' already in use.",

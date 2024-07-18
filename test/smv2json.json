@@ -1,0 +1,70 @@
+{
+    "script": "../translate.py",
+    "options": ["moxi-json", "--validate"],
+    "tests": [
+        {
+            "input": "smv/Delay.smv",
+            "output": "smv/Delay.json",
+            "expected_output": [
+                ["smv/Delay.json.expect",
+                 "smv/Delay.json"]
+            ]
+        },
+        {
+            "input": "smv/var.smv",
+            "output": "smv/var.json",
+            "expected_output": [
+                ["smv/var.json.expect",
+                 "smv/var.json"]
+            ]
+        },
+        {
+            "input": "smv/assign.smv",
+            "output": "smv/assign.json",
+            "expected_output": [
+                ["smv/assign.json.expect",
+                 "smv/assign.json"]
+            ]
+        },
+        {
+            "input": "smv/define.smv",
+            "output": "smv/define.json",
+            "expected_output": [
+                ["smv/define.json.expect",
+                 "smv/define.json"]
+            ]
+        },
+        {
+            "input": "smv/QF_BV/ken-imp.c.smv",
+            "output": "smv/QF_BV/ken-imp.c.json",
+            "expected_output": [
+                ["smv/QF_BV/ken-imp.c.json.expect",
+                 "smv/QF_BV/ken-imp.c.json"]
+            ]
+        },
+        {
+            "input": "smv/QF_ABV/FIFOs.smv",
+            "output": "smv/QF_ABV/FIFOs.json",
+            "expected_output": [
+                ["smv/QF_ABV/FIFOs.json.expect",
+                 "smv/QF_ABV/FIFOs.json"]
+            ]
+        },
+        {
+            "input": "smv/QF_ABV/field5.smv",
+            "output": "smv/QF_ABV/field5.json",
+            "expected_output": [
+                ["smv/QF_ABV/field5.json.expect",
+                 "smv/QF_ABV/field5.json"]
+            ]
+        },
+        {
+            "input": "smv/QF_ABV/am2901.smv",
+            "output": "smv/QF_ABV/am2901.json",
+            "expected_output": [
+                ["smv/QF_ABV/am2901.json.expect",
+                 "smv/QF_ABV/am2901.json"]
+            ]
+        }
+    ] 
+}

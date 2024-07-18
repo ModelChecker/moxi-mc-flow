@@ -1,0 +1,1405 @@
+[
+    {
+        "command": "set-logic",
+        "logic": "QF_ABV"
+    },
+    {
+        "command": "define-system",
+        "symbol": "main",
+        "input": [
+            {
+                "symbol": "__NONDET_INLINE_INIT__2__4_dollar_main#0",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "__NONDET_INLINE_INIT__4__5_dollar_main#1",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            }
+        ],
+        "output": [
+            {
+                "symbol": "_PC_dot_0",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "_PC_dot_1",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "_PC_dot_2",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "__RET___dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "i__1_dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "j__3_dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "x__5_dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "y__7_dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            }
+        ],
+        "local": [],
+        "init": {
+            "identifier": {
+                "symbol": "let",
+                "binders": [
+                    {
+                        "symbol": "__expr1",
+                        "term": {
+                            "identifier": {
+                                "symbol": "not"
+                            },
+                            "args": [
+                                {
+                                    "identifier": "_PC_dot_0"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "let",
+                        "binders": [
+                            {
+                                "symbol": "__expr2",
+                                "term": {
+                                    "identifier": {
+                                        "symbol": "not"
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": "_PC_dot_1"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "args": [
+                        {
+                            "identifier": {
+                                "symbol": "let",
+                                "binders": [
+                                    {
+                                        "symbol": "__expr3",
+                                        "term": {
+                                            "identifier": {
+                                                "symbol": "and"
+                                            },
+                                            "args": [
+                                                {
+                                                    "identifier": "__expr2"
+                                                },
+                                                {
+                                                    "identifier": "__expr1"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "args": [
+                                {
+                                    "identifier": {
+                                        "symbol": "let",
+                                        "binders": [
+                                            {
+                                                "symbol": "__expr4",
+                                                "term": {
+                                                    "identifier": {
+                                                        "symbol": "not"
+                                                    },
+                                                    "args": [
+                                                        {
+                                                            "identifier": "_PC_dot_2"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": {
+                                                "symbol": "let",
+                                                "binders": [
+                                                    {
+                                                        "symbol": "__expr5",
+                                                        "term": {
+                                                            "identifier": {
+                                                                "symbol": "and"
+                                                            },
+                                                            "args": [
+                                                                {
+                                                                    "identifier": "__expr4"
+                                                                },
+                                                                {
+                                                                    "identifier": "__expr3"
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            "args": [
+                                                {
+                                                    "identifier": "__expr5"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "trans": {
+            "identifier": {
+                "symbol": "let",
+                "binders": [
+                    {
+                        "symbol": "__expr6",
+                        "term": {
+                            "identifier": {
+                                "symbol": "="
+                            },
+                            "args": [
+                                {
+                                    "identifier": "i__1_dollar_main'"
+                                },
+                                {
+                                    "identifier": "__NONDET_INLINE_INIT__2__4_dollar_main#0"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "let",
+                        "binders": [
+                            {
+                                "symbol": "__expr7",
+                                "term": {
+                                    "identifier": {
+                                        "symbol": "="
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": "j__3_dollar_main'"
+                                        },
+                                        {
+                                            "identifier": "__NONDET_INLINE_INIT__4__5_dollar_main#1"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "args": [
+                        {
+                            "identifier": {
+                                "symbol": "let",
+                                "binders": [
+                                    {
+                                        "symbol": "__expr8",
+                                        "term": {
+                                            "identifier": {
+                                                "symbol": "and"
+                                            },
+                                            "args": [
+                                                {
+                                                    "identifier": "__expr7"
+                                                },
+                                                {
+                                                    "identifier": "__expr6"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "args": [
+                                {
+                                    "identifier": {
+                                        "symbol": "let",
+                                        "binders": [
+                                            {
+                                                "symbol": "__expr9",
+                                                "term": {
+                                                    "identifier": {
+                                                        "symbol": "="
+                                                    },
+                                                    "args": [
+                                                        {
+                                                            "identifier": "x__5_dollar_main'"
+                                                        },
+                                                        {
+                                                            "identifier": "i__1_dollar_main'"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": {
+                                                "symbol": "let",
+                                                "binders": [
+                                                    {
+                                                        "symbol": "__expr10",
+                                                        "term": {
+                                                            "identifier": {
+                                                                "symbol": "and"
+                                                            },
+                                                            "args": [
+                                                                {
+                                                                    "identifier": "__expr9"
+                                                                },
+                                                                {
+                                                                    "identifier": "__expr8"
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            "args": [
+                                                {
+                                                    "identifier": {
+                                                        "symbol": "let",
+                                                        "binders": [
+                                                            {
+                                                                "symbol": "__expr11",
+                                                                "term": {
+                                                                    "identifier": {
+                                                                        "symbol": "="
+                                                                    },
+                                                                    "args": [
+                                                                        {
+                                                                            "identifier": "j__3_dollar_main'"
+                                                                        },
+                                                                        {
+                                                                            "identifier": "y__7_dollar_main'"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    "args": [
+                                                        {
+                                                            "identifier": {
+                                                                "symbol": "let",
+                                                                "binders": [
+                                                                    {
+                                                                        "symbol": "__expr12",
+                                                                        "term": {
+                                                                            "identifier": {
+                                                                                "symbol": "and"
+                                                                            },
+                                                                            "args": [
+                                                                                {
+                                                                                    "identifier": "__expr11"
+                                                                                },
+                                                                                {
+                                                                                    "identifier": "__expr10"
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    }
+                                                                ]
+                                                            },
+                                                            "args": [
+                                                                {
+                                                                    "identifier": {
+                                                                        "symbol": "let",
+                                                                        "binders": [
+                                                                            {
+                                                                                "symbol": "__expr13",
+                                                                                "term": {
+                                                                                    "identifier": {
+                                                                                        "symbol": "="
+                                                                                    },
+                                                                                    "args": [
+                                                                                        {
+                                                                                            "identifier": "__RET___dollar_main"
+                                                                                        },
+                                                                                        {
+                                                                                            "identifier": "__RET___dollar_main'"
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            }
+                                                                        ]
+                                                                    },
+                                                                    "args": [
+                                                                        {
+                                                                            "identifier": {
+                                                                                "symbol": "let",
+                                                                                "binders": [
+                                                                                    {
+                                                                                        "symbol": "__expr14",
+                                                                                        "term": {
+                                                                                            "identifier": {
+                                                                                                "symbol": "and"
+                                                                                            },
+                                                                                            "args": [
+                                                                                                {
+                                                                                                    "identifier": "__expr13"
+                                                                                                },
+                                                                                                {
+                                                                                                    "identifier": "__expr12"
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    }
+                                                                                ]
+                                                                            },
+                                                                            "args": [
+                                                                                {
+                                                                                    "identifier": {
+                                                                                        "symbol": "let",
+                                                                                        "binders": [
+                                                                                            {
+                                                                                                "symbol": "__expr15",
+                                                                                                "term": {
+                                                                                                    "identifier": {
+                                                                                                        "symbol": "not"
+                                                                                                    },
+                                                                                                    "args": [
+                                                                                                        {
+                                                                                                            "identifier": "_PC_dot_2'"
+                                                                                                        }
+                                                                                                    ]
+                                                                                                }
+                                                                                            }
+                                                                                        ]
+                                                                                    },
+                                                                                    "args": [
+                                                                                        {
+                                                                                            "identifier": {
+                                                                                                "symbol": "let",
+                                                                                                "binders": [
+                                                                                                    {
+                                                                                                        "symbol": "__expr16",
+                                                                                                        "term": {
+                                                                                                            "identifier": {
+                                                                                                                "symbol": "not"
+                                                                                                            },
+                                                                                                            "args": [
+                                                                                                                {
+                                                                                                                    "identifier": "_PC_dot_1'"
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    }
+                                                                                                ]
+                                                                                            },
+                                                                                            "args": [
+                                                                                                {
+                                                                                                    "identifier": {
+                                                                                                        "symbol": "let",
+                                                                                                        "binders": [
+                                                                                                            {
+                                                                                                                "symbol": "__expr17",
+                                                                                                                "term": {
+                                                                                                                    "identifier": {
+                                                                                                                        "symbol": "and"
+                                                                                                                    },
+                                                                                                                    "args": [
+                                                                                                                        {
+                                                                                                                            "identifier": "__expr16"
+                                                                                                                        },
+                                                                                                                        {
+                                                                                                                            "identifier": "_PC_dot_0'"
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            }
+                                                                                                        ]
+                                                                                                    },
+                                                                                                    "args": [
+                                                                                                        {
+                                                                                                            "identifier": {
+                                                                                                                "symbol": "let",
+                                                                                                                "binders": [
+                                                                                                                    {
+                                                                                                                        "symbol": "__expr18",
+                                                                                                                        "term": {
+                                                                                                                            "identifier": {
+                                                                                                                                "symbol": "and"
+                                                                                                                            },
+                                                                                                                            "args": [
+                                                                                                                                {
+                                                                                                                                    "identifier": "__expr17"
+                                                                                                                                },
+                                                                                                                                {
+                                                                                                                                    "identifier": "__expr15"
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        }
+                                                                                                                    }
+                                                                                                                ]
+                                                                                                            },
+                                                                                                            "args": [
+                                                                                                                {
+                                                                                                                    "identifier": {
+                                                                                                                        "symbol": "let",
+                                                                                                                        "binders": [
+                                                                                                                            {
+                                                                                                                                "symbol": "__expr19",
+                                                                                                                                "term": {
+                                                                                                                                    "identifier": {
+                                                                                                                                        "symbol": "and"
+                                                                                                                                    },
+                                                                                                                                    "args": [
+                                                                                                                                        {
+                                                                                                                                            "identifier": "__expr18"
+                                                                                                                                        },
+                                                                                                                                        {
+                                                                                                                                            "identifier": "__expr14"
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                }
+                                                                                                                            }
+                                                                                                                        ]
+                                                                                                                    },
+                                                                                                                    "args": [
+                                                                                                                        {
+                                                                                                                            "identifier": {
+                                                                                                                                "symbol": "let",
+                                                                                                                                "binders": [
+                                                                                                                                    {
+                                                                                                                                        "symbol": "__expr1",
+                                                                                                                                        "term": {
+                                                                                                                                            "identifier": {
+                                                                                                                                                "symbol": "not"
+                                                                                                                                            },
+                                                                                                                                            "args": [
+                                                                                                                                                {
+                                                                                                                                                    "identifier": "_PC_dot_0"
+                                                                                                                                                }
+                                                                                                                                            ]
+                                                                                                                                        }
+                                                                                                                                    }
+                                                                                                                                ]
+                                                                                                                            },
+                                                                                                                            "args": [
+                                                                                                                                {
+                                                                                                                                    "identifier": {
+                                                                                                                                        "symbol": "let",
+                                                                                                                                        "binders": [
+                                                                                                                                            {
+                                                                                                                                                "symbol": "__expr2",
+                                                                                                                                                "term": {
+                                                                                                                                                    "identifier": {
+                                                                                                                                                        "symbol": "not"
+                                                                                                                                                    },
+                                                                                                                                                    "args": [
+                                                                                                                                                        {
+                                                                                                                                                            "identifier": "_PC_dot_1"
+                                                                                                                                                        }
+                                                                                                                                                    ]
+                                                                                                                                                }
+                                                                                                                                            }
+                                                                                                                                        ]
+                                                                                                                                    },
+                                                                                                                                    "args": [
+                                                                                                                                        {
+                                                                                                                                            "identifier": {
+                                                                                                                                                "symbol": "let",
+                                                                                                                                                "binders": [
+                                                                                                                                                    {
+                                                                                                                                                        "symbol": "__expr3",
+                                                                                                                                                        "term": {
+                                                                                                                                                            "identifier": {
+                                                                                                                                                                "symbol": "and"
+                                                                                                                                                            },
+                                                                                                                                                            "args": [
+                                                                                                                                                                {
+                                                                                                                                                                    "identifier": "__expr2"
+                                                                                                                                                                },
+                                                                                                                                                                {
+                                                                                                                                                                    "identifier": "__expr1"
+                                                                                                                                                                }
+                                                                                                                                                            ]
+                                                                                                                                                        }
+                                                                                                                                                    }
+                                                                                                                                                ]
+                                                                                                                                            },
+                                                                                                                                            "args": [
+                                                                                                                                                {
+                                                                                                                                                    "identifier": {
+                                                                                                                                                        "symbol": "let",
+                                                                                                                                                        "binders": [
+                                                                                                                                                            {
+                                                                                                                                                                "symbol": "__expr4",
+                                                                                                                                                                "term": {
+                                                                                                                                                                    "identifier": {
+                                                                                                                                                                        "symbol": "not"
+                                                                                                                                                                    },
+                                                                                                                                                                    "args": [
+                                                                                                                                                                        {
+                                                                                                                                                                            "identifier": "_PC_dot_2"
+                                                                                                                                                                        }
+                                                                                                                                                                    ]
+                                                                                                                                                                }
+                                                                                                                                                            }
+                                                                                                                                                        ]
+                                                                                                                                                    },
+                                                                                                                                                    "args": [
+                                                                                                                                                        {
+                                                                                                                                                            "identifier": {
+                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                "binders": [
+                                                                                                                                                                    {
+                                                                                                                                                                        "symbol": "__expr5",
+                                                                                                                                                                        "term": {
+                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                "symbol": "and"
+                                                                                                                                                                            },
+                                                                                                                                                                            "args": [
+                                                                                                                                                                                {
+                                                                                                                                                                                    "identifier": "__expr4"
+                                                                                                                                                                                },
+                                                                                                                                                                                {
+                                                                                                                                                                                    "identifier": "__expr3"
+                                                                                                                                                                                }
+                                                                                                                                                                            ]
+                                                                                                                                                                        }
+                                                                                                                                                                    }
+                                                                                                                                                                ]
+                                                                                                                                                            },
+                                                                                                                                                            "args": [
+                                                                                                                                                                {
+                                                                                                                                                                    "identifier": {
+                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                        "binders": [
+                                                                                                                                                                            {
+                                                                                                                                                                                "symbol": "__expr20",
+                                                                                                                                                                                "term": {
+                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                        "symbol": "and"
+                                                                                                                                                                                    },
+                                                                                                                                                                                    "args": [
+                                                                                                                                                                                        {
+                                                                                                                                                                                            "identifier": "__expr5"
+                                                                                                                                                                                        },
+                                                                                                                                                                                        {
+                                                                                                                                                                                            "identifier": "__expr19"
+                                                                                                                                                                                        }
+                                                                                                                                                                                    ]
+                                                                                                                                                                                }
+                                                                                                                                                                            }
+                                                                                                                                                                        ]
+                                                                                                                                                                    },
+                                                                                                                                                                    "args": [
+                                                                                                                                                                        {
+                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                                "binders": [
+                                                                                                                                                                                    {
+                                                                                                                                                                                        "symbol": "__expr21",
+                                                                                                                                                                                        "term": {
+                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                "symbol": "and"
+                                                                                                                                                                                            },
+                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                {
+                                                                                                                                                                                                    "identifier": "__expr2"
+                                                                                                                                                                                                },
+                                                                                                                                                                                                {
+                                                                                                                                                                                                    "identifier": "_PC_dot_0"
+                                                                                                                                                                                                }
+                                                                                                                                                                                            ]
+                                                                                                                                                                                        }
+                                                                                                                                                                                    }
+                                                                                                                                                                                ]
+                                                                                                                                                                            },
+                                                                                                                                                                            "args": [
+                                                                                                                                                                                {
+                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                                        "binders": [
+                                                                                                                                                                                            {
+                                                                                                                                                                                                "symbol": "__expr22",
+                                                                                                                                                                                                "term": {
+                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                        "symbol": "and"
+                                                                                                                                                                                                    },
+                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                        {
+                                                                                                                                                                                                            "identifier": "__expr4"
+                                                                                                                                                                                                        },
+                                                                                                                                                                                                        {
+                                                                                                                                                                                                            "identifier": "__expr21"
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    ]
+                                                                                                                                                                                                }
+                                                                                                                                                                                            }
+                                                                                                                                                                                        ]
+                                                                                                                                                                                    },
+                                                                                                                                                                                    "args": [
+                                                                                                                                                                                        {
+                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                                                "binders": [
+                                                                                                                                                                                                    {
+                                                                                                                                                                                                        "symbol": "__expr23",
+                                                                                                                                                                                                        "term": {
+                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                "symbol": "="
+                                                                                                                                                                                                            },
+                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                {
+                                                                                                                                                                                                                    "identifier": "i__1_dollar_main'"
+                                                                                                                                                                                                                },
+                                                                                                                                                                                                                {
+                                                                                                                                                                                                                    "identifier": "i__1_dollar_main"
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            ]
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    }
+                                                                                                                                                                                                ]
+                                                                                                                                                                                            },
+                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                {
+                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                                                        "binders": [
+                                                                                                                                                                                                            {
+                                                                                                                                                                                                                "symbol": "__expr24",
+                                                                                                                                                                                                                "term": {
+                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                        "symbol": "bvadd"
+                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                            "identifier": "#b11111111111111111111111111111111"
+                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                            "identifier": "x__5_dollar_main"
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            }
+                                                                                                                                                                                                        ]
+                                                                                                                                                                                                    },
+                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                        {
+                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                                                                "binders": [
+                                                                                                                                                                                                                    {
+                                                                                                                                                                                                                        "symbol": "__expr25",
+                                                                                                                                                                                                                        "term": {
+                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                "symbol": "="
+                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                    "identifier": "__expr24"
+                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                    "identifier": "x__5_dollar_main'"
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                ]
+                                                                                                                                                                                                            },
+                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                {
+                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                                                                        "binders": [
+                                                                                                                                                                                                                            {
+                                                                                                                                                                                                                                "symbol": "__expr26",
+                                                                                                                                                                                                                                "term": {
+                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                        "symbol": "="
+                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                            "identifier": "x__5_dollar_main"
+                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                            "identifier": "#b00000000000000000000000000000000"
+                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                        ]
+                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                                                                                "binders": [
+                                                                                                                                                                                                                                    {
+                                                                                                                                                                                                                                        "symbol": "__expr27",
+                                                                                                                                                                                                                                        "term": {
+                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                "symbol": "not"
+                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                    "identifier": "__expr26"
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                ]
+                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                                                                                        "binders": [
+                                                                                                                                                                                                                                            {
+                                                                                                                                                                                                                                                "symbol": "__expr28",
+                                                                                                                                                                                                                                                "term": {
+                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                        "symbol": "and"
+                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                            "identifier": "__expr27"
+                                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                            "identifier": "__expr25"
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                        ]
+                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                                                                                                "binders": [
+                                                                                                                                                                                                                                                    {
+                                                                                                                                                                                                                                                        "symbol": "__expr29",
+                                                                                                                                                                                                                                                        "term": {
+                                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                                "symbol": "bvadd"
+                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                    "identifier": "#b11111111111111111111111111111111"
+                                                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                    "identifier": "y__7_dollar_main"
+                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                ]
+                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                                                                                                        "binders": [
+                                                                                                                                                                                                                                                            {
+                                                                                                                                                                                                                                                                "symbol": "__expr30",
+                                                                                                                                                                                                                                                                "term": {
+                                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                                        "symbol": "="
+                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                            "identifier": "__expr29"
+                                                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                            "identifier": "y__7_dollar_main'"
+                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                        ]
+                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                                                                                                                "binders": [
+                                                                                                                                                                                                                                                                    {
+                                                                                                                                                                                                                                                                        "symbol": "__expr31",
+                                                                                                                                                                                                                                                                        "term": {
+                                                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                                                "symbol": "and"
+                                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                    "identifier": "__expr30"
+                                                                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                    "identifier": "__expr28"
+                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                ]
+                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                                                                                                                        "binders": [
+                                                                                                                                                                                                                                                                            {
+                                                                                                                                                                                                                                                                                "symbol": "__expr32",
+                                                                                                                                                                                                                                                                                "term": {
+                                                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                                                        "symbol": "="
+                                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                            "identifier": "j__3_dollar_main'"
+                                                                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                            "identifier": "j__3_dollar_main"
+                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                        ]
+                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                                                                                                                                "binders": [
+                                                                                                                                                                                                                                                                                    {
+                                                                                                                                                                                                                                                                                        "symbol": "__expr33",
+                                                                                                                                                                                                                                                                                        "term": {
+                                                                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                                                                "symbol": "and"
+                                                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                                    "identifier": "__expr32"
+                                                                                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                                    "identifier": "__expr31"
+                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                ]
+                                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                                                                                                                                        "binders": [
+                                                                                                                                                                                                                                                                                            {
+                                                                                                                                                                                                                                                                                                "symbol": "__expr34",
+                                                                                                                                                                                                                                                                                                "term": {
+                                                                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                                                                        "symbol": "and"
+                                                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                                            "identifier": "__expr33"
+                                                                                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                                            "identifier": "__expr13"
+                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                        ]
+                                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                                                                                                                                                "binders": [
+                                                                                                                                                                                                                                                                                                    {
+                                                                                                                                                                                                                                                                                                        "symbol": "__expr35",
+                                                                                                                                                                                                                                                                                                        "term": {
+                                                                                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                                                                                "symbol": "and"
+                                                                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                                                    "identifier": "__expr34"
+                                                                                                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                                                    "identifier": "__expr23"
+                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                ]
+                                                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                                                                                                                                                        "binders": [
+                                                                                                                                                                                                                                                                                                            {
+                                                                                                                                                                                                                                                                                                                "symbol": "__expr36",
+                                                                                                                                                                                                                                                                                                                "term": {
+                                                                                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                                                                                        "symbol": "and"
+                                                                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                                                            "identifier": "__expr18"
+                                                                                                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                                                            "identifier": "__expr35"
+                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                        ]
+                                                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                                                                                "symbol": "let",
+                                                                                                                                                                                                                                                                                                                "binders": [
+                                                                                                                                                                                                                                                                                                                    {
+                                                                                                                                                                                                                                                                                                                        "symbol": "__expr37",
+                                                                                                                                                                                                                                                                                                                        "term": {
+                                                                                                                                                                                                                                                                                                                            "identifier": {
+                                                                                                                                                                                                                                                                                                                                "symbol": "and"
+                                                                                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                                                                    "identifier": "__expr36"
+                                                                                                                                                                                                                                                                                                                                },
+                                                                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                                                                    "identifier": "__expr22"
+                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                    }
+                                                                                                                                                                                                                                                                                                                ]
+                                                                                                                                                                                                                                                                                                            },
+                                                                                                                                                                                                                                                                                                            "args": [
+                                                                                                                                                                                                                                                                                                                {
+                                                                                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                                                                                        "symbol": "let",
+                                                                                                                                                                                                                                                                                                                        "binders": [
+                                                                                                                                                                                                                                                                                                                            {
+                                                                                                                                                                                                                                                                                                                                "symbol": "__expr38",
+                                                                                                                                                                                                                                                                                                                                "term": {
+                                                                                                                                                                                                                                                                                                                                    "identifier": {
+                                                                                                                                                                                                                                                                                                                                        "symbol": "or"
+                                                                                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                                                                            "identifier": "__expr37"
+                                                                                                                                                                                                                                                                                                                                        },
+                                                                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                                                                            "identifier": "__expr20"
+                                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                                            }
+                                                                                                                                                                                                                                                                                                                        ]
+                                                                                                                                                                                                                                                                                                                    },
+                                                                                                                                                                                                                                                                                                                    "args": [
+                                                                                                                                                                                                                                                                                                                        {
+                                                                                                                                                                                                                                                                                                                            "identifier": "__expr38"
+                                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                                }
+                                                                                                                                                                                                                            ]
+                                                                                                                                                                                                                        }
+                                                                                                                                                                                                                    ]
+                                                                                                                                                                                                                }
+                                                                                                                                                                                                            ]
+                                                                                                                                                                                                        }
+                                                                                                                                                                                                    ]
+                                                                                                                                                                                                }
+                                                                                                                                                                                            ]
+                                                                                                                                                                                        }
+                                                                                                                                                                                    ]
+                                                                                                                                                                                }
+                                                                                                                                                                            ]
+                                                                                                                                                                        }
+                                                                                                                                                                    ]
+                                                                                                                                                                }
+                                                                                                                                                            ]
+                                                                                                                                                        }
+                                                                                                                                                    ]
+                                                                                                                                                }
+                                                                                                                                            ]
+                                                                                                                                        }
+                                                                                                                                    ]
+                                                                                                                                }
+                                                                                                                            ]
+                                                                                                                        }
+                                                                                                                    ]
+                                                                                                                }
+                                                                                                            ]
+                                                                                                        }
+                                                                                                    ]
+                                                                                                }
+                                                                                            ]
+                                                                                        }
+                                                                                    ]
+                                                                                }
+                                                                            ]
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            ]
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "inv": {
+            "identifier": "true"
+        },
+        "subsys": []
+    },
+    {
+        "command": "check-system",
+        "symbol": "main",
+        "input": [
+            {
+                "symbol": "__NONDET_INLINE_INIT__2__4_dollar_main#0",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "__NONDET_INLINE_INIT__4__5_dollar_main#1",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            }
+        ],
+        "output": [
+            {
+                "symbol": "_PC_dot_0",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "_PC_dot_1",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "_PC_dot_2",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "__RET___dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "i__1_dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "j__3_dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "x__5_dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "y__7_dollar_main",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            32
+                        ]
+                    }
+                }
+            }
+        ],
+        "local": [],
+        "assumption": [],
+        "fairness": [],
+        "reachable": [
+            {
+                "symbol": "rch_1",
+                "formula": {
+                    "identifier": {
+                        "symbol": "not"
+                    },
+                    "args": [
+                        {
+                            "identifier": {
+                                "symbol": "let",
+                                "binders": [
+                                    {
+                                        "symbol": "__expr39",
+                                        "term": {
+                                            "identifier": {
+                                                "symbol": "and"
+                                            },
+                                            "args": [
+                                                {
+                                                    "identifier": "_PC_dot_1"
+                                                },
+                                                {
+                                                    "identifier": "_PC_dot_0"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "args": [
+                                {
+                                    "identifier": {
+                                        "symbol": "let",
+                                        "binders": [
+                                            {
+                                                "symbol": "__expr4",
+                                                "term": {
+                                                    "identifier": {
+                                                        "symbol": "not"
+                                                    },
+                                                    "args": [
+                                                        {
+                                                            "identifier": "_PC_dot_2"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        ]
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": {
+                                                "symbol": "let",
+                                                "binders": [
+                                                    {
+                                                        "symbol": "__expr40",
+                                                        "term": {
+                                                            "identifier": {
+                                                                "symbol": "and"
+                                                            },
+                                                            "args": [
+                                                                {
+                                                                    "identifier": "__expr4"
+                                                                },
+                                                                {
+                                                                    "identifier": "__expr39"
+                                                                }
+                                                            ]
+                                                        }
+                                                    }
+                                                ]
+                                            },
+                                            "args": [
+                                                {
+                                                    "identifier": {
+                                                        "symbol": "let",
+                                                        "binders": [
+                                                            {
+                                                                "symbol": "__expr41",
+                                                                "term": {
+                                                                    "identifier": {
+                                                                        "symbol": "not"
+                                                                    },
+                                                                    "args": [
+                                                                        {
+                                                                            "identifier": "__expr40"
+                                                                        }
+                                                                    ]
+                                                                }
+                                                            }
+                                                        ]
+                                                    },
+                                                    "args": [
+                                                        {
+                                                            "identifier": "__expr41"
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ],
+        "current": [],
+        "query": [
+            {
+                "symbol": "qry_rch_1",
+                "formulas": [
+                    "rch_1"
+                ]
+            }
+        ],
+        "queries": []
+    }
+]

@@ -137,12 +137,14 @@ def from_json(schema_path: pathlib.Path, contents: dict) -> Optional[moxi.Progra
             new = moxi.DeclareConst(cmd["symbol"], sort)
             program.append(new)
         elif cmd["command"] == "declare-fun":
-            pass  # TODO
+            inputs = [from_json_sort(i) for i in cmd["inputs"]]
+            output = from_json_sort(cmd["output"])
+            new = moxi.DeclareFun(cmd["symbol"], inputs, output)
+            program.append(new)
         elif cmd["command"] == "define-fun":
             inputs = [(i["symbol"], from_json_sort(i["sort"])) for i in cmd["inputs"]]
             output = from_json_sort(cmd["output"])
             body = from_json_term(cmd["body"], enums)
-
             new = moxi.DefineFun(cmd["symbol"], inputs, output, body)
             program.append(new)
         elif cmd["command"] == "define-system":

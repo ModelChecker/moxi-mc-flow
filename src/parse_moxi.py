@@ -20,7 +20,7 @@ class Lexer(sly.Lexer):
                RW_UNDERSCORE, RW_LET, RW_AS,
                PK_INPUT, PK_LOCAL, PK_OUTPUT, PK_INIT, PK_TRANS, PK_INV, PK_SUBSYS,
                PK_ASSUMPTION, PK_FAIRNESS, PK_REACHABLE, PK_CURRENT, PK_QUERY, PK_QUERIES,
-               CMD_SET_LOGIC, CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, 
+               CMD_SET_LOGIC, CMD_DECLARE_SORT, CMD_DEFINE_SORT, CMD_DECLARE_CONST, CMD_DEFINE_FUN, CMD_DECLARE_FUN,
                CMD_DECLARE_ENUM_SORT, CMD_DEFINE_SYSTEM, CMD_CHECK_SYSTEM, CMD_EXIT }
 
     # String containing ignored characters between tokens
@@ -80,6 +80,7 @@ class Lexer(sly.Lexer):
     SYMBOL["define-sort"]   = CMD_DEFINE_SORT
     SYMBOL["declare-const"] = CMD_DECLARE_CONST
     SYMBOL["define-fun"]    = CMD_DEFINE_FUN
+    SYMBOL["declare-fun"]    = CMD_DECLARE_FUN
     SYMBOL["declare-enum-sort"]  = CMD_DECLARE_ENUM_SORT
     SYMBOL["define-system"] = CMD_DEFINE_SYSTEM
     SYMBOL["check-system"]  = CMD_CHECK_SYSTEM
@@ -137,6 +138,10 @@ class Parser(sly.Parser):
     @_("LPAREN CMD_DECLARE_CONST SYMBOL sort RPAREN")
     def command(self, p):
         return moxi.DeclareConst(p[2], p[3], self.loc(p))
+    
+    @_("LPAREN CMD_DECLARE_FUN SYMBOL LPAREN sort_list RPAREN sort RPAREN")
+    def command(self, p):
+        return moxi.DeclareFun(p[2], p[4], p[6], self.loc(p))
     
     @_("LPAREN CMD_DEFINE_FUN SYMBOL LPAREN sorted_var_list RPAREN sort term RPAREN")
     def command(self, p):

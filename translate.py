@@ -35,7 +35,7 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
     proc = subprocess.run(["python3", str(SORTCHECK), src_path], capture_output=True)
 
     if proc.returncode:
-        log.error(proc.stderr.decode("utf-8"), FILE_NAME)
+        print(proc.stderr.decode("utf-8"))
         return FAIL
 
     log.debug(1, proc.stderr.decode("utf-8")[:-1], FILE_NAME)
@@ -46,7 +46,7 @@ def run_catbtor(src_path: pathlib.Path) -> int:
     proc = subprocess.run([str(CATBTOR), src_path], capture_output=True)
 
     if proc.returncode:
-        log.error(proc.stderr.decode("utf-8"), FILE_NAME)
+        print(proc.stderr.decode("utf-8"))
         return FAIL
 
     log.debug(1, proc.stderr.decode("utf-8")[:-1], FILE_NAME)
