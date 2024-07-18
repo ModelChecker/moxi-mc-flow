@@ -1,13 +1,14 @@
 import pathlib
 import subprocess
+import re
 
 from src import log
 
 FILE_NAME = pathlib.Path(__file__).name
 
-var_kws = ["IVAR", "VAR", "FROZENVAR"]
+var_kws = {"IVAR", "VAR", "FROZENVAR"}
 
-section_kws = [
+section_kws = {
     "VAR",
     "IVAR",
     "FROZENVAR",
@@ -31,21 +32,10 @@ section_kws = [
     "INVARSPEC",
     "COMPUTE",
     "PSLSPEC",
-]
+}
 
 
-def get_module_names(content: str) -> list[str]:
-    names: list[str] = []
-    for line in content.splitlines():
-        spl = line.split(" ")
-        if spl[0] == "MODULE":
-            name = spl[1].split("(")[0]
-            names.append(name.rstrip())
-
-    return names
-
-
-def handle_variables(content: str, module_names: list[str]):
+def handle_variables(content: str):
     var_decl = False
 
     ret_fc = content
@@ -62,30 +52,25 @@ def handle_variables(content: str, module_names: list[str]):
             spl = line.rstrip().split(": ")
             if len(spl) == 1:
                 continue
-            var_name = spl[0].rstrip()
-            vspl = var_name.split(".")
-            if vspl[0] in module_names:
-                pass
-            else:
-                cleaned_var_name = (
-                    var_name.replace(".", "_dot_")
-                    .replace(":", "_colon_")
-                    .replace('"', "_dquote_")
-                    .replace("$", "_dollar_")
-                    .replace("[", "_lbrack_")
-                    .replace("]", "_rbrack_")
-                    .replace(r"\\", "_dbs_")
+            var_name = spl[0].strip()
+
+            if (
+                any([c in var_name for c in {'.',':','$','[',']',r'\\'}]) and 
+                var_name[0] != '"'
+            ):
+                cleaned_var_name = '"' + var_name + '"'
+                regex_var_name = (var_name.replace(".", "\\.")
+                    .replace(":", "\\:")
+                    .replace('"', '\\"')
+                    .replace("$", "\\$")
+                    .replace("[", "\\[")
+                    .replace("]", "\\]")
+                    .replace(r"\\", "\\\\")
                 )
-                if cleaned_var_name == var_name:
-                    continue
-                else:
-                    # print(f"{line_no}: replacing {var_name} with {cleaned_var_name}")
-                    # if ret_fc.find(var_name) != -1:
-                    #     print(f"{line_no}: FOUND {var_name}")
-                    new_ret_fc = ret_fc.replace(var_name, cleaned_var_name)
-                    # if ret_fc == new_ret_fc:
-                    #     print(f"{line_no}: NO CHANGE")
-                    ret_fc = new_ret_fc
+                ret_fc = re.sub(
+                    f"{regex_var_name}(?=[^a-zA-Z_0-9#$])", 
+                    cleaned_var_name, ret_fc
+                )
 
     return ret_fc
 
@@ -96,7 +81,7 @@ def preprocess(input_path: pathlib.Path, do_cpp: bool) -> str:
     1) C Preprocessor Invocation: Since nuXmv admits C-style macros (#ifdef, #include, etc.), we run the file through the C preprocessor
     and obtain a single nuXmv file.
 
-    2) Identifier Cleanup: Identifiers appearing in nuXmv distribution benchmarks do not conform to the identifier grammar specified in the nuXmv reference manual. As such, we replace restricted tokens (`:`, `"`, `\\`, `[`, `]`, `$`) that appear in identifiers with conformant alternatives (usually the written name of the character - `_colon_`, etc.).
+    2) Identifier Cleanup: Identifiers appearing in nuXmv distribution benchmarks do not conform to the identifier grammar specified in the nuXmv reference manual. As such, we escape most identifiers with quotes, which are equivalently escaped with pipes in MoXI.
     """
     log.debug(2, f"Preprocessing {input_path}", FILE_NAME)
 
@@ -115,5 +100,4 @@ def preprocess(input_path: pathlib.Path, do_cpp: bool) -> str:
         with open(str(input_path), "r") as file:
             content = file.read()
 
-    module_names = get_module_names(content)
-    return handle_variables(content, module_names)
+    return handle_variables(content)

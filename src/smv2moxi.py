@@ -5,6 +5,13 @@ from src import log, moxi, panda, parse_smv, smv
 
 FILE_NAME = pathlib.Path(__file__).name
 
+
+def to_moxi_ident(smv_ident: str) -> str:
+    if smv_ident[0] == '"':
+        return '|' + smv_ident[1:-1] + '|'
+    return smv_ident
+
+
 def translate_type(smv_type: smv.Type, smv_context: smv.Context) -> moxi.Sort:
     """
     Translates an SMV type to an IL sort given a current SMV context.
@@ -215,7 +222,7 @@ def translate_expr(
                     # print(f"{ident}: var case")
                     expr_map[expr] = moxi.Variable(
                         sort=translate_type(context.vars[module.name][ident], context),
-                        symbol=ident,
+                        symbol=to_moxi_ident(ident),
                         prime=context.in_next_expr,
                     )
                 elif ident in context.reverse_enums:
@@ -231,7 +238,7 @@ def translate_expr(
                     )
                     # print(f"assigning {expr} : {ttype}")
                     expr_map[expr] = moxi.Variable(
-                        sort=ttype, symbol=ident, prime=context.in_next_expr
+                        sort=ttype, symbol=to_moxi_ident(ident), prime=context.in_next_expr
                     )
                 else:
                     raise ValueError(f"Unrecognized var `{ident}`")
@@ -476,7 +483,7 @@ def gather_input(
         # )
         result.append(
             (
-                param,
+                to_moxi_ident(param),
                 translate_type(context.module_params[smv_module.name][param], context),
             )
         )
@@ -489,7 +496,7 @@ def gather_input(
                         continue
 
                     result.append(
-                        (var_name.ident, translate_type(smv_var_type, context))
+                        (to_moxi_ident(var_name.ident), translate_type(smv_var_type, context))
                     )
             case _:
                 pass
@@ -515,11 +522,11 @@ def gather_local(
                     type = context.module_params[smv_var_type.module_name][name]
                     input_var = moxi.Variable(
                         sort=translate_type(type, context),
-                        symbol=var_name.ident + "." + name,
+                        symbol=to_moxi_ident(var_name.ident + "." + name),
                         prime=False,
                     )
                     result.append(
-                        (var_name.ident + "." + name, translate_type(type, context))
+                        (to_moxi_ident(var_name.ident + "." + name), translate_type(type, context))
                     )
                     context.module_locals[var_name.ident].append(input_var)
 
@@ -528,10 +535,10 @@ def gather_local(
                 for var_symbol, var_sort in context.outputs[smv_var_type.module_name]:
                     local_var = moxi.Variable(
                         sort=var_sort,
-                        symbol=var_name.ident + "." + var_symbol,
+                        symbol=to_moxi_ident(var_name.ident + "." + var_symbol),
                         prime=False,
                     )
-                    result.append((var_name.ident + "." + var_symbol, var_sort))
+                    result.append((to_moxi_ident(var_name.ident + "." + var_symbol), var_sort))
                     context.module_locals[var_name.ident].append(local_var)
 
     # for ltlspec in [
@@ -577,7 +584,7 @@ def gather_output(
                         case _:
                             il_type = translate_type(smv_var_type, context)
 
-                    result.append((var_name.ident, il_type))
+                    result.append((to_moxi_ident(var_name.ident), il_type))
             case smv.DefineDeclaration(define_list=define_list):
                 for define in [
                     define
@@ -587,7 +594,7 @@ def gather_output(
                     il_type = translate_type(
                         context.defs[smv_module.name][define.name.ident].type, context
                     )
-                    result.append((define.name.ident, il_type))
+                    result.append((to_moxi_ident(define.name.ident), il_type))
             case _:
                 pass
 
@@ -817,7 +824,7 @@ def gather_inv(
                                 moxi.Apply.Eq(
                                     [
                                         moxi.Variable(
-                                            moxi.Sort.Int(), var_ident, False
+                                            moxi.Sort.Int(), to_moxi_ident(var_ident), False
                                         ),
                                         moxi.Constant.Int(int(value)),
                                     ]
@@ -846,7 +853,7 @@ def gather_inv(
                         moxi.Apply.Eq(
                             [
                                 moxi.Variable(
-                                    sort=il_type, symbol=define.name.ident, prime=False
+                                    sort=il_type, symbol=to_moxi_ident(define.name.ident), prime=False
                                 ),
                                 expr_map[
                                     context.defs[smv_module.name][define.name.ident]
@@ -890,7 +897,7 @@ def gather_inv(
                                     )
                                     defn = expr_map[context.defs[source_module][elem]]
                                     sdefn = specialize_vars_in_expr(
-                                        var_name.ident, defn
+                                        to_moxi_ident(var_name.ident), defn
                                     )
                                     init_expr = moxi.Apply.Eq(
                                         [
@@ -956,12 +963,12 @@ def gather_subsystems(
     for e in [e for e in smv_module.elements if isinstance(e, smv.VarDeclaration)]:
         for var_name, smv_var_type in e.var_list:
             if isinstance(smv_var_type, smv.ModuleType):
-                subsystems[var_name.ident] = (
+                subsystems[to_moxi_ident(var_name.ident)] = (
                     smv_var_type.module_name,
                     list(
                         map(
                             lambda x: x.symbol,
-                            smv_context.module_locals[var_name.ident],
+                            smv_context.module_locals[to_moxi_ident(var_name.ident)],
                         )
                     ),
                 )
@@ -1091,7 +1098,7 @@ def translate_module(
     """
     commands : list[moxi.Command] = []
 
-    module_name = smv_module.name
+    module_name = to_moxi_ident(smv_module.name)
 
     log.debug(2, f"Translating module '{module_name}'", FILE_NAME)
 

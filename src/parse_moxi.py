@@ -34,7 +34,7 @@ class Lexer(sly.Lexer):
     BINARY      = r"#b[01]+"
 
     SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@#$%^&*_+=<>.?/-]*'?|" \
-               r"\|[^\\\|]*\|"
+               r"\|[^\\\|]*\|'?"
     KEYWORD  = r":" + SYMBOL
 
     # LBRACK = r"\["
