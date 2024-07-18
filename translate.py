@@ -3,6 +3,8 @@ import cProfile
 import pathlib
 import subprocess
 import sys
+import tempfile
+import shutil
 from pstats import SortKey
 from typing import Optional
 
@@ -33,11 +35,10 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
     proc = subprocess.run(["python3", str(SORTCHECK), src_path], capture_output=True)
 
     if proc.returncode:
-        log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
-        log.error(proc.stderr.decode("utf-8"), FILE_NAME)
+        print(proc.stderr.decode("utf-8"))
         return FAIL
 
-    log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
+    log.debug(1, proc.stderr.decode("utf-8")[:-1], FILE_NAME)
     return PASS
 
 
@@ -45,10 +46,10 @@ def run_catbtor(src_path: pathlib.Path) -> int:
     proc = subprocess.run([str(CATBTOR), src_path], capture_output=True)
 
     if proc.returncode:
-        log.error(proc.stderr.decode("utf-8"), FILE_NAME)
+        print(proc.stderr.decode("utf-8"))
         return FAIL
 
-    log.debug(1, proc.stdout.decode("utf-8")[:-1], FILE_NAME)
+    log.debug(1, proc.stderr.decode("utf-8")[:-1], FILE_NAME)
     return PASS
 
 
@@ -56,6 +57,7 @@ def main(
     input_path: pathlib.Path,
     target_lang: str,
     output_path: pathlib.Path,
+    workdir: pathlib.Path,
     keep: Optional[pathlib.Path],
     validate: bool,
     do_pickle: bool,
@@ -66,24 +68,26 @@ def main(
     if not input_path.is_file():
         log.error(f"Source is not a file ({input_path})", FILE_NAME)
         return 1
+    
+    if keep and keep.exists():
+        log.error(f"Output location already exists ({keep})", FILE_NAME)
+        return 1
 
     match (input_path.suffix, target_lang):
         case (".smv", "moxi"):
             if smv2moxi.translate_file(input_path, output_path, do_cpp):
                 return FAIL
         case (".smv", "moxi-json"):
-            moxi_path = input_path.with_suffix(".moxi")
+            moxi_path = workdir / input_path.with_suffix(".moxi").name
 
             if smv2moxi.translate_file(input_path, moxi_path, do_cpp):
                 return FAIL
 
-            if moxi2json.main(moxi_path, output_path, False, False):
+            if moxi2json.main(moxi_path, output_path, False):
                 return FAIL
 
             if keep:
-                moxi_path.rename(keep)
-            else:
-                moxi_path.unlink()
+                shutil.copy(moxi_path, keep)
         case (".smv", "btor2"):
             xmv_program = parse_smv.parse(input_path, do_cpp)
             if not xmv_program:
@@ -134,7 +138,7 @@ def main(
                 with open(str(keep), "w") as f:
                     f.write(str(moxi_program))
         case (".moxi", "moxi-json"):
-            if moxi2json.main(input_path, output_path, False, False):
+            if moxi2json.main(input_path, output_path, False):
                 return FAIL
         case (".moxi", "btor2"):
             if moxi2btor.translate_file(input_path, output_path, JSON_SCHEMA, int_width, do_pickle):
@@ -143,7 +147,7 @@ def main(
             if json2moxi.main(input_path, output_path, JSON_SCHEMA, False, False, int_width):
                 return FAIL
         case (".json", "btor2"):
-            moxi_path = input_path.with_suffix(".moxi")
+            moxi_path = workdir / input_path.with_suffix(".moxi").name
 
             if json2moxi.main(input_path, moxi_path, JSON_SCHEMA, False, False, int_width):
                 return FAIL
@@ -153,11 +157,9 @@ def main(
 
             if keep:
                 moxi_path.rename(keep)
-            else:
-                moxi_path.unlink()
         case _:
             log.error(
-                f"Translation unsupported: {input_path.suffix} to { target_lang}",
+                f"Translation unsupported: {input_path.suffix} to {target_lang}",
                 FILE_NAME,
             )
             return 1
@@ -258,6 +260,11 @@ if __name__ == "__main__":
     if args.jsonschema:
         JSON_SCHEMA = pathlib.Path(args.jsonschema)
 
+    if args.keep:
+        keep = pathlib.Path(args.keep)
+    else:
+        keep = None
+
     if args.profile:
         cProfile.run(
             "main(input_path, args.targetlang, output_path, args.keep, args.validate, args.pickle, args.cpp, args.intwidth)",
@@ -265,15 +272,18 @@ if __name__ == "__main__":
         )
         sys.exit(0)
 
-    returncode = main(
-        input_path,
-        args.targetlang,
-        output_path,
-        args.keep,
-        args.validate,
-        args.pickle,
-        args.cpp,
-        args.with_lets,
-        args.intwidth,
-    )
+    with tempfile.TemporaryDirectory() as workdir_name:
+        workdir = pathlib.Path(workdir_name)
+        returncode = main(
+            input_path,
+            args.targetlang,
+            output_path,
+            workdir,
+            keep,
+            args.validate,
+            args.pickle,
+            args.cpp,
+            args.with_lets,
+            args.intwidth,
+        )
     sys.exit(returncode)

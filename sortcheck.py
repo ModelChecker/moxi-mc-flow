@@ -15,13 +15,13 @@ JSON_SCHEMA = FILE_DIR / "json-schema" / "schema"
 
 def main(input_path: pathlib.Path, echo: bool) -> int:
     if not input_path.is_file():
-        log.error(f"{input_path} is not a valid file.", FILE_NAME)
+        log.error(f"'{input_path}' is not a valid file.", FILE_NAME)
         return 1
 
     if input_path.suffix == ".moxi":
         program = parse_moxi.parse(input_path)
     elif input_path.suffix == ".json":
-        with open(input_path, "r") as file:
+        with open(input_path, "rb") as file:
             contents = json.load(file)
             program = json2moxi.from_json(JSON_SCHEMA, contents)
     else:

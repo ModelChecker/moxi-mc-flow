@@ -1,8 +1,8 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "declare-fun.json",
-    "title": "DeclareFun",
-    "description": "A function declaration in MoXI (taken from SMTlib)",
+    "title": "Declare Fun",
+    "description": "A function declaration in MoXI",
     "type": "object",
     "properties": {
         "command": {

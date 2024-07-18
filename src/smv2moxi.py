@@ -1240,6 +1240,14 @@ def translate_file(
     input_path: pathlib.Path, output_path: pathlib.Path, do_cpp: bool
 ) -> int:
     """Parses, type checks, translates, and writes the translation result of `input_path` to `output_path`. Runs C preprocessor if `do_cpp` is True. Returns 0 on success, 1 otherwise."""
+    if not input_path.is_file():
+        log.error(f"'{input_path}' is not a valid file.", FILE_NAME)
+        return 1
+
+    if output_path.exists():
+        log.error(f"Output path '{output_path}' already exists.", FILE_NAME)
+        return 1
+
     log.debug(1, "Parsing", FILE_NAME)
     parse_tree = parse_smv.parse(input_path, do_cpp)
     if not parse_tree:
@@ -1250,6 +1258,10 @@ def translate_file(
     result = translate(input_path.name, parse_tree)
     if not result:
         log.debug(1, f"Failed translating specification {input_path}", FILE_NAME)
+        return 1
+
+    if output_path.exists():
+        log.error(f"File already exists '{output_path}'", FILE_NAME)
         return 1
 
     log.debug(1, f"Writing output to {output_path}", FILE_NAME)

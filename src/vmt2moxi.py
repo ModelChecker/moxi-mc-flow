@@ -172,7 +172,11 @@ def translate(
 
 def translate_file(input_path: pathlib.Path, output_path: pathlib.Path, with_lets: bool) -> int:
     if not input_path.is_file():
-        log.error(f"{input_path} is not a valid file.", FILE_NAME)
+        log.error(f"'{input_path}' is not a valid file.", FILE_NAME)
+        return 1
+
+    if output_path.exists():
+        log.error(f"Output path '{output_path}' already exists.", FILE_NAME)
         return 1
 
     program = parse_vmt.parse(input_path)

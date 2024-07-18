@@ -275,6 +275,10 @@ def main(
         log.error("Error: witness path must be a directory.", FILE_NAME)
         return 1
 
+    if output_path.exists():
+        log.error(f"Output path '{output_path}' already exists.", FILE_NAME)
+        return 1
+
     check_system_responses: list[moxi_witness.CheckSystemResponse] = []
 
     for check_system_path in sorted(input_path.iterdir()):

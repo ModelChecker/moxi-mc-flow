@@ -1,0 +1,286 @@
+[
+    {
+        "command": "set-logic",
+        "logic": "QF_ABV"
+    },
+    {
+        "command": "declare-fun",
+        "symbol": "foo",
+        "inputs": [
+            {
+                "identifier": {
+                    "symbol": "Bool"
+                }
+            }
+        ],
+        "output": {
+            "identifier": {
+                "symbol": "Bool"
+            }
+        }
+    },
+    {
+        "command": "declare-fun",
+        "symbol": "into",
+        "inputs": [
+            {
+                "identifier": {
+                    "symbol": "Bool"
+                }
+            }
+        ],
+        "output": {
+            "identifier": {
+                "symbol": "BitVec",
+                "indices": [
+                    1
+                ]
+            }
+        }
+    },
+    {
+        "command": "declare-fun",
+        "symbol": "out",
+        "inputs": [
+            {
+                "identifier": {
+                    "symbol": "BitVec",
+                    "indices": [
+                        1
+                    ]
+                }
+            }
+        ],
+        "output": {
+            "identifier": {
+                "symbol": "Bool"
+            }
+        }
+    },
+    {
+        "command": "define-system",
+        "symbol": "main",
+        "input": [],
+        "output": [
+            {
+                "symbol": "a",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "b",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "b2",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "w",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            1
+                        ]
+                    }
+                }
+            }
+        ],
+        "local": [],
+        "init": {
+            "identifier": {
+                "symbol": "="
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "let",
+                        "binders": [
+                            {
+                                "symbol": "CONJ",
+                                "term": {
+                                    "identifier": {
+                                        "symbol": "and"
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": "a"
+                                        },
+                                        {
+                                            "identifier": "b"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "args": [
+                        {
+                            "identifier": "CONJ"
+                        }
+                    ]
+                },
+                {
+                    "identifier": "false"
+                }
+            ]
+        },
+        "trans": {
+            "identifier": {
+                "symbol": "="
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "let",
+                        "binders": [
+                            {
+                                "symbol": "DISJ",
+                                "term": {
+                                    "identifier": {
+                                        "symbol": "or"
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": "a"
+                                        },
+                                        {
+                                            "identifier": "b"
+                                        }
+                                    ]
+                                }
+                            }
+                        ]
+                    },
+                    "args": [
+                        {
+                            "identifier": "DISJ"
+                        }
+                    ]
+                },
+                {
+                    "identifier": "true"
+                }
+            ]
+        },
+        "inv": {
+            "identifier": {
+                "symbol": "and"
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": {
+                                "symbol": "let",
+                                "binders": [
+                                    {
+                                        "symbol": "XOR",
+                                        "term": {
+                                            "identifier": {
+                                                "symbol": "xor"
+                                            },
+                                            "args": [
+                                                {
+                                                    "identifier": "a"
+                                                },
+                                                {
+                                                    "identifier": "b"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                ]
+                            },
+                            "args": [
+                                {
+                                    "identifier": "XOR"
+                                }
+                            ]
+                        },
+                        {
+                            "identifier": "true"
+                        }
+                    ]
+                },
+                {
+                    "identifier": {
+                        "symbol": "and"
+                    },
+                    "args": [
+                        {
+                            "identifier": {
+                                "symbol": "="
+                            },
+                            "args": [
+                                {
+                                    "identifier": {
+                                        "symbol": "into"
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": {
+                                                "symbol": "out"
+                                            },
+                                            "args": [
+                                                {
+                                                    "identifier": "w"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "identifier": "w"
+                                }
+                            ]
+                        },
+                        {
+                            "identifier": {
+                                "symbol": "="
+                            },
+                            "args": [
+                                {
+                                    "identifier": {
+                                        "symbol": "out"
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": {
+                                                "symbol": "into"
+                                            },
+                                            "args": [
+                                                {
+                                                    "identifier": "b2"
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "identifier": "b2"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        "subsys": []
+    }
+]

@@ -1,0 +1,210 @@
+[
+    {
+        "command": "set-logic",
+        "logic": "QF_ABV"
+    },
+    {
+        "command": "define-system",
+        "symbol": "main",
+        "input": [],
+        "output": [
+            {
+                "symbol": "foo11",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "foo21",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "foo31",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "bar11",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "bar21",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "bar31",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "foo12",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "foo22",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "foo32",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "bar12",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "bar22",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            },
+            {
+                "symbol": "bar32",
+                "sort": {
+                    "identifier": {
+                        "symbol": "Bool"
+                    }
+                }
+            }
+        ],
+        "local": [],
+        "init": {
+            "identifier": {
+                "symbol": "and"
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "foo12"
+                        },
+                        {
+                            "identifier": "bar12"
+                        }
+                    ]
+                },
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "foo11"
+                        },
+                        {
+                            "identifier": "bar11"
+                        }
+                    ]
+                }
+            ]
+        },
+        "trans": {
+            "identifier": {
+                "symbol": "and"
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "foo22'"
+                        },
+                        {
+                            "identifier": "bar22"
+                        }
+                    ]
+                },
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "foo21'"
+                        },
+                        {
+                            "identifier": "bar21"
+                        }
+                    ]
+                }
+            ]
+        },
+        "inv": {
+            "identifier": {
+                "symbol": "and"
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "foo32"
+                        },
+                        {
+                            "identifier": "bar32"
+                        }
+                    ]
+                },
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "foo3"
+                        },
+                        {
+                            "identifier": "bar31"
+                        }
+                    ]
+                }
+            ]
+        },
+        "subsys": []
+    }
+]

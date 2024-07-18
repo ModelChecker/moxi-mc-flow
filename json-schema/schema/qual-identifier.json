@@ -1,0 +1,20 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "qual-identifier.json",
+    "title": "Qualified Identifier",
+    "description": "Qualified MoXI Identifiers",
+    "type": "object",
+    "properties": {
+        "qualifier": {
+            "const": "as"
+        },
+        "symbol": {
+            "type": "string"
+        },
+        "sort": {
+            "$ref": "sort.json"
+        }
+    },
+    "required": ["qualifier", "symbol", "sort"],
+    "additionalProperties": false
+}

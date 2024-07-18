@@ -74,7 +74,7 @@ def debug(
     formatted_message = format(
         message, "DEBUG", Color.OKBLUE, module, location
     )
-    sys.stdout.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def info(
@@ -85,7 +85,7 @@ def info(
     if enable_quiet:
         return
     formatted_message = format(message, "INFO", None, module, location)
-    sys.stdout.write(formatted_message)
+    sys.stderr.write(formatted_message)
 
 
 def warning(

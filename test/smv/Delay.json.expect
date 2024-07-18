@@ -1,0 +1,269 @@
+[
+    {
+        "command": "set-logic",
+        "logic": "QF_ABV"
+    },
+    {
+        "command": "define-system",
+        "symbol": "Delay",
+        "input": [
+            {
+                "symbol": "i",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "o",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            }
+        ],
+        "output": [],
+        "local": [],
+        "init": {
+            "identifier": {
+                "symbol": "="
+            },
+            "args": [
+                {
+                    "identifier": "o"
+                },
+                {
+                    "identifier": "#b00000000"
+                }
+            ]
+        },
+        "trans": {
+            "identifier": {
+                "symbol": "="
+            },
+            "args": [
+                {
+                    "identifier": "o'"
+                },
+                {
+                    "identifier": "i"
+                }
+            ]
+        },
+        "inv": {
+            "identifier": "true"
+        },
+        "subsys": []
+    },
+    {
+        "command": "define-system",
+        "symbol": "main",
+        "input": [
+            {
+                "symbol": "i",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            }
+        ],
+        "output": [
+            {
+                "symbol": "o",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            }
+        ],
+        "local": [
+            {
+                "symbol": "D.i",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "D.o",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            }
+        ],
+        "init": {
+            "identifier": "true"
+        },
+        "trans": {
+            "identifier": "true"
+        },
+        "inv": {
+            "identifier": {
+                "symbol": "and"
+            },
+            "args": [
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "D.i"
+                        },
+                        {
+                            "identifier": "i"
+                        }
+                    ]
+                },
+                {
+                    "identifier": {
+                        "symbol": "="
+                    },
+                    "args": [
+                        {
+                            "identifier": "D.o"
+                        },
+                        {
+                            "identifier": "o"
+                        }
+                    ]
+                }
+            ]
+        },
+        "subsys": [
+            {
+                "symbol": "D",
+                "target": {
+                    "symbol": "Delay",
+                    "arguments": [
+                        "D.i",
+                        "D.o"
+                    ]
+                }
+            }
+        ]
+    },
+    {
+        "command": "check-system",
+        "symbol": "main",
+        "input": [
+            {
+                "symbol": "i",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            }
+        ],
+        "output": [
+            {
+                "symbol": "o",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            }
+        ],
+        "local": [
+            {
+                "symbol": "D.i",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            },
+            {
+                "symbol": "D.o",
+                "sort": {
+                    "identifier": {
+                        "symbol": "BitVec",
+                        "indices": [
+                            8
+                        ]
+                    }
+                }
+            }
+        ],
+        "assumption": [],
+        "fairness": [],
+        "reachable": [
+            {
+                "symbol": "rch_1",
+                "formula": {
+                    "identifier": {
+                        "symbol": "not"
+                    },
+                    "args": [
+                        {
+                            "identifier": {
+                                "symbol": "not"
+                            },
+                            "args": [
+                                {
+                                    "identifier": {
+                                        "symbol": "="
+                                    },
+                                    "args": [
+                                        {
+                                            "identifier": "o"
+                                        },
+                                        {
+                                            "identifier": "#b00000010"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            }
+        ],
+        "current": [],
+        "query": [
+            {
+                "symbol": "qry_rch_1",
+                "formulas": [
+                    "rch_1"
+                ]
+            }
+        ],
+        "queries": []
+    }
+]
