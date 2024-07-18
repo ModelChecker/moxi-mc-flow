@@ -83,7 +83,7 @@ def main(
             if smv2moxi.translate_file(input_path, moxi_path, do_cpp):
                 return FAIL
 
-            if moxi2json.main(moxi_path, output_path, False, False):
+            if moxi2json.main(moxi_path, output_path, False):
                 return FAIL
 
             if keep:
@@ -138,7 +138,7 @@ def main(
                 with open(str(keep), "w") as f:
                     f.write(str(moxi_program))
         case (".moxi", "moxi-json"):
-            if moxi2json.main(input_path, output_path, False, False):
+            if moxi2json.main(input_path, output_path, False):
                 return FAIL
         case (".moxi", "btor2"):
             if moxi2btor.translate_file(input_path, output_path, JSON_SCHEMA, int_width, do_pickle):

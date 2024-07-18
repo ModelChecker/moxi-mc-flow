@@ -113,7 +113,7 @@ class Lexer(sly.Lexer):
 
 
     # primitives
-    IDENT = r'[a-zA-Z_][a-zA-Z_0-9#$]*'
+    IDENT = r'[a-zA-Z_][a-zA-Z_0-9#$]*|"[^\\"]*"'
 
     # main keywords
     IDENT["MODULE"] = SMV_MODULE

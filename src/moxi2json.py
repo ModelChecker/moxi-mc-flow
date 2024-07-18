@@ -1,12 +1,13 @@
 import json
 import pathlib
+import sys
 
 from src import moxi, parse_moxi, log
 
 FILE_NAME = pathlib.Path(__file__).name
 
 def main(
-    input_path: pathlib.Path, output_path: pathlib.Path, do_sort_check: bool, do_pretty: bool
+    input_path: pathlib.Path, output_path: pathlib.Path, do_sort_check: bool, do_pretty: bool = True
 ) -> int:
     if not input_path.is_file():
         log.error(f"'{input_path}' is not a valid file.", FILE_NAME)
@@ -29,5 +30,11 @@ def main(
             return 2
 
     with open(output_path, "w") as f:
-        json.dump(program.to_json(), f, indent=4 if do_pretty else None)
-        return 0
+        try:
+            json.dump(program.to_json(), f, indent=4 if do_pretty else None)
+            return 0
+        except RecursionError:
+            sys.setrecursionlimit(20_000)
+            json.dump(program.to_json(), f, indent=4 if do_pretty else None)
+            return 0
+

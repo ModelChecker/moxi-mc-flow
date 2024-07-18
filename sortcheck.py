@@ -21,7 +21,7 @@ def main(input_path: pathlib.Path, echo: bool) -> int:
     if input_path.suffix == ".moxi":
         program = parse_moxi.parse(input_path)
     elif input_path.suffix == ".json":
-        with open(input_path, "r") as file:
+        with open(input_path, "rb") as file:
             contents = json.load(file)
             program = json2moxi.from_json(JSON_SCHEMA, contents)
     else:

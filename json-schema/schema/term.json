@@ -1,21 +1,23 @@
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "expr.json",
-    "title": "Expression",
-    "description": "MoXI Expressions",
+    "$id": "term.json",
+    "title": "Term",
+    "description": "MoXI Terms",
     "type": "object",
     "properties": {
         "identifier": {
             "oneOf": [
                 { "type": "string" },
                 { "type": "integer" },
-                { "$ref": "identifier.json" }
+                { "$ref": "identifier.json" },
+                { "$ref": "qual-identifier.json" },
+                { "$ref": "let.json" }
             ]
         },
         "args": {
             "type": "array",
             "items": {
-                "$ref": "expr.json"
+                "$ref": "term.json"
             }
         }
     },

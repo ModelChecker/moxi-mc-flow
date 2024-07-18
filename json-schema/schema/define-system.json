@@ -29,15 +29,15 @@
         },
         "init": { 
             "description": "Initial states",
-            "$ref": "expr.json" 
+            "$ref": "term.json" 
         },
         "trans": { 
             "description": "Transitions between states",
-            "$ref": "expr.json" 
+            "$ref": "term.json" 
         },
         "inv": { 
             "description": "Invariants on states",
-            "$ref": "expr.json" 
+            "$ref": "term.json" 
         },
         "subsys": {
             "description": "Subsystem instantiations",

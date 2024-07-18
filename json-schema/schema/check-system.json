@@ -34,7 +34,7 @@
                 "type": "object",
                 "properties": {
                     "symbol": { "type": "string" },
-                    "formula": { "$ref": "expr.json" }
+                    "formula": { "$ref": "term.json" }
                 }
             }
         },
@@ -45,7 +45,7 @@
                 "type": "object",
                 "properties": {
                     "symbol": { "type": "string" },
-                    "formula": { "$ref": "expr.json" }
+                    "formula": { "$ref": "term.json" }
                 }
             }
         },
@@ -56,7 +56,7 @@
                 "type": "object",
                 "properties": {
                     "symbol": { "type": "string" },
-                    "formula": { "$ref": "expr.json" }
+                    "formula": { "$ref": "term.json" }
                 }
             }
         },
@@ -67,7 +67,7 @@
                 "type": "object",
                 "properties": {
                     "symbol": { "type": "string" },
-                    "formula": { "$ref": "expr.json" }
+                    "formula": { "$ref": "term.json" }
                 }
             }
         },
