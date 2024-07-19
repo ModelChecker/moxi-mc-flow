@@ -64,14 +64,31 @@ def main(
     do_cpp: bool,
     with_lets: bool,
     int_width: int,
+    overwrite: bool,
 ) -> int:
     if not input_path.is_file():
         log.error(f"Source is not a file ({input_path})", FILE_NAME)
         return 1
     
     if keep and keep.exists():
-        log.error(f"Output location already exists ({keep})", FILE_NAME)
-        return 1
+        if not overwrite:
+            log.error(f"Output location already exists ({keep})", FILE_NAME)
+            return 1
+        
+        if keep.is_file():
+            keep.unlink()
+        elif keep.is_dir():
+            shutil.rmtree(keep)
+
+    if output_path.exists():
+        if not overwrite:
+            log.error(f"Output location already exists ({output_path})", FILE_NAME)
+            return 1
+        
+        if output_path.is_file():
+            output_path.unlink()
+        elif output_path.is_dir():
+            shutil.rmtree(output_path)
 
     match (input_path.suffix, target_lang):
         case (".smv", "moxi"):
@@ -156,7 +173,7 @@ def main(
                 return FAIL
 
             if keep:
-                moxi_path.rename(keep)
+                shutil.copy(moxi_path, keep)
         case _:
             log.error(
                 f"Translation unsupported: {input_path.suffix} to {target_lang}",
@@ -192,6 +209,7 @@ if __name__ == "__main__":
         help="target location; should be a directory if targetlang is 'btor2', a filename otherwise",
     )
     parser.add_argument("--keep", help="path to write intermediate translation file(s)")
+    parser.add_argument("--overwrite", action="store_true", help="allow overwriting of output file(s)")
     parser.add_argument(
         "--validate",
         action="store_true",
@@ -285,5 +303,6 @@ if __name__ == "__main__":
             args.cpp,
             args.with_lets,
             args.intwidth,
+            args.overwrite
         )
     sys.exit(returncode)

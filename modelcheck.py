@@ -194,6 +194,7 @@ def model_check(
     kind: bool,
     cpp: bool,
     debug: int,
+    overwrite: bool,
 ) -> int:
     # TODO: btorsim may be useful for getting full witnesses -- as is it actually
     # does not output valid witness output (header is missing), so we don't use it.
@@ -203,8 +204,14 @@ def model_check(
         return 1
 
     if (copyback or witness) and output_path.exists():
-        log.error(f"Output path '{output_path}' already exists.", FILE_NAME)
-        return 1
+        if not overwrite:
+            log.error(f"Output path '{output_path}' already exists.", FILE_NAME)
+            return 1
+    
+        if output_path.is_file():
+            output_path.unlink()
+        elif output_path.is_dir():
+            shutil.rmtree(output_path)
     
     src_path = workdir / input_path.name
     btor2_output_path = workdir / "btor2" 
@@ -353,6 +360,8 @@ if __name__ == "__main__":
         type=int,
         help="set debug level (0=none, 1=basic, 2=extra)",
     )
+    parser.add_argument("--overwrite", action="store_true", 
+        help="enable overwriting of output location")
     args = parser.parse_args()
 
     log.set_debug_level(args.debug)
@@ -394,7 +403,8 @@ if __name__ == "__main__":
             kmax=args.kmax,
             kind=args.kind,
             cpp=args.cpp,
-            debug=args.debug
+            debug=args.debug,
+            overwrite=args.overwrite
         )
 
     sys.exit(retcode)
