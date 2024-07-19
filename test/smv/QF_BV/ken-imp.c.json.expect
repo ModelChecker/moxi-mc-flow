@@ -8,7 +8,7 @@
         "symbol": "main",
         "input": [
             {
-                "symbol": "__NONDET_INLINE_INIT__2__4_dollar_main#0",
+                "symbol": "|__NONDET_INLINE_INIT__2__4$main#0|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -19,7 +19,7 @@
                 }
             },
             {
-                "symbol": "__NONDET_INLINE_INIT__4__5_dollar_main#1",
+                "symbol": "|__NONDET_INLINE_INIT__4__5$main#1|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -32,7 +32,7 @@
         ],
         "output": [
             {
-                "symbol": "_PC_dot_0",
+                "symbol": "|_PC.0|",
                 "sort": {
                     "identifier": {
                         "symbol": "Bool"
@@ -40,7 +40,7 @@
                 }
             },
             {
-                "symbol": "_PC_dot_1",
+                "symbol": "|_PC.1|",
                 "sort": {
                     "identifier": {
                         "symbol": "Bool"
@@ -48,7 +48,7 @@
                 }
             },
             {
-                "symbol": "_PC_dot_2",
+                "symbol": "|_PC.2|",
                 "sort": {
                     "identifier": {
                         "symbol": "Bool"
@@ -56,7 +56,7 @@
                 }
             },
             {
-                "symbol": "__RET___dollar_main",
+                "symbol": "|__RET__$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -67,7 +67,7 @@
                 }
             },
             {
-                "symbol": "i__1_dollar_main",
+                "symbol": "|i__1$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -78,7 +78,7 @@
                 }
             },
             {
-                "symbol": "j__3_dollar_main",
+                "symbol": "|j__3$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -89,7 +89,7 @@
                 }
             },
             {
-                "symbol": "x__5_dollar_main",
+                "symbol": "|x__5$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -100,7 +100,7 @@
                 }
             },
             {
-                "symbol": "y__7_dollar_main",
+                "symbol": "|y__7$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -124,7 +124,7 @@
                             },
                             "args": [
                                 {
-                                    "identifier": "_PC_dot_0"
+                                    "identifier": "|_PC.0|"
                                 }
                             ]
                         }
@@ -144,7 +144,7 @@
                                     },
                                     "args": [
                                         {
-                                            "identifier": "_PC_dot_1"
+                                            "identifier": "|_PC.1|"
                                         }
                                     ]
                                 }
@@ -187,7 +187,7 @@
                                                     },
                                                     "args": [
                                                         {
-                                                            "identifier": "_PC_dot_2"
+                                                            "identifier": "|_PC.2|"
                                                         }
                                                     ]
                                                 }
@@ -243,10 +243,10 @@
                             },
                             "args": [
                                 {
-                                    "identifier": "i__1_dollar_main'"
+                                    "identifier": "|i__1$main|'"
                                 },
                                 {
-                                    "identifier": "__NONDET_INLINE_INIT__2__4_dollar_main#0"
+                                    "identifier": "|__NONDET_INLINE_INIT__2__4$main#0|"
                                 }
                             ]
                         }
@@ -266,10 +266,10 @@
                                     },
                                     "args": [
                                         {
-                                            "identifier": "j__3_dollar_main'"
+                                            "identifier": "|j__3$main|'"
                                         },
                                         {
-                                            "identifier": "__NONDET_INLINE_INIT__4__5_dollar_main#1"
+                                            "identifier": "|__NONDET_INLINE_INIT__4__5$main#1|"
                                         }
                                     ]
                                 }
@@ -312,10 +312,10 @@
                                                     },
                                                     "args": [
                                                         {
-                                                            "identifier": "x__5_dollar_main'"
+                                                            "identifier": "|x__5$main|'"
                                                         },
                                                         {
-                                                            "identifier": "i__1_dollar_main'"
+                                                            "identifier": "|i__1$main|'"
                                                         }
                                                     ]
                                                 }
@@ -358,10 +358,10 @@
                                                                     },
                                                                     "args": [
                                                                         {
-                                                                            "identifier": "j__3_dollar_main'"
+                                                                            "identifier": "|j__3$main|'"
                                                                         },
                                                                         {
-                                                                            "identifier": "y__7_dollar_main'"
+                                                                            "identifier": "|y__7$main|'"
                                                                         }
                                                                     ]
                                                                 }
@@ -404,10 +404,10 @@
                                                                                     },
                                                                                     "args": [
                                                                                         {
-                                                                                            "identifier": "__RET___dollar_main"
+                                                                                            "identifier": "|__RET__$main|"
                                                                                         },
                                                                                         {
-                                                                                            "identifier": "__RET___dollar_main'"
+                                                                                            "identifier": "|__RET__$main|'"
                                                                                         }
                                                                                     ]
                                                                                 }
@@ -450,7 +450,7 @@
                                                                                                     },
                                                                                                     "args": [
                                                                                                         {
-                                                                                                            "identifier": "_PC_dot_2'"
+                                                                                                            "identifier": "|_PC.2|'"
                                                                                                         }
                                                                                                     ]
                                                                                                 }
@@ -470,7 +470,7 @@
                                                                                                             },
                                                                                                             "args": [
                                                                                                                 {
-                                                                                                                    "identifier": "_PC_dot_1'"
+                                                                                                                    "identifier": "|_PC.1|'"
                                                                                                                 }
                                                                                                             ]
                                                                                                         }
@@ -493,7 +493,7 @@
                                                                                                                             "identifier": "__expr16"
                                                                                                                         },
                                                                                                                         {
-                                                                                                                            "identifier": "_PC_dot_0'"
+                                                                                                                            "identifier": "|_PC.0|'"
                                                                                                                         }
                                                                                                                     ]
                                                                                                                 }
@@ -559,7 +559,7 @@
                                                                                                                                             },
                                                                                                                                             "args": [
                                                                                                                                                 {
-                                                                                                                                                    "identifier": "_PC_dot_0"
+                                                                                                                                                    "identifier": "|_PC.0|"
                                                                                                                                                 }
                                                                                                                                             ]
                                                                                                                                         }
@@ -579,7 +579,7 @@
                                                                                                                                                     },
                                                                                                                                                     "args": [
                                                                                                                                                         {
-                                                                                                                                                            "identifier": "_PC_dot_1"
+                                                                                                                                                            "identifier": "|_PC.1|"
                                                                                                                                                         }
                                                                                                                                                     ]
                                                                                                                                                 }
@@ -622,7 +622,7 @@
                                                                                                                                                                     },
                                                                                                                                                                     "args": [
                                                                                                                                                                         {
-                                                                                                                                                                            "identifier": "_PC_dot_2"
+                                                                                                                                                                            "identifier": "|_PC.2|"
                                                                                                                                                                         }
                                                                                                                                                                     ]
                                                                                                                                                                 }
@@ -691,7 +691,7 @@
                                                                                                                                                                                                     "identifier": "__expr2"
                                                                                                                                                                                                 },
                                                                                                                                                                                                 {
-                                                                                                                                                                                                    "identifier": "_PC_dot_0"
+                                                                                                                                                                                                    "identifier": "|_PC.0|"
                                                                                                                                                                                                 }
                                                                                                                                                                                             ]
                                                                                                                                                                                         }
@@ -734,10 +734,10 @@
                                                                                                                                                                                                             },
                                                                                                                                                                                                             "args": [
                                                                                                                                                                                                                 {
-                                                                                                                                                                                                                    "identifier": "i__1_dollar_main'"
+                                                                                                                                                                                                                    "identifier": "|i__1$main|'"
                                                                                                                                                                                                                 },
                                                                                                                                                                                                                 {
-                                                                                                                                                                                                                    "identifier": "i__1_dollar_main"
+                                                                                                                                                                                                                    "identifier": "|i__1$main|"
                                                                                                                                                                                                                 }
                                                                                                                                                                                                             ]
                                                                                                                                                                                                         }
@@ -760,7 +760,7 @@
                                                                                                                                                                                                                             "identifier": "#b11111111111111111111111111111111"
                                                                                                                                                                                                                         },
                                                                                                                                                                                                                         {
-                                                                                                                                                                                                                            "identifier": "x__5_dollar_main"
+                                                                                                                                                                                                                            "identifier": "|x__5$main|"
                                                                                                                                                                                                                         }
                                                                                                                                                                                                                     ]
                                                                                                                                                                                                                 }
@@ -783,7 +783,7 @@
                                                                                                                                                                                                                                     "identifier": "__expr24"
                                                                                                                                                                                                                                 },
                                                                                                                                                                                                                                 {
-                                                                                                                                                                                                                                    "identifier": "x__5_dollar_main'"
+                                                                                                                                                                                                                                    "identifier": "|x__5$main|'"
                                                                                                                                                                                                                                 }
                                                                                                                                                                                                                             ]
                                                                                                                                                                                                                         }
@@ -803,7 +803,7 @@
                                                                                                                                                                                                                                     },
                                                                                                                                                                                                                                     "args": [
                                                                                                                                                                                                                                         {
-                                                                                                                                                                                                                                            "identifier": "x__5_dollar_main"
+                                                                                                                                                                                                                                            "identifier": "|x__5$main|"
                                                                                                                                                                                                                                         },
                                                                                                                                                                                                                                         {
                                                                                                                                                                                                                                             "identifier": "#b00000000000000000000000000000000"
@@ -872,7 +872,7 @@
                                                                                                                                                                                                                                                                     "identifier": "#b11111111111111111111111111111111"
                                                                                                                                                                                                                                                                 },
                                                                                                                                                                                                                                                                 {
-                                                                                                                                                                                                                                                                    "identifier": "y__7_dollar_main"
+                                                                                                                                                                                                                                                                    "identifier": "|y__7$main|"
                                                                                                                                                                                                                                                                 }
                                                                                                                                                                                                                                                             ]
                                                                                                                                                                                                                                                         }
@@ -895,7 +895,7 @@
                                                                                                                                                                                                                                                                             "identifier": "__expr29"
                                                                                                                                                                                                                                                                         },
                                                                                                                                                                                                                                                                         {
-                                                                                                                                                                                                                                                                            "identifier": "y__7_dollar_main'"
+                                                                                                                                                                                                                                                                            "identifier": "|y__7$main|'"
                                                                                                                                                                                                                                                                         }
                                                                                                                                                                                                                                                                     ]
                                                                                                                                                                                                                                                                 }
@@ -938,10 +938,10 @@
                                                                                                                                                                                                                                                                                     },
                                                                                                                                                                                                                                                                                     "args": [
                                                                                                                                                                                                                                                                                         {
-                                                                                                                                                                                                                                                                                            "identifier": "j__3_dollar_main'"
+                                                                                                                                                                                                                                                                                            "identifier": "|j__3$main|'"
                                                                                                                                                                                                                                                                                         },
                                                                                                                                                                                                                                                                                         {
-                                                                                                                                                                                                                                                                                            "identifier": "j__3_dollar_main"
+                                                                                                                                                                                                                                                                                            "identifier": "|j__3$main|"
                                                                                                                                                                                                                                                                                         }
                                                                                                                                                                                                                                                                                     ]
                                                                                                                                                                                                                                                                                 }
@@ -1176,7 +1176,7 @@
         "symbol": "main",
         "input": [
             {
-                "symbol": "__NONDET_INLINE_INIT__2__4_dollar_main#0",
+                "symbol": "|__NONDET_INLINE_INIT__2__4$main#0|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -1187,7 +1187,7 @@
                 }
             },
             {
-                "symbol": "__NONDET_INLINE_INIT__4__5_dollar_main#1",
+                "symbol": "|__NONDET_INLINE_INIT__4__5$main#1|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -1200,7 +1200,7 @@
         ],
         "output": [
             {
-                "symbol": "_PC_dot_0",
+                "symbol": "|_PC.0|",
                 "sort": {
                     "identifier": {
                         "symbol": "Bool"
@@ -1208,7 +1208,7 @@
                 }
             },
             {
-                "symbol": "_PC_dot_1",
+                "symbol": "|_PC.1|",
                 "sort": {
                     "identifier": {
                         "symbol": "Bool"
@@ -1216,7 +1216,7 @@
                 }
             },
             {
-                "symbol": "_PC_dot_2",
+                "symbol": "|_PC.2|",
                 "sort": {
                     "identifier": {
                         "symbol": "Bool"
@@ -1224,7 +1224,7 @@
                 }
             },
             {
-                "symbol": "__RET___dollar_main",
+                "symbol": "|__RET__$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -1235,7 +1235,7 @@
                 }
             },
             {
-                "symbol": "i__1_dollar_main",
+                "symbol": "|i__1$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -1246,7 +1246,7 @@
                 }
             },
             {
-                "symbol": "j__3_dollar_main",
+                "symbol": "|j__3$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -1257,7 +1257,7 @@
                 }
             },
             {
-                "symbol": "x__5_dollar_main",
+                "symbol": "|x__5$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -1268,7 +1268,7 @@
                 }
             },
             {
-                "symbol": "y__7_dollar_main",
+                "symbol": "|y__7$main|",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -1302,10 +1302,10 @@
                                             },
                                             "args": [
                                                 {
-                                                    "identifier": "_PC_dot_1"
+                                                    "identifier": "|_PC.1|"
                                                 },
                                                 {
-                                                    "identifier": "_PC_dot_0"
+                                                    "identifier": "|_PC.0|"
                                                 }
                                             ]
                                         }
@@ -1325,7 +1325,7 @@
                                                     },
                                                     "args": [
                                                         {
-                                                            "identifier": "_PC_dot_2"
+                                                            "identifier": "|_PC.2|"
                                                         }
                                                     ]
                                                 }
