@@ -42,7 +42,9 @@ def handle_variables(content: str):
     line_no = 0
     for line in content.splitlines():
         line_no += 1
-        if line.rstrip() in section_kws:
+        if len(line) < 1:
+            continue
+        if line.split()[0].rstrip() in section_kws:
             var_decl = False
         if line.rstrip() in var_kws:  # at variable declaration site!
             var_decl = True
@@ -65,6 +67,8 @@ def handle_variables(content: str):
                     .replace("$", "\\$")
                     .replace("[", "\\[")
                     .replace("]", "\\]")
+                    .replace("(", "\\(")
+                    .replace(")", "\\)")
                     .replace(r"\\", "\\\\")
                 )
                 ret_fc = re.sub(

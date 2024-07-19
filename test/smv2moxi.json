@@ -41,6 +41,14 @@
                 ["smv/QF_BV/ken-imp.c.moxi.expect",
                  "smv/QF_BV/ken-imp.c.moxi"]
             ]
+        },
+        {
+            "input": "smv/QF_ABV/two_p2.expanded.smv",
+            "output": "smv/QF_ABV/two_p2.expanded.moxi",
+            "expected_output": [
+                ["smv/QF_ABV/two_p2.expanded.moxi.expect",
+                 "smv/QF_ABV/two_p2.expanded.moxi"]
+            ]
         }
     ] 
 }
