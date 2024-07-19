@@ -370,12 +370,12 @@ def to_btor2_annotations(
     context: moxi.Context,
     var_map: VarMap,
 ) -> list[btor.BtorNode]:
-    """Returns a list of `btor.BtorNode`s that define annotations for a BTOR2 program that are necessary for the translation of BTOR2 witnesses to moxi. witnesses.
+    """Returns a list of `btor.BtorNode`s that define annotations for a BTOR2 program that are necessary for the translation of BTOR2 witnesses to MoXI witnesses.
 
     1. Annotates enumeration-sorted variables with an `E` and the list of their potential values.
     2. Annotates array-sorted variables with an `A`and their index/element sorts.
-    3. Annotates input variables with an `I`, since moxi. allows for primed inputs in certain spots (i.e., we can't use `btor.BtorInputVar`s in our translation). Only variables of `check` can be inputs.
-    4. Annotates Boolean variables with a `B`, moxi. since distinguishes between Booleans and bit vectors of length 1 and BTOR2 does not.
+    3. Annotates input variables with an `I`, since MoXI allows for primed inputs in certain spots (i.e., we can't use `btor.BtorInputVar`s in our translation). Only variables of `check` can be inputs.
+    4. Annotates Boolean variables with a `B`, since MoXI distinguishes between Booleans and bit vectors of length 1 and BTOR2 does not.
     """
     btor2_annotations: list[btor.BtorNode] = []
     handled: set[tuple[str,str]] = set()
@@ -392,9 +392,9 @@ def to_btor2_annotations(
         
         # Note: var_map may have repeat values (i.e., renamed variables point to
         # same btor.Btor variables)
-        if (var_symbol, system.symbol) in handled:
+        if (cur.symbol, system.symbol) in handled:
             continue
-        handled.add((var_symbol, system.symbol))
+        handled.add((cur.symbol, system.symbol))
 
         sort = system.get_sort(var_symbol)
         if not sort and cur in const_vars:
@@ -436,7 +436,7 @@ def to_btor2_annotations(
             sort_comment.set_comment_no_space(sort_encoding)
             btor2_annotations.append(sort_comment)
 
-        # Add Bool var symbols. moxi. distinguishes between Bool and bit vectors of
+        # Add Bool var symbols. MoXI distinguishes between Bool and bit vectors of
         # length 1, BTOR2 does not.
         if moxi.is_bool_sort(sort):
             bool_encoding = f"B {cur.with_no_suffix()}"
@@ -444,7 +444,7 @@ def to_btor2_annotations(
             sort_comment.set_comment_no_space(bool_encoding)
             btor2_annotations.append(sort_comment)
 
-        # Add input var symbols. moxi. allows for primed inputs in certain spots,
+        # Add input var symbols. MoXI allows for primed inputs in certain spots,
         # so we can't use btor.BtorInputVar in our translation. Only use vars in
         # `check`, all others are mapped to other vars or are locals.
         top_level_system = sys_ctx.get_bottom()
@@ -464,7 +464,7 @@ def to_btor2_annotations(
 def to_btor2_const_arrays(
     context: moxi.Context, sort_map: SortMap, var_map: VarMap, expr_map: ExprMap
 ) -> list[btor.BtorNode]:
-    """Returns a list of `btor.BtorNode`s that defines all constant arrays that are present in `context.const_arrays`. BTOR2 supports initializing array-sorted variables with bit-vectors. Each `(as const (Array X Y) val)` moxi. expression translates to a variable `Array_bv_X_Y_val` where `init(Array_bv_X_Y_val) = val` and `next(Array_bv_X_Y_val) = Array_bv_X_Y_val`."""
+    """Returns a list of `btor.BtorNode`s that defines all constant arrays that are present in `context.const_arrays`. BTOR2 supports initializing array-sorted variables with bit-vectors. Each `(as const (Array X Y) val)` MoXI expression translates to a variable `Array_bv_X_Y_val` where `init(Array_bv_X_Y_val) = val` and `next(Array_bv_X_Y_val) = Array_bv_X_Y_val`."""
     btor2_const_arrays: list[btor.BtorNode] = []
 
     for sort, val, expr in context.const_arrays:
@@ -572,7 +572,7 @@ def to_btor2_reach_properties(
     """Returns a list of `btor.BtorNode`s corresponding to the set of `reachable` formulas in `query`.
 
     In BTOR2, multiple bad properties asks for a trace that satisfies at
-    least one bad property. In moxi., multiple `:reach` properties asks for a
+    least one bad property. In MoXI, multiple `:reach` properties asks for a
     trace that eventually satisfies every property listed.
 
     To solve this, we introduce a flag for each `:reach` property that
