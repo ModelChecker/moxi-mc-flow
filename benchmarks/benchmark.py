@@ -11,7 +11,6 @@ import argparse
 import sys
 import subprocess
 import time
-import shutil
 
 from typing import Optional
 
@@ -23,7 +22,6 @@ nuxmv_path = FILE_DIR / ".." / ".." / "nuXmv"
 modelcheck_path = FILE_DIR / ".." / "modelcheck.py"
 timeout: int = 3600
 results_path = ""
-workdir = ""
 
 
 def run_nuxmv(cmd: list[str]):
@@ -92,10 +90,6 @@ def run_modelcheck(cmd: list[str]):
 
 
 def benchmark(modelchecker: str, algorithm: str, nprocs: Optional[int]) -> int:
-    workdir_path = pathlib.Path(workdir)
-    if not workdir_path.exists():
-        pathlib.Path(workdir).mkdir()
-
     if modelchecker == "nuxmv":
         args = [
             [
@@ -119,7 +113,6 @@ def benchmark(modelchecker: str, algorithm: str, nprocs: Optional[int]) -> int:
                 "python3", str(modelcheck_path), 
                 str(file), "btormc",
                 "--no-witness", "--quiet",
-                "--workdir", workdir,
                 "--timeout", str(timeout)
             ]
             for file in FILE_DIR.rglob("*.smv")
@@ -134,7 +127,6 @@ def benchmark(modelchecker: str, algorithm: str, nprocs: Optional[int]) -> int:
                 "python3", str(modelcheck_path), 
                 str(file), "avr",
                 "--no-witness", "--quiet",
-                "--workdir", workdir,
                 "--timeout", str(timeout)
             ] + (["--kind"] if algorithm == "kind" else [])
             for file in FILE_DIR.rglob("*.smv")
@@ -149,7 +141,6 @@ def benchmark(modelchecker: str, algorithm: str, nprocs: Optional[int]) -> int:
                 "python3", str(modelcheck_path), 
                 str(file), "pono", 
                 "--no-witness", "--quiet",
-                "--workdir", workdir,
                 "--timeout", str(timeout)
             ] + (["--kind"] if algorithm == "kind" else [])
             for file in FILE_DIR.rglob("*.smv")
@@ -162,8 +153,6 @@ def benchmark(modelchecker: str, algorithm: str, nprocs: Optional[int]) -> int:
         print("model checker not recognized")
         return 1
     
-    shutil.rmtree(workdir)
-    
     return 0
 
 if __name__ == "__main__":
@@ -175,7 +164,6 @@ if __name__ == "__main__":
         help="model checking algorithm to benchmark")
     
     parser.add_argument("--results", help="file to output results")
-    parser.add_argument("--workdir", help="directory for workdirs")
     
     parser.add_argument("--nprocs",
         help="number of processors to run with (default=MAX)")
@@ -188,11 +176,6 @@ if __name__ == "__main__":
         results_path = args.results
     else:
         results_path = f"{args.modelchecker}-{args.algorithm}.csv"
-
-    if args.workdir:
-        workdir = args.workdir
-    else:
-        workdir = "__workdir__"
 
     if args.nprocs:
         nprocs = int(args.nprocs)
