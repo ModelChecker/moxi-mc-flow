@@ -8,7 +8,7 @@ FILE_NAME = pathlib.Path(__file__).name
 
 def to_moxi_ident(smv_ident: str) -> str:
     if smv_ident[0] == '"':
-        return '|' + smv_ident[1:-1] + '|'
+        return "|" + smv_ident[1:-1] + "|"
     return smv_ident
 
 
@@ -19,7 +19,7 @@ def translate_type(smv_type: smv.Type, smv_context: smv.Context) -> moxi.Sort:
     SMV booleans/ints translate straightforwardly
     SMV real/clock unsupported
     SMV words (of width w) translate to MoXI bitvecs of width w
-    SMV arrays with element type t translate to MoXI arrays with translated element types 
+    SMV arrays with element type t translate to MoXI arrays with translated element types
     SMV module types cannot occur in general expressions
     SMV enums are handled specially (see comment) -- this is the only branch requiring the context.
     """
@@ -231,14 +231,19 @@ def translate_expr(
                         sort=moxi.Sort.Enum(context.reverse_enums[ident][0]),
                         value=ident,
                     )
-                elif module.name in context.module_params and expr.ident in context.module_params[module.name]:
+                elif (
+                    module.name in context.module_params
+                    and expr.ident in context.module_params[module.name]
+                ):
                     # print(f"{ident}: param case")
                     ttype = translate_type(
                         context.module_params[module.name][expr.ident], context
                     )
                     # print(f"assigning {expr} : {ttype}")
                     expr_map[expr] = moxi.Variable(
-                        sort=ttype, symbol=to_moxi_ident(ident), prime=context.in_next_expr
+                        sort=ttype,
+                        symbol=to_moxi_ident(ident),
+                        prime=context.in_next_expr,
                     )
                 else:
                     raise ValueError(f"Unrecognized var `{ident}`")
@@ -476,11 +481,6 @@ def gather_input(
     result: list[tuple[str, moxi.Sort]] = []
 
     for param in smv_module.parameters:
-        # v = moxi.Var(
-        #     sort=,
-        #     symbol=param.ident, # type: ignore
-        #     prime=False
-        # )
         result.append(
             (
                 to_moxi_ident(param),
@@ -488,18 +488,19 @@ def gather_input(
             )
         )
 
-    for module_element in smv_module.elements:
-        match module_element:
-            case smv.VarDeclaration(modifier="IVAR"):
-                for var_name, smv_var_type in module_element.var_list:
-                    if isinstance(smv_var_type, smv.ModuleType):
-                        continue
-
-                    result.append(
-                        (to_moxi_ident(var_name.ident), translate_type(smv_var_type, context))
-                    )
-            case _:
-                pass
+    for var_name, smv_var_type in [
+        (var_name, smv_var_type)
+        for e in smv_module.elements
+        if isinstance(e, smv.VarDeclaration)
+        for (var_name, smv_var_type) in e.var_list
+        if e.modifier == "IVAR" and not isinstance(smv_var_type, smv.ModuleType)
+    ]:
+        result.append(
+            (
+                to_moxi_ident(var_name.ident),
+                translate_type(smv_var_type, context),
+            )
+        )
 
     return result
 
@@ -513,33 +514,40 @@ def gather_local(
     -- we instead construct local variables corresponding to all of these, instantiate them accordingly, and pass them into the submodules.
     """
     result: list[tuple[str, moxi.Sort]] = []
-    for e in [e for e in smv_module.elements if isinstance(e, smv.VarDeclaration)]:
-        for var_name, smv_var_type in e.var_list:
-            if isinstance(smv_var_type, smv.ModuleType):
-                context.module_locals[var_name.ident] = []
-                # gathering submodule inputs
-                for name in context.module_params[smv_var_type.module_name]:
-                    type = context.module_params[smv_var_type.module_name][name]
-                    input_var = moxi.Variable(
-                        sort=translate_type(type, context),
-                        symbol=to_moxi_ident(var_name.ident + "." + name),
-                        prime=False,
-                    )
-                    result.append(
-                        (to_moxi_ident(var_name.ident + "." + name), translate_type(type, context))
-                    )
-                    context.module_locals[var_name.ident].append(input_var)
+    for var_name, smv_var_type in [
+        (var_name, smv_var_type)
+        for e in smv_module.elements
+        if isinstance(e, smv.VarDeclaration)
+        for var_name, smv_var_type in e.var_list
+        if isinstance(smv_var_type, smv.ModuleType)
+    ]:
+        context.module_locals[var_name.ident] = []
+        # gathering submodule inputs
+        for name in context.module_params[smv_var_type.module_name]:
+            type = context.module_params[smv_var_type.module_name][name]
+            input_var = moxi.Variable(
+                sort=translate_type(type, context),
+                symbol=to_moxi_ident(var_name.ident + "." + name),
+                prime=False,
+            )
+            result.append(
+                (
+                    to_moxi_ident(var_name.ident + "." + name),
+                    translate_type(type, context),
+                )
+            )
+            context.module_locals[var_name.ident].append(input_var)
 
-                # gathering submodule outputs
+        # gathering submodule outputs
 
-                for var_symbol, var_sort in context.outputs[smv_var_type.module_name]:
-                    local_var = moxi.Variable(
-                        sort=var_sort,
-                        symbol=to_moxi_ident(var_name.ident + "." + var_symbol),
-                        prime=False,
-                    )
-                    result.append((to_moxi_ident(var_name.ident + "." + var_symbol), var_sort))
-                    context.module_locals[var_name.ident].append(local_var)
+        for var_symbol, var_sort in context.outputs[smv_var_type.module_name]:
+            local_var = moxi.Variable(
+                sort=var_sort,
+                symbol=to_moxi_ident(var_name.ident + "." + var_symbol),
+                prime=False,
+            )
+            result.append((to_moxi_ident(var_name.ident + "." + var_symbol), var_sort))
+            context.module_locals[var_name.ident].append(local_var)
 
     # for ltlspec in [
     #     e for e in smv_module.elements if isinstance(e, smv.LTLSpecDeclaration)
@@ -559,44 +567,44 @@ def gather_output(
     """
     result: list[tuple[str, moxi.Sort]] = []
 
-    for module_element in smv_module.elements:
-        match module_element:
-            case (
-                smv.VarDeclaration(modifier="VAR")
-                | smv.VarDeclaration(modifier="FROZENVAR")
-            ):
-                for var_name, smv_var_type in module_element.var_list:
-                    match smv_var_type:
-                        case smv.Enumeration(summands=summands):
-                            if smv_var_type.is_integer():
-                                # values = {int(s) for s in expr.type.summands}
-                                # expr.type = nuxmv.Integer(values)
-                                il_type = moxi.Sort.Int()
-                            else:
-                                lsummands = list(summands)
-                                slsummands = [str(s) for s in lsummands]
+    for var_name, smv_var_type in [
+        (var_name, smv_var_type)
+        for e in smv_module.elements
+        if isinstance(e, smv.VarDeclaration)
+        for (var_name, smv_var_type) in e.var_list
+        if e.modifier == "FROZENVAR" or e.modifier == "VAR"
+    ]:
+        match smv_var_type:
+            case smv.Enumeration(summands=summands):
+                if smv_var_type.is_integer():
+                    # values = {int(s) for s in expr.type.summands}
+                    # expr.type = nuxmv.Integer(values)
+                    il_type = moxi.Sort.Int()
+                else:
+                    lsummands = list(summands)
+                    slsummands = [str(s) for s in lsummands]
 
-                                il_symbol = context.reverse_enums[slsummands[0]][0]
-                                il_type = moxi.Sort.Enum(il_symbol)
-                        case smv.ModuleType(module_name=module_name):
-                            gather_output(context.modules[module_name], context)
-                            continue
-                        case _:
-                            il_type = translate_type(smv_var_type, context)
-
-                    result.append((to_moxi_ident(var_name.ident), il_type))
-            case smv.DefineDeclaration(define_list=define_list):
-                for define in [
-                    define
-                    for define in define_list
-                    if define.name.ident in context.referenced_defs[smv_module.name]
-                ]:
-                    il_type = translate_type(
-                        context.defs[smv_module.name][define.name.ident].type, context
-                    )
-                    result.append((to_moxi_ident(define.name.ident), il_type))
+                    il_symbol = context.reverse_enums[slsummands[0]][0]
+                    il_type = moxi.Sort.Enum(il_symbol)
+            case smv.ModuleType(module_name=module_name):
+                gather_output(context.modules[module_name], context)
+                continue
             case _:
-                pass
+                il_type = translate_type(smv_var_type, context)
+
+        result.append((to_moxi_ident(var_name.ident), il_type))
+
+    for define in [
+        define
+        for e in smv_module.elements
+        if isinstance(e, smv.DefineDeclaration)
+        for define in e.define_list
+        if define.name.ident in context.referenced_defs[smv_module.name]
+    ]:
+        moxi_type = translate_type(
+            context.defs[smv_module.name][define.name.ident].type, context
+        )
+        result.append((to_moxi_ident(define.name.ident), moxi_type))
 
     context.outputs[smv_module.name] = result
 
@@ -614,7 +622,7 @@ def specialize_vars_in_expr(module_name: str, expr: moxi.Term) -> moxi.Term:
         case moxi.Variable():
             return specialize_variable(module_name, expr)
         case moxi.Apply(sort=sort, identifier=identifier, children=children):
-            schildren : list[moxi.Term] = []
+            schildren: list[moxi.Term] = []
             for child in children:
                 schildren.append(specialize_vars_in_expr(module_name, child))
             return moxi.Apply(sort=sort, identifier=identifier, children=schildren)
@@ -643,33 +651,33 @@ def gather_init(
         )
         init_list.append(expr_map[init_decl.formula])
 
-    for module_element in smv_module.elements:
-        match module_element:
-            case smv.AssignDeclaration(assign_list=al):
-                for assign_decl in al:
-                    if assign_decl.modifier == "init":
-                        translate_expr(
-                            assign_decl.lhs,
-                            context,
-                            expr_map,
-                            in_let_expr=False,
-                            module=smv_module,
-                        )
-                        translate_expr(
-                            assign_decl.rhs,
-                            context,
-                            expr_map,
-                            in_let_expr=False,
-                            module=smv_module,
-                        )
+    for assign_decl in [
+        a
+        for e in smv_module.elements
+        if isinstance(e, smv.AssignDeclaration)
+        for a in e.assign_list
+        if a.modifier == "init"
+    ]:
+        translate_expr(
+            assign_decl.lhs,
+            context,
+            expr_map,
+            in_let_expr=False,
+            module=smv_module,
+        )
+        translate_expr(
+            assign_decl.rhs,
+            context,
+            expr_map,
+            in_let_expr=False,
+            module=smv_module,
+        )
 
-                        init_expr = moxi.Apply.Eq(
-                            [expr_map[assign_decl.lhs], expr_map[assign_decl.rhs]]
-                        )
+        init_expr = moxi.Apply.Eq(
+            [expr_map[assign_decl.lhs], expr_map[assign_decl.rhs]]
+        )
 
-                        init_list.append(init_expr)
-            case _:
-                pass
+        init_list.append(init_expr)
 
     return moxi.conjoin_list(init_list)
 
@@ -696,62 +704,69 @@ def gather_trans(
         )
         trans_list.append(expr_map[trans_decl.formula])
 
-    for module_element in smv_module.elements:
-        match module_element:
-            case smv.AssignDeclaration(assign_list=al):
-                for assign_decl in al:
-                    if assign_decl.modifier == "next":
-                        translate_expr(
-                            assign_decl.rhs,
+    for assign_decl in [
+        a
+        for e in smv_module.elements
+        if isinstance(e, smv.AssignDeclaration)
+        for a in e.assign_list
+        if a.modifier == "next"
+    ]:
+        translate_expr(
+            assign_decl.rhs,
+            context,
+            expr_map,
+            in_let_expr=False,
+            module=smv_module,
+        )
+
+        if isinstance(assign_decl.lhs, smv.Identifier):
+            lhs_expr = moxi.Variable(
+                sort=translate_type(assign_decl.rhs.type, context),
+                symbol=assign_decl.lhs.ident,
+                prime=True,
+            )
+        else:
+            raise ValueError("Unsupported: next(complex_identifier)")
+
+        trans_expr = moxi.Apply.Eq([lhs_expr, expr_map[assign_decl.rhs]])
+
+        trans_list.append(trans_expr)
+
+    for var_ident in [
+        var_name.ident
+        for e in smv_module.elements
+        if isinstance(e, smv.VarDeclaration)
+        for (var_name, _) in e.var_list
+        if e.modifier == "FROZENVAR"
+    ]:
+        trans_list.append(
+            moxi.Apply.Eq(
+                [
+                    moxi.Variable(
+                        sort=translate_type(
+                            context.vars[smv_module.name][var_ident],
                             context,
-                            expr_map,
-                            in_let_expr=False,
-                            module=smv_module,
-                        )
+                        ),
+                        symbol=var_ident,
+                        prime=False,
+                    ),
+                    moxi.Variable(
+                        sort=translate_type(
+                            context.vars[smv_module.name][var_ident],
+                            context,
+                        ),
+                        symbol=var_ident,
+                        prime=True,
+                    ),
+                ]
+            )
+        )
 
-                        if isinstance(assign_decl.lhs, smv.Identifier):
-                            lhs_expr = moxi.Variable(
-                                sort=translate_type(assign_decl.rhs.type, context),
-                                symbol=assign_decl.lhs.ident,
-                                prime=True,
-                            )
-                        else:
-                            raise ValueError("Unsupported: next(complex_identifier)")
-
-                        trans_expr = moxi.Apply.Eq(
-                            [lhs_expr, expr_map[assign_decl.rhs]]
-                        )
-
-                        trans_list.append(trans_expr)
-            case smv.VarDeclaration(modifier="FROZENVAR", var_list=var_list):
-                for var_name, _ in var_list:
-                    var_ident = var_name.ident
-                    trans_list.append(
-                        moxi.Apply.Eq(
-                            [
-                                moxi.Variable(
-                                    sort=translate_type(
-                                        context.vars[smv_module.name][var_ident],
-                                        context,
-                                    ),
-                                    symbol=var_ident,
-                                    prime=False,
-                                ),
-                                moxi.Variable(
-                                    sort=translate_type(
-                                        context.vars[smv_module.name][var_ident],
-                                        context,
-                                    ),
-                                    symbol=var_ident,
-                                    prime=True,
-                                ),
-                            ]
-                        )
-                    )
-            case _:
-                pass
-
-    return moxi.conjoin_list(trans_list) if len(trans_list) > 0 else moxi.Constant.Bool(True)
+    return (
+        moxi.conjoin_list(trans_list)
+        if len(trans_list) > 0
+        else moxi.Constant.Bool(True)
+    )
 
 
 def gather_inv(
@@ -781,167 +796,173 @@ def gather_inv(
 
     # standard ASSIGN declarations (without init/next modifiers)
     # print("inv - looking through ASSIGN")
-    for module_element in smv_module.elements:
-        match module_element:
-            case smv.AssignDeclaration(assign_list=al):
-                for assign_decl in al:
-                    if assign_decl.modifier == "none":
-                        translate_expr(
-                            assign_decl.rhs,
-                            context,
-                            expr_map,
-                            in_let_expr=False,
-                            module=smv_module,
-                        )
+    for assign_decl in [
+        a
+        for e in smv_module.elements
+        if isinstance(e, smv.AssignDeclaration)
+        for a in e.assign_list
+        if a.modifier == "none"
+    ]:
+        translate_expr(
+            assign_decl.rhs,
+            context,
+            expr_map,
+            in_let_expr=False,
+            module=smv_module,
+        )
 
-                        if isinstance(assign_decl.lhs, smv.Identifier):
-                            lhs_expr = moxi.Variable(
-                                sort=translate_type(assign_decl.rhs.type, context),
-                                symbol=assign_decl.lhs.ident,
-                                prime=False,
-                            )
-                        else:
-                            raise ValueError("Unsupported: next(complex_identifier)")
+        if isinstance(assign_decl.lhs, smv.Identifier):
+            lhs_expr = moxi.Variable(
+                sort=translate_type(assign_decl.rhs.type, context),
+                symbol=assign_decl.lhs.ident,
+                prime=False,
+            )
+        else:
+            raise ValueError("Unsupported: next(complex_identifier)")
 
-                        inv_expr = moxi.Apply.Eq([lhs_expr, expr_map[assign_decl.rhs]])
+        inv_expr = moxi.Apply.Eq([lhs_expr, expr_map[assign_decl.rhs]])
 
-                        inv_list.append(inv_expr)
-            case smv.VarDeclaration(var_list=var_list):
-                # All integer enums must be constrained where they are declared
-                # Example:
-                #   var: {0,1,2}
-                # should have moxi. constraint
-                #   :inv (and ... (or (= var 0) (= var 1) (= var 2)) ...)
-                for var_name, var_type in [
-                    (var_name, var_type)
-                    for (var_name, var_type) in var_list
-                    if isinstance(var_type, smv.Enumeration) and var_type.is_integer()
-                ]:
-                    var_ident = var_name.ident
-                    inv_list.append(
-                        moxi.Apply.Or(
-                            [
-                                moxi.Apply.Eq(
-                                    [
-                                        moxi.Variable(
-                                            moxi.Sort.Int(), to_moxi_ident(var_ident), False
-                                        ),
-                                        moxi.Constant.Int(int(value)),
-                                    ]
-                                )
-                                for value in var_type.summands
-                            ]
-                        )
-                    )
-            case smv.DefineDeclaration(define_list=define_list):
-                for define in [
-                    define
-                    for define in define_list
-                    if define.name.ident in context.referenced_defs[smv_module.name]
-                ]:
-                    translate_expr(
-                        context.defs[smv_module.name][define.name.ident],
-                        context,
-                        expr_map,
-                        False,
-                        smv_module,
-                    )
-                    il_type = translate_type(
-                        context.defs[smv_module.name][define.name.ident].type, context
-                    )
-                    inv_list.append(
+        inv_list.append(inv_expr)
+
+    for var_list in [
+        e.var_list for e in smv_module.elements if isinstance(e, smv.VarDeclaration)
+    ]:
+        # All integer enums must be constrained where they are declared
+        # Example:
+        #   var: {0,1,2}
+        # should have moxi. constraint
+        #   :inv (and ... (or (= var 0) (= var 1) (= var 2)) ...)
+        for var_name, var_type in [
+            (var_name, var_type)
+            for (var_name, var_type) in var_list
+            if isinstance(var_type, smv.Enumeration) and var_type.is_integer()
+        ]:
+            var_ident = var_name.ident
+            inv_list.append(
+                moxi.Apply.Or(
+                    [
                         moxi.Apply.Eq(
                             [
                                 moxi.Variable(
-                                    sort=il_type, symbol=to_moxi_ident(define.name.ident), prime=False
+                                    moxi.Sort.Int(), to_moxi_ident(var_ident), False
                                 ),
-                                expr_map[
-                                    context.defs[smv_module.name][define.name.ident]
-                                ],
+                                moxi.Constant.Int(int(value)),
                             ]
                         )
-                    )
-            case _:
-                pass
+                        for value in var_type.summands
+                    ]
+                )
+            )
+
+    for define in [
+        define
+        for e in smv_module.elements
+        if isinstance(e, smv.DefineDeclaration)
+        for define in e.define_list
+        if define.name.ident in context.referenced_defs[smv_module.name]
+    ]:
+        translate_expr(
+            context.defs[smv_module.name][define.name.ident],
+            context,
+            expr_map,
+            False,
+            smv_module,
+        )
+        il_type = translate_type(
+            context.defs[smv_module.name][define.name.ident].type, context
+        )
+        inv_list.append(
+            moxi.Apply.Eq(
+                [
+                    moxi.Variable(
+                        sort=il_type,
+                        symbol=to_moxi_ident(define.name.ident),
+                        prime=False,
+                    ),
+                    expr_map[context.defs[smv_module.name][define.name.ident]],
+                ]
+            )
+        )
 
     # module variable instantiations
     # print("inv - looking through module instantiations")
-    for var_list in [
-        vd.var_list for vd in smv_module.elements if isinstance(vd, smv.VarDeclaration)
+    for var_name, var_type in [
+        (var_name, var_type)
+        for vd in smv_module.elements
+        if isinstance(vd, smv.VarDeclaration)
+        for (var_name, var_type) in vd.var_list
+        if isinstance(var_type, smv.ModuleType)
     ]:
-        for var_name, var_type in var_list:
-            match var_type:
-                case smv.ModuleType(module_name=module_name, parameters=parameters):
-                    for i, param in enumerate(parameters):
-                        # print(f"found parameter {param}")
-                        match param:
-                            case smv.ModuleAccess(module=module, element=elem):
-                                # if isinstance(module, nuxmv.ModuleAccess):
-                                #     module_to_check = module.element
-                                # else:
-                                #     module_to_check = module.ident
+        module_name = var_type.module_name
+        parameters = var_type.parameters
+        for i, param in enumerate(parameters):
+            # print(f"found parameter {param}")
+            if isinstance(param, smv.ModuleAccess):
+                module = param.module
+                elem = param.element
+                # if isinstance(module, nuxmv.ModuleAccess):
+                #     module_to_check = module.element
+                # else:
+                #     module_to_check = module.ident
 
-                                mod_typ = context.vars[smv_module.name][module.ident]
-                                mod_typ = cast(smv.ModuleType, mod_typ)
-                                source_module = mod_typ.module_name
+                mod_typ = context.vars[smv_module.name][module.ident]
+                mod_typ = cast(smv.ModuleType, mod_typ)
+                source_module = mod_typ.module_name
 
-                                if (
-                                    elem in context.defs[source_module]
-                                ):  # if the module access refers to a def'd element, specialize it and construct expr
-                                    translate_expr(
-                                        context.defs[source_module][elem],
-                                        context,
-                                        expr_map,
-                                        in_let_expr=False,
-                                        module=context.modules[module_name],
-                                    )
-                                    defn = expr_map[context.defs[source_module][elem]]
-                                    sdefn = specialize_vars_in_expr(
-                                        to_moxi_ident(var_name.ident), defn
-                                    )
-                                    init_expr = moxi.Apply.Eq(
-                                        [
-                                            context.module_locals[var_name.ident][i],
-                                            sdefn,
-                                        ]
-                                    )
-                                    inv_list.append(init_expr)
-                                else:
-                                    translate_expr(
-                                        param,
-                                        context,
-                                        expr_map,
-                                        in_let_expr=False,
-                                        module=smv_module,
-                                    )
-                                    init_expr = moxi.Apply.Eq(
-                                        [
-                                            context.module_locals[var_name.ident][i],
-                                            expr_map[param],
-                                        ]
-                                    )
-                                    inv_list.append(init_expr)
-                            case _:
-                                translate_expr(
-                                    param,
-                                    context,
-                                    expr_map,
-                                    in_let_expr=False,
-                                    module=smv_module,
-                                )
-                                init_expr = moxi.Apply.Eq(
-                                    [
-                                        context.module_locals[var_name.ident][i],
-                                        expr_map[param],
-                                    ]
-                                )
-                                inv_list.append(init_expr)
-
-                case _:
-                    pass
+                if (
+                    elem in context.defs[source_module]
+                ):  # if the module access refers to a def'd element, specialize it and construct expr
+                    translate_expr(
+                        context.defs[source_module][elem],
+                        context,
+                        expr_map,
+                        in_let_expr=False,
+                        module=context.modules[module_name],
+                    )
+                    defn = expr_map[context.defs[source_module][elem]]
+                    sdefn = specialize_vars_in_expr(to_moxi_ident(var_name.ident), defn)
+                    init_expr = moxi.Apply.Eq(
+                        [
+                            context.module_locals[var_name.ident][i],
+                            sdefn,
+                        ]
+                    )
+                    inv_list.append(init_expr)
+                else:
+                    translate_expr(
+                        param,
+                        context,
+                        expr_map,
+                        in_let_expr=False,
+                        module=smv_module,
+                    )
+                    init_expr = moxi.Apply.Eq(
+                        [
+                            context.module_locals[var_name.ident][i],
+                            expr_map[param],
+                        ]
+                    )
+                    inv_list.append(init_expr)
+            else:  # Not a module access
+                translate_expr(
+                    param,
+                    context,
+                    expr_map,
+                    in_let_expr=False,
+                    module=smv_module,
+                )
+                init_expr = moxi.Apply.Eq(
+                    [
+                        context.module_locals[var_name.ident][i],
+                        expr_map[param],
+                    ]
+                )
+                inv_list.append(init_expr)
 
     # print("inv - done")
-    return moxi.conjoin_list(inv_list) if len(inv_list) > 0 else moxi.Constant.Bool(True)
+    return (
+        moxi.conjoin_list(inv_list) if len(inv_list) > 0 else moxi.Constant.Bool(True)
+    )
 
 
 def gather_subsystems(
@@ -951,8 +972,8 @@ def gather_subsystems(
     Subsystems in SMV are declared same as other variables, in the VAR section.
     ```   MODULE foo
           VAR
-              x : integer; y : boolean; 
-              bar : module_bar(x, y); --- SUBMODULE! 
+              x : integer; y : boolean;
+              bar : module_bar(x, y); --- SUBMODULE!
     ```
 
     As such, skim through all smv.VarDeclarations (VAR sections) and if any of the variables
@@ -960,25 +981,30 @@ def gather_subsystems(
     """
     subsystems: dict[str, tuple[str, list[str]]] = {}
 
-    for e in [e for e in smv_module.elements if isinstance(e, smv.VarDeclaration)]:
-        for var_name, smv_var_type in e.var_list:
-            if isinstance(smv_var_type, smv.ModuleType):
-                subsystems[to_moxi_ident(var_name.ident)] = (
-                    smv_var_type.module_name,
-                    list(
-                        map(
-                            lambda x: x.symbol,
-                            smv_context.module_locals[to_moxi_ident(var_name.ident)],
-                        )
-                    ),
+    for var_name, smv_var_type in [
+        (var_name, smv_var_type)
+        for e in smv_module.elements
+        if isinstance(e, smv.VarDeclaration)
+        for var_name, smv_var_type in e.var_list
+        if isinstance(smv_var_type, smv.ModuleType)
+    ]:
+        subsystems[to_moxi_ident(var_name.ident)] = (
+            smv_var_type.module_name,
+            list(
+                map(
+                    lambda x: x.symbol,
+                    smv_context.module_locals[to_moxi_ident(var_name.ident)],
                 )
+            ),
+        )
 
     return subsystems
 
+
 def gather_fairness(
-        smv_module: smv.ModuleDeclaration,
-        context: smv.Context,
-        expr_map: dict[smv.Expr, moxi.Term],
+    smv_module: smv.ModuleDeclaration,
+    context: smv.Context,
+    expr_map: dict[smv.Expr, moxi.Term],
 ) -> dict[str, moxi.Term]:
     """
     Return the negation of the translation of the FAIRNESS/JUSTICE formula.
@@ -987,16 +1013,26 @@ def gather_fairness(
     fairness_dict: dict[str, moxi.Term] = {}
     spec_num = 1
     for fairness_decl in [
-        e for e in smv_module.elements if (isinstance(e, smv.FairnessDeclaration) or isinstance(e, smv.JusticeDeclaration))
+        e
+        for e in smv_module.elements
+        if (
+            isinstance(e, smv.FairnessDeclaration)
+            or isinstance(e, smv.JusticeDeclaration)
+        )
     ]:
         smv_expr = fairness_decl.formula
-        translate_expr(smv_expr, context, expr_map, in_let_expr=False, module=smv_module)
+        translate_expr(
+            smv_expr, context, expr_map, in_let_expr=False, module=smv_module
+        )
         fairness_dict[f"fair_{spec_num}"] = cast(
             moxi.Term,
-            moxi.Apply(moxi.Sort.Bool(), moxi.Identifier("not", []), [expr_map[smv_expr]])
+            moxi.Apply(
+                moxi.Sort.Bool(), moxi.Identifier("not", []), [expr_map[smv_expr]]
+            ),
         )
         spec_num += 1
     return fairness_dict
+
 
 def gather_invarspecs(
     smv_module: smv.ModuleDeclaration,
@@ -1089,14 +1125,14 @@ def translate_module(
      - transition constraints via gather_trans()
      - invariant constraints via gather_inv()
      - subsystem instantiations via gather_subsystems()
-    
+
     A second set of sweeps are responsible for the system queries comprising MoXI's CheckSystem:
      - fairness properties via gather_fairness()
      - reachable queries via gather_invarspecs()
 
     The function necessarily returns one DefineSystem command with an optional CheckSystem command.
     """
-    commands : list[moxi.Command] = []
+    commands: list[moxi.Command] = []
 
     module_name = to_moxi_ident(smv_module.name)
 
@@ -1160,8 +1196,8 @@ def translate_module(
                 fairness=justice,
                 reachable=reachable | panda,
                 current={},
-                query={f"qry_{r}": [r] for r in reachable.keys()} | 
-                      {f"qry_{p}": [p]+list(justice.keys()) for p in panda.keys()},
+                query={f"qry_{r}": [r] for r in reachable.keys()}
+                | {f"qry_{p}": [p] + list(justice.keys()) for p in panda.keys()},
                 queries=[],
             )
         ]
@@ -1224,11 +1260,12 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
         if enum.is_symbolic()
     ]
 
-
     commands += [
-        moxi.DeclareFun(symbol=symbol, 
-                        inputs=[translate_type(t, context) for t in type[0]], 
-                        output=translate_type(type[1], context))
+        moxi.DeclareFun(
+            symbol=symbol,
+            inputs=[translate_type(t, context) for t in type[0]],
+            output=translate_type(type[1], context),
+        )
         for symbol, type in context.functions.items()
     ]
 

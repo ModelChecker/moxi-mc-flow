@@ -218,7 +218,7 @@ class BooleanConstant(Constant):
         self.type = Boolean()
 
     def __repr__(self) -> str:
-        return f"{self.boolean}"
+        return str(self.boolean).upper()
 
 
 class WordConstant(Constant):
