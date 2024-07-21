@@ -72,7 +72,7 @@ def handle_variables(content: str):
                     .replace(r"\\", "\\\\")
                 )
                 ret_fc = re.sub(
-                    f"{regex_var_name}(?=[^a-zA-Z_0-9#$])", 
+                    f"(?<=[^\"]){regex_var_name}(?=[^a-zA-Z_0-9#$])", 
                     cleaned_var_name, ret_fc
                 )
 
