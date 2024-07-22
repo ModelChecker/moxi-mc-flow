@@ -290,6 +290,15 @@ def translate_expr(
                             )
                         else:
                             raise NotImplementedError()
+                    case "word1":
+                        expr_map[expr] = moxi.Apply(
+                            moxi.Sort.BitVec(1), 
+                            moxi.Identifier("ite", []), 
+                            [  
+                                moxi.Apply(moxi.Sort.Bool(), moxi.Identifier("=", []), [expr_map[fargs[0]], moxi.Constant.Bool(True)]),
+                                moxi.Constant.BitVec(1, 1),
+                                moxi.Constant.BitVec(1, 0)
+                            ])
                     case _:
                         expr_map[expr] = moxi.Apply(
                             sort=moxi.Sort.NoSort(),

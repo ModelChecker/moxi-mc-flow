@@ -42,7 +42,7 @@ def handle_variables(content: str):
     line_no = 0
     for line in content.splitlines():
         line_no += 1
-        if len(line) < 1:
+        if len(line.split()) < 1:
             continue
         if line.split()[0].rstrip() in section_kws:
             var_decl = False

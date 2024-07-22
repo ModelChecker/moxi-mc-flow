@@ -985,6 +985,18 @@ def type_check_expr(
                     )
 
                 expr.type = const_type.type
+            case FunCall(name="word1", args=args):
+                if len(args) != 1:
+                    return error(
+                        f"'word1' requires 1 operands, got {len(args)}", expr
+                    )
+
+                arg: Expr = args[0]
+
+                if not isinstance(arg.type, Boolean):
+                    return error(f"Invalid argument for 'word1' {arg}\n\t{expr}", expr)
+
+                expr.type = Word(width=1, signed=False)
             case FunCall(name=name, args=args):
                 if name not in context.functions:
                     return error(f"Unsupported function {name}", expr)
