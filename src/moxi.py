@@ -2132,7 +2132,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
                 if term.prime and no_prime:
                     log.error(
-                        f"Primed variables only allowed in system transition or invariant relation ({term.symbol}).",
+                        f"Primed variables only allowed in system transition relation ({term.symbol}).",
                         FILE_NAME,
                         term.loc,
                     )
@@ -2151,7 +2151,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
                 if term.prime and no_prime:
                     log.error(
-                        f"primed variables only allowed in system transition or invariant relation ({term.symbol}).",
+                        f"primed variables only allowed in system transition relation ({term.symbol}).",
                         FILE_NAME,
                         term.loc,
                     )
@@ -2170,7 +2170,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
 
                 if term.prime and no_prime:
                     log.error(
-                        f"primed variables only allowed in system transition or invariant relation ({term.symbol}).",
+                        f"primed variables only allowed in system transition relation ({term.symbol}).",
                         FILE_NAME,
                         term.loc,
                     )
@@ -2395,7 +2395,7 @@ def sort_check(program: Program) -> tuple[bool, Context]:
                 cmd.trans, context, no_prime=False, is_init_term=False
             )
             status = status and sort_check_term(
-                cmd.inv, context, no_prime=False, is_init_term=False
+                cmd.inv, context, no_prime=True, is_init_term=False
             )
 
             for name, subsystem in cmd.subsystem_signatures.items():
