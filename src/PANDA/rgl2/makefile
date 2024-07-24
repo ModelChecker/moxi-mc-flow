@@ -60,7 +60,9 @@ opt: CFLAGS := $(CFLAGS) -O6 -DNDEBUG
 opt: all 
 
 depend:
-	mkdir -p objs/; cd src; makedepend -pobjs/ -- -DNDEBUG -I/usr/lib/gcc/x86_64-linux-gnu/9/include/ $(INCLUDES:%=-I$(PWD)/%) \
+	mkdir -p objs/; cd src; makedepend -pobjs/ -- -DNDEBUG \
+	-I/usr/lib/gcc/x86_64-linux-gnu/12.3.0/include/ \ 
+	$(INCLUDES:%=-I$(PWD)/%) \
 	$(CXXINCLUDES:%=-I$(PWD)/%) -- -f ../makefile.deps $(CFILES) $(CPPFILES)
 
 #doc:
