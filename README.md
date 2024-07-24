@@ -3,7 +3,7 @@
 Translators from SMV to MoXI to BTOR2 and their witnesses. This repository provides a translation script
 (`translate.py`), a model checking script (`modelcheck.py`), a sort checker (`sortcheck.py`), and a JSON validator
 (`json-schema/validate.py`) for MoXI files in either a concrete or JSON dialect. For examples of MoXI files, see the
-`test/moxi` directory.
+`test/moxi` directory. The translators support SMV, VMT-LIB, MoXI, and MoXI-JSON as source languages and MoXI, MoXI-JSON, and Btor2 as target languages.
 
 ![Toolchain](toolchain.png "Toolchain")
 
@@ -43,7 +43,7 @@ at least one solver and `btor2tools` is required.**
 
 ## Running the translators
 
-To run the `translate.py` script, feed in a file with a `.smv`, `.moxi`, or `.json` file extension and select language
+To run the `translate.py` script, feed in a file with a `.smv`, `.moxi`, `.json`, or `.vmt` file extension and select language
 to translate to (moxi, moxi-json, or btor2). You can ask catbtor or sortcheck.py to validate the output with the
 `--validate` flag. Some example invocations (from `/home/moxi-mc-flow`):
 
