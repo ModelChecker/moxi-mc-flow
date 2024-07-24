@@ -215,7 +215,7 @@ def model_check(
     
     src_path = workdir / input_path.name
     btor2_output_path = workdir / "btor2" 
-    moxi_path = workdir / input_path.with_suffix(".moxi").name
+    moxi_path = workdir / input_path.with_suffix(".out.moxi").name
     moxi_witness_path = workdir / input_path.with_suffix(".moxi.witness").name
     moxi_witness_pickle_path = workdir / input_path.with_suffix(".moxi.witness.pickle").name
     nuxmv_witness_path = workdir / input_path.with_suffix(".smv.witness").name
@@ -251,6 +251,7 @@ def model_check(
         command.append(str(debug))
 
     log.debug(1, f"Translating {input_path}", FILE_NAME)
+    log.debug(2, " ".join(command), FILE_NAME)
 
     try:
         proc = subprocess.run(command, capture_output=True, timeout=timeout)
@@ -262,11 +263,11 @@ def model_check(
     time_elapsed = end_translate - start_total
 
     if debug:
-        print(proc.stderr.decode())
+        sys.stderr.write(proc.stderr.decode())
 
     if proc.returncode:
         if not debug:
-            log.error(proc.stderr.decode("utf-8")[:-1], FILE_NAME) # [:-1] removes trailing "\n"
+            sys.stderr.write(proc.stderr.decode("utf-8"))
         log.error(f"Translation failure for {input_path}", FILE_NAME)
         return proc.returncode
     

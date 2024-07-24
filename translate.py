@@ -35,7 +35,7 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
     proc = subprocess.run(["python3", str(SORTCHECK), src_path], capture_output=True)
 
     if proc.returncode:
-        print(proc.stderr.decode("utf-8"))
+        sys.stderr.write(proc.stderr.decode("utf-8"))
         return FAIL
 
     log.debug(1, proc.stderr.decode("utf-8")[:-1], FILE_NAME)
@@ -46,7 +46,7 @@ def run_catbtor(src_path: pathlib.Path) -> int:
     proc = subprocess.run([str(CATBTOR), src_path], capture_output=True)
 
     if proc.returncode:
-        print(proc.stderr.decode("utf-8"))
+        sys.stderr.write(proc.stderr.decode("utf-8"))
         return FAIL
 
     log.debug(1, proc.stderr.decode("utf-8")[:-1], FILE_NAME)
@@ -72,7 +72,7 @@ def main(
     
     if keep and keep.exists():
         if not overwrite:
-            log.error(f"Output location already exists ({keep})", FILE_NAME)
+            log.error(f"1 Output location already exists ({keep})", FILE_NAME)
             return 1
         
         if keep.is_file():
@@ -82,7 +82,7 @@ def main(
 
     if output_path.exists():
         if not overwrite:
-            log.error(f"Output location already exists ({output_path})", FILE_NAME)
+            log.error(f"2 Output location already exists ({output_path})", FILE_NAME)
             return 1
         
         if output_path.is_file():
