@@ -61,10 +61,10 @@ opt: CFLAGS := $(CFLAGS) -O6 -DNDEBUG
 opt: all 
 
 depend:
-	mkdir -p objs/; cd src; makedepend -pobjs/ -- -DNDEBUG \
+	mkdir -p objs/; cd src; makedepend -pobjs/  -f../makefile.deps -- -DNDEBUG \
 	$(INCLUDES:%=-I$(PWD)/%) \
 	$(CC_DEFAULT_INCLUDES:%=-I%) \
-	$(CXXINCLUDES:%=-I$(PWD)/%) -- -f ../makefile.deps $(CFILES) $(CPPFILES)
+	$(CXXINCLUDES:%=-I$(PWD)/%) -- $(CFILES) $(CPPFILES)
 
 #doc:
 #	doxygen rgl.dox
@@ -92,5 +92,3 @@ test:
 
 
 
-include makefile.deps
-# DO NOT DELETE
