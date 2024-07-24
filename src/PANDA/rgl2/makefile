@@ -1,7 +1,8 @@
 CC = gcc
 CXX = g++
 
-INCLUDES =  include 
+CC_DEFAULT_INCLUDES = $(shell cc -xc /dev/null -E -Wp,-v 2>&1 | sed -n 's,^ ,,p')
+INCLUDES = include
 CXXINCLUDES = 
 
 CFLAGS = -Wall $(INCLUDES:%=-I%) -O3 -g
@@ -60,8 +61,10 @@ opt: CFLAGS := $(CFLAGS) -O6 -DNDEBUG
 opt: all 
 
 depend:
-	mkdir -p objs/; cd src; makedepend -pobjs/ -- -DNDEBUG -I/usr/lib/gcc/x86_64-linux-gnu/9/include/ $(INCLUDES:%=-I$(PWD)/%) \
-	$(CXXINCLUDES:%=-I$(PWD)/%) -- -f ../makefile.deps $(CFILES) $(CPPFILES)
+	mkdir -p objs/; cd src; makedepend -pobjs/  -f../makefile.deps -- -DNDEBUG \
+	$(INCLUDES:%=-I$(PWD)/%) \
+	$(CC_DEFAULT_INCLUDES:%=-I%) \
+	$(CXXINCLUDES:%=-I$(PWD)/%) -- $(CFILES) $(CPPFILES)
 
 #doc:
 #	doxygen rgl.dox
@@ -89,5 +92,3 @@ test:
 
 
 
-include makefile.deps
-# DO NOT DELETE
