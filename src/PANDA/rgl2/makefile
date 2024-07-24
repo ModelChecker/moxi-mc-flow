@@ -1,9 +1,8 @@
 CC = gcc
 CXX = g++
 
-CC_DEFAULT_INCLUDES = $(cc -xc /dev/null -E -Wp,-v 2>&1 | sed -n 's,^ ,,p')
-
-INCLUDES = include $(CC_DEFAULT_INCLUDES)
+CC_DEFAULT_INCLUDES = $(shell cc -xc /dev/null -E -Wp,-v 2>&1 | sed -n 's,^ ,,p')
+INCLUDES = include
 CXXINCLUDES = 
 
 CFLAGS = -Wall $(INCLUDES:%=-I%) -O3 -g
@@ -64,7 +63,7 @@ opt: all
 depend:
 	mkdir -p objs/; cd src; makedepend -pobjs/ -- -DNDEBUG \
 	$(INCLUDES:%=-I$(PWD)/%) \
-	$(INCLUDES:%=-I%) \
+	$(CC_DEFAULT_INCLUDES:%=-I%) \
 	$(CXXINCLUDES:%=-I$(PWD)/%) -- -f ../makefile.deps $(CFILES) $(CPPFILES)
 
 #doc:

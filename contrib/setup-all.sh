@@ -27,3 +27,8 @@ if [[ $? -ne 0 ]]; then
     exit 1
 fi
 
+$CONTRIB_DIR/setup-panda.sh
+if [[ $? -ne 0 ]]; then 
+    exit 1
+fi
+
