@@ -62,6 +62,7 @@ def main(
     validate: bool,
     do_pickle: bool,
     do_cpp: bool,
+    logic: Optional[str],
     with_lets: bool,
     int_width: int,
     overwrite: bool,
@@ -92,12 +93,12 @@ def main(
 
     match (input_path.suffix, target_lang):
         case (".smv", "moxi"):
-            if smv2moxi.translate_file(input_path, output_path, do_cpp):
+            if smv2moxi.translate_file(input_path, output_path, do_cpp, logic):
                 return FAIL
         case (".smv", "moxi-json"):
             moxi_path = workdir / input_path.with_suffix(".moxi").name
 
-            if smv2moxi.translate_file(input_path, moxi_path, do_cpp):
+            if smv2moxi.translate_file(input_path, moxi_path, do_cpp, logic):
                 return FAIL
 
             if moxi2json.main(moxi_path, output_path, False):
@@ -111,7 +112,7 @@ def main(
                 log.error(f"Failed parsing specification in {input_path}", FILE_NAME)
                 return 1
 
-            moxi_program = smv2moxi.translate(input_path.name, xmv_program)
+            moxi_program = smv2moxi.translate(input_path.name, xmv_program, logic)
             if not moxi_program:
                 log.error(
                     f"Failed translating specification in {input_path}", FILE_NAME
@@ -232,6 +233,7 @@ if __name__ == "__main__":
         type=int,
         help="bit width to translate Int types to when translating to BTOR2",
     )
+    parser.add_argument("--logic", help="logic to set MoXI output to, by default this is inferred")
     parser.add_argument("--with-lets", action="store_true", help="uses lt bindings instead of local vars for translations from vmt to moxi")
     parser.add_argument("--quiet", action="store_true", help="disable output")
     parser.add_argument(
@@ -301,6 +303,7 @@ if __name__ == "__main__":
             args.validate,
             args.pickle,
             args.cpp,
+            args.logic,
             args.with_lets,
             args.intwidth,
             args.overwrite

@@ -421,7 +421,9 @@ class Parser(sly.Parser):
         "expr RSHIFT expr",
         "expr SMV_UNION expr",
         "expr SMV_IN expr",
-        "IDENT LPAREN cs_expr_list RPAREN"
+        "IDENT LPAREN cs_expr_list RPAREN",
+        "SMV_UNSIGNED SMV_WORD LBRACK INTEGER RBRACK expr",
+        "SMV_SIGNED SMV_WORD LBRACK INTEGER RBRACK expr"
     )
     def expr(self, p):
         if len(p) == 1: # constants/whatever
@@ -434,6 +436,10 @@ class Parser(sly.Parser):
             return smv.BinOp(op=p[1], lhs=p[0], rhs=p[2], loc=self.loc(p)) 
         if len(p) == 4: # function call
             return smv.FunCall(name=p[0], args=p.cs_expr_list, loc=self.loc(p))
+        if p[1] == "word":
+            width = smv.IntegerConstant(int(p[3]))
+            arg = p[5]
+            return smv.FunCall(name=f"{p[0]} {p[1]}", args=[width, arg], loc=self.loc(p))
         
     @_("NEXT LPAREN expr RPAREN")
     def expr(self, p):

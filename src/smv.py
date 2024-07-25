@@ -162,7 +162,7 @@ class ModuleType(Type):
 
     def __eq__(self, __value: object) -> bool:
         """Two module types are equal if they are of the same module."""
-        return type(__value) == ModuleType and __value.module_name == self.module_name
+        return type(__value) is ModuleType and __value.module_name == self.module_name
 
     def __hash__(self) -> int:
         return hash(self.module_name)
@@ -251,7 +251,7 @@ class WordConstant(Constant):
 
         post_underscore: str = spl[1]
 
-        self.value = post_underscore
+        self.value = int(post_underscore)
 
         self.type = Word(self.width, self.signed)
 
@@ -411,7 +411,7 @@ class Identifier(ComplexIdentifier):
         return f"{self.ident}"
 
     def __eq__(self, __o: object) -> bool:
-        return type(__o) == Identifier and __o.ident == self.ident and self.in_next_expr == __o.in_next_expr
+        return type(__o) is Identifier and __o.ident == self.ident and self.in_next_expr == __o.in_next_expr
 
     def __hash__(self) -> int:
         return hash((self.ident, self.in_next_expr))
@@ -430,7 +430,7 @@ class ModuleAccess(ComplexIdentifier):
 
     def __eq__(self, __o: object) -> bool:
         return (
-            type(__o) == ModuleAccess
+            type(__o) is ModuleAccess
             and __o.ident == self.ident
             and __o.module == self.module
             and __o.element == self.element
@@ -662,7 +662,7 @@ class ModuleDeclaration:
         self.elements = elements
 
     def __eq__(self, __value: object) -> bool:
-        return type(__value) == ModuleDeclaration and __value.name == self.name
+        return type(__value) is ModuleDeclaration and __value.name == self.name
 
     def __hash__(self) -> int:
         return hash(self.name)
@@ -990,13 +990,61 @@ def type_check_expr(
                     return error(
                         f"'word1' requires 1 operands, got {len(args)}", expr
                     )
-
+                
                 arg: Expr = args[0]
 
                 if not isinstance(arg.type, Boolean):
                     return error(f"Invalid argument for 'word1' {arg}\n\t{expr}", expr)
 
                 expr.type = Word(width=1, signed=False)
+            case FunCall(name="toint", args=args):
+                if len(args) != 1:
+                    return error(
+                        f"'toint' requires 1 operands, got {len(args)}", expr
+                    )
+            
+                arg: Expr = args[0]
+            
+                if not isinstance(arg, (Boolean, Integer, Word)):
+                    return error(f"Invalid argument for 'toint' {arg}\n\t{expr}", expr)
+                
+                expr.type = Integer()
+            case FunCall(name="unsigned word", args=args):
+                if len(args) != 2:
+                    return error(
+                        f"word cast must have two args\n\t{expr}", expr
+                    )
+                
+                if not isinstance(args[0], IntegerConstant):
+                    return error(
+                        f"word cast must have int as first arg\n\t{expr}", expr
+                    )
+
+                if not isinstance(args[0].type, Integer):
+                    return error(
+                        f"word cast can only apply to integers\n\t{expr}", expr
+                    )
+
+                width = int(args[0].integer)
+                expr.type = Word(width, False)
+            case FunCall(name="signed word", args=args):
+                if len(args) != 2:
+                    return error(
+                        f"word cast must have two args\n\t{expr}", expr
+                    )
+                
+                if not isinstance(args[0], IntegerConstant):
+                    return error(
+                        f"word cast must have int as first arg\n\t{expr}", expr
+                    )
+
+                if not isinstance(args[0].type, Integer):
+                    return error(
+                        f"word cast can only apply to integers\n\t{expr}", expr
+                    )
+
+                width = int(args[0].integer)
+                expr.type = Word(width, True)
             case FunCall(name=name, args=args):
                 if name not in context.functions:
                     return error(f"Unsupported function {name}", expr)

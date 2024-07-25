@@ -1,4 +1,4 @@
-(set-logic QF_ABV)
+(set-logic QF_AUFBV)
 (declare-fun foo (Bool) Bool)
 (declare-fun into (Bool) (_ BitVec 1))
 (declare-fun out ((_ BitVec 1)) Bool)

@@ -258,53 +258,84 @@ def translate_expr(
                 expr_map[expr] = moxi.Constant(sort=moxi.Sort.Bool(), value=b)
             case smv.WordConstant(width=width, value=value):
                 expr_map[expr] = moxi.Constant(
-                    sort=moxi.Sort.BitVec(width), value=int(value)
+                    sort=moxi.Sort.BitVec(width), value=value
                 )
+            case smv.FunCall(name="signed", args=fargs):
+                expr_map[expr] = expr_map[fargs[0]]
+            case smv.FunCall(name="unsigned", args=fargs):
+                expr_map[expr] = expr_map[fargs[0]]
+            case smv.FunCall(name="next", args=fargs):
+                expr_map[expr] = expr_map[fargs[0]]
+            case smv.FunCall(name="READ", args=fargs):
+                expr_map[expr] = moxi.Apply.Select(
+                    expr_map[fargs[0]], expr_map[fargs[1]]
+                )
+            case smv.FunCall(name="WRITE", args=fargs):
+                expr_map[expr] = moxi.Apply.Store(
+                    expr_map[fargs[0]], expr_map[fargs[1]], expr_map[fargs[2]]
+                )
+            case smv.FunCall(name="typeof", args=fargs):
+                expr_map[expr] = expr_map[fargs[0]]
+            case smv.FunCall(name="CONSTARRAY", args=fargs):
+                arr, val = fargs[0], fargs[1]
+                if isinstance(arr.type, smv.Array):
+                    raise NotImplementedError()
+                elif isinstance(arr.type, smv.WordArray):
+                    expr_map[expr] = moxi.Constant.Array(
+                        moxi.Sort.BitVec(arr.type.word_length),
+                        translate_type(arr.type.subtype, context),
+                        expr_map[val],
+                    )
+                else:
+                    raise NotImplementedError()
+            case smv.FunCall(name="word1", args=fargs):
+                expr_map[expr] = moxi.Apply(
+                    moxi.Sort.BitVec(1), 
+                    moxi.Identifier("ite", []), 
+                    [  
+                        moxi.Apply(moxi.Sort.Bool(), moxi.Identifier("=", []), [expr_map[fargs[0]], moxi.Constant.Bool(True)]),
+                        moxi.Constant.BitVec(1, 1),
+                        moxi.Constant.BitVec(1, 0)
+                    ])
+            case smv.FunCall(name="toint", args=fargs):
+                if isinstance(fargs[0].type, smv.Integer):
+                    expr_map[expr] = expr_map[fargs[0]]
+                elif isinstance(fargs[0].type, smv.Boolean):
+                    expr_map[expr] = moxi.Apply(
+                        moxi.Sort.Int(), 
+                        moxi.Identifier("ite", []), 
+                        [expr_map[fargs[0]], moxi.Constant.Int(1), moxi.Constant.Int(0)]
+                    )
+                if isinstance(fargs[0].type, smv.Word):
+                    log.error(
+                        "int cast from words not supported in any logic",
+                        FILE_NAME
+                    )
+                    expr_map[expr] = moxi.Constant.Int(0)
+            case smv.FunCall(name="swconst", args=fargs):
+                pass
+            case smv.FunCall(name="uwconst", args=fargs):
+                pass
+            case smv.FunCall(name="unsigned word", args=fargs):
+                log.error(
+                    "word cast not supported in any logic",
+                    FILE_NAME
+                )
+                width = cast(smv.IntegerConstant, fargs[0]).integer
+                expr_map[expr] = moxi.Constant.BitVec(width, 0)
+            case smv.FunCall(name="signed word", args=fargs):
+                log.error(
+                    "word cast not supported in any logic",
+                    FILE_NAME
+                )
+                width = cast(smv.IntegerConstant, fargs[0]).integer
+                expr_map[expr] = moxi.Constant.BitVec(width, 0)
             case smv.FunCall(name=fname, args=fargs):
-                match fname:
-                    case "signed":
-                        expr_map[expr] = expr_map[fargs[0]]
-                    case "unsigned":
-                        expr_map[expr] = expr_map[fargs[0]]
-                    case "next":
-                        expr_map[expr] = expr_map[fargs[0]]
-                    case "READ":
-                        expr_map[expr] = moxi.Apply.Select(
-                            expr_map[fargs[0]], expr_map[fargs[1]]
-                        )
-                    case "WRITE":
-                        expr_map[expr] = moxi.Apply.Store(
-                            expr_map[fargs[0]], expr_map[fargs[1]], expr_map[fargs[2]]
-                        )
-                    case "typeof":
-                        expr_map[expr] = expr_map[fargs[0]]
-                    case "CONSTARRAY":
-                        arr, val = fargs[0], fargs[1]
-                        if isinstance(arr.type, smv.Array):
-                            raise NotImplementedError()
-                        elif isinstance(arr.type, smv.WordArray):
-                            expr_map[expr] = moxi.Constant.Array(
-                                moxi.Sort.BitVec(arr.type.word_length),
-                                translate_type(arr.type.subtype, context),
-                                expr_map[val],
-                            )
-                        else:
-                            raise NotImplementedError()
-                    case "word1":
-                        expr_map[expr] = moxi.Apply(
-                            moxi.Sort.BitVec(1), 
-                            moxi.Identifier("ite", []), 
-                            [  
-                                moxi.Apply(moxi.Sort.Bool(), moxi.Identifier("=", []), [expr_map[fargs[0]], moxi.Constant.Bool(True)]),
-                                moxi.Constant.BitVec(1, 1),
-                                moxi.Constant.BitVec(1, 0)
-                            ])
-                    case _:
-                        expr_map[expr] = moxi.Apply(
-                            sort=moxi.Sort.NoSort(),
-                            identifier=moxi.Identifier(symbol=fname, indices=[]),
-                            children=[expr_map[arg] for arg in fargs],
-                        )
+                expr_map[expr] = moxi.Apply(
+                    sort=moxi.Sort.NoSort(),
+                    identifier=moxi.Identifier(symbol=fname, indices=[]),
+                    children=[expr_map[arg] for arg in fargs],
+                )
             case smv.BinOp(op=op, lhs=lhs, rhs=rhs):
                 match op:
                     case "&":
@@ -1219,23 +1250,22 @@ def translate_module(
     return commands
 
 
-def infer_logic(commands: list[moxi.Command]) -> Optional[moxi.SetLogic]:
+def infer_logic(commands: list[moxi.Command]) -> moxi.SetLogic:
     """
-    Infers SMT logic based on sorts of occurring variables - if a single Int variable is found, set to QF_LIA, otherwise QF_ABV
+    Infers SMT logic based on sorts of occurring variables - if a single Int variable is found, set to QF_NIA, otherwise QF_ABV
     """
     for def_sys in [s for s in commands if isinstance(s, moxi.DefineSystem)]:
         variables = def_sys.input + def_sys.output + def_sys.local
-        for _, sort in variables:
-            if moxi.is_int_sort(sort):
-                return moxi.SetLogic(logic="QF_LIA")
+        if any([moxi.is_int_sort(s) for _,s in variables]):
+            return moxi.SetLogic(logic="QF_NIA")
 
-            # if is_bitvec_sort(sort):
-            #     return moxi.SetLogic(logic="QF_ABV")
+    if any([isinstance(s, moxi.DeclareFun) for s in commands]):
+        return moxi.SetLogic(logic="QF_AUFBV")
 
     return moxi.SetLogic(logic="QF_ABV")
 
 
-def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]:
+def translate(filename: str, smv_program: smv.Program, logic: Optional[str]) -> Optional[moxi.Program]:
     """
     - Performs type-checking on input smv_program
     - Modules translated in backwards order (depending on what shows up in the specification)
@@ -1281,16 +1311,18 @@ def translate(filename: str, smv_program: smv.Program) -> Optional[moxi.Program]
     for module in context.get_module_dep_order(smv_program.main):
         commands += translate_module(smv_module=module, context=context)
 
-    logic: Optional[moxi.SetLogic] = infer_logic(commands)
     if logic:
-        log.debug(2, "inferred SMT logic {logic.logic}", FILE_NAME)
-        commands = [logic] + commands
+        the_logic = moxi.SetLogic(logic)
+    else:
+        the_logic = infer_logic(commands)
+
+    commands = [the_logic] + commands
 
     return moxi.Program(commands=commands)
 
 
 def translate_file(
-    input_path: pathlib.Path, output_path: pathlib.Path, do_cpp: bool
+    input_path: pathlib.Path, output_path: pathlib.Path, do_cpp: bool, logic: Optional[str]
 ) -> int:
     """Parses, type checks, translates, and writes the translation result of `input_path` to `output_path`. Runs C preprocessor if `do_cpp` is True. Returns 0 on success, 1 otherwise."""
     if not input_path.is_file():
@@ -1308,7 +1340,7 @@ def translate_file(
         return 1
 
     log.debug(1, "Translating", FILE_NAME)
-    result = translate(input_path.name, parse_tree)
+    result = translate(input_path.name, parse_tree, logic)
     if not result:
         log.debug(1, f"Failed translating specification {input_path}", FILE_NAME)
         return 1
