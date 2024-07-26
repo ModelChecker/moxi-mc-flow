@@ -1,6 +1,6 @@
 {
     "script": "../translate.py",
-    "options": ["moxi-json", "--validate", "--ppjson"],
+    "options": ["moxi-json", "--validate", "--ppjson", "--overwrite"],
     "tests": [
         {
             "input": "smv/Delay.smv",

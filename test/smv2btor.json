@@ -1,6 +1,6 @@
 {
     "script": "../translate.py",
-    "options": ["btor2", "--validate"],
+    "options": ["btor2", "--validate", "--overwrite"],
     "tests": [
         {
             "input": "smv/Delay.smv",

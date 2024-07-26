@@ -64,7 +64,7 @@ def run_test(script: str, options: list[str], test: dict, keep: bool) -> bool:
     """
     status, diff = True, ""
 
-    command = ["python3", script, test["input"], "--overwrite"] + options
+    command = ["python3", script, test["input"]] + options
 
     if "options" in test:
         command += test["options"]
