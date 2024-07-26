@@ -1,4 +1,4 @@
-(set-logic QF_ABV)
+(set-logic QF_BV)
 (define-system Delay 
    :input ((i (_ BitVec 8)) (o (_ BitVec 8))) 
    :output () 

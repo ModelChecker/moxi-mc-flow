@@ -62,6 +62,7 @@ def main(
     validate: bool,
     do_pickle: bool,
     do_cpp: bool,
+    do_ppjson: bool,
     logic: Optional[str],
     with_lets: bool,
     int_width: int,
@@ -73,7 +74,7 @@ def main(
     
     if keep and keep.exists():
         if not overwrite:
-            log.error(f"1 Output location already exists ({keep})", FILE_NAME)
+            log.error(f"Output location already exists ({keep})", FILE_NAME)
             return 1
         
         if keep.is_file():
@@ -83,7 +84,7 @@ def main(
 
     if output_path.exists():
         if not overwrite:
-            log.error(f"2 Output location already exists ({output_path})", FILE_NAME)
+            log.error(f"Output location already exists ({output_path})", FILE_NAME)
             return 1
         
         if output_path.is_file():
@@ -101,7 +102,7 @@ def main(
             if smv2moxi.translate_file(input_path, moxi_path, do_cpp, logic):
                 return FAIL
 
-            if moxi2json.main(moxi_path, output_path, False):
+            if moxi2json.main(moxi_path, output_path, False, do_ppjson):
                 return FAIL
 
             if keep:
@@ -156,7 +157,7 @@ def main(
                 with open(str(keep), "w") as f:
                     f.write(str(moxi_program))
         case (".moxi", "moxi-json"):
-            if moxi2json.main(input_path, output_path, False):
+            if moxi2json.main(input_path, output_path, False, do_ppjson):
                 return FAIL
         case (".moxi", "btor2"):
             if moxi2btor.translate_file(input_path, output_path, JSON_SCHEMA, int_width, do_pickle):
@@ -223,6 +224,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--cpp", action="store_true", help="runs cpp on input if input is SMV"
+    )
+    parser.add_argument(
+        "--ppjson", action="store_true", help="pretty print json output"
     )
     parser.add_argument("--catbtor", help="path to catbtor for BTOR2 validation")
     parser.add_argument("--sortcheck", help="path to sortcheck.py for MoXI validation")
@@ -303,6 +307,7 @@ if __name__ == "__main__":
             args.validate,
             args.pickle,
             args.cpp,
+            args.ppjson,
             args.logic,
             args.with_lets,
             args.intwidth,

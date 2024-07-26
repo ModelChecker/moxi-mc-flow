@@ -15,7 +15,7 @@ VAR
 ASSIGN
 init(foo11) := bar11 ;
 next(foo21) := bar21 ;
-foo3 := bar31 ;
+foo31 := bar31 ;
 
 INIT foo12 = bar12
 TRANS next(foo22) = bar22

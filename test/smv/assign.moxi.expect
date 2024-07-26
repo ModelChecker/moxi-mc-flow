@@ -1,8 +1,7 @@
-(set-logic QF_ABV)
 (define-system main 
    :input () 
    :output ((foo11 Bool) (foo21 Bool) (foo31 Bool) (bar11 Bool) (bar21 Bool) (bar31 Bool) (foo12 Bool) (foo22 Bool) (foo32 Bool) (bar12 Bool) (bar22 Bool) (bar32 Bool)) 
    :local () 
    :init (and (= foo12 bar12) (= foo11 bar11)) 
    :trans (and (= foo22' bar22) (= foo21' bar21)) 
-   :inv (and (= foo32 bar32) (= foo3 bar31)) )
+   :inv (and (= foo32 bar32) (= foo31 bar31)) )

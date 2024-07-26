@@ -33,7 +33,7 @@ class Lexer(sly.Lexer):
     HEXADECIMAL = r"#x[A-F0-9]+"
     BINARY      = r"#b[01]+"
 
-    SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@#$%^&*_+=<>.?/-]*'?|" \
+    SYMBOL   = r"[a-zA-Z~!@$%^&*_+=<>.?/-][0-9a-zA-Z~!@$%^&*_+=<>.?/-]*'?|" \
                r"\|[^\\\|]*\|'?"
     KEYWORD  = r":" + SYMBOL
 

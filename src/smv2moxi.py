@@ -7,9 +7,19 @@ FILE_NAME = pathlib.Path(__file__).name
 
 
 def to_moxi_ident(smv_ident: str) -> str:
-    if smv_ident[0] == '"':
-        return "|" + smv_ident[1:-1] + "|"
-    return smv_ident
+    new_ident = (
+        smv_ident.replace("__dot__", ".")
+        .replace("__colon__", ":")
+        .replace("__dquote__", '"')
+        .replace("__dollar__", "$")
+        .replace("__lbrack__", "[")
+        .replace("__rbrack__", "]")
+    )
+    if new_ident[0] == '"':
+        return "|" + new_ident[1:-1] + "|"
+    if any([c in new_ident for c in {":", "[" "]", "#"}]):
+        return "|" + new_ident + "|"
+    return new_ident
 
 
 def translate_type(smv_type: smv.Type, smv_context: smv.Context) -> moxi.Sort:
@@ -27,16 +37,20 @@ def translate_type(smv_type: smv.Type, smv_context: smv.Context) -> moxi.Sort:
         case smv.Boolean():
             return moxi.Sort.Bool()
         case smv.Integer():
+            smv_context.has_integers = True
             return moxi.Sort.Int()
         case smv.Real():
             raise ValueError("nuXmv `real` type not immediately supported in MoXI")
         case smv.Clock():
             raise ValueError("nuXmv `clock` type not immediately supported in MoXI")
         case smv.Word(width=w):
+            smv_context.has_bitvecs = True
             return moxi.Sort.BitVec(int(w))
         case smv.Array(subtype=t):
+            smv_context.has_arrays = True
             return moxi.Sort.Array(moxi.Sort.Int(), translate_type(t, smv_context))
         case smv.WordArray(word_length=wl, subtype=t):
+            smv_context.has_arrays = True
             return moxi.Sort.Array(
                 moxi.Sort.BitVec(int(wl)), translate_type(t, smv_context)
             )
@@ -290,26 +304,34 @@ def translate_expr(
                     raise NotImplementedError()
             case smv.FunCall(name="word1", args=fargs):
                 expr_map[expr] = moxi.Apply(
-                    moxi.Sort.BitVec(1), 
-                    moxi.Identifier("ite", []), 
-                    [  
-                        moxi.Apply(moxi.Sort.Bool(), moxi.Identifier("=", []), [expr_map[fargs[0]], moxi.Constant.Bool(True)]),
+                    moxi.Sort.BitVec(1),
+                    moxi.Identifier("ite", []),
+                    [
+                        moxi.Apply(
+                            moxi.Sort.Bool(),
+                            moxi.Identifier("=", []),
+                            [expr_map[fargs[0]], moxi.Constant.Bool(True)],
+                        ),
                         moxi.Constant.BitVec(1, 1),
-                        moxi.Constant.BitVec(1, 0)
-                    ])
+                        moxi.Constant.BitVec(1, 0),
+                    ],
+                )
             case smv.FunCall(name="toint", args=fargs):
                 if isinstance(fargs[0].type, smv.Integer):
                     expr_map[expr] = expr_map[fargs[0]]
                 elif isinstance(fargs[0].type, smv.Boolean):
                     expr_map[expr] = moxi.Apply(
-                        moxi.Sort.Int(), 
-                        moxi.Identifier("ite", []), 
-                        [expr_map[fargs[0]], moxi.Constant.Int(1), moxi.Constant.Int(0)]
+                        moxi.Sort.Int(),
+                        moxi.Identifier("ite", []),
+                        [
+                            expr_map[fargs[0]],
+                            moxi.Constant.Int(1),
+                            moxi.Constant.Int(0),
+                        ],
                     )
                 if isinstance(fargs[0].type, smv.Word):
                     log.error(
-                        "int cast from words not supported in any logic",
-                        FILE_NAME
+                        "int cast from words not supported in any logic", FILE_NAME
                     )
                     expr_map[expr] = moxi.Constant.Int(0)
             case smv.FunCall(name="swconst", args=fargs):
@@ -317,17 +339,11 @@ def translate_expr(
             case smv.FunCall(name="uwconst", args=fargs):
                 pass
             case smv.FunCall(name="unsigned word", args=fargs):
-                log.error(
-                    "word cast not supported in any logic",
-                    FILE_NAME
-                )
+                log.error("word cast not supported in any logic", FILE_NAME)
                 width = cast(smv.IntegerConstant, fargs[0]).integer
                 expr_map[expr] = moxi.Constant.BitVec(width, 0)
             case smv.FunCall(name="signed word", args=fargs):
-                log.error(
-                    "word cast not supported in any logic",
-                    FILE_NAME
-                )
+                log.error("word cast not supported in any logic", FILE_NAME)
                 width = cast(smv.IntegerConstant, fargs[0]).integer
                 expr_map[expr] = moxi.Constant.BitVec(width, 0)
             case smv.FunCall(name=fname, args=fargs):
@@ -1250,22 +1266,31 @@ def translate_module(
     return commands
 
 
-def infer_logic(commands: list[moxi.Command]) -> moxi.SetLogic:
+def infer_logic(context: smv.Context) -> Optional[moxi.SetLogic]:
     """
     Infers SMT logic based on sorts of occurring variables - if a single Int variable is found, set to QF_NIA, otherwise QF_ABV
     """
-    for def_sys in [s for s in commands if isinstance(s, moxi.DefineSystem)]:
-        variables = def_sys.input + def_sys.output + def_sys.local
-        if any([moxi.is_int_sort(s) for _,s in variables]):
-            return moxi.SetLogic(logic="QF_NIA")
+    if not any(
+        [context.has_arrays, context.has_ufs, context.has_bitvecs, context.has_integers]
+    ):
+        return None
 
-    if any([isinstance(s, moxi.DeclareFun) for s in commands]):
-        return moxi.SetLogic(logic="QF_AUFBV")
+    logic = "QF_"
+    if context.has_arrays:
+        logic += "A"
+    if context.has_ufs:
+        logic += "UF"
+    if context.has_bitvecs:
+        logic += "BV"
+    if context.has_integers:
+        logic += "NIA"
 
-    return moxi.SetLogic(logic="QF_ABV")
+    return moxi.SetLogic(logic)
 
 
-def translate(filename: str, smv_program: smv.Program, logic: Optional[str]) -> Optional[moxi.Program]:
+def translate(
+    filename: str, smv_program: smv.Program, logic: Optional[str]
+) -> Optional[moxi.Program]:
     """
     - Performs type-checking on input smv_program
     - Modules translated in backwards order (depending on what shows up in the specification)
@@ -1314,15 +1339,19 @@ def translate(filename: str, smv_program: smv.Program, logic: Optional[str]) -> 
     if logic:
         the_logic = moxi.SetLogic(logic)
     else:
-        the_logic = infer_logic(commands)
+        the_logic = infer_logic(context)
 
-    commands = [the_logic] + commands
+    if the_logic:
+        commands = [the_logic] + commands
 
     return moxi.Program(commands=commands)
 
 
 def translate_file(
-    input_path: pathlib.Path, output_path: pathlib.Path, do_cpp: bool, logic: Optional[str]
+    input_path: pathlib.Path,
+    output_path: pathlib.Path,
+    do_cpp: bool,
+    logic: Optional[str],
 ) -> int:
     """Parses, type checks, translates, and writes the translation result of `input_path` to `output_path`. Runs C preprocessor if `do_cpp` is True. Returns 0 on success, 1 otherwise."""
     if not input_path.is_file():

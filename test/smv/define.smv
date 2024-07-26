@@ -15,9 +15,9 @@ INVAR
     XOR = TRUE
 --- FUN constructs translate to `declare-fun` constructs in MoXI
 FUN
-    foo : boolean -> boolean
-    into : boolean -> word[1]
-    out : word[1] -> boolean
+    foo : boolean -> boolean;
+    into : boolean -> word[1];
+    out : word[1] -> boolean;
 VAR
     b2 : boolean ;
     w : word[1] ;

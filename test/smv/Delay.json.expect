@@ -1,7 +1,7 @@
 [
     {
         "command": "set-logic",
-        "logic": "QF_ABV"
+        "logic": "QF_BV"
     },
     {
         "command": "define-system",

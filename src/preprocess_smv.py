@@ -1,6 +1,5 @@
 import pathlib
 import subprocess
-import re
 
 from src import log
 
@@ -42,7 +41,7 @@ def handle_variables(content: str):
     line_no = 0
     for line in content.splitlines():
         line_no += 1
-        if len(line.split()) < 1:
+        if len(line) < 1:
             continue
         if line.split()[0].rstrip() in section_kws:
             var_decl = False
@@ -57,24 +56,22 @@ def handle_variables(content: str):
             var_name = spl[0].strip()
 
             if (
-                any([c in var_name for c in {'.',':','$','[',']',r'\\'}]) and 
-                var_name[0] != '"'
+                any([c in var_name for c in {'.',':','$','[',']','\\\\'}])
             ):
-                cleaned_var_name = '"' + var_name + '"'
-                regex_var_name = (var_name.replace(".", "\\.")
-                    .replace(":", "\\:")
-                    .replace('"', '\\"')
-                    .replace("$", "\\$")
-                    .replace("[", "\\[")
-                    .replace("]", "\\]")
-                    .replace("(", "\\(")
-                    .replace(")", "\\)")
-                    .replace(r"\\", "\\\\")
+                cleaned_var_name = (
+                    var_name.replace(".", "__dot__")
+                    .replace(":", "__colon__")
+                    .replace('"', "__dquote__")
+                    .replace("$", "__dollar__")
+                    .replace("[", "__lbrack__")
+                    .replace("]", "__rbrack__")
+                    .replace("\\\\", "__dbs__")
                 )
-                ret_fc = re.sub(
-                    f"(?<=[^\"]){regex_var_name}(?=[^a-zA-Z_0-9#$])", 
-                    cleaned_var_name, ret_fc
-                )
+                if cleaned_var_name == var_name:
+                    continue
+                else:
+                    new_ret_fc = ret_fc.replace(var_name, cleaned_var_name)
+                    ret_fc = new_ret_fc
 
     return ret_fc
 

@@ -1,38 +1,38 @@
-; B |_PC.0|
-; B |_PC.1|
-; B |_PC.2|
+; B _PC.0
+; B _PC.1
+; B _PC.2
 ; I |__NONDET_INLINE_INIT__2__4$main#0|
 ; I |__NONDET_INLINE_INIT__4__5$main#1|
 1 sort bitvec 1
 2 sort bitvec 32
-3 state 1 |_PC.0|.init
-4 state 1 |_PC.0|.cur
-5 state 1 |_PC.0|.next
-6 state 1 |_PC.1|.init
-7 state 1 |_PC.1|.cur
-8 state 1 |_PC.1|.next
-9 state 1 |_PC.2|.init
-10 state 1 |_PC.2|.cur
-11 state 1 |_PC.2|.next
+3 state 1 _PC.0.init
+4 state 1 _PC.0.cur
+5 state 1 _PC.0.next
+6 state 1 _PC.1.init
+7 state 1 _PC.1.cur
+8 state 1 _PC.1.next
+9 state 1 _PC.2.init
+10 state 1 _PC.2.cur
+11 state 1 _PC.2.next
 12 state 2 |__NONDET_INLINE_INIT__2__4$main#0|.cur
 13 state 2 |__NONDET_INLINE_INIT__2__4$main#0|.next
-14 state 2 |i__1$main|.init
-15 state 2 |i__1$main|.cur
-16 state 2 |i__1$main|.next
+14 state 2 i__1$main.init
+15 state 2 i__1$main.cur
+16 state 2 i__1$main.next
 17 state 2 |__NONDET_INLINE_INIT__4__5$main#1|.cur
 18 state 2 |__NONDET_INLINE_INIT__4__5$main#1|.next
-19 state 2 |j__3$main|.init
-20 state 2 |j__3$main|.cur
-21 state 2 |j__3$main|.next
-22 state 2 |x__5$main|.init
-23 state 2 |x__5$main|.cur
-24 state 2 |x__5$main|.next
-25 state 2 |y__7$main|.init
-26 state 2 |y__7$main|.cur
-27 state 2 |y__7$main|.next
-28 state 2 |__RET__$main|.init
-29 state 2 |__RET__$main|.cur
-30 state 2 |__RET__$main|.next
+19 state 2 j__3$main.init
+20 state 2 j__3$main.cur
+21 state 2 j__3$main.next
+22 state 2 x__5$main.init
+23 state 2 x__5$main.cur
+24 state 2 x__5$main.next
+25 state 2 y__7$main.init
+26 state 2 y__7$main.cur
+27 state 2 y__7$main.next
+28 state 2 __RET__$main.init
+29 state 2 __RET__$main.cur
+30 state 2 __RET__$main.next
 31 init 1 4 3
 32 init 1 7 6
 33 init 1 10 9

@@ -64,7 +64,7 @@ def run_test(script: str, options: list[str], test: dict, keep: bool) -> bool:
     """
     status, diff = True, ""
 
-    command = ["python3", script, test["input"]] + options
+    command = ["python3", script, test["input"], "--overwrite"] + options
 
     if "options" in test:
         command += test["options"]
@@ -115,6 +115,10 @@ def run_test(script: str, options: list[str], test: dict, keep: bool) -> bool:
                         output_path.unlink()
                     elif output_path.is_dir():
                         shutil.rmtree(output_path)
+
+            output_path = pathlib.Path(test["output"])
+            if output_path.is_dir():
+                shutil.rmtree(output_path)
     except FileNotFoundError:
         print_fail(f"{test['input']}: file does not exist")
         return False

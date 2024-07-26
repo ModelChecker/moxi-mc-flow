@@ -1,9 +1,5 @@
 [
     {
-        "command": "set-logic",
-        "logic": "QF_ABV"
-    },
-    {
         "command": "define-system",
         "symbol": "main",
         "input": [],
@@ -196,7 +192,7 @@
                     },
                     "args": [
                         {
-                            "identifier": "foo3"
+                            "identifier": "foo31"
                         },
                         {
                             "identifier": "bar31"

@@ -211,6 +211,16 @@ class IntegerConstant(Constant):
         return f"{self.integer}"
 
 
+class RealConstant(Constant):
+    def __init__(self, real: float, loc: Optional[log.FileLocation] = None):
+        super().__init__(loc)
+        self.real = real
+        self.type = Real()
+
+    def __repr__(self) -> str:
+        return f"{self.real}"
+
+
 class BooleanConstant(Constant):
     def __init__(self, boolean: bool, loc: Optional[log.FileLocation] = None):
         super().__init__(loc)
@@ -727,6 +737,10 @@ class Context:
         self.worklist: list[Expr] = []
 
         self.in_next_expr = False
+        self.has_arrays = False
+        self.has_integers = False
+        self.has_bitvecs = False
+        self.has_ufs = False
 
         self.filename = filename
         self.lineno = 0
@@ -841,6 +855,8 @@ def type_check_expr(
     for expr in postorder(top_expr, context, True):
         match expr:
             case IntegerConstant():
+                pass
+            case RealConstant():
                 pass
             case BooleanConstant():
                 pass
@@ -1466,6 +1482,7 @@ def type_check_module(module: ModuleDeclaration, context: Context) -> bool:
                             define.expr, context, module
                         )
             case FunctionDeclaration(function_list=function_list):
+                context.has_ufs = True
                 for function in function_list:
                     context.functions[function.name] = function.type
             case AssignDeclaration(assign_list=assign_list):

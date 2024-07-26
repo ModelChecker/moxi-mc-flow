@@ -38,7 +38,7 @@ class Lexer(sly.Lexer):
         WORDCONSTANT,
 
         # primitives
-        IDENT, INTEGER,
+        IDENT, INTEGER, DECIMAL,
 
         # main keywords
         SMV_MODULE,
@@ -72,7 +72,8 @@ class Lexer(sly.Lexer):
     ignore_newline = r"\n+"
     
     WORDCONSTANT = r"0[us]?[bBoOdDhH][0-9]+?_[0-9a-fA-F]+"
-    INTEGER = r'-?[0-9][0-9]*'
+    DECIMAL      = r"(0|[1-9]\d*)\.0*(0|[1-9]\d*)"
+    INTEGER      = r'-?[0-9][0-9]*'
 
     # punctuation
     COLONEQ = r"\:\="
@@ -608,7 +609,7 @@ class Parser(sly.Parser):
         else:
             return p[0] + [p[1]]
 
-    @_("IDENT COLON function_domain RIGHTARROW type_specifier")
+    @_("IDENT COLON function_domain RIGHTARROW type_specifier SEMICOLON")
     def function_declaration(self, p):
         return smv.Function(name=p[0], type=(p.function_domain, p.type_specifier))
     
@@ -730,6 +731,7 @@ class Parser(sly.Parser):
     @_(
         "boolean_constant",
         "integer_constant",
+        "real_constant",
         "symbolic_constant",
         "word_constant",
         "range_constant"
@@ -748,6 +750,10 @@ class Parser(sly.Parser):
     @_("INTEGER")
     def integer_constant(self, p):
         return smv.IntegerConstant(integer=int(p[0]), loc=self.loc(p))
+            
+    @_("DECIMAL")
+    def real_constant(self, p):
+        return smv.RealConstant(real=float(p[0]), loc=self.loc(p))
     
     @_("complex_identifier")
     def symbolic_constant(self, p):
