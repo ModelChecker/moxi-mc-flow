@@ -18,6 +18,7 @@ WORK_DIR = FILE_DIR / "__workdir__"
 
 btormc_path = FILE_DIR / "boolector" / "build" / "bin" / "btormc"
 avr_path = FILE_DIR / "avr"
+pono_path = FILE_DIR / "pono" / "build" / "pono"
 translate_path = FILE_DIR / "translate.py"
 
 
@@ -53,17 +54,18 @@ def run_btormc(btormc_path: Path, btor_path: Path, timeout: int, kmax: int, kind
     with open(btor_witness_path, "wb") as f:
         f.write(btor_witness_bytes)
 
-    if btor_witness_bytes:
+    if btor_witness_bytes.startswith(b'sat'):
         print("sat")
-    else:
+        logger.info(f"btormc witness created at {btor_witness_path}")
+    elif btor_witness_bytes.startswith(b'unsat'):
         print("unsat")
-
-    logger.info(f"btormc witness created at {btor_witness_path}")
+    else:
+        print("unknown")
 
     return 0
 
 
-def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool) -> int:
+def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool, ic3: bool) -> int:
     absolute_btor_path = btor_path.absolute()
 
     logger.info(f"Running avr over {absolute_btor_path}")
@@ -74,9 +76,11 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
 
     os.chdir(avr_path)
 
-    command = ["python", "avr.py", str(absolute_btor_path), "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax), "--timeout", str(timeout)]
-    
-    if kind:
+    command = ["python3", "avr.py", str(absolute_btor_path), "--witness", "-o", str(avr_output_path),  "--kmax", str(kmax), "--timeout", str(timeout)]
+
+    if ic3:
+        pass
+    elif kind:
         command.append("--kind")
     else:
         command.append("--bmc")
@@ -98,6 +102,17 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
 
     logger.info(f"Done model checking in {end_mc-start_mc}s")
 
+    with open(str(avr_results_path / "result.pr"), "r") as f:
+        result_str = f.read()
+
+    if result_str == "avr-v":
+        print("sat")
+    elif result_str == "avr-h":
+        print("unsat")
+    else:
+        print("crash")
+        return 1
+    
     avr_witness_path = [c for c in avr_results_path.glob("cex.witness")]
     btor_witness_path = absolute_btor_path.with_suffix(f".btor2.cex")
     
@@ -106,15 +121,52 @@ def run_avr(avr_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool
     os.chdir("..")
     if len(avr_witness_path) > 0:
         avr_witness_path[0].rename(str(btor_witness_path))
-        print("sat")
     else:
         btor_witness_path.touch()
-        print("unsat")
 
     if len(avr_proof_path) > 0:
         avr_proof_path[0].rename(str(btor_witness_path.parent / "inv.txt"))
 
     logger.info(f"AVR witness created at {btor_witness_path}")
+
+    return 0
+
+def run_pono(pono_path: Path, btor_path: Path, timeout: int, kmax: int, kind: bool, ic3: bool) -> int:
+    logger.info(f"Running pono over {btor_path}")
+    label = btor_path.stem
+
+    command = [str(pono_path), "-k", str(kmax), "-e"]
+    if ic3:
+        command.append("ic3ia")
+    elif kind:
+        command.append("ind")
+    else:
+        command.append("bmc")
+    command.append(str(btor_path))
+
+    start_mc = time.perf_counter()
+
+    try:
+        proc = subprocess.run(command, capture_output=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print("timeout")
+        return 1
+    
+    end_mc = time.perf_counter()
+
+    logger.info(f"Done model checking in {end_mc-start_mc}s")
+
+    btor_witness_bytes = proc.stdout
+    btor_witness_path = btor_path.with_suffix(f".btor2.cex")
+    with open(btor_witness_path, "wb") as f:
+        f.write(btor_witness_bytes)
+
+    if btor_witness_bytes.startswith(b'sat'):
+        print("sat")
+    elif btor_witness_bytes.startswith(b'unsat'):
+        print("unsat")
+    else:
+        print("unknown")
 
     return 0
 
@@ -131,6 +183,7 @@ def model_check(
     timeout: int,
     kmax: int,
     kind: bool,
+    ic3: bool,
     cpp: bool,
     debug: bool,
 ) -> int:
@@ -195,22 +248,26 @@ def model_check(
                 if retcode:
                     return retcode
             elif model_checker == "avr":
-                retcode = run_avr(avr_path, btor_path, timeout, kmax, kind)
+                retcode = run_avr(avr_path, btor_path, timeout, kmax, kind, ic3)
+                if retcode:
+                    return retcode
+            elif model_checker == "pono":
+                retcode = run_pono(pono_path, btor_path, timeout, kmax, kind, ic3)
                 if retcode:
                     return retcode
             else:
                 logger.error(f"Unsupported model checker {model_checker}")
                 return 1
 
-    retcode = btorwit2mcilwit(
-        btor2_output_path, mcil_witness_path, 
-        verbose=True, do_pickle=(input_path.suffix == ".smv")
-    )
+#    retcode = btorwit2mcilwit(
+#        btor2_output_path, mcil_witness_path, 
+#        verbose=True, do_pickle=(input_path.suffix == ".smv")
+#    )
 
     if retcode:
         return retcode
 
-    if input_path.suffix == ".smv":
+    if False and input_path.suffix == ".smv":
         retcode = mcilwit2nuxmvwit(
             mcil_witness_pickle_path, nuxmv_witness_path
         )
@@ -222,12 +279,12 @@ def model_check(
 
     logger.info(f"End-to-end done in {end_total-start_total}s")
 
-    if copyback:
-        shutil.copytree(WORK_DIR, output_path)
-        logger.info(f"Wrote files to {output_path}")
-    else:
-        witness_path.replace(output_path)
-        logger.info(f"Wrote witness to {output_path}")
+#    if copyback:
+#        shutil.copytree(WORK_DIR, output_path)
+#        logger.info(f"Wrote files to {output_path}")
+#    else:
+#        witness_path.replace(output_path)
+#        logger.info(f"Wrote witness to {output_path}")
 
     rmdir(WORK_DIR, True)
 
@@ -238,7 +295,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("input", 
         help="input program to model check via translation to btor2")
-    parser.add_argument("modelchecker", choices=["btormc", "avr"], 
+    parser.add_argument("modelchecker", choices=["btormc", "avr", "pono"], 
         help="model checker to use")
     parser.add_argument("--output",  
         help="location of output check-system response")
@@ -246,6 +303,8 @@ if __name__ == "__main__":
         help=f"path to avr directory")
     parser.add_argument("--btormc-path",  
         help=f"path to btormc binary")
+    parser.add_argument("--pono-path",  
+        help=f"path to pono binary")
     parser.add_argument("--translate-path",  
         help=f"path to translate.py script")
     parser.add_argument("--copyback",  action="store_true",
@@ -262,6 +321,8 @@ if __name__ == "__main__":
         help="timeout in seconds (default=3600)")
     parser.add_argument("--kind", action="store_true", 
         help="enable k-induction")
+    parser.add_argument("--ic3", action="store_true", 
+        help="enable ic3")
     parser.add_argument("--cpp", action="store_true", 
         help="runs cpp on input if SMV")
     parser.add_argument("--debug", action="store_true", 
@@ -281,6 +342,9 @@ if __name__ == "__main__":
 
     if args.btormc_path:
         btormc_path = Path(args.btormc_path)
+
+    if args.pono_path:
+        pono_path = Path(args.pono_path)
 
     if args.translate_path:
         translate_path = Path(args.translate_path)
@@ -305,6 +369,7 @@ if __name__ == "__main__":
         timeout=args.timeout,
         kmax=args.kmax,
         kind=args.kind,
+        ic3=args.ic3,
         cpp=args.cpp,
         debug=args.debug
     )
