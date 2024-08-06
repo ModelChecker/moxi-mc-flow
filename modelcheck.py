@@ -19,20 +19,21 @@ pono_path = FILE_DIR / "deps" / "pono"
 translate_path = FILE_DIR / "translate.py"
 
 
-def run_btormc(btormc_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, kind: bool) -> int:
+def run_btormc(btormc_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, algorithm: str) -> int:
     log.debug(1, f"Running btormc over {btor_path}", FILE_NAME)
     label = btor_path.stem
+
+    if algorithm in {"kind", "ic3"}:
+        log.error(f"invalid algorithm for btormc '{algorithm}', only bmc is allowed", FILE_NAME)
+        return 1
 
     command = [
         str(btormc_path), 
         str(btor_path), 
-        "-kmax", str(kmax), 
+        "--kmax", str(kmax),
         "--trace-gen-full",
     ]
     
-    if kind:
-        command.append("--kind")
-
     start_mc = time.perf_counter()
 
     try:
@@ -69,7 +70,7 @@ def run_btormc(btormc_path: pathlib.Path, btor_path: pathlib.Path, timeout: int,
     return 0
 
 
-def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, kind: bool) -> int:
+def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, algorithm: str) -> int:
     absolute_btor_path = btor_path.absolute()
 
     log.debug(1, f"Running avr over {absolute_btor_path}", FILE_NAME)
@@ -89,10 +90,11 @@ def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax:
         "--timeout", str(timeout + 10)
     ]
     
-    if kind:
-        command.append("--kind")
-    else:
+    if algorithm == "bmc":
         command.append("--bmc")
+    elif algorithm == "kind":
+        command.append("--kind")
+    # IC3 is default for AVR, so add no flag
 
     start_mc = time.perf_counter()
 
@@ -138,15 +140,19 @@ def run_avr(avr_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax:
     return 0
 
 
-def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, kind: bool) -> int:
+def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kmax: int, algorithm: str) -> int:
     log.debug(1, f"Running pono over {btor_path}", FILE_NAME)
     # label = btor_path.stem
 
     command = [str(pono_path), "-k", str(kmax), "-e"]
-    if kind:
+
+    if algorithm == "bmc":
+        command.append("bmc")
+    elif algorithm == "kind":
         command.append("ind")
     else:
-        command.append("bmc")
+        command.append("ic3ia")
+
     command.append(str(btor_path))
 
     start_mc = time.perf_counter()
@@ -184,6 +190,7 @@ def model_check(
     output_path: pathlib.Path, 
     workdir: pathlib.Path,
     model_checker: str, 
+    algorithm: str,
     sortcheck: Optional[str],
     catbtor: Optional[str],
     copyback: bool,
@@ -191,7 +198,6 @@ def model_check(
     int_width: int,
     timeout: int,
     kmax: int,
-    kind: bool,
     cpp: bool,
     debug: int,
     overwrite: bool,
@@ -212,7 +218,7 @@ def model_check(
             output_path.unlink()
         elif output_path.is_dir():
             shutil.rmtree(output_path)
-    
+
     src_path = workdir / input_path.name
     btor2_output_path = workdir / "btor2" 
     moxi_path = workdir / input_path.with_suffix(".out.moxi").name
@@ -274,15 +280,15 @@ def model_check(
     for check_system_path in btor2_output_path.iterdir():
         for btor_path in check_system_path.glob("*.btor2"):
             if model_checker == "btormc":
-                retcode = run_btormc(btormc_path, btor_path, int(timeout - time_elapsed), kmax, kind)
+                retcode = run_btormc(btormc_path, btor_path, int(timeout - time_elapsed), kmax, algorithm)
                 if retcode:
                     return retcode
             elif model_checker == "avr":
-                retcode = run_avr(avr_path, btor_path, int(timeout - time_elapsed), kmax, kind)
+                retcode = run_avr(avr_path, btor_path, int(timeout - time_elapsed), kmax, algorithm)
                 if retcode:
                     return retcode
             elif model_checker == "pono":
-                retcode = run_pono(pono_path, btor_path, int(timeout - time_elapsed), kmax, kind)
+                retcode = run_pono(pono_path, btor_path, int(timeout - time_elapsed), kmax, algorithm)
                 if retcode:
                     return retcode
             else:
@@ -325,6 +331,8 @@ if __name__ == "__main__":
         help="input program to model check via translation to btor2")
     parser.add_argument("modelchecker", choices=["btormc", "avr", "pono"], 
         help="model checker to use")
+    parser.add_argument("--algorithm", choices=["bmc", "kind", "ic3"], default="bmc",
+        help="model-checking algorithm to use")
     parser.add_argument("--output",  
         help="location of output check-system response")
     parser.add_argument("--no-witness", action="store_true",
@@ -347,8 +355,6 @@ if __name__ == "__main__":
         help="max bound for BMC (default=1000)")
     parser.add_argument("--timeout", default=3600, type=int, 
         help="timeout in seconds for model checker (default=3600)")
-    parser.add_argument("--kind", action="store_true", 
-        help="enable k-induction")
     parser.add_argument("--cpp", action="store_true", 
         help="runs cpp on input if SMV")
     parser.add_argument("--quiet", action="store_true", 
@@ -395,6 +401,7 @@ if __name__ == "__main__":
             output_path=output_path, 
             workdir=workdir,
             model_checker=args.modelchecker, 
+            algorithm=args.algorithm,
             sortcheck=args.sortcheck,
             catbtor=args.catbtor,
             copyback=args.copyback, 
@@ -402,7 +409,6 @@ if __name__ == "__main__":
             int_width=args.intwidth, 
             timeout=args.timeout,
             kmax=args.kmax,
-            kind=args.kind,
             cpp=args.cpp,
             debug=args.debug,
             overwrite=args.overwrite
