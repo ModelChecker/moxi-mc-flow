@@ -151,7 +151,7 @@ def run_pono(pono_path: pathlib.Path, btor_path: pathlib.Path, timeout: int, kma
     elif algorithm == "kind":
         command.append("ind")
     else:
-        command.append("ic3ia")
+        command.append("mbic3")
 
     command.append(str(btor_path))
 
