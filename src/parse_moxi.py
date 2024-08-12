@@ -442,6 +442,11 @@ class Parser(sly.Parser):
             prime = True
             symbol = symbol[:-1]
 
+        # for quoted symbols, we allow the prime to be within the `|` as well.
+        if symbol[0] == "|" and symbol[len(symbol)-2] == "'":
+            prime = True
+            symbol = symbol[:-2] + "|"
+
         return moxi.Variable(moxi.Sort.NoSort(), symbol, prime, self.loc(p))
 
     @_("NUMERAL")
