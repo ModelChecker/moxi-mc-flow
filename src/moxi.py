@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, cast
 
 from src import log
+from src.util import format_symbol
 
 FILE_NAME = Path(__file__).name
 
@@ -110,10 +111,11 @@ class Identifier:
         return hash(self.symbol) + sum([hash(i) for i in self.indices])
 
     def __str__(self) -> str:
+        symbol = format_symbol(self.symbol)
         if len(self.indices) == 0:
-            return self.symbol
+            return symbol
 
-        s = f"(_ {self.symbol} "
+        s = f"(_ {symbol} "
         for index in self.indices:
             s += f"{index} "
         return s[:-1] + ")"
@@ -504,10 +506,10 @@ def term2str(term: Term, with_attr: bool = True) -> str:
         elif isinstance(cur, Constant):
             s += f"{cur.value} "
         elif isinstance(cur, Variable):
-            s += f"{cur.symbol}" + ("' " if cur.prime else " ")
+            s += format_symbol(cur.symbol, cur.prime) + " "
         elif isinstance(cur, tuple):
             (v, e) = cur
-            s += f"({v} "
+            s += f"({format_symbol(v)} "
         else:
             s += f"{str(cur)} "
 
@@ -634,7 +636,7 @@ class DeclareSort(Command):
         self.arity = arity
 
     def __str__(self) -> str:
-        return f"(declare-sort {self.symbol} {self.arity})"
+        return f"(declare-sort {format_symbol(self.symbol)} {self.arity})"
 
     def to_json(self) -> dict:
         return {"command": "declare-sort", "symbol": self.symbol, "arity": self.arity}
@@ -654,8 +656,8 @@ class DefineSort(Command):
         self.definition = definition
 
     def __str__(self) -> str:
-        parameters_str = " ".join(self.parameters)
-        return f"(define-sort {self.symbol} ({parameters_str}) {self.definition})"
+        parameters_str = " ".join(format_symbol(p) for p in self.parameters)
+        return f"(define-sort {format_symbol(self.symbol)} ({parameters_str}) {self.definition})"
 
     def to_json(self) -> dict:
         return {
@@ -675,8 +677,8 @@ class DeclareEnumSort(Command):
         self.values = values
 
     def __str__(self) -> str:
-        values_str = " ".join(self.values)
-        return f"(declare-enum-sort {self.symbol} ({values_str}))"
+        values_str = " ".join(format_symbol(v) for v in self.values)
+        return f"(declare-enum-sort {format_symbol(self.symbol)} ({values_str}))"
 
     def to_json(self) -> dict:
         return {
@@ -693,7 +695,7 @@ class DeclareConst(Command):
         self.sort = sort
 
     def __str__(self) -> str:
-        return f"(declare-const {self.symbol} {self.sort})"
+        return f"(declare-const {format_symbol(self.symbol)} {self.sort})"
 
     def to_json(self) -> dict:
         return {
@@ -718,7 +720,7 @@ class DeclareFun(Command):
 
     def __str__(self) -> str:
         input_str = " ".join([str(i) for i in self.inputs])
-        return f"(declare-fun {self.symbol} ({input_str}) {self.output_sort})"
+        return f"(declare-fun {format_symbol(self.symbol)} ({input_str}) {self.output_sort})"
 
     def to_json(self) -> dict:
         return {
@@ -750,9 +752,11 @@ class DefineFun(Command):
         return [self.body]
 
     def __str__(self) -> str:
-        input_str = " ".join([f"({symbol} {sort})" for symbol, sort in self.input])
+        input_str = " ".join(
+            [f"({format_symbol(symbol)} {sort})" for symbol, sort in self.input]
+        )
         return (
-            f"(define-fun {self.symbol} ({input_str}) {self.output_sort} {self.body})"
+            f"(define-fun {format_symbol(self.symbol)} ({input_str}) {self.output_sort} {self.body})"
         )
 
     def to_json(self) -> dict:
@@ -851,16 +855,26 @@ class DefineSystem(SystemCommand):
         return [self.init, self.trans, self.inv]
 
     def __str__(self) -> str:
-        input_str = " ".join([f"({symbol} {sort})" for symbol, sort in self.input])
-        output_str = " ".join([f"({symbol} {sort})" for symbol, sort in self.output])
-        local_str = " ".join([f"({symbol} {sort})" for symbol, sort in self.local])
+        input_str = " ".join(
+            [f"({format_symbol(symbol)} {sort})" for symbol, sort in self.input]
+        )
+        output_str = " ".join(
+            [f"({format_symbol(symbol)} {sort})" for symbol, sort in self.output]
+        )
+        local_str = " ".join(
+            [f"({format_symbol(symbol)} {sort})" for symbol, sort in self.local]
+        )
 
         subsystem_str = ""
         for symbol, signature in self.subsystem_signatures.items():
             (sys_symbol, args) = signature
-            subsystem_str += f"\n   :subsys ({symbol} ({sys_symbol} {' '.join(args)}))"
+            formatted_args = " ".join(format_symbol(a) for a in args)
+            subsystem_str += (
+                f"\n   :subsys ({format_symbol(symbol)} "
+                f"({format_symbol(sys_symbol)} {formatted_args}))"
+            )
 
-        s = f"(define-system {self.symbol} "
+        s = f"(define-system {format_symbol(self.symbol)} "
         s += f"\n   :input ({input_str}) "
         s += f"\n   :output ({output_str}) "
         s += f"\n   :local ({local_str}) "
@@ -931,37 +945,43 @@ class CheckSystem(SystemCommand):
         )
 
     def __str__(self) -> str:
-        input_str = " ".join([f"({symbol} {sort})" for symbol, sort in self.input])
-        output_str = " ".join([f"({symbol} {sort})" for symbol, sort in self.output])
-        local_str = " ".join([f"({symbol} {sort})" for symbol, sort in self.local])
+        input_str = " ".join(
+            [f"({format_symbol(symbol)} {sort})" for symbol, sort in self.input]
+        )
+        output_str = " ".join(
+            [f"({format_symbol(symbol)} {sort})" for symbol, sort in self.output]
+        )
+        local_str = " ".join(
+            [f"({format_symbol(symbol)} {sort})" for symbol, sort in self.local]
+        )
 
         assumption_str = "".join(
             [
-                f"\n   :assumption ({symbol} {term})"
+                f"\n   :assumption ({format_symbol(symbol)} {term})"
                 for symbol, term in self.assumption.items()
             ]
         )
         fairness_str = "".join(
             [
-                f"\n   :fairness ({symbol} {term})"
+                f"\n   :fairness ({format_symbol(symbol)} {term})"
                 for symbol, term in self.fairness.items()
             ]
         )
         reachable_str = "".join(
             [
-                f"\n   :reachable ({symbol} {term})"
+                f"\n   :reachable ({format_symbol(symbol)} {term})"
                 for symbol, term in self.reachable.items()
             ]
         )
         current_str = "".join(
             [
-                f"\n   :current ({symbol} {term})"
+                f"\n   :current ({format_symbol(symbol)} {term})"
                 for symbol, term in self.current.items()
             ]
         )
         query_str = "".join(
             [
-                f"\n   :query ({symbol} ({' '.join(labels)}))"
+                f"\n   :query ({format_symbol(symbol)} ({' '.join(format_symbol(l) for l in labels)}))"
                 for symbol, labels in self.query.items()
             ]
         )
@@ -969,11 +989,14 @@ class CheckSystem(SystemCommand):
         queries_str = ""
         for query in self.queries:
             query_list_str = " ".join(
-                [f"({symbol} ({' '.join(labels)}))" for symbol, labels in query.items()]
+                [
+                    f"({format_symbol(symbol)} ({' '.join(format_symbol(l) for l in labels)}))"
+                    for symbol, labels in query.items()
+                ]
             )
             queries_str += f"\n   :queries ({query_list_str})"
 
-        s = f"(check-system {self.symbol} "
+        s = f"(check-system {format_symbol(self.symbol)} "
         s += f"\n   :input ({input_str}) "
         s += f"\n   :output ({output_str}) "
         s += f"\n   :local ({local_str}) "

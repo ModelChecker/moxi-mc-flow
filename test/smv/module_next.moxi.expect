@@ -1,0 +1,21 @@
+(define-system Sofar 
+   :input ((_X_ Bool)) 
+   :output ((Sofar Bool)) 
+   :local () 
+   :init (= Sofar _X_) 
+   :trans (= Sofar' (and _X_' Sofar)) 
+   :inv true )
+(define-system main 
+   :input () 
+   :output ((ast Bool) (env Bool) (flby Bool)) 
+   :local ((call_Sofar._X_ Bool) (call_Sofar.Sofar Bool)) 
+   :init (= flby true) 
+   :trans (= flby' (ite call_Sofar.Sofar' ast (ite (not call_Sofar.Sofar') true true))) 
+   :inv (and (= env call_Sofar.Sofar) (= call_Sofar._X_ ast)) 
+   :subsys (call_Sofar (Sofar call_Sofar._X_ call_Sofar.Sofar)))
+(check-system main 
+   :input () 
+   :output ((ast Bool) (env Bool) (flby Bool)) 
+   :local ((call_Sofar._X_ Bool) (call_Sofar.Sofar Bool)) 
+   :reachable (rch_1 (not flby))
+   :query (qry_rch_1 (rch_1)))

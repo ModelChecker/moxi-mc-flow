@@ -6,6 +6,7 @@ from typing import Optional
 from src import sly
 from src import log
 from src import moxi
+from src.util import unquote_symbol
 
 FILE_NAME = pathlib.Path(__file__).name
 
@@ -85,6 +86,10 @@ class Lexer(sly.Lexer):
     SYMBOL["define-system"] = CMD_DEFINE_SYSTEM
     SYMBOL["check-system"]  = CMD_CHECK_SYSTEM
     SYMBOL["exit"]  = CMD_EXIT
+
+    def SYMBOL(self, t):
+        t.value = unquote_symbol(t.value)
+        return t
 
     # Extra action for newlines
     def ignore_newline(self, t):
@@ -438,14 +443,9 @@ class Parser(sly.Parser):
             return moxi.Constant.Enum(self.enums[symbol], symbol)
 
         prime: bool = False
-        if symbol[len(symbol)-1] == "'":
+        if symbol.endswith("'"):
             prime = True
             symbol = symbol[:-1]
-
-        # for quoted symbols, we allow the prime to be within the `|` as well.
-        if symbol[0] == "|" and symbol[len(symbol)-2] == "'":
-            prime = True
-            symbol = symbol[:-2] + "|"
 
         return moxi.Variable(moxi.Sort.NoSort(), symbol, prime, self.loc(p))
 

@@ -36,6 +36,15 @@
         },
         {
             "options": ["--with-lets"],
+            "input": "vmt/quoted_next.vmt",
+            "output": "vmt/quoted_next.moxi",
+            "expected_output": [
+                ["vmt/quoted_next.moxi.expect",
+                 "vmt/quoted_next.moxi"]
+            ]
+        },
+        {
+            "options": ["--with-lets"],
             "input": "vmt/fib_bench_safe_v1.vmt",
             "output": "vmt/fib_bench_safe_v1.moxi",
             "expected_output": [

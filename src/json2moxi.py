@@ -8,17 +8,18 @@ import jsonschema
 from jsonschema import exceptions
 
 from src import log, moxi
+from src.util import unquote_symbol
 
 FILE_NAME = pathlib.Path(__file__).name
 
 
 def from_json_identifier(contents: dict | str) -> moxi.Identifier:
     if isinstance(contents, str):
-        return moxi.Identifier(str(contents), [])
+        return moxi.Identifier(unquote_symbol(str(contents)), [])
     elif "indices" not in contents:
-        return moxi.Identifier(contents["symbol"], [])
+        return moxi.Identifier(unquote_symbol(contents["symbol"]), [])
     else:
-        return moxi.Identifier(contents["symbol"], contents["indices"])
+        return moxi.Identifier(unquote_symbol(contents["symbol"]), contents["indices"])
 
 
 def from_json_sort(contents: dict) -> moxi.Sort:
@@ -85,7 +86,7 @@ def from_json_term(contents: dict, enums: dict[str, str]) -> moxi.Term:
     else:
         prime: bool = False
         symbol: str = identifier.symbol
-        if symbol[len(symbol) - 1] == "'":
+        if symbol.endswith("'"):
             prime = True
             symbol = symbol[:-1]
 

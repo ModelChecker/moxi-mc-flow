@@ -54,6 +54,18 @@
             "expected_returncode": 0
         },
         {
+            "input": "moxi/QuotedInit.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/QuotedSymbols.moxi",
+            "expected_returncode": 0
+        },
+        {
+            "input": "moxi/QF_BV/QuotedSymbols2.moxi",
+            "expected_returncode": 0
+        },
+        {
             "input": "moxi/QF_BV/DoubleDelay.moxi",
             "expected_returncode": 0
         },

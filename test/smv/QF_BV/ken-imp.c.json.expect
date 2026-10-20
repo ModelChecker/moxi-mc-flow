@@ -8,7 +8,7 @@
         "symbol": "main",
         "input": [
             {
-                "symbol": "|__NONDET_INLINE_INIT__2__4$main#0|",
+                "symbol": "__NONDET_INLINE_INIT__2__4$main#0",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -19,7 +19,7 @@
                 }
             },
             {
-                "symbol": "|__NONDET_INLINE_INIT__4__5$main#1|",
+                "symbol": "__NONDET_INLINE_INIT__4__5$main#1",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -246,7 +246,7 @@
                                     "identifier": "i__1$main'"
                                 },
                                 {
-                                    "identifier": "|__NONDET_INLINE_INIT__2__4$main#0|"
+                                    "identifier": "__NONDET_INLINE_INIT__2__4$main#0"
                                 }
                             ]
                         }
@@ -269,7 +269,7 @@
                                             "identifier": "j__3$main'"
                                         },
                                         {
-                                            "identifier": "|__NONDET_INLINE_INIT__4__5$main#1|"
+                                            "identifier": "__NONDET_INLINE_INIT__4__5$main#1"
                                         }
                                     ]
                                 }
@@ -1176,7 +1176,7 @@
         "symbol": "main",
         "input": [
             {
-                "symbol": "|__NONDET_INLINE_INIT__2__4$main#0|",
+                "symbol": "__NONDET_INLINE_INIT__2__4$main#0",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",
@@ -1187,7 +1187,7 @@
                 }
             },
             {
-                "symbol": "|__NONDET_INLINE_INIT__4__5$main#1|",
+                "symbol": "__NONDET_INLINE_INIT__4__5$main#1",
                 "sort": {
                     "identifier": {
                         "symbol": "BitVec",

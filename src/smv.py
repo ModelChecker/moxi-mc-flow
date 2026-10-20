@@ -437,6 +437,7 @@ class ModuleAccess(ComplexIdentifier):
         super().__init__(module.ident, loc)
         self.module = module
         self.element = element
+        self.in_next_expr = False
 
     def __eq__(self, __o: object) -> bool:
         return (
@@ -444,10 +445,11 @@ class ModuleAccess(ComplexIdentifier):
             and __o.ident == self.ident
             and __o.module == self.module
             and __o.element == self.element
+            and self.in_next_expr == __o.in_next_expr
         )
 
     def __hash__(self) -> int:
-        return hash((self.ident, self.module, self.element))
+        return hash((self.ident, self.module, self.element, self.in_next_expr))
 
     def __repr__(self) -> str:
         return f"({self.module}.{self.element})"
@@ -1322,6 +1324,8 @@ def type_check_expr(
                         return error(f"Variable {expr} not declared", expr)
 
             case ModuleAccess(module=module, element=element):
+                expr.in_next_expr = context.in_next_expr
+
                 if not isinstance(module.type, ModuleType):
                     return error(f"Not a module '{module}'\n\t{expr}", expr)
 
