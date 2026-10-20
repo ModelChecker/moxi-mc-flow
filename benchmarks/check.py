@@ -27,13 +27,13 @@ files = [str(f) for f in pathlib.Path(sys.argv[1]).glob("*.csv")] + [
     str(f) for f in pathlib.Path(sys.argv[2]).glob("*.csv")
 ]
 
+discrepancies = []
 for f1, f2 in list(itertools.combinations(files, 2)):
     print(f"Comparing {f1} {f2}")
 
     f1_results = get_results(f1)
     f2_results = get_results(f2)
 
-    discrepancies = []
     for filename in f1_results.keys():
         if filename not in f2_results:
             print(f"{filename} not in {f2}, but in {f1}")
