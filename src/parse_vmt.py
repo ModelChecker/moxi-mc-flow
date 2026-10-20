@@ -4,6 +4,7 @@ from typing import Optional
 import re
 
 from src import sly, log, vmt, moxi
+from src.util import unquote_symbol
 
 FILE_NAME = pathlib.Path(__file__).name
 
@@ -74,6 +75,10 @@ class Lexer(sly.Lexer):
     SYMBOL["define-fun"]    = CMD_DEFINE_FUN
     SYMBOL["declare-fun"]   = CMD_DECLARE_FUN
     SYMBOL["assert"]        = CMD_ASSERT
+
+    def SYMBOL(self, t):
+        t.value = unquote_symbol(t.value)
+        return t
 
     # Extra action for newlines
     def ignore_newline(self, t):

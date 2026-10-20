@@ -15,10 +15,8 @@ def to_moxi_ident(smv_ident: str) -> str:
         .replace("__lbrack__", "[")
         .replace("__rbrack__", "]")
     )
-    if new_ident[0] == '"':
-        return "|" + new_ident[1:-1] + "|"
-    if any([c in new_ident for c in {":", "[" "]", "#"}]):
-        return "|" + new_ident + "|"
+    if new_ident and new_ident[0] == '"':
+        return new_ident[1:-1]
     return new_ident
 
 
@@ -966,16 +964,16 @@ def gather_inv(
                 source_module = mod_typ.module_name
 
                 if (
-                    elem in context.defs[source_module]
+                    elem.ident in context.defs[source_module]
                 ):  # if the module access refers to a def'd element, specialize it and construct expr
                     translate_expr(
-                        context.defs[source_module][elem],
+                        context.defs[source_module][elem.ident],
                         context,
                         expr_map,
                         in_let_expr=False,
                         module=context.modules[module_name],
                     )
-                    defn = expr_map[context.defs[source_module][elem]]
+                    defn = expr_map[context.defs[source_module][elem.ident]]
                     sdefn = specialize_vars_in_expr(to_moxi_ident(var_name.ident), defn)
                     init_expr = moxi.Apply.Eq(
                         [
@@ -1239,10 +1237,9 @@ def translate_module(
     justice: dict[str, moxi.Term] = gather_justice(smv_module, context, expr_map)
     panda: dict[str, moxi.Term] = gather_pandaspecs(smv_module, context, expr_map)
 
-    if len(reachable) == 0 and len(panda) == 0:
-        check_system: list[moxi.Command] = []
-    else:
-        check_system: list[moxi.Command] = [
+    check_system: list[moxi.Command] = []
+    if len(reachable) != 0 or len(panda) != 0:
+        check_system = [
             moxi.CheckSystem(
                 symbol=smv_module.name,
                 input=input,

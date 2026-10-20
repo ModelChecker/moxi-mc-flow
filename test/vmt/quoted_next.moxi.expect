@@ -1,0 +1,14 @@
+(set-logic ALL)
+(define-system main 
+   :input () 
+   :output ((x Bool)) 
+   :local () 
+   :init (not x) 
+   :trans (= x' x) 
+   :inv true )
+(check-system main 
+   :input () 
+   :output ((x Bool)) 
+   :local () 
+   :reachable (rch_0 (not (not x)))
+   :query (qry_rch_0 (rch_0)))
