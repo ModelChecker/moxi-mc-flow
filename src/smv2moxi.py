@@ -514,7 +514,7 @@ def translate_expr(
                 expr_map[expr] = moxi.Variable(
                     sort=translate_type(expr.type, context),
                     symbol=ma_module.ident + "." + ma_elem.ident,
-                    prime=False,
+                    prime=context.in_next_expr,
                 )
             case smv.Ternary(cond=cond, then_expr=then_expr, else_expr=else_expr):
                 expr_map[expr] = moxi.Apply(
