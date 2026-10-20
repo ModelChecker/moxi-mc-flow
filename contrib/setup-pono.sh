@@ -5,7 +5,7 @@ pushd $DEPS_DIR
 git clone https://github.com/stanford-centaur/pono.git
 mv pono pono-dir
 pushd pono-dir
-git checkout hwmcc2020
+git checkout v2.0.0
 ./contrib/setup-bison.sh 
 ./contrib/setup-smt-switch.sh # install gmp and JRE
 ./contrib/setup-btor2tools.sh
