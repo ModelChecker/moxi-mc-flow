@@ -243,7 +243,9 @@ def from_json(schema_path: pathlib.Path, contents: dict) -> Optional[moxi.Progra
             )
             program.append(new)
 
-    return moxi.Program(program)
+    result = moxi.Program(program)
+    moxi.sanitize_reserved_identifiers(result)
+    return result
 
 
 def main(

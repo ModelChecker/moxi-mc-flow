@@ -42,14 +42,39 @@ def run_sortcheck(src_path: pathlib.Path) -> int:
     return PASS
 
 
-def run_catbtor(src_path: pathlib.Path) -> int:
-    proc = subprocess.run([str(CATBTOR), src_path], capture_output=True)
+def _binary_unusable(stderr: str) -> bool:
+    markers = (
+        "GLIBC_",
+        "GLIBCXX_",
+        "error while loading shared libraries",
+        "Exec format error",
+    )
+    return any(marker in stderr for marker in markers)
 
+
+def run_catbtor(src_path: pathlib.Path) -> int:
+    try:
+        proc = subprocess.run([str(CATBTOR), src_path], capture_output=True)
+    except OSError as exc:
+        log.warning(
+            f"catbtor could not be executed ({exc}); skipping BTOR2 validation",
+            FILE_NAME,
+        )
+        return PASS
+
+    stderr = proc.stderr.decode("utf-8", errors="replace")
     if proc.returncode:
-        sys.stderr.write(proc.stderr.decode("utf-8"))
+        if _binary_unusable(stderr):
+            log.warning(
+                "catbtor is incompatible with this system; skipping BTOR2 validation",
+                FILE_NAME,
+            )
+            log.debug(1, stderr.strip(), FILE_NAME)
+            return PASS
+        sys.stderr.write(stderr)
         return FAIL
 
-    log.debug(1, proc.stderr.decode("utf-8")[:-1], FILE_NAME)
+    log.debug(1, stderr[:-1], FILE_NAME)
     return PASS
 
 

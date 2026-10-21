@@ -1,0 +1,14 @@
+(set-logic ALL)
+(define-system main 
+   :input () 
+   :output ((_ite Int)) 
+   :local () 
+   :init (= _ite 0) 
+   :trans (= _ite' (+ _ite 1)) 
+   :inv true )
+(check-system main 
+   :input () 
+   :output ((_ite Int)) 
+   :local () 
+   :reachable (rch_0 (not (>= _ite 0)))
+   :query (qry_rch_0 (rch_0)))

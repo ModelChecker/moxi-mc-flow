@@ -1341,7 +1341,9 @@ def translate(
     if the_logic:
         commands = [the_logic] + commands
 
-    return moxi.Program(commands=commands)
+    program = moxi.Program(commands=commands)
+    moxi.sanitize_reserved_identifiers(program)
+    return program
 
 
 def translate_file(

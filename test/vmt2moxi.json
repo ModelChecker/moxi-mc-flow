@@ -91,6 +91,15 @@
                 ["vmt/transmitter.13.moxi.expect",
                  "vmt/transmitter.13.moxi"]
             ]
+        },
+        {
+            "options": ["--with-lets"],
+            "input": "vmt/reserved_ite.vmt",
+            "output": "vmt/reserved_ite.moxi",
+            "expected_output": [
+                ["vmt/reserved_ite.moxi.expect",
+                 "vmt/reserved_ite.moxi"]
+            ]
         }
     ] 
 }

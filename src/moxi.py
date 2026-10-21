@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional, cast
 
 from src import log
-from src.util import format_symbol
+from src.util import format_symbol, sanitize_moxi_ident, MOXI_RESERVED_IDENTIFIERS
 
 FILE_NAME = Path(__file__).name
 
@@ -581,7 +581,7 @@ def rename_vars(term: Term, vars: dict[Variable, Term], context: Context) -> Ter
     new_term = copy(term)
 
     for subterm in postorder(new_term, context):
-        if subterm in vars:
+        if isinstance(subterm, Variable) and subterm in vars:
             subterm.replace(vars[subterm])
 
     return new_term
@@ -1060,6 +1060,222 @@ class Program:
 
     def to_json(self) -> list:
         return [cmd.to_json() for cmd in self.commands]
+
+
+def _walk_terms(term: Term):
+    stack: list[Term] = [term]
+    seen: set[int] = set()
+    while stack:
+        cur = stack.pop()
+        cid = id(cur)
+        if cid in seen:
+            continue
+        seen.add(cid)
+        yield cur
+        stack.extend(reversed(cur.children))
+
+
+def _refresh_system_signature(cmd: SystemCommand) -> None:
+    cmd.input_vars = [Variable(sort, symbol, False) for symbol, sort in cmd.input]
+    cmd.output_vars = [Variable(sort, symbol, False) for symbol, sort in cmd.output]
+    cmd.local_vars = [Variable(sort, symbol, False) for symbol, sort in cmd.local]
+    cmd.input_symbols = set(s for s, _ in cmd.input)
+    cmd.output_symbols = set(s for s, _ in cmd.output)
+    cmd.local_symbols = set(s for s, _ in cmd.local)
+    cmd.signature = [s for s, _ in cmd.input] + [s for s, _ in cmd.output]
+    cmd.full_signature = cmd.signature + [s for s, _ in cmd.local]
+
+
+def _rename_sorted_vars(
+    vars: list[tuple[str, Sort]], rename: dict[str, str]
+) -> list[tuple[str, Sort]]:
+    return [(rename.get(symbol, symbol), sort) for symbol, sort in vars]
+
+
+def _rename_term_dict(
+    terms: dict[str, Term], rename: dict[str, str]
+) -> dict[str, Term]:
+    renamed: dict[str, Term] = {}
+    for symbol, term in terms.items():
+        new_symbol = rename.get(symbol, symbol)
+        renamed[new_symbol] = term
+        if term.field:
+            cmd, field_name, _ = term.field
+            term.field = (cmd, field_name, new_symbol)
+    return renamed
+
+
+def _rename_sort(sort: Sort, user_sort_rename: dict[str, str]) -> None:
+    if sort.symbol in user_sort_rename:
+        sort.identifier.symbol = user_sort_rename[sort.symbol]
+    for param in sort.parameters:
+        _rename_sort(param, user_sort_rename)
+
+
+def _apply_ident_rename(
+    term: Term,
+    rename: dict[str, str],
+    declared_funs: set[str],
+    user_sort_rename: dict[str, str],
+) -> None:
+    for cur in _walk_terms(term):
+        if isinstance(cur, Variable) and cur.symbol in rename:
+            cur.symbol = rename[cur.symbol]
+        elif isinstance(cur, LetTerm):
+            cur.vars = [rename.get(v, v) for v in cur.vars]
+        elif (
+            isinstance(cur, Apply)
+            and cur.identifier.symbol in declared_funs
+            and cur.identifier.symbol in rename
+        ):
+            cur.identifier.symbol = rename[cur.identifier.symbol]
+        elif (
+            isinstance(cur, Constant)
+            and isinstance(cur.value, str)
+            and cur.value in rename
+        ):
+            cur.value = rename[cur.value]
+        if user_sort_rename:
+            _rename_sort(cur.sort, user_sort_rename)
+
+
+def sanitize_reserved_identifiers(program: Program) -> None:
+    """Rewrite user identifiers that collide with MoXI reserved operators/keywords.
+
+    Theory operators in applications (e.g. `(ite ...)`) are left unchanged.
+    User-declared functions with reserved names are renamed, including their
+    applications. Theory sorts such as `Bool` are only rewritten when they were
+    declared as user sorts.
+    """
+    user_idents: set[str] = set()
+    declared_funs: set[str] = set()
+    user_sorts: set[str] = set()
+
+    def add_ident(symbol: str) -> None:
+        user_idents.add(symbol)
+
+    for cmd in program.commands:
+        if isinstance(cmd, (DeclareSort, DefineSort, DeclareEnumSort)):
+            add_ident(cmd.symbol)
+            user_sorts.add(cmd.symbol)
+        if isinstance(cmd, DefineSort):
+            for parameter in cmd.parameters:
+                add_ident(parameter)
+        if isinstance(cmd, DeclareEnumSort):
+            for value in cmd.values:
+                add_ident(value)
+        if isinstance(cmd, (DeclareConst, DeclareFun, DefineFun)):
+            add_ident(cmd.symbol)
+            declared_funs.add(cmd.symbol)
+        if isinstance(cmd, DefineFun):
+            for symbol, _ in cmd.input:
+                add_ident(symbol)
+        if isinstance(cmd, SystemCommand):
+            add_ident(cmd.symbol)
+            for symbol, _ in cmd.input + cmd.output + cmd.local:
+                add_ident(symbol)
+        if isinstance(cmd, DefineSystem):
+            for inst, (target, args) in cmd.subsystem_signatures.items():
+                add_ident(inst)
+                add_ident(target)
+                for arg in args:
+                    add_ident(arg)
+        if isinstance(cmd, CheckSystem):
+            for mapping in (
+                cmd.assumption,
+                cmd.fairness,
+                cmd.reachable,
+                cmd.current,
+                cmd.query,
+            ):
+                for symbol in mapping:
+                    add_ident(symbol)
+            for labels in cmd.query.values():
+                for label in labels:
+                    add_ident(label)
+            for query in cmd.queries:
+                for symbol, labels in query.items():
+                    add_ident(symbol)
+                    for label in labels:
+                        add_ident(label)
+        for term in cmd.get_terms():
+            for cur in _walk_terms(term):
+                if isinstance(cur, Variable):
+                    add_ident(cur.symbol)
+                elif isinstance(cur, LetTerm):
+                    for binder, _ in cur.get_binders():
+                        add_ident(binder)
+                elif isinstance(cur, Constant) and isinstance(cur.value, str):
+                    add_ident(cur.value)
+
+    occupied = set(user_idents)
+    rename = {
+        ident: sanitize_moxi_ident(ident, occupied)
+        for ident in user_idents
+        if ident in MOXI_RESERVED_IDENTIFIERS
+    }
+    if not rename:
+        return
+
+    user_sort_rename = {old: new for old, new in rename.items() if old in user_sorts}
+
+    for cmd in program.commands:
+        if isinstance(cmd, (DeclareSort, DefineSort, DeclareEnumSort)):
+            cmd.symbol = rename.get(cmd.symbol, cmd.symbol)
+        if isinstance(cmd, DefineSort):
+            cmd.parameters = [rename.get(p, p) for p in cmd.parameters]
+            _rename_sort(cmd.definition, user_sort_rename)
+        if isinstance(cmd, DeclareEnumSort):
+            cmd.values = [rename.get(v, v) for v in cmd.values]
+        if isinstance(cmd, (DeclareConst, DeclareFun, DefineFun)):
+            cmd.symbol = rename.get(cmd.symbol, cmd.symbol)
+        if isinstance(cmd, DeclareConst):
+            _rename_sort(cmd.sort, user_sort_rename)
+        if isinstance(cmd, DeclareFun):
+            for sort in cmd.inputs:
+                _rename_sort(sort, user_sort_rename)
+            _rename_sort(cmd.output_sort, user_sort_rename)
+        if isinstance(cmd, DefineFun):
+            cmd.input = _rename_sorted_vars(cmd.input, rename)
+            for _, sort in cmd.input:
+                _rename_sort(sort, user_sort_rename)
+            _rename_sort(cmd.output_sort, user_sort_rename)
+        if isinstance(cmd, SystemCommand):
+            cmd.symbol = rename.get(cmd.symbol, cmd.symbol)
+            cmd.input = _rename_sorted_vars(cmd.input, rename)
+            cmd.output = _rename_sorted_vars(cmd.output, rename)
+            cmd.local = _rename_sorted_vars(cmd.local, rename)
+            for _, sort in cmd.input + cmd.output + cmd.local:
+                _rename_sort(sort, user_sort_rename)
+            _refresh_system_signature(cmd)
+        if isinstance(cmd, DefineSystem):
+            cmd.subsystem_signatures = {
+                rename.get(inst, inst): (
+                    rename.get(target, target),
+                    [rename.get(arg, arg) for arg in args],
+                )
+                for inst, (target, args) in cmd.subsystem_signatures.items()
+            }
+        if isinstance(cmd, CheckSystem):
+            cmd.assumption = _rename_term_dict(cmd.assumption, rename)
+            cmd.fairness = _rename_term_dict(cmd.fairness, rename)
+            cmd.reachable = _rename_term_dict(cmd.reachable, rename)
+            cmd.current = _rename_term_dict(cmd.current, rename)
+            cmd.query = {
+                rename.get(symbol, symbol): [rename.get(label, label) for label in labels]
+                for symbol, labels in cmd.query.items()
+            }
+            cmd.queries = [
+                {
+                    rename.get(symbol, symbol): [
+                        rename.get(label, label) for label in labels
+                    ]
+                    for symbol, labels in query.items()
+                }
+                for query in cmd.queries
+            ]
+        for term in cmd.get_terms():
+            _apply_ident_rename(term, rename, declared_funs, user_sort_rename)
 
 
 class SetOption(Command):
@@ -2693,13 +2909,13 @@ def to_qfbv(program: Program, int_width: int):
             # FIXME: Need to check for any Int parameters of the definition
             pass
         elif isinstance(command, DeclareConst) and command.sort.symbol in SORT_MAP:
-            command.sort = SORT_MAP[command.sort.symbol]
+            command.sort = SORT_MAP[command.sort]
         elif isinstance(command, DeclareFun):
             for ivar in [i for i in command.inputs if i.identifier.symbol in SORT_MAP]:
                 command.inputs[command.inputs.index(ivar)] = SORT_MAP[ivar]
 
             if command.output_sort.symbol in SORT_MAP:
-                command.output_sort = SORT_MAP[command.output_sort.symbol]
+                command.output_sort = SORT_MAP[command.output_sort]
         elif isinstance(command, DefineFun):
             for var in [
                 (symbol, sort)
@@ -2710,7 +2926,7 @@ def to_qfbv(program: Program, int_width: int):
                 command.input[command.input.index(var)] = (symbol, SORT_MAP[sort])
 
             if command.output_sort.symbol in SORT_MAP:
-                command.output_sort = SORT_MAP[command.output_sort.symbol]
+                command.output_sort = SORT_MAP[command.output_sort]
         elif isinstance(command, SystemCommand):
             for var in [
                 (symbol, sort) for symbol, sort in command.input if sort in SORT_MAP

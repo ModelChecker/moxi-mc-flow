@@ -1,0 +1,52 @@
+[
+    {
+        "command": "set-logic",
+        "logic": "QF_LIA"
+    },
+    {
+        "command": "define-system",
+        "symbol": "main",
+        "output": [
+            {"symbol": "ite", "sort": {"identifier": "Int"}}
+        ],
+        "init": {
+            "identifier": "=",
+            "args": [
+                {"identifier": "ite"},
+                {"identifier": "0"}
+            ]
+        },
+        "trans": {
+            "identifier": "=",
+            "args": [
+                {"identifier": "ite'"},
+                {"identifier": "+", "args": [
+                    {"identifier": "ite"},
+                    {"identifier": "1"}
+                ]}
+            ]
+        }
+    },
+    {
+        "command": "check-system",
+        "symbol": "main",
+        "output": [
+            {"symbol": "ite", "sort": {"identifier": "Int"}}
+        ],
+        "reachable": [
+            {
+                "symbol": "rch",
+                "formula": {
+                    "identifier": "=",
+                    "args": [
+                        {"identifier": "ite"},
+                        {"identifier": "1"}
+                    ]
+                }
+            }
+        ],
+        "query": [
+            {"symbol": "q", "formulas": ["rch"]}
+        ]
+    }
+]

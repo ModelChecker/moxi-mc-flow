@@ -163,3 +163,7 @@ pyproject.toml
 
 tmp/
 __*
+
+# SV-COMP 2027 tool archive (built by scripts/make-svcomp27-archive.sh)
+moxi-mc-flow-svcomp27.zip
+svcomp27/

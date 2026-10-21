@@ -167,7 +167,9 @@ def translate(
         [],
     )
 
-    return moxi.Program([moxi.SetLogic("ALL"), system, check])
+    program = moxi.Program([moxi.SetLogic("ALL"), system, check])
+    moxi.sanitize_reserved_identifiers(program)
+    return program
 
 
 def translate_file(input_path: pathlib.Path, output_path: pathlib.Path, with_lets: bool) -> int:

@@ -28,6 +28,120 @@ _RESERVED_SYMBOLS = frozenset(
     }
 )
 
+# MoXI/SMT-LIB command names plus theory operators and sorts. User identifiers
+# that match these cannot be declared in moxisc (e.g. a variable named `ite`).
+MOXI_RESERVED_IDENTIFIERS = _RESERVED_SYMBOLS | frozenset(
+    {
+        "define-system",
+        "check-system",
+        "declare-sort",
+        "declare-enum-sort",
+        "declare-const",
+        "define-const",
+        "declare-fun",
+        "define-sort",
+        "define-fun",
+        "set-logic",
+        "exit",
+        "Bool",
+        "true",
+        "false",
+        "not",
+        "=>",
+        "and",
+        "or",
+        "xor",
+        "=",
+        "distinct",
+        "ite",
+        "const",
+        "OnlyChange",
+        "Array",
+        "select",
+        "store",
+        "Int",
+        "Real",
+        "-",
+        "+",
+        "*",
+        "div",
+        "/",
+        "<=",
+        "<",
+        ">=",
+        ">",
+        "divisible",
+        "mod",
+        "abs",
+        "to_real",
+        "to_int",
+        "is_int",
+        "BitVec",
+        "concat",
+        "extract",
+        "repeat",
+        "bvcomp",
+        "bvredand",
+        "bvredor",
+        "bvnot",
+        "bvand",
+        "bvor",
+        "bvnand",
+        "bvnor",
+        "bvxor",
+        "bvxnor",
+        "bvneg",
+        "bvadd",
+        "bvsub",
+        "bvmul",
+        "bvudiv",
+        "bvurem",
+        "bvsdiv",
+        "bvsrem",
+        "bvsmod",
+        "bvshl",
+        "bvlshr",
+        "bvashr",
+        "zero_extend",
+        "sign_extend",
+        "rotate_left",
+        "rotate_right",
+        "bvult",
+        "bvule",
+        "bvugt",
+        "bvuge",
+        "bvslt",
+        "bvsle",
+        "bvsgt",
+        "bvsge",
+    }
+)
+
+
+def is_reserved_moxi_ident(ident: str) -> bool:
+    return ident in MOXI_RESERVED_IDENTIFIERS
+
+
+def sanitize_moxi_ident(ident: str, occupied: set[str] | None = None) -> str:
+    """Return `ident` unchanged, or a `_`-prefixed variant if it is reserved.
+
+    `occupied` is the set of identifiers already in use; new names are added to
+    it when a reserved identifier is rewritten.
+    """
+    if ident not in MOXI_RESERVED_IDENTIFIERS:
+        return ident
+
+    candidate = f"_{ident}"
+    while candidate in MOXI_RESERVED_IDENTIFIERS or (
+        occupied is not None and candidate in occupied
+    ):
+        candidate = f"_{candidate}"
+
+    if occupied is not None:
+        occupied.add(candidate)
+
+    return candidate
+
 
 def unquote_symbol(token: str) -> str:
     """Strip SMT-LIB quotes so `|abc|` and `abc` are the same symbol.

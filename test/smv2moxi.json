@@ -57,6 +57,14 @@
                 ["smv/QF_ABV/two_p2.expanded.moxi.expect",
                  "smv/QF_ABV/two_p2.expanded.moxi"]
             ]
+        },
+        {
+            "input": "smv/reserved_ite.smv",
+            "output": "smv/reserved_ite.moxi",
+            "expected_output": [
+                ["smv/reserved_ite.moxi.expect",
+                 "smv/reserved_ite.moxi"]
+            ]
         }
     ] 
 }
