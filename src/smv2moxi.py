@@ -377,7 +377,7 @@ def translate_expr(
                         il_rhs = expr_map[rhs]
                     case "<":
                         if smv.is_integer_type(lhs.type):
-                            il_op = ">"
+                            il_op = "<"
                         elif isinstance(lhs.type, smv.Word) and lhs.type.signed:
                             il_op = "bvslt"
                         else:
